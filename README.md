@@ -95,165 +95,146 @@ The diagram describes responsibilities, not automatic persistence or generated b
 Third-party plugins can live in their own repositories. They connect through public
 contracts; they do not need to become part of this monorepo.
 
-## Start small: a To-do plugin
+## Build your first feature
 
-A **service** keeps the tasks. An **action** adds a task. A **plugin** groups them.
-Core starts the feature and manages its registrations and cleanup.
+Create an app, add a To-do plugin, and bind an action to your interface.
 
-The following plain JavaScript example runs without a UI framework. Each file has
-one role, so you can see how a feature fits together.
+### 1. Create your app
 
-```text
-todos.mjs             Run the feature
-todos/
-├── plugin.mjs         Compose the service and actions
-├── services/
-│   └── tasks.mjs      Own task operations and state
-└── actions/
-    ├── create.mjs     Create a task
-    ├── list.mjs       List tasks
-    └── delete.mjs     Delete a task
-```
+> **Release preview:** The app generator and framework packages are not published
+> yet. The command below shows the intended setup after release. Core is already
+> available on npm.
 
 ```sh
-npm install @bitakit/core
+npx @bitakit/create-app my-app
 ```
 
-### 1. Give the feature a service
+Choose **Next.js** or **TanStack Start** (experimental). This walkthrough uses Next.js.
+The generator connects the BitaKit provider and build-time discovery.
 
-The service owns the task collection. This example stores tasks in memory; it does not persist them to a database.
+```sh
+cd my-app
+npm run dev
+```
 
-`todos/services/tasks.mjs`
+Your pages and routes remain ordinary Next.js files.
 
-```js
+### 2. Add a plugin folder
+
+Create the `todos` feature files under `src/plugins`. The generator creates the app;
+for this example, you add these plugin files yourself.
+
+```text
+src/
+├── app/
+│   ├── layout.tsx
+│   └── page.tsx
+└── plugins/
+    └── todos/
+        ├── services/
+        │   └── tasks.ts
+        └── actions/
+            └── create.ts
+```
+
+A **service** owns the task behavior. An **action** exposes an operation to your UI.
+The plugin folder groups them into one feature.
+
+### 3. Define the service
+
+`src/plugins/todos/services/tasks.ts`
+
+```ts
 import { defineService } from '@bitakit/core';
 
-function createTodoService() {
-  let tasks = [];
-  let nextId = 1;
-
-  function create(title) {
-    const task = { id: nextId++, title, done: false };
-    tasks.push(task);
-    return task;
-  }
-
-  return {
-    create,
-    list: () => [...tasks],
-    delete(id) {
-      const previousCount = tasks.length;
-      tasks = tasks.filter((task) => task.id !== id);
-      return tasks.length < previousCount;
-    },
-  };
-}
-
 export default defineService({
-  id: 'todos',
-  create: createTodoService,
+  create() {
+    const tasks: string[] = [];
+
+    return {
+      add(title: string) {
+        tasks.push(title);
+      },
+
+      list() {
+        return [...tasks];
+      },
+    };
+  },
 });
 ```
 
-### 2. Expose operations as actions
+Core creates the service when the plugin starts. This example keeps tasks in memory;
+a page reload clears them. A service does not automatically provide database persistence.
 
-The create action declares its required service and forwards the input to it.
+### 4. Define the action
 
-`todos/actions/create.mjs`
+`src/plugins/todos/actions/create.ts`
 
-```js
+```ts
 import { defineAction } from '@bitakit/core';
 
-export default defineAction({
-  id: 'todos.create',
-  requires: ['todos'],
-  execute: ({ services, input }) => services.todos.create(input),
+export default defineAction<string>({
+  requires: ['tasks'],
+
+  execute({ services, input }) {
+    services.tasks.add(input);
+  },
 });
 ```
 
-The other two actions use the same service:
+The action receives a task title and passes it to the service.
 
-`todos/actions/list.mjs`
+### 5. Let discovery connect the feature
 
-```js
-import { defineAction } from '@bitakit/core';
+In the generated app, discovery finds supported files and generates their imports,
+registration, and types during the build.
 
-export default defineAction({
-  id: 'todos.list',
-  requires: ['todos'],
-  execute: ({ services }) => services.todos.list(),
-});
-```
+| Contribution | Discovered identity |
+| --- | --- |
+| `src/plugins/todos/` | Plugin `todos` |
+| `services/tasks.ts` | Public service `tasks` |
+| `actions/create.ts` | Action `todos.create` |
 
-`todos/actions/delete.mjs`
+No handwritten list of service or action imports is needed. You write the feature's
+behavior; the configured discovery integration connects it. See
+[how discovery works](docs/concepts/discovery.md) for conventions and boundaries.
 
-```js
-import { defineAction } from '@bitakit/core';
+### 6. Bind the action to your UI
 
-export default defineAction({
-  id: 'todos.delete',
-  requires: ['todos'],
-  execute: ({ services, input }) => services.todos.delete(input),
-});
-```
+`src/app/page.tsx`
 
-### 3. Group the feature in a plugin
+```tsx
+'use client';
 
-The plugin brings these definitions together. Core manages their registration and lifetime.
+import { ActionButton } from '@bitakit/ui';
 
-`todos/plugin.mjs`
+export default function Page() {
+  return (
+    <main>
+      <h1>My tasks</h1>
 
-```js
-import { definePlugin } from '@bitakit/core';
-import tasks from './services/tasks.mjs';
-import create from './actions/create.mjs';
-import list from './actions/list.mjs';
-import remove from './actions/delete.mjs';
-
-export default definePlugin({
-  id: 'todos',
-  services: [tasks],
-  actions: [create, list, remove],
-});
-```
-
-### 4. Start it and use it
-
-Mount the runtime, execute the actions, and release the registrations when finished.
-
-`todos.mjs`
-
-```js
-import { createActionList, FoundationRuntime } from '@bitakit/core';
-import todos from './todos/plugin.mjs';
-
-const actions = createActionList();
-const runtime = new FoundationRuntime(actions, { plugins: [todos] });
-const stop = runtime.mount();
-
-try {
-  await actions.execute('todos.create', 'Learn plugins');
-  await actions.execute('todos.create', 'Connect a service');
-  await actions.execute('todos.create', 'Try actions');
-  console.log('Before:', await actions.execute('todos.list'));
-  await actions.execute('todos.delete', 2);
-  console.log('After:', await actions.execute('todos.list'));
-} finally {
-  stop();
+      <ActionButton action="todos.create" input="New task">
+        Add a task
+      </ActionButton>
+    </main>
+  );
 }
 ```
 
-The first list contains three tasks. After deleting task 2, the second contains
-tasks 1 and 3. Action execution returns an outcome with `status` and `value`.
+Each click adds **New task** through the action. There is no manual click handler:
+`ActionButton` binds execution and the action's current state to the button. It is
+disabled when the action is disabled or pending, and hidden when the action is hidden.
+Use its `as` prop to render your application's existing button component.
 
-This example uses explicit registration to make the connections visible. In a
-[discovery-enabled host](docs/concepts/discovery.md), supported file conventions
-generate registration instead. The operations themselves remain your feature code.
+This first step demonstrates the connection, not a complete task-list screen: tasks
+are stored but not displayed yet. List rendering, input fields, and a disabled delete
+action are natural next steps. Discovery does not automatically make service data reactive.
 
-Follow **[Build your first To-do plugin](packages/core/docs/todo-tutorial.md)**
-for setup, expected output, and where UI and persistence fit.
+**Your framework renders the page. Your plugin defines the feature. BitaKit connects the parts.**
 
-Want to understand the runtime first? Read the **[Core introduction](packages/core/README.md)**.
+For a standalone, framework-free example with explicit registration and three actions,
+see the [To-do tutorial](packages/core/docs/todo-tutorial.md).
 
 ## Learn the ideas behind the building blocks
 
