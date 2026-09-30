@@ -100,26 +100,149 @@ contracts; they do not need to become part of this monorepo.
 A **service** keeps the tasks. An **action** adds a task. A **plugin** groups them.
 Core starts the feature and manages its registrations and cleanup.
 
-```text
-todos/
-├── services/
-│   └── tasks.ts    Task operations and state
-└── actions/
-    ├── create.ts   Create a task
-    ├── list.ts     List tasks
-    └── delete.ts   Delete a task
-```
+The following plain JavaScript example runs without a UI framework. Each file has
+one role, so you can see how a feature fits together.
 
-This is the folder structure for a discovery-enabled host. The runnable example
-uses separate files and explicit registration so you can run it without a framework.
+```text
+todos.mjs             Run the feature
+todos/
+├── plugin.mjs         Compose the service and actions
+├── services/
+│   └── tasks.mjs      Own task operations and state
+└── actions/
+    ├── create.mjs     Create a task
+    ├── list.mjs       List tasks
+    └── delete.mjs     Delete a task
+```
 
 ```sh
 npm install @bitakit/core
 ```
 
-Then follow **[Build your first To-do plugin](packages/core/docs/todo-tutorial.md)**.
-It walks through a complete runnable example, explains each part, and shows where
-UI and persistence would fit. No database or login is required.
+### 1. Give the feature a service
+
+The service owns the task collection. This example stores tasks in memory; it does not persist them to a database.
+
+`todos/services/tasks.mjs`
+
+```js
+import { defineService } from '@bitakit/core';
+
+export default defineService({
+  id: 'todos',
+  create: () => {
+    const tasks = new Map();
+    let nextId = 1;
+    return {
+      create(title) {
+        const task = { id: nextId++, title, done: false };
+        tasks.set(task.id, task);
+        return task;
+      },
+      list: () => [...tasks.values()],
+      delete: (id) => tasks.delete(id),
+    };
+  },
+});
+```
+
+### 2. Expose operations as actions
+
+The create action declares its required service and forwards the input to it.
+
+`todos/actions/create.mjs`
+
+```js
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  id: 'todos.create',
+  requires: ['todos'],
+  execute: ({ services, input }) => services.todos.create(input),
+});
+```
+
+The other two actions use the same service:
+
+`todos/actions/list.mjs`
+
+```js
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  id: 'todos.list',
+  requires: ['todos'],
+  execute: ({ services }) => services.todos.list(),
+});
+```
+
+`todos/actions/delete.mjs`
+
+```js
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  id: 'todos.delete',
+  requires: ['todos'],
+  execute: ({ services, input }) => services.todos.delete(input),
+});
+```
+
+### 3. Group the feature in a plugin
+
+The plugin brings these definitions together. Core manages their registration and lifetime.
+
+`todos/plugin.mjs`
+
+```js
+import { definePlugin } from '@bitakit/core';
+import tasks from './services/tasks.mjs';
+import create from './actions/create.mjs';
+import list from './actions/list.mjs';
+import remove from './actions/delete.mjs';
+
+export default definePlugin({
+  id: 'todos',
+  services: [tasks],
+  actions: [create, list, remove],
+});
+```
+
+### 4. Start it and use it
+
+Mount the runtime, execute the actions, and release the registrations when finished.
+
+`todos.mjs`
+
+```js
+import { createActionList, FoundationRuntime } from '@bitakit/core';
+import todos from './todos/plugin.mjs';
+
+const actions = createActionList();
+const runtime = new FoundationRuntime(actions, { plugins: [todos] });
+const stop = runtime.mount();
+
+try {
+  await actions.execute('todos.create', 'Learn plugins');
+  await actions.execute('todos.create', 'Connect a service');
+  await actions.execute('todos.create', 'Try actions');
+  console.log('Before:', await actions.execute('todos.list'));
+  await actions.execute('todos.delete', 2);
+  console.log('After:', await actions.execute('todos.list'));
+} finally {
+  stop();
+}
+```
+
+The first list contains three tasks. After deleting task 2, the second contains
+tasks 1 and 3. Action execution returns an outcome with `status` and `value`.
+
+This example uses explicit registration to make the connections visible. In a
+[discovery-enabled host](docs/concepts/discovery.md), supported file conventions
+generate registration instead. The operations themselves remain your feature code.
+
+Follow **[Build your first To-do plugin](packages/core/docs/todo-tutorial.md)**
+for setup, expected output, and where UI and persistence fit.
 
 Want to understand the runtime first? Read the **[Core introduction](packages/core/README.md)**.
 
