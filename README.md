@@ -161,46 +161,16 @@ application-developer experience.
 | `packages/create-app`                | Frontend generator                                                 |
 | Other `packages/*`                   | Optional capabilities and provider integrations                    |
 | `apps/docs`                          | Developer documentation                                            |
-| `apps/content-demo`                  | Smaller integration host                                           |
-| `apps/web`                           | Reference application with authentication and database integration |
 | `docs`                               | Architecture notes and roadmap                                     |
 | `scripts`                            | Workspace and verification tools                                   |
 
 See the [package guide](packages/README.md) for individual responsibilities.
-
-## Working on BitaKit
-
-```sh
-npm run build:actions   # Build the runtime and integration packages
-npm run dev:content    # Start the smaller Next.js integration host
-npm run dev:web        # Start the reference web application
-npm run build:docs     # Build the documentation site
-```
-
-The authenticated examples need their own server configuration. Use
-`apps/web/.env.example` as the starting point; `node scripts/setup-env.mjs` creates
-an ignored local file without overwriting existing values. Supply your own database
-and provider configuration. Never commit credentials or use production data for tests.
-See the [database and authentication guide](docs/development-environment.md).
-
-Validation should match the change:
-
-```sh
-npm run test --workspace @bitakit/core  # Example: runtime tests
-npm run check                                # Package builds, web types and lint
-npm run format:check                         # Formatting without changes
-```
-
-`npm test` runs the broader package suite. Browser and external-service tests have
-additional setup requirements; consult the relevant application's configuration
-before running them.
 
 ## Current boundaries
 
 - TanStack Start support is **experimental**; see its [verified scope](packages/tanstack/README.md).
 - The Next.js generator uses Webpack while the tracked Turbopack discovery issue is open.
 - Plugin discovery is not a marketplace, remote installer or sandbox for untrusted code.
-- Authentication and database-backed examples require explicit server configuration.
 - Core is published; the remaining package releases and hosted documentation are pending.
 
 ## Contributing and licensing
