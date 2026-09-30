@@ -7,7 +7,8 @@
     "dist",
     "README.md",
     "discovery",
-    "docs"
+    "docs",
+    "examples"
   ],
   "exports": {
     ".": {
@@ -35,5 +36,14 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {},
-  "description": "Framework-independent Foundation runtime, actions, and typed services."
+  "description": "Framework-independent Foundation runtime, actions, and typed services.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

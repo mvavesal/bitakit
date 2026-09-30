@@ -1,40 +1,135 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="apps/docs/public/brand/bitakit-logo-dark.png">
-    <img src="apps/docs/public/brand/bitakit-logo.png" alt="BitaKit" width="300" height="130">
-  </picture>
+  <img src="docs/assets/bitakit-banner-castle-assembly.png" alt="BitaKit — Your app. Your building blocks. A modular castle assembled from stairs, walls, and towers." width="1024">
 </p>
 
-# BitaKit
+<h1 align="center">Your next app. Your building blocks. Your rules.</h1>
 
-**A modular app framework. Build your product; compose the foundation.**
+<p align="center">
+  An AI-friendly composition layer for your application.<br>
+  Keep your framework. Structure your features. Build with confidence.
+</p>
 
-BitaKit brings together Actions, typed services, plugins, settings and optional application
-surfaces. Start with a small frontend and add the capabilities your product needs.
-Your application owns its business logic and native framework routes.
+<p align="center">
+  <a href="packages/core/README.md">Start with Core</a> ·
+  <a href="packages/core/docs/todo-tutorial.md">Build a To-do plugin</a> ·
+  <a href="packages/README.md">Explore packages</a> ·
+  <a href="docs/TODO.md">Roadmap</a>
+</p>
 
-[Quick start](apps/docs/content/docs/quickstart.mdx) ·
-[Packages](packages/README.md) ·
-[Generator](packages/create-app/README.md) ·
-[Contributing](apps/docs/content/docs/contributing.mdx) ·
-[Roadmap](docs/TODO.md)
+> **Early preview.** Core is available on npm. The generator and remaining packages
+> are being prepared for publication. APIs are still evolving; TanStack Start is experimental.
 
-> **Pre-release:** BitaKit is under active development. The source packages currently use
-> `@bitakit/*`; public npm publication is pending. Public installation
-> examples describe the intended release workflow, not an available npm release.
+## Build the product you have in mind
 
-## What you can build with
+Keep building with **Next.js** or **TanStack Start**. BitaKit adds a shared structure
+for your application's features: plugins group capabilities, services expose behavior,
+and actions connect that behavior to your interface.
 
-- **Headless runtime:** Actions, plugin lifecycle, typed services and configuration without React in Core.
-- **React integration:** shared providers, reactive bindings and optional themed components.
-- **Framework adapters:** Next.js and experimental TanStack Start integration, each using the host router.
-- **Optional capabilities:** App Preferences, Shell, Quick Search, translations, authentication and organizations.
-- **Server integrations:** an email contract and Nodemailer SMTP implementation, separate from browser code.
-- **A small generator:** native framework scaffolding with installed packages instead of copied plugin implementations.
+**Your framework builds the app. BitaKit helps its features work together.**
+It complements your framework rather than replacing it: native routes, rendering,
+and deployment stay with your chosen stack. TanStack Start integration is currently
+experimental.
 
-Plugins own their behavior and translation catalogs. Applications compose them and can
-override translations. Third-party plugins can live in their own repositories and use
-BitaKit's public contracts; they do not need to be added to this monorepo.
+**AI-friendly. Human-readable.** Give your team and coding assistants a common map:
+where features belong, how services connect, and how actions are exposed. Explicit
+contracts and predictable conventions provide context for AI-assisted development
+and make the resulting code easier for people to navigate and review. Tests and
+review remain part of the workflow.
+
+**Modular by design.** Begin with Core and add the packages your product needs.
+Keep a feature's behavior together in a plugin, then compose it with the rest of
+your application.
+
+**Typed where the pieces connect.** Typed service contracts and action definitions
+help you carry inputs and results across feature boundaries. Discovery can generate
+registration and application types from your contributions. Runtime validation and
+server authorization still belong at the appropriate application boundaries.
+
+**Your app stays yours.** Keep your native framework routes, choose your visual
+components, and connect your own services through public contracts. The headless
+Core runs without React or a browser; optional integrations connect it to your host.
+
+**Less wiring. More building.** In a configured host, discovery connects supported
+plugin, service, and action files and generates their registration and types.
+Define your feature in the expected structure and let the build handle the wiring.
+[See how discovery works](docs/concepts/discovery.md).
+
+**Room to grow.** Add features through plugins and extend the application through
+shared contracts. Build a focused internal tool, an admin application, or the
+foundation of a SaaS product—without making SaaS a requirement.
+
+```mermaid
+flowchart TB
+    Dev[Your team and AI coding assistants] --> App
+    subgraph App[Your application]
+        Framework[Next.js or TanStack Start — routes and rendering]
+        UI[Your interface and product behavior]
+        Adapter[BitaKit framework adapter]
+        Core[BitaKit Core — composition and lifecycle]
+        Plugins[Feature plugins]
+        Actions[Named actions]
+        Services[Typed services]
+        Framework --> UI
+        Framework --> Adapter
+        Adapter --> Core
+        Core --> Plugins
+        Plugins --> Actions
+        Plugins --> Services
+        UI --> Actions
+        Actions --> Services
+    end
+    Services --> External[Your APIs, storage, and external providers]
+```
+
+The adapter connects BitaKit to the host framework. Core coordinates trusted plugins
+and their lifecycle; it does not take over routing, rendering, or deployment.
+The diagram describes responsibilities, not automatic persistence or generated business logic.
+
+| Build with                      | Responsibility                                                      |
+| ------------------------------- | ------------------------------------------------------------------- |
+| **Core**                        | Plugins, services, actions, configuration, and lifecycle.           |
+| **React bindings**              | Connect your interface to the shared runtime.                       |
+| **Next.js / TanStack adapters** | Connect discovery and navigation to your framework.                 |
+| **Optional plugins**            | Add settings, shell, search, translation, or provider integrations. |
+
+Third-party plugins can live in their own repositories. They connect through public
+contracts; they do not need to become part of this monorepo.
+
+## Start small: a To-do plugin
+
+A **service** keeps the tasks. An **action** adds a task. A **plugin** groups them.
+Core starts the feature and manages its registrations and cleanup.
+
+```text
+todos/
+├── services/
+│   └── tasks.ts    Task operations and state
+└── actions/
+    ├── create.ts   Create a task
+    ├── list.ts     List tasks
+    └── delete.ts   Delete a task
+```
+
+This is the folder structure for a discovery-enabled host. The runnable example
+uses separate files and explicit registration so you can run it without a framework.
+
+```sh
+npm install @bitakit/core
+```
+
+Then follow **[Build your first To-do plugin](packages/core/docs/todo-tutorial.md)**.
+It walks through a complete runnable example, explains each part, and shows where
+UI and persistence would fit. No database or login is required.
+
+Want to understand the runtime first? Read the **[Core introduction](packages/core/README.md)**.
+
+## Learn the ideas behind the building blocks
+
+- **[How does discovery work?](docs/concepts/discovery.md)** Connect supported contributions through file conventions and generated registration.
+- **[Why actions?](docs/concepts/actions.md)** One operation, shared across buttons, menus, and other entry points.
+- **[What is a service?](docs/concepts/services.md)** Reusable behavior, explicit contracts, and managed lifetimes.
+- **[Configuration or user preferences?](docs/concepts/configuration-and-preferences.md)** Understand what Core owns and what optional settings packages add.
+- **[Build a To-do plugin](packages/core/docs/todo-tutorial.md)** Follow one feature from definition to execution.
 
 ## Explore the documentation
 
@@ -106,7 +201,7 @@ before running them.
 - The Next.js generator uses Webpack while the tracked Turbopack discovery issue is open.
 - Plugin discovery is not a marketplace, remote installer or sandbox for untrusted code.
 - Authentication and database-backed examples require explicit server configuration.
-- Public npm publication, hosted documentation and the project license decision are still pending.
+- Core is published; the remaining package releases and hosted documentation are pending.
 
 ## Contributing and licensing
 
@@ -114,5 +209,5 @@ Keep changes focused, preserve the package boundaries, and document public behav
 in English. Start with the [contributor guide](apps/docs/content/docs/contributing.mdx)
 and the nearest `AGENTS.md` before changing a package or application.
 
-A project-wide license has not yet been selected. Dependency notices are recorded in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); they do not license BitaKit itself.
+BitaKit is licensed under the [MIT License](LICENSE). Third-party components retain
+their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -659,3 +659,14 @@ in the signed-in organization settings. Package manifests, imports, generator te
 now use `@bitakit`. Preserve existing storage/cookie keys and Foundation API names;
 this is a package-scope migration, not a persistence or API redesign. Documentation and README use the supplied
 transparent light/dark BitaKit logos without recoloring. Registration is not publication.
+
+### Core documentation entry point
+
+- Core README introduces plugins, services, actions and lifecycle through the runnable
+  in-memory To-do example in `packages/core/examples/todos.mjs`. Keep its output verified
+  against the actual runtime. Explain explicit composition before optional file discovery.
+- Keep advanced detail in `packages/core/docs/reference.md`. Diagrams in the npm README
+  must remain readable without Mermaid support. Core has no UI stylesheet.
+- BitaKit uses MIT; include the license in published package archives. Core 0.1.0 is
+  published on npm. README changes require a subsequent publication to appear there;
+  do not describe the rest of the package family as published without registry verification.

@@ -28,5 +28,14 @@
     "@types/node": "^24",
     "@types/nodemailer": "^7"
   },
-  "description": "Server-only Nodemailer SMTP plugin for SaaS Foundation."
+  "description": "Server-only Nodemailer SMTP plugin for SaaS Foundation.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/nodemailer"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

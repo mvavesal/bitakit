@@ -86,5 +86,14 @@
     "tsx": "^4.23.15",
     "typescript": "^5"
   },
-  "description": "Optional Foundation adapter for the directly imported Better Auth UI HeroUI library."
+  "description": "Optional Foundation adapter for the directly imported Better Auth UI HeroUI library.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/better-auth-ui"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

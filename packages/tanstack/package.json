@@ -43,5 +43,14 @@
     "typescript": "^5",
     "@types/react": "^19"
   },
-  "description": "Optional TanStack Router/Start host adapter for Foundation."
+  "description": "Optional TanStack Router/Start host adapter for Foundation.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/tanstack"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

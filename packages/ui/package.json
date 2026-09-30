@@ -52,5 +52,14 @@
     "react-dom": "19.3.0",
     "typescript": "^5"
   },
-  "description": "Foundation React bindings and optional standard themed components."
+  "description": "Foundation React bindings and optional standard themed components.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/ui"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

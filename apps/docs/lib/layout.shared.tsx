@@ -1,11 +1,13 @@
 import Image from 'next/image';
-import lightLogo from '../public/brand/bitakit-logo.png';
-import darkLogo from '../public/brand/bitakit-logo-dark.png';
+import lightLogo from '../public/brand/bitakit-logo.svg';
+import darkLogo from '../public/brand/bitakit-logo-dark.svg';
 import { appName } from './shared';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
 export function baseOptions(): BaseLayoutProps {
   return {
+    githubUrl: 'https://github.com/mvavesal/bitakit',
+    themeSwitch: { mode: 'light-dark' },
     nav: {
       title: (
         <>
@@ -15,7 +17,7 @@ export function baseOptions(): BaseLayoutProps {
             width={300}
             height={130}
             unoptimized
-            className="h-11 w-auto dark:hidden"
+            className="h-9 w-auto md:-translate-y-1 dark:hidden"
           />
           <Image
             src={darkLogo}
@@ -23,7 +25,7 @@ export function baseOptions(): BaseLayoutProps {
             width={300}
             height={130}
             unoptimized
-            className="hidden h-11 w-auto dark:block"
+            className="hidden h-9 w-auto md:-translate-y-1 dark:block"
           />
         </>
       ),

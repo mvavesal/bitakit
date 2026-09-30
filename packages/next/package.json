@@ -49,5 +49,14 @@
     "typescript": "^5",
     "@types/react": "^19"
   },
-  "description": "Next.js discovery and routing adapter for SaaS Foundation."
+  "description": "Next.js discovery and routing adapter for SaaS Foundation.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/next"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

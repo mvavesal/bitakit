@@ -48,5 +48,14 @@
   },
   "foundation": {
     "plugin": "./foundation"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/quick-search"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

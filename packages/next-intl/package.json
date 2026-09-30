@@ -34,5 +34,14 @@
     "typescript": "^5",
     "@types/react": "^19"
   },
-  "description": "next-intl translation plugin for SaaS Foundation."
+  "description": "next-intl translation plugin for SaaS Foundation.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/next-intl"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

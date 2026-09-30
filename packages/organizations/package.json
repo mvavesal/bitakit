@@ -34,5 +34,14 @@
     "@types/react": "^19",
     "typescript": "^5"
   },
-  "description": "Provider-independent organization contracts, service, and demo backend."
+  "description": "Provider-independent organization contracts, service, and demo backend.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/organizations"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

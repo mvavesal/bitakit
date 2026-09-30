@@ -25,5 +25,14 @@
     "execa": "^9.6.0",
     "validate-npm-package-name": "^7.0.0",
     "@tanstack/cli": "0.71.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/create-app"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

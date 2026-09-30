@@ -75,5 +75,14 @@
     "reicon-react": "1.2.5",
     "@standard-schema/spec": "^1.0.0",
     "zod": "^4.6.5"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/app-preferences"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
