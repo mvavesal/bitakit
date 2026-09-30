@@ -1,0 +1,14 @@
+{
+  "Foundation": {
+    "cancel": "Abbrechen",
+    "submit": "Speichern",
+    "pending": "Wird gespeichert …",
+    "invalid": "Bitte prüfe deine Eingaben.",
+    "unavailable": "Nicht verfügbar"
+  },
+  "foundationUI": {
+    "dialog": {
+      "close": "Schließen"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "member" ADD COLUMN "disabled" BOOLEAN NOT NULL DEFAULT false;

@@ -1,0 +1,90 @@
+{
+  "name": "@bitakit/better-auth-ui",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": [
+    "./theme.css",
+    "./styles.css",
+    "./organization-styles.css"
+  ],
+  "files": [
+    "dist",
+    "theme.css",
+    "README.md",
+    "CATALOG.md",
+    "styles.css",
+    "CUSTOM_COMPONENTS.md",
+    "organization-styles.css",
+    "locales"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./theme.css": "./theme.css",
+    "./catalog": {
+      "types": "./dist/catalog.d.ts",
+      "default": "./dist/catalog.js"
+    },
+    "./plugins/*": {
+      "types": "./dist/upstream/*.d.ts",
+      "default": "./dist/upstream/*.js"
+    },
+    "./email": {
+      "types": "./dist/upstream/email.d.ts",
+      "default": "./dist/upstream/email.js"
+    },
+    "./plugins": {
+      "types": "./dist/upstream/index.d.ts",
+      "default": "./dist/upstream/index.js"
+    },
+    "./styles.css": "./styles.css",
+    "./organizations": {
+      "types": "./dist/organizations.d.ts",
+      "default": "./dist/organizations.js"
+    },
+    "./organization-styles.css": "./organization-styles.css",
+    "./locales/*.json": "./locales/*.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@better-auth-ui/core": "1.7.15",
+    "@better-auth-ui/heroui": "1.7.15",
+    "@better-auth-ui/react": "1.7.15",
+    "@heroui/react": "^3.2.1",
+    "@heroui/styles": "^3.2.1",
+    "@bitakit/core": "0.1.0",
+    "@bitakit/app-preferences": "0.1.0",
+    "@tanstack/react-query": "^5.103.1",
+    "better-auth": "^1.7.5",
+    "reicon-react": "1.2.5",
+    "@bitakit/ui": "0.1.0",
+    "@hookform/resolvers": "^5.9.1",
+    "nuqs": "2.10.1",
+    "react-hook-form": "^7.88.0",
+    "zod": "^4.6.5",
+    "@bitakit/organizations": "0.1.0",
+    "@bitakit/better-auth": "0.1.0",
+    "radix-ui": "^1.6.7",
+    "class-variance-authority": "^0.7.1",
+    "cn": "^0.3.0",
+    "@base-ui/react": "^1.8.0",
+    "cmdk": "^1.1.1",
+    "@bitakit/shell": "0.1.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  },
+  "description": "Optional Foundation adapter for the directly imported Better Auth UI HeroUI library."
+}

@@ -1,0 +1,500 @@
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success-surface);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-border: var(--status-success-border);
+  --color-warning: var(--warning-surface);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-border: var(--status-warning-border);
+  --color-error: var(--error-surface);
+  --color-error-foreground: var(--error-foreground);
+  --color-error-border: var(--status-error-border);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-card: calc(var(--radius) * 2);
+  --radius-checkbox: calc(var(--radius) * 0.45);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --warning-surface: oklch(0.975 0.028 85);
+  --warning-foreground: oklch(0.4 0.075 70);
+  --status-warning-border: oklch(0.89 0.05 85);
+  --success-surface: oklch(0.97 0.025 155);
+  --success-foreground: oklch(0.36 0.075 155);
+  --status-success-border: oklch(0.88 0.045 155);
+  --error-surface: oklch(0.97 0.018 15);
+  --error-foreground: oklch(0.43 0.13 15);
+  --status-error-border: oklch(0.88 0.045 15);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.95 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.875rem;
+  --corner-shape: squircle;
+  /* Control depth: shared by the existing shadcn slots, independent of geometry. */
+  --control-surface: var(--background);
+  --control-highlight: oklch(1 0 0 / 28%);
+  --control-edge: oklch(0 0 0 / 10%);
+  --control-shadow: oklch(0 0 0 / 12%);
+  --control-inset-shadow: oklch(0 0 0 / 6%);
+  --control-primary-lift: 10%;
+  --control-primary-shade: 3%;
+  --control-neutral-shade: 2%;
+  --sidebar: var(--light--sidebar);
+  --sidebar-foreground: var(--light--sidebar-foreground);
+  --sidebar-primary: var(--light--sidebar-primary);
+  --sidebar-primary-foreground: var(--light--sidebar-primary-foreground);
+  --sidebar-accent: var(--light--sidebar-accent);
+  --sidebar-accent-foreground: var(--light--sidebar-accent-foreground);
+  --sidebar-border: var(--light--sidebar-border);
+  --sidebar-ring: var(--light--sidebar-ring);
+}
+
+.dark {
+  --warning-surface: oklch(0.27 0.035 75);
+  --warning-foreground: oklch(0.9 0.07 85);
+  --status-warning-border: oklch(0.4 0.055 75);
+  --success-surface: oklch(0.25 0.035 155);
+  --success-foreground: oklch(0.88 0.055 155);
+  --status-success-border: oklch(0.37 0.045 155);
+  --error-surface: oklch(0.25 0.035 15);
+  --error-foreground: oklch(0.89 0.055 15);
+  --status-error-border: oklch(0.39 0.055 15);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --control-surface: var(--card);
+  --control-highlight: oklch(1 0 0 / 12%);
+  --control-edge: oklch(0 0 0 / 22%);
+  --control-shadow: oklch(0 0 0 / 28%);
+  --control-inset-shadow: oklch(0 0 0 / 20%);
+  --control-primary-lift: 5%;
+  --control-primary-shade: 5%;
+  --control-neutral-shade: 8%;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: var(--dark--sidebar);
+  --sidebar-foreground: var(--dark--sidebar-foreground);
+  --sidebar-primary: var(--dark--sidebar-primary);
+  --sidebar-primary-foreground: var(--dark--sidebar-primary-foreground);
+  --sidebar-accent: var(--dark--sidebar-accent);
+  --sidebar-accent-foreground: var(--dark--sidebar-accent-foreground);
+  --sidebar-border: var(--dark--sidebar-border);
+  --sidebar-ring: var(--dark--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* The theme owns corner geometry. Radius utilities only control its size. */
+@layer components {
+  @supports (corner-shape: squircle) {
+    :where(*) {
+      corner-shape: var(--corner-shape, squircle);
+    }
+
+    /* Decorative borders follow the geometry of their owning component. */
+    :where(*)::before,
+    :where(*)::after {
+      corner-shape: inherit;
+    }
+
+    /* Textboxes and badges always keep round curves; also the per-element opt-out. */
+    :where(
+      .rounded-full,
+      [data-corner='round'],
+      [data-slot='switch-thumb'],
+      [data-slot='slider-thumb'],
+      [role='radio'],
+      [role='switch'],
+      input[type='radio'],
+      [data-slot='input'],
+      [data-slot='input-group'],
+      [data-slot='combobox-chips'],
+      [data-slot='sidebar-input'],
+      [data-slot='textarea'],
+      [data-slot='badge'],
+      [data-slot='sidebar-menu-badge'],
+      textarea,
+      input:not([type='radio']):not([type='checkbox'])
+    ) {
+      corner-shape: round;
+    }
+  }
+}
+
+/* Theme finish only. Component dimensions, radii and interaction logic stay in Vega. */
+@layer utilities {
+  @media (forced-colors: none) {
+    /* Compose with Tailwind's ring layers so focus and validation remain visible. */
+    :is(
+      [data-slot='button'][data-variant='default'],
+      [data-slot='button'][data-variant='secondary'],
+      [data-slot='button'][data-variant='outline'],
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='input-group'],
+      [data-slot='combobox-chips'],
+      [data-slot='checkbox'],
+      [data-slot='radio-group-item'],
+      [data-slot='switch'],
+      [data-slot='switch-thumb']
+    ):not(.border-0, .border-none, .shadow-none) {
+      --tw-shadow: var(--control-depth-shadow, 0 0 #0000);
+      box-shadow:
+        var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000),
+        var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+    }
+
+    [data-slot='button']:is(
+      [data-variant='default'],
+      [data-variant='secondary'],
+      [data-variant='outline']
+    ) {
+      --control-depth-shadow:
+        inset 0 1px 0 var(--control-highlight), inset 0 -1px 0 var(--control-edge),
+        0 1px 2px var(--control-shadow), 0 2px 3px -1px var(--control-shadow);
+      background-color: var(--control-fill);
+      background-image: linear-gradient(to bottom, var(--control-top), var(--control-bottom));
+    }
+
+    [data-slot='button'][data-variant='default'] {
+      --control-fill: var(--primary);
+      --control-top: color-mix(in oklab, var(--primary), white var(--control-primary-lift));
+      --control-bottom: color-mix(in oklab, var(--primary), black var(--control-primary-shade));
+      --control-idle-border: color-mix(in oklab, var(--primary), black 16%);
+    }
+
+    [data-slot='button']:is([data-variant='secondary'], [data-variant='outline']) {
+      --control-depth-shadow:
+        inset 0 1px 0 var(--control-highlight),
+        0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%);
+      --control-fill: var(--control-surface);
+      --control-top: var(--control-fill);
+      --control-bottom: color-mix(
+        in oklab,
+        var(--control-fill),
+        black calc(var(--control-neutral-shade) / 2)
+      );
+      --control-idle-border: var(--input);
+    }
+
+    [data-slot='button'][data-variant='secondary'] {
+      --control-fill: var(--secondary);
+    }
+
+    [data-slot='button']:is(
+        [data-variant='default'],
+        [data-variant='secondary'],
+        [data-variant='outline']
+      ):not(:focus-visible, [aria-invalid='true']) {
+      border-color: var(--control-idle-border);
+    }
+
+    @media (hover: hover) {
+      [data-slot='button']:is(
+          [data-variant='default'],
+          [data-variant='secondary'],
+          [data-variant='outline']
+        ):hover:not(:disabled, [aria-disabled='true']) {
+        background-image: linear-gradient(
+          to bottom,
+          color-mix(in oklab, var(--control-top), var(--foreground) 3%),
+          color-mix(in oklab, var(--control-bottom), var(--foreground) 3%)
+        );
+      }
+    }
+
+    [data-slot='button']:is(
+        [data-variant='default'],
+        [data-variant='secondary'],
+        [data-variant='outline']
+      ):is(:active, [aria-expanded='true'], [aria-pressed='true']):not(
+        :disabled,
+        [aria-disabled='true']
+      ) {
+      --control-depth-shadow:
+        inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight);
+      background-image: linear-gradient(to bottom, var(--control-bottom), var(--control-top));
+    }
+
+    /* Only the outer field is surfaced. Borderless search and group interiors stay flat. */
+    :is(
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='input-group'],
+      [data-slot='combobox-chips']
+    ):not(.border-0, .border-none, .shadow-none) {
+      --control-depth-shadow:
+        inset 0 1px 1px var(--control-inset-shadow), 0 1px 2px var(--control-shadow);
+      background-color: var(--control-surface);
+    }
+
+    :is([data-slot='checkbox'], [data-slot='radio-group-item']) {
+      --control-depth-shadow:
+        inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight);
+      background-color: var(--control-surface);
+    }
+
+    :is([data-slot='checkbox'], [data-slot='radio-group-item']):is(
+      [data-state='checked'],
+      [data-state='indeterminate']
+    ) {
+      --control-depth-shadow:
+        inset 0 1px 0 var(--control-highlight), 0 1px 2px var(--control-shadow);
+      background-color: var(--primary);
+      background-image: linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--primary), white var(--control-primary-lift)),
+        color-mix(in oklab, var(--primary), black var(--control-primary-shade))
+      );
+      color: var(--primary-foreground);
+    }
+
+    :is([data-slot='checkbox'], [data-slot='radio-group-item']):is(
+        [data-state='checked'],
+        [data-state='indeterminate']
+      ):not(:focus-visible, [aria-invalid='true']) {
+      border-color: var(--primary);
+    }
+
+    [data-slot='switch'] {
+      --control-depth-shadow: inset 0 1px 2px var(--control-edge), 0 1px 0 var(--control-highlight);
+    }
+
+    [data-slot='switch'][data-state='checked'] {
+      background-color: var(--primary);
+      background-image: linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--primary), black var(--control-primary-shade)),
+        var(--primary)
+      );
+    }
+
+    [data-slot='switch-thumb'] {
+      --control-depth-shadow:
+        inset 0 1px 0 var(--control-highlight), 0 1px 2px var(--control-shadow);
+      background-image: linear-gradient(to bottom, oklch(1 0 0 / 14%), oklch(0 0 0 / 4%));
+    }
+  }
+}
+
+/* Shared, short crossfade for manual theme changes. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+  animation-timing-function: ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+/* One primary hover finish for shadcn controls and the native auth adapter. */
+:root {
+  --primary-hover-light: oklch(1 0 0 / 34%);
+  --primary-hover-shade: oklch(0 0 0 / 7%);
+}
+.dark {
+  --primary-hover-light: oklch(1 0 0 / 72%);
+  --primary-hover-shade: oklch(0 0 0 / 12%);
+}
+@media (forced-colors: none) {
+  :is([data-slot='button'][data-variant='default'], .button.button--primary) {
+    transition-property: color, background-color, border-color, box-shadow, transform;
+    --primary-glow-light: transparent;
+    --primary-glow-shade: transparent;
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000),
+      var(--tw-inset-ring-shadow, 0 0 #0000),
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      inset 0 0 10px 2px var(--primary-glow-light),
+      inset 0 0 2px 1px var(--primary-glow-shade),
+      var(--control-depth-shadow, 0 0 #0000);
+    transition-duration: 280ms;
+    transition-timing-function: ease-in-out;
+  }
+  @media (hover: hover) {
+    :is([data-slot='button'][data-variant='default'], .button.button--primary):is(
+        :hover,
+        [data-hovered='true']
+      ):not(
+        :disabled,
+        [aria-disabled='true'],
+        [data-disabled='true'],
+        :active,
+        [data-pressed='true'],
+        [aria-pressed='true'],
+        [aria-expanded='true']
+      ) {
+      --primary-glow-light: var(--primary-hover-light);
+      --primary-glow-shade: var(--primary-hover-shade);
+      background-image: linear-gradient(to bottom, var(--control-top), var(--control-bottom));
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is([data-slot='button'][data-variant='default'], .button.button--primary) {
+    transition-duration: 0s;
+  }
+}
+
+/* Shell preferences select shared theme tokens; components keep their standard styles. */
+:root[data-shell-corners='round'] {
+  --corner-shape: round;
+}
+:root[data-shell-corners='square'] {
+  --radius: 0rem;
+  --corner-shape: round;
+}
+:root[data-shell-surface='flat'] {
+  --control-highlight: transparent;
+  --control-edge: transparent;
+  --control-shadow: transparent;
+  --control-inset-shadow: transparent;
+  --control-primary-lift: 0%;
+  --control-primary-shade: 0%;
+  --control-neutral-shade: 0%;
+  --primary-hover-light: transparent;
+  --primary-hover-shade: transparent;
+}
+
+/* Shared sidebar palettes also support an independent navigation scheme. */
+:root {
+  --light--sidebar: oklch(0.985 0 0);
+  --light--sidebar-foreground: oklch(0.145 0 0);
+  --light--sidebar-primary: oklch(0.205 0 0);
+  --light--sidebar-primary-foreground: oklch(0.985 0 0);
+  --light--sidebar-accent: oklch(0.97 0 0);
+  --light--sidebar-accent-foreground: oklch(0.205 0 0);
+  --light--sidebar-border: oklch(0.95 0 0);
+  --light--sidebar-ring: oklch(0.708 0 0);
+  --dark--sidebar: oklch(0.205 0 0);
+  --dark--sidebar-foreground: oklch(0.985 0 0);
+  --dark--sidebar-primary: oklch(0.488 0.243 264.376);
+  --dark--sidebar-primary-foreground: oklch(0.985 0 0);
+  --dark--sidebar-accent: oklch(0.269 0 0);
+  --dark--sidebar-accent-foreground: oklch(0.985 0 0);
+  --dark--sidebar-border: oklch(1 0 0 / 8%);
+  --dark--sidebar-ring: oklch(0.556 0 0);
+}
+:root[data-shell-sidebar-theme="light"] {
+  --sidebar: var(--light--sidebar);
+  --sidebar-foreground: var(--light--sidebar-foreground);
+  --sidebar-primary: var(--light--sidebar-primary);
+  --sidebar-primary-foreground: var(--light--sidebar-primary-foreground);
+  --sidebar-accent: var(--light--sidebar-accent);
+  --sidebar-accent-foreground: var(--light--sidebar-accent-foreground);
+  --sidebar-border: var(--light--sidebar-border);
+  --sidebar-ring: var(--light--sidebar-ring);
+}
+:root[data-shell-sidebar-theme="dark"] {
+  --sidebar: var(--dark--sidebar);
+  --sidebar-foreground: var(--dark--sidebar-foreground);
+  --sidebar-primary: var(--dark--sidebar-primary);
+  --sidebar-primary-foreground: var(--dark--sidebar-primary-foreground);
+  --sidebar-accent: var(--dark--sidebar-accent);
+  --sidebar-accent-foreground: var(--dark--sidebar-accent-foreground);
+  --sidebar-border: var(--dark--sidebar-border);
+  --sidebar-ring: var(--dark--sidebar-ring);
+}
+[data-shell-sidebar-theme]:not([data-shell-sidebar-theme="default"]) [data-slot="sidebar"] {
+  --background: var(--sidebar);
+  --foreground: var(--sidebar-foreground);
+  --muted: var(--sidebar-accent);
+  --muted-foreground: var(--sidebar-foreground);
+  --accent: var(--sidebar-accent);
+  --accent-foreground: var(--sidebar-accent-foreground);
+  --border: var(--sidebar-border);
+  --control-surface: var(--sidebar);
+  color: var(--sidebar-foreground);
+}

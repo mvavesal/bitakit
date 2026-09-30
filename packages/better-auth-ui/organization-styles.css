@@ -1,0 +1,4 @@
+/* Tailwind sources owned by this installed package; host theme stays authoritative. */
+@import '@bitakit/ui/styles.css';
+@import '@bitakit/ui/styles.css';
+@source "./dist";

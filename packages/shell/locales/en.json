@@ -1,0 +1,216 @@
+{
+  "shell": {
+    "ui": {
+      "navigation": "Main navigation",
+      "toggle": "Toggle navigation",
+      "testHint": "Preview a notification at the selected position.",
+      "testButton": "Show test notification",
+      "testTitle": "Test notification",
+      "testDescription": "Notifications appear here at the selected position.",
+      "customColor": "Custom color",
+      "themeDefault": "Theme default",
+      "backPlugins": "Back to plugins",
+      "pluginUnavailable": "Plugin unavailable",
+      "description": "Description",
+      "aboutPlugin": "About this plugin",
+      "noDescription": "No description is available for this plugin.",
+      "pluginSettings": "Plugin settings",
+      "settings": "Settings",
+      "noSettings": "This plugin has no settings.",
+      "pluginInfo": "Plugin information",
+      "info": "Information",
+      "version": "Version",
+      "unspecified": "Not specified",
+      "license": "License",
+      "website": "Website",
+      "projectWebsite": "Project website",
+      "support": "Support",
+      "supportLink": "Get help and report issues",
+      "plugins": "Plugins",
+      "pluginsDescription": "Active extensions and their settings.",
+      "searchPlugins": "Search plugins",
+      "pluginsPlaceholder": "Search plugins…",
+      "clearPlugins": "Clear plugin search",
+      "openPlugin": "Open {name}",
+      "author": "By {author}",
+      "noPlugins": "No plugins found."
+    },
+    "colors": {
+      "p0": "Default",
+      "p1": "Blue",
+      "p2": "Violet",
+      "p3": "Green",
+      "p4": "Rose",
+      "p5": "Orange"
+    },
+    "settingsShell": {
+      "title": "Settings",
+      "back": "Back to studio",
+      "navigation": "Settings navigation",
+      "toggle": "Toggle settings navigation",
+      "breadcrumb": "Breadcrumbs",
+      "search": "Search settings",
+      "placeholder": "Search settings…",
+      "clear": "Clear search",
+      "empty": "No settings found",
+      "skip": "Skip to settings"
+    },
+    "overview": {
+      "search": "Search settings",
+      "placeholder": "Search settings…",
+      "clear": "Clear search",
+      "empty": "No settings found",
+      "hint": "Try another search term.",
+      "clearSearch": "Reset search"
+    },
+    "style": {
+      "primary": {
+        "title": "Primary color",
+        "description": "Choose a preset or custom color for buttons and selections."
+      },
+      "sidebarTheme": {
+        "title": "Sidebar color scheme",
+        "description": "Choose a color scheme independently of the content.",
+        "options": {
+          "default": {
+            "label": "Like the app"
+          },
+          "light": {
+            "label": "Always light"
+          },
+          "dark": {
+            "label": "Always dark"
+          }
+        }
+      },
+      "corners": {
+        "title": "Corner shape",
+        "options": {
+          "default": {
+            "label": "Default",
+            "description": "The familiar soft contours."
+          },
+          "round": {
+            "label": "Round",
+            "description": "Classically rounded corners."
+          },
+          "square": {
+            "label": "Square",
+            "description": "Straight edges without rounding."
+          }
+        }
+      },
+      "surface": {
+        "title": "Surfaces",
+        "options": {
+          "default": {
+            "label": "With depth",
+            "description": "Subtle gradients, shadows and light."
+          },
+          "flat": {
+            "label": "Flat",
+            "description": "Calm surfaces without decorative effects."
+          }
+        }
+      }
+    },
+    "theme": {
+      "title": "Color scheme",
+      "description": "Light, dark or matching your system.",
+      "options": {
+        "light": {
+          "label": "Light",
+          "description": "Always use a light appearance."
+        },
+        "dark": {
+          "label": "Dark",
+          "description": "Always use a dark appearance."
+        },
+        "system": {
+          "label": "System",
+          "description": "Follow your operating system."
+        }
+      }
+    },
+    "layout": {
+      "title": "Navigation",
+      "description": "Choose the navigation layout. Content stays open.",
+      "options": {
+        "sidebar": {
+          "label": "Sidebar",
+          "description": "Navigation on the left, content on the right."
+        },
+        "navbar": {
+          "label": "Horizontal navigation",
+          "description": "Navigation above the content."
+        }
+      }
+    },
+    "notifications": {
+      "placement": {
+        "title": "Notification position",
+        "options": {
+          "top start": {
+            "label": "Top start"
+          },
+          "top": {
+            "label": "Top center"
+          },
+          "top end": {
+            "label": "Top end"
+          },
+          "bottom start": {
+            "label": "Bottom start"
+          },
+          "bottom": {
+            "label": "Bottom center"
+          },
+          "bottom end": {
+            "label": "Bottom end"
+          }
+        }
+      }
+    }
+  },
+  "settings": {
+    "categories": {
+      "general": {
+        "title": "General"
+      },
+      "appearance": {
+        "title": "Appearance"
+      },
+      "personal": {
+        "title": "My account"
+      },
+      "organization": {
+        "title": "Organization"
+      },
+      "administration": {
+        "title": "Administration"
+      }
+    },
+    "sections": {
+      "appearance": {
+        "title": "Layout and color scheme",
+        "description": "Customize color scheme and navigation."
+      },
+      "shell-theme": {
+        "title": "Theme",
+        "description": "Customize colors, corners and surfaces."
+      },
+      "shell-notifications": {
+        "title": "Notifications"
+      },
+      "plugins": {
+        "title": "Plugins"
+      }
+    }
+  },
+  "plugins": {
+    "shell": {
+      "name": "App Shell",
+      "description": "Application navigation and layout."
+    }
+  }
+}

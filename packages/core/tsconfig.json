@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@bitakit/core": ["./src/core.ts"],
+      "@bitakit/core/react": ["./src/index.ts"],
+      "@bitakit/core/actions": ["./src/actions/core.ts"],
+      "@bitakit/core/actions/react": ["./src/actions/index.tsx"]
+    }
+  },
+  "include": ["src"]
+}

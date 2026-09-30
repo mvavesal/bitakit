@@ -1,0 +1,18 @@
+{
+  "settings": {
+    "messages": {
+      "saving": "Wird gespeichert …",
+      "loading": "Wird geladen …",
+      "loadFailed": "Diese Einstellung konnte nicht geladen werden.",
+      "saveFailed": "Die Änderung konnte nicht gespeichert werden. Bitte versuche es erneut.",
+      "invalid": "Bitte gib einen gültigen Wert ein.",
+      "readOnly": "Du kannst diese Einstellung nicht ändern.",
+      "reset": "Auf Standard zurücksetzen",
+      "unregistered": "Die Einstellung „{key}“ wird verwendet, ist aber nicht registriert.",
+      "configuration": "Konfigurationsfehler",
+      "empty": "Dieser Bereich enthält keine Einstellungen.",
+      "navigation": "Einstellungsbereiche",
+      "unavailable": "Dieser Einstellungsbereich ist nicht verfügbar."
+    }
+  }
+}

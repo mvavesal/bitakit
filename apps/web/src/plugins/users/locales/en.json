@@ -1,0 +1,19 @@
+{
+  "users": {
+    "invite": {
+      "title": "Invite user",
+      "description": "Local example: no email is sent. Use error@example.com to try the error state.",
+      "submit": "Create demo invitation",
+      "success": "Demo invitation created",
+      "failure": "The demo invitation failed. Please try again.",
+      "fields": {
+        "email": "Email address"
+      }
+    },
+    "dashboard": {
+      "users": "User management",
+      "example": "This example runs locally in the browser and does not send emails.",
+      "menu": "User actions"
+    }
+  }
+}

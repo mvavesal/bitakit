@@ -1,0 +1,263 @@
+{
+  "foundationUI": {
+    "incoming_invitations": {
+      "notSpecified": "Not specified",
+      "organization": "Organization",
+      "role": "Role",
+      "status": "Status",
+      "actions": "Actions",
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member",
+      "pending": "Pending",
+      "invitationsForMe": "Invitations for me",
+      "invitationsToJoinOtherOrganizationsWithYourAccount": "Invitations to join other organizations with your account.",
+      "thisProviderDoesNotSupportInvitations": "This provider does not support invitations.",
+      "searchInvitations": "Search invitations…",
+      "clearInvitationSearch": "Clear invitation search",
+      "thisInvitationIsUnavailableSignInWithTheInvitedEmailAddressIt": "This invitation is unavailable. Sign in with the invited email address; it may also have expired or already been answered.",
+      "validUntil": "Valid until",
+      "invitedOn": "Invited on",
+      "invitedAs": "Invited as",
+      "loadingInvitations": "Loading invitations…",
+      "noMatchingInvitationsFound": "No matching invitations found.",
+      "youHaveNoPendingInvitations": "You have no pending invitations."
+    },
+    "invitation_email_input": {
+      "email": "Email",
+      "add": "add",
+      "addEmailAddresses": "Add email addresses"
+    },
+    "invite_dialog": {
+      "email": "Email",
+      "role": "Role",
+      "admin": "Admin",
+      "member": "Member",
+      "days": "Days",
+      "cancel": "Cancel",
+      "sending": "Sending …",
+      "validity": "Validity",
+      "theWorkspaceChangedOrPermissionIsMissingOpenTheInvitationAgain": "The workspace changed or permission is missing. Open the invitation again.",
+      "invitationTo": "Invitation to",
+      "enterUpTo20ValidAddressesAndAValidityPeriodOf1": "Enter up to 20 valid addresses and a validity period of 1 to 365 days.",
+      "upTo20AddressesSeparatedByCommasSemicolonsOrNewLines": "Up to 20 addresses, separated by commas, semicolons or new lines.",
+      "sendInvitations": "Send invitations",
+      "partialSuccess": "Created {count} of {total} invitations. Only failed addresses remain for retry."
+    },
+    "logo_field": {
+      "changeLogo": "Change logo",
+      "chooseLogo": "Choose logo",
+      "logo": "Logo",
+      "organizationLogo": "Organization logo",
+      "removeLogo": "Remove logo",
+      "pngJPEGOrWebPUpTo2MB": "PNG, JPEG or WebP, up to 2 MB.",
+      "chooseAValidImageUpTo2MB": "Choose a valid image up to 2 MB."
+    },
+    "organization_dialog": {
+      "general": "General",
+      "name": "Name",
+      "website": "Website",
+      "cancel": "Cancel",
+      "saveChanges": "Save changes",
+      "createOrganization": "Create organization",
+      "deleteOrganization": "Delete organization",
+      "thePublicWebsiteOfYourOrganizationOptional": "The public website of your organization. Optional.",
+      "theWorkspaceChangedOpenItAgain": "The workspace changed. Open it again.",
+      "savingFailedCheckYourInputAndPermissions": "Saving failed. Check your input and permissions.",
+      "theChangeCouldNotBeCompleted": "The change could not be completed.",
+      "appearance": "Appearance",
+      "identifier": "Identifier",
+      "changesSaved": "Changes saved.",
+      "howYourOrganizationAppearsInTheWorkspace": "How your organization appears in the workspace.",
+      "uniqueShortNameUsingLowercaseLettersNumbersAndHyphens": "Unique short name using lowercase letters, numbers and hyphens.",
+      "saving": "Saving…",
+      "loadingOrganizationDetails": "Loading organization details…",
+      "thisMember": "This member",
+      "anAdministratorAdministratorsCanManageTheOrganizationAndItsMembers": "an administrator? Administrators can manage the organization and its members.",
+      "removeThisMemberFromTheOrganization": "Remove this member from the organization?",
+      "permanentlyDeleteThisOrganizationAndItsMemberships": "Permanently delete this organization and its memberships?",
+      "confirmRoleChange": "Confirm role change",
+      "confirmRemoval": "Confirm removal",
+      "promoteConfirm": "Make {name} an administrator? Administrators can manage the organization and its members.",
+      "demoteConfirm": "Make {name} a member? They will lose their administrative permissions."
+    },
+    "pages": {
+      "invitations": "Invitations",
+      "members": "Members",
+      "loadingOrganizations": "Loading organizations…",
+      "member": "Member",
+      "status": "Status",
+      "role": "Role",
+      "actions": "Actions",
+      "active": "Active",
+      "email": "Email",
+      "pending": "Pending",
+      "membersAndInvitationsInTheActiveWorkspace": "Members and invitations in the active workspace.",
+      "pendingInvitations": "Pending invitations",
+      "noMatchingMembers": "No matching members.",
+      "noPendingInvitations": "No pending invitations.",
+      "pluginTestWithSampleDataNoRealSigninOrEmailDeliveryChanges": "Plugin test with sample data. No real sign-in or email delivery; changes last until reload.",
+      "people": "People",
+      "suspended": "Suspended"
+    },
+    "people_filters": {
+      "role": "Role",
+      "status": "Status",
+      "clearSearch": "Clear search",
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member",
+      "active": "Active",
+      "clearFilters": "Clear filters",
+      "back": "Back",
+      "search": "Search",
+      "nameOrEmail": "Name or email",
+      "all": "All",
+      "suspended": "Suspended",
+      "joinDate": "Join date",
+      "invitationDate": "Invitation date",
+      "pagination": "Pagination",
+      "perPage": "Per page",
+      "resultsPage": "results · page",
+      "next": "Next",
+      "pageSummary": "{total} results · Page {page} of {pages}"
+    },
+    "switcher": {
+      "switchOrganization": "Switch organization",
+      "loadingOrganizations": "Loading organizations…",
+      "clearSearch": "Clear search",
+      "noOrganizationsFound": "No organizations found.",
+      "active": "Active",
+      "addOrganization": "Add organization",
+      "selectOrganization": "Select organization",
+      "searchOrganizations": "Search organizations",
+      "theOperationFailed": "The operation failed."
+    },
+    "account": {
+      "checkingSignin": "Checking sign-in…",
+      "signInToAccessTheseAccountSettings": "Sign in to access these account settings.",
+      "logIn": "Log in"
+    },
+    "organizations": {
+      "reload": "Reload",
+      "loadingOrganizations": "Loading organizations…",
+      "selectAnOrganization": "Select an organization.",
+      "organizationSettings": "Organization settings",
+      "organizationProfile": "Organization profile",
+      "notSpecified": "Not specified",
+      "organizationLogo": "Organization logo",
+      "manageYourWorkspaceAppearanceAndDetails": "Manage your workspace appearance and details.",
+      "informationAboutYourWorkspace": "Information about your workspace.",
+      "identifier": "Identifier:",
+      "website": "Website:",
+      "youCanViewTheseDetailsButCannotEditThem": "You can view these details but cannot edit them."
+    },
+    "auth_page_layout": {
+      "backToApplication": "Back to application"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Administrator",
+      "member": "Member"
+    },
+    "dateRange": {
+      "applied": "Filter active",
+      "from": "From",
+      "to": "To",
+      "hint": "Select a date range.",
+      "invalidRange": "The end date must follow the start date.",
+      "clear": "Reset",
+      "apply": "Apply"
+    },
+    "group_actions": {
+      "theActionFailed": "The action failed.",
+      "moreActions": "More actions"
+    },
+    "dialog": {
+      "close": "Close"
+    }
+  },
+  "organizations": {
+    "accept": {
+      "title": "Accept",
+      "success": "Invitation accepted."
+    },
+    "reject": {
+      "title": "Decline",
+      "success": "Invitation declined."
+    },
+    "open": {
+      "title": "Organizations"
+    },
+    "create": {
+      "title": "Create organization"
+    },
+    "edit": {
+      "title": "Edit organization"
+    },
+    "delete": {
+      "title": "Delete organization"
+    },
+    "remove": {
+      "title": "Remove"
+    },
+    "promote": {
+      "title": "Make administrator"
+    },
+    "demote": {
+      "title": "Make member"
+    },
+    "invite": {
+      "title": "Invite member"
+    },
+    "refresh": {
+      "title": "Reload"
+    },
+    "cancel": {
+      "title": "Revoke"
+    },
+    "resend": {
+      "title": "Resend"
+    },
+    "disable": {
+      "title": "Suspend"
+    },
+    "enable": {
+      "title": "Unsuspend"
+    }
+  },
+  "settings": {
+    "sections": {
+      "profile": {
+        "title": "Profile",
+        "description": "Your profile picture and personal details."
+      },
+      "security": {
+        "title": "Security",
+        "description": "Email, password, two-factor authentication, linked accounts and active sessions."
+      },
+      "organization": {
+        "title": "Organization profile"
+      },
+      "members": {
+        "title": "Members"
+      },
+      "invitations": {
+        "title": "Invitations"
+      },
+      "organization-members": {
+        "title": "Members and invitations",
+        "description": "Manage members and sent invitations for the active organization."
+      },
+      "received-invitations": {
+        "title": "Invitations for me",
+        "description": "Invitations to join other organizations."
+      }
+    }
+  },
+  "plugins": {
+    "better-auth-ui": {
+      "description": "Native HeroUI components for sign-in, accounts and organizations."
+    }
+  }
+}

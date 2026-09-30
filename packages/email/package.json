@@ -1,0 +1,26 @@
+{
+  "name": "@bitakit/email",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bitakit/core": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  },
+  "description": "Provider-independent server email service contract for SaaS Foundation."
+}

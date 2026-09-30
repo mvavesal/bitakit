@@ -1,0 +1,377 @@
+/* External bridge only. All geometry/colors come from the host Foundation theme. */
+:root,
+.dark,
+.light {
+  --surface: var(--card);
+  --surface-foreground: var(--card-foreground);
+  --surface-secondary: var(--secondary);
+  --surface-secondary-foreground: var(--secondary-foreground);
+  --surface-tertiary: var(--muted);
+  --surface-tertiary-foreground: var(--foreground);
+  --overlay: var(--popover);
+  --overlay-foreground: var(--popover-foreground);
+  --field-background: var(--background);
+  --field-foreground: var(--foreground);
+  --field-placeholder: var(--muted-foreground);
+  --field-border: var(--input);
+  --field-border-hover: var(--input);
+  --field-border-focus: var(--ring);
+  --field-border-width: 1px;
+  --field-radius: var(--radius-md);
+  --focus: var(--ring);
+  --link: var(--primary);
+  --separator: var(--border);
+  --danger: var(--destructive);
+}
+.card {
+  @apply rounded-card bg-card text-card-foreground ring-1 ring-border shadow-none;
+}
+.button,
+.avatar,
+.avatar__image,
+.avatar__fallback,
+.dropdown__popover,
+.modal__dialog,
+.alert-dialog__dialog,
+.popover {
+  @apply rounded-xl;
+}
+.input,
+.input-group {
+  @apply rounded-md;
+}
+.input {
+  background: var(--background);
+}
+.button--primary {
+  @apply border;
+  --button-bg: var(--primary);
+  --button-bg-hover: var(--primary);
+  --button-bg-pressed: var(--primary);
+  --button-fg: var(--primary-foreground);
+}
+.button--primary.button--md {
+  @apply h-9 gap-1.5 px-2.5 text-sm font-medium;
+}
+.button--secondary {
+  --button-bg: var(--secondary);
+  --button-fg: var(--secondary-foreground);
+}
+.card__description,
+.description {
+  color: var(--muted-foreground);
+}
+@supports (corner-shape: squircle) {
+  .card,
+  .button,
+  .avatar,
+  .avatar__image,
+  .avatar__fallback,
+  .dropdown__popover,
+  .modal__dialog,
+  .alert-dialog__dialog,
+  .popover {
+    corner-shape: var(--corner-shape);
+  }
+  .input,
+  .input-group {
+    corner-shape: round;
+  }
+}
+/* HeroUI's text-muted semantic is a foreground, Foundation's muted is a surface. */
+.card .text-muted,
+.dropdown__popover .text-muted,
+.modal__dialog .text-muted,
+.alert-dialog__dialog .text-muted {
+  color: var(--muted-foreground);
+}
+.button .text-muted,
+.table .text-muted,
+.tabs .text-muted {
+  color: var(--muted-foreground);
+}
+/* Within native widgets, HeroUI uses muted as a text token, not a surface token. */
+.tabs,
+.table,
+.dropdown__popover,
+.alert-dialog__dialog {
+  --muted: var(--muted-foreground);
+}
+
+/* Native social buttons use tertiary; map them and outline to Foundation outline. */
+.button:is(.button--tertiary, .button--outline) {
+  @apply border;
+  --button-bg: var(--control-surface);
+  --button-bg-hover: var(--control-surface);
+  --button-bg-pressed: var(--control-surface);
+  --button-fg: var(--foreground);
+}
+@media (forced-colors: none) {
+  .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline) {
+    --control-top: var(--control-surface);
+    --control-bottom: color-mix(
+      in oklab,
+      var(--control-surface),
+      black calc(var(--control-neutral-shade) / 2)
+    );
+    --control-depth-shadow:
+      inset 0 1px 0 var(--control-highlight),
+      0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%);
+    --tw-shadow: var(--control-depth-shadow);
+    background-image: linear-gradient(to bottom, var(--control-top), var(--control-bottom));
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000),
+      var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  }
+  .button:is(.button--primary, .button--danger) {
+    --control-action: var(--primary);
+    --control-top: color-mix(in oklab, var(--control-action), white var(--control-primary-lift));
+    --control-bottom: color-mix(in oklab, var(--control-action), black var(--control-primary-shade));
+    --control-idle-border: color-mix(in oklab, var(--control-action), black 16%);
+    --control-depth-shadow:
+      inset 0 1px 0 var(--control-highlight), inset 0 -1px 0 var(--control-edge),
+      0 1px 2px var(--control-shadow), 0 2px 3px -1px var(--control-shadow);
+  }
+  .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline):not(
+      :focus-visible,
+      [data-focus-visible='true'],
+      [aria-invalid='true']
+    ) {
+    border-color: var(--control-idle-border, var(--input));
+  }
+  @media (hover: hover) {
+    .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline):is(:hover, [data-hovered='true']):not(
+        :disabled,
+        [aria-disabled='true']
+      ) {
+      background-image: linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--control-top), var(--foreground) 3%),
+        color-mix(in oklab, var(--control-bottom), var(--foreground) 3%)
+      );
+    }
+  }
+  .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline):is(
+      :active,
+      [data-pressed='true'],
+      [aria-expanded='true']
+    ):not(:disabled, [aria-disabled='true']) {
+    --control-depth-shadow:
+      inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight);
+    background-image: linear-gradient(to bottom, var(--control-bottom), var(--control-top));
+  }
+}
+/* Match the Foundation Input/InputGroup: one surfaced shell, no suffix divider. */
+.input,
+.input-group:not(:has(textarea)) {
+  @apply h-9;
+  background-color: var(--control-surface);
+}
+.input {
+  @apply px-2.5 py-1;
+}
+.input-group:not(:has(textarea)) .input-group__input {
+  @apply h-full min-w-0 px-2.5 py-1;
+}
+.input-group__suffix:has(.button),
+.input-group__prefix:has(.button) {
+  @apply border-0 bg-transparent text-muted-foreground;
+}
+.input-group__suffix:has(.button) {
+  @apply pr-1;
+}
+.input-group__prefix:has(.button) {
+  @apply pl-1;
+}
+.input-group .button--ghost {
+  --button-fg: var(--muted-foreground);
+  --button-bg-hover: var(--accent);
+}
+.input:not([aria-invalid='true']):focus-visible,
+.input-group:not([data-invalid='true']):has(.input-group__input:focus-visible) {
+  @apply border-ring ring-3 ring-ring/50 ring-offset-0;
+}
+/* Native auth footers use text-accent, whose Foundation meaning is a surface. */
+.link:not(.button) {
+  color: var(--primary);
+  text-decoration-color: currentColor;
+}
+
+.button--primary:is(:focus-visible, [data-focus-visible='true']) {
+  @apply border-ring ring-3 ring-ring/50 ring-offset-0;
+}
+/* Foundation InputGroupButton icon-xs, scoped to native field adornments. */
+.input-group :is(.input-group__suffix, .input-group__prefix) > .button--icon-only.button--ghost {
+  @apply size-6 min-h-0 min-w-0 border border-transparent p-0 shadow-none;
+  --button-bg-hover: var(--muted);
+  --button-fg-hover: var(--foreground);
+}
+.input-group :is(.input-group__suffix, .input-group__prefix) > .button--icon-only.button--ghost svg {
+  @apply size-4;
+}
+.dark .input-group :is(.input-group__suffix, .input-group__prefix) > .button--icon-only.button--ghost {
+  --button-bg-hover: color-mix(in oklab, var(--muted), transparent 50%);
+}
+.input-group :is(.input-group__suffix, .input-group__prefix) > .button--icon-only.button--ghost:is(:focus-visible, [data-focus-visible='true']) {
+  @apply border-ring ring-3 ring-ring/50 ring-offset-0;
+}
+
+/* Native selects follow Foundation SelectTrigger, not the round text-input exception. */
+.select__trigger {
+  @apply rounded-md;
+  corner-shape: var(--corner-shape);
+}
+/* Native dialog list rows have no public slot. Match their bordered, text-row
+   structure (including read-only rows), without depending on translated labels. */
+.alert-dialog__body .border.rounded-lg:has(> span.truncate) {
+  @apply rounded-xl;
+  corner-shape: var(--corner-shape);
+}
+
+/* Destructive actions share the primary finish and Foundation control geometry. */
+.button--danger {
+  @apply border;
+  --button-bg: var(--destructive);
+  --button-bg-hover: var(--destructive);
+  --button-bg-pressed: var(--destructive);
+}
+.button.button--danger {
+  --control-action: var(--destructive);
+}
+.button.button--sm {
+  @apply h-8 gap-1 px-2.5 text-sm font-medium;
+}
+/* Native card separators use the same solid Foundation border in every section. */
+.card :is(.border-dashed, .border-divider) {
+  border-color: var(--border);
+  border-style: solid;
+}
+
+/* Flush list cards already pad their rows and footer. Avoid a second outer inset. */
+.card.gap-0:has(> .card__content.p-0) {
+  @apply p-0;
+}
+.card.gap-0:has(> .card__content.p-0) > .border-divider,
+.card.gap-0 > .card__content.p-0 > .border-divider {
+  @apply p-4;
+}
+
+/* A Tooltip trigger rendered as a Button keeps the standard Button layout.
+   HeroUI's later tooltip rule otherwise replaces inline-flex with inline-block. */
+.button.tooltip__trigger {
+  @apply inline-flex;
+}
+
+/* A sent-email status is content, not a compact trailing action. Keep the
+   native card's standard vertical layout once that status is displayed. */
+.card__content:has(> div > [role='status']) {
+  @apply flex-col items-stretch;
+}
+.card__content > div:has(> [role='status']) {
+  @apply items-stretch;
+}
+
+
+/* Keep the native two-factor control and dialogs; place its header action
+   inside the existing card surface using shared layout/spacing tokens. */
+[data-two-factor-settings] > div {
+  @apply grid grid-cols-1 gap-3;
+  grid-template-rows: auto auto auto;
+}
+[data-two-factor-settings] > div > div:first-child {
+  display: contents;
+}
+[data-two-factor-settings] h2 {
+  grid-area: 1 / 1;
+}
+[data-two-factor-settings] > div > .card {
+  grid-area: 2 / 1 / 4 / 2;
+  display: grid;
+  grid-template-rows: subgrid;
+}
+[data-two-factor-settings] > div > .card > .card__content {
+  grid-row: 1;
+}
+[data-two-factor-settings] > div > div:first-child > .button {
+  grid-area: 3 / 1;
+  @apply z-10 mx-4 mb-4 justify-self-end max-w-[calc(100%-2rem)] whitespace-normal;
+}
+
+.card__content > div:has(> [role='status']) > .button {
+  @apply self-end;
+}
+/* Password setup keeps the same description-above, action-below layout. */
+.card__content:has(> div > p + p):has(> div > .button) {
+  @apply flex-col items-stretch;
+}
+.card__content:has(> div > p + p) > div:has(> .button) {
+  @apply items-end;
+}
+
+/* Match the native password-setup title/description grouping. */
+[data-two-factor-settings] .card__content {
+  @apply gap-0.5;
+}
+[data-two-factor-settings] .card__content > p:first-child {
+  @apply leading-tight;
+}
+[data-two-factor-settings] .card__content > p + p {
+  @apply text-xs;
+}
+[data-two-factor-settings] .card__content > .button {
+  @apply mt-4;
+}
+
+/* Host-provided icons use the same leading slot as native menu icons. */
+.menu-item > svg:first-child {
+  @apply size-4 shrink-0;
+}
+
+/* Native account and organization controls inherit the host sidebar interaction tokens. */
+[data-slot='sidebar'] .auth-identity-trigger {
+  --button-bg-hover: var(--sidebar-accent);
+  --button-bg-pressed: var(--sidebar-accent);
+  --button-fg: var(--sidebar-foreground);
+  --button-fg-hover: var(--sidebar-accent-foreground);
+  --button-fg-pressed: var(--sidebar-accent-foreground);
+  color: var(--sidebar-foreground);
+}
+[data-slot='sidebar'] .auth-identity-trigger[aria-expanded='true'] {
+  background-color: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+
+:is([data-sidebar='header'], [data-sidebar='footer']) .button--ghost:hover,
+:is([data-sidebar='header'], [data-sidebar='footer']) .button--ghost[data-hovered='true'] {
+  background-color: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+
+/* Native account/organization menus share the host dropdown interaction palette. */
+.menu-item:not(.menu-item--danger):not([data-disabled='true']):is(:hover, [data-hovered='true'], [data-focused='true'], [data-focus-visible='true'], [data-selected='true']) {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+.menu-item:not(.menu-item--danger):not([data-disabled='true']):is(:hover, [data-hovered='true'], [data-focused='true'], [data-focus-visible='true'], [data-selected='true']) :is(.label, .description, .text-muted) {
+  color: inherit;
+}
+
+/* Match host dropdown item typography without changing menu section headings. */
+.menu-item,
+.menu-item .label {
+  @apply font-sans text-sm font-normal;
+}
+
+/* Native identity triggers share one non-shifting hover/focus affordance. */
+@media (hover: hover) and (pointer: fine) {
+  .auth-identity-trigger > svg:last-child {
+    opacity: 0;
+    transition: opacity 160ms ease;
+  }
+  .auth-identity-trigger:is(:hover, :focus-visible, [data-hovered='true'], [data-focus-visible='true'], [aria-expanded='true']) > svg:last-child {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-identity-trigger > svg:last-child { transition: none; }
+}

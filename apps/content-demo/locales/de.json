@@ -1,0 +1,10 @@
+{
+  "foundationUI": {
+    "workspace_layout": {
+      "checkingSignin": "Anmeldung wird geprüft …",
+      "switchOrganization": "Organisation wechseln",
+      "settings": "Einstellungen",
+      "workspace": "Workspace"
+    }
+  }
+}

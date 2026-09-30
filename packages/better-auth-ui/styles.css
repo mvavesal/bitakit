@@ -1,0 +1,5 @@
+/* Resolve the unchanged upstream stylesheet from its owning adapter package. */
+@import '@heroui/styles';
+@import '@better-auth-ui/heroui/styles';
+@import '@bitakit/ui/styles.css';
+@source './dist';

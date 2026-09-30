@@ -1,0 +1,44 @@
+---
+title: Packages
+description: Choose capabilities without moving application behavior into Core.
+---
+
+BitaKit packages use the registered `@bitakit` scope. The source and generator have
+been migrated; public npm publication is still pending.
+
+| Package | Responsibility |
+| --- | --- |
+| `core` | Framework-independent runtime, Actions and typed service registration |
+| `ui` | React bindings and optional standard themed components |
+| `next` | Next.js navigation, URL query adapter and discovery integration |
+| `tanstack` | Experimental TanStack Router/Start integration |
+| `app-preferences` | Settings definitions, catalog, values and persistence contracts |
+| `shell` | Application layout and shared settings surfaces |
+| `quick-search` | Optional search across public Foundation Actions |
+| `email` | Provider-independent email message and sending contract |
+| `nodemailer` | Server-side SMTP implementation of the email contract |
+| `better-auth` | Authentication service integration |
+| `better-auth-ui` | Optional authentication and account UI integration |
+| `organizations` | Shared organization service contracts and integration points |
+| `next-intl` | Translation integration for Next.js |
+| `create-app` | Frontend project generator |
+
+## Framework ownership
+
+Choose the integration matching the router that manages your Foundation surface.
+The integration uses the application's router through peer dependencies; installing a
+second router does not switch it automatically. App-owned routes remain native framework routes.
+
+## Contracts and providers
+
+A contract package describes a capability. An integration supplies its implementation.
+For example, `email` alone cannot send messages. `nodemailer` implements that contract using
+server-side SMTP configuration and includes the contract package as a dependency.
+
+External providers can use the same public service contract and existing plugin registration.
+They do not need to be merged into this repository to work.
+
+## Documentation roadmap
+
+Dedicated package guides will be added incrementally. This overview describes current
+responsibilities; it is not a claim that every integration has a complete public tutorial.

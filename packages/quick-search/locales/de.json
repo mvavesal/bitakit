@@ -1,0 +1,12 @@
+{
+  "quickSearch": {
+    "title": "Schnellsuche",
+    "placeholder": "Seiten suchen …",
+    "empty": "Keine Ergebnisse gefunden."
+  },
+  "quick-search": {
+    "open": {
+      "title": "Schnellsuche"
+    }
+  }
+}

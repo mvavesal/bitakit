@@ -1,0 +1,106 @@
+---
+title: Contributing documentation
+description: Add a package guide using the same content, navigation and search system.
+---
+
+The documentation is a separate Next.js workspace at `apps/docs` in the BitaKit repository.
+Pages are Markdown or MDX files in `apps/docs/content/docs`.
+
+## Add a guide
+
+1. Create a page such as `content/docs/packages/my-provider.mdx` with a title and description.
+2. Add installation requirements, supported versions, a small working example and limitations.
+3. Link it from the package overview. Use `meta.json` to control navigation order when needed.
+4. Run the documentation build and check the page and search locally.
+5. Submit the change as a pull request to the BitaKit repository when contributions are open.
+
+```mdx
+---
+title: My provider
+description: Connect an external provider to BitaKit.
+---
+
+## Installation
+
+Document the package's real installation command and release status.
+
+## Usage
+
+Include a minimal example verified against the public API.
+```
+
+## Review expectations
+
+Write in English. Distinguish released functionality, local previews and experimental support.
+Never include credentials. Use ordinary Markdown and existing Fumadocs components; MDX can
+execute code, so contributions must be reviewed before deployment.
+
+An external package may stay in its author's repository and npm scope. Adding its guide here
+does not publish the package, activate it in applications or certify compatibility.
+
+## Preview
+
+From the repository root:
+
+```sh
+npm run dev:docs
+npm run build:docs
+```
+
+The development server uses port 3002. Search indexes the documentation content automatically.
+
+## Verify the generator before release
+
+These steps are for repository contributors, not application developers.
+Run them from the repository root with Node.js 24 and npm 10 or newer.
+
+## 1. Install and build
+
+```sh
+npm install
+npm run build -w @bitakit/core
+npm run build -w @bitakit/ui
+npm run build -w @bitakit/next
+```
+
+## 2. Prepare local packages
+
+The generator can install packed BitaKit packages before they are published.
+Create a new archive directory and pack the three packages required by the minimal preset:
+
+```sh
+mkdir -p .tmp/docs-packages
+npm pack -w @bitakit/core --pack-destination .tmp/docs-packages
+npm pack -w @bitakit/ui --pack-destination .tmp/docs-packages
+npm pack -w @bitakit/next --pack-destination .tmp/docs-packages
+```
+
+Keep only one version of each package in this directory.
+
+## 3. Generate your app
+
+Choose a destination that does not already exist. The official Next.js scaffold is downloaded,
+so this step requires internet access.
+
+```sh
+node packages/create-app/src/cli.mjs ../my-foundation-app \
+  --framework next \
+  --features none \
+  --packages-dir "$PWD/.tmp/docs-packages" \
+  --yes
+```
+
+The generator installs dependencies and creates native routes and Foundation configuration.
+It does not copy plugin implementations or create a backend.
+
+## 4. Run it
+
+```sh
+cd ../my-foundation-app
+npm run dev
+```
+
+Open the local URL printed by Next.js. You should see the generated welcome page.
+The generated Foundation provider connects to Next's router internally; no per-page router
+adapter is required.
+

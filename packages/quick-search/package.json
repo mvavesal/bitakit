@@ -1,0 +1,52 @@
+{
+  "name": "@bitakit/quick-search",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": [
+    "./styles.css",
+    "./dist/foundation.js",
+    "./dist/index.js",
+    "./dist/plugin.js"
+  ],
+  "files": [
+    "dist",
+    "styles.css",
+    "README.md",
+    "locales"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./foundation": {
+      "types": "./dist/foundation.d.ts",
+      "default": "./dist/foundation.js"
+    },
+    "./styles.css": "./styles.css",
+    "./package.json": "./package.json",
+    "./locales/*.json": "./locales/*.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@bitakit/core": "0.1.0",
+    "@bitakit/ui": "0.1.0",
+    "cmdk": "^1.1.1",
+    "reicon-react": "1.2.5"
+  },
+  "peerDependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5",
+    "jsdom": "^27.4.0"
+  },
+  "foundation": {
+    "plugin": "./foundation"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "foundationUI": {
+    "workspace_layout": {
+      "checkingSignin": "Checking sign-in…",
+      "switchOrganization": "Switch organization",
+      "settings": "Settings",
+      "workspace": "Workspace"
+    }
+  }
+}

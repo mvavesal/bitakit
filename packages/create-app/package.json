@@ -1,0 +1,29 @@
+{
+  "name": "@bitakit/create-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Create a minimal frontend using installed BitaKit packages.",
+  "type": "module",
+  "bin": {
+    "create-bitakit-app": "./src/cli.mjs"
+  },
+  "files": [
+    "src",
+    "templates",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.8.1",
+    "commander": "15.0.0",
+    "create-next-app": "16.3.5",
+    "execa": "^9.6.0",
+    "validate-npm-package-name": "^7.0.0",
+    "@tanstack/cli": "0.71.0"
+  }
+}

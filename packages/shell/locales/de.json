@@ -1,0 +1,216 @@
+{
+  "shell": {
+    "ui": {
+      "navigation": "Hauptnavigation",
+      "toggle": "Navigation umschalten",
+      "testHint": "Teste hier, wie eine Benachrichtigung an der gewählten Position aussieht.",
+      "testButton": "Testbenachrichtigung anzeigen",
+      "testTitle": "Testbenachrichtigung",
+      "testDescription": "So werden Benachrichtigungen an der gewählten Position angezeigt.",
+      "customColor": "Eigene Farbe",
+      "themeDefault": "Theme-Vorgabe",
+      "backPlugins": "Zurück zu Plugins",
+      "pluginUnavailable": "Plugin nicht verfügbar",
+      "description": "Beschreibung",
+      "aboutPlugin": "Über dieses Plugin",
+      "noDescription": "Für dieses Plugin ist noch keine Beschreibung hinterlegt.",
+      "pluginSettings": "Plugin-Einstellungen",
+      "settings": "Einstellungen",
+      "noSettings": "Dieses Plugin bietet keine eigenen Einstellungen.",
+      "pluginInfo": "Plugin-Informationen",
+      "info": "Informationen",
+      "version": "Version",
+      "unspecified": "Nicht angegeben",
+      "license": "Lizenz",
+      "website": "Website",
+      "projectWebsite": "Projektwebsite",
+      "support": "Support",
+      "supportLink": "Hilfe und Fehler melden",
+      "plugins": "Plugins",
+      "pluginsDescription": "Aktivierte Erweiterungen und ihre Einstellungen.",
+      "searchPlugins": "Plugins durchsuchen",
+      "pluginsPlaceholder": "Plugins durchsuchen …",
+      "clearPlugins": "Plugin-Suche löschen",
+      "openPlugin": "{name} öffnen",
+      "author": "Von {author}",
+      "noPlugins": "Keine Plugins gefunden."
+    },
+    "colors": {
+      "p0": "Standard",
+      "p1": "Blau",
+      "p2": "Violett",
+      "p3": "Grün",
+      "p4": "Rose",
+      "p5": "Orange"
+    },
+    "settingsShell": {
+      "title": "Einstellungen",
+      "back": "Zurück zum Studio",
+      "navigation": "Einstellungsnavigation",
+      "toggle": "Einstellungsnavigation umschalten",
+      "breadcrumb": "Brotkrümelnavigation",
+      "search": "Einstellungen durchsuchen",
+      "placeholder": "Einstellungen durchsuchen …",
+      "clear": "Suche löschen",
+      "empty": "Keine Einstellungen gefunden",
+      "skip": "Zu den Einstellungen"
+    },
+    "overview": {
+      "search": "Einstellungen suchen",
+      "placeholder": "Einstellung suchen …",
+      "clear": "Suche löschen",
+      "empty": "Keine Einstellungen gefunden",
+      "hint": "Versuche einen anderen Suchbegriff.",
+      "clearSearch": "Suche zurücksetzen"
+    },
+    "style": {
+      "primary": {
+        "title": "Primärfarbe",
+        "description": "Wähle eine Vorgabe oder eine eigene Farbe für Buttons und Auswahlfelder."
+      },
+      "sidebarTheme": {
+        "title": "Farbschema der Seitenleiste",
+        "description": "Wähle das Farbschema unabhängig vom restlichen Inhalt.",
+        "options": {
+          "default": {
+            "label": "Wie die App"
+          },
+          "light": {
+            "label": "Immer hell"
+          },
+          "dark": {
+            "label": "Immer dunkel"
+          }
+        }
+      },
+      "corners": {
+        "title": "Eckenform",
+        "options": {
+          "default": {
+            "label": "Standard",
+            "description": "Die gewohnten weichen Konturen."
+          },
+          "round": {
+            "label": "Rund",
+            "description": "Klassisch abgerundete Ecken."
+          },
+          "square": {
+            "label": "Eckig",
+            "description": "Gerade Kanten ohne Rundung."
+          }
+        }
+      },
+      "surface": {
+        "title": "Oberflächen",
+        "options": {
+          "default": {
+            "label": "Mit Tiefe",
+            "description": "Dezente Verläufe, Schatten und Licht."
+          },
+          "flat": {
+            "label": "Flach",
+            "description": "Ruhige Flächen ohne dekorative Effekte."
+          }
+        }
+      }
+    },
+    "theme": {
+      "title": "Farbschema",
+      "description": "Hell, dunkel oder passend zu deinem System.",
+      "options": {
+        "light": {
+          "label": "Hell",
+          "description": "Immer helle Oberfläche."
+        },
+        "dark": {
+          "label": "Dunkel",
+          "description": "Immer dunkle Oberfläche."
+        },
+        "system": {
+          "label": "System",
+          "description": "Folgt deinem Betriebssystem."
+        }
+      }
+    },
+    "layout": {
+      "title": "Navigation",
+      "description": "Wähle die Anordnung deiner Navigation. Inhalte bleiben geöffnet.",
+      "options": {
+        "sidebar": {
+          "label": "Sidebar",
+          "description": "Navigation links, Inhalte rechts."
+        },
+        "navbar": {
+          "label": "Horizontale Navbar",
+          "description": "Navigation über dem Inhaltsbereich."
+        }
+      }
+    },
+    "notifications": {
+      "placement": {
+        "title": "Position der Benachrichtigungen",
+        "options": {
+          "top start": {
+            "label": "Oben am Anfang"
+          },
+          "top": {
+            "label": "Oben mittig"
+          },
+          "top end": {
+            "label": "Oben am Ende"
+          },
+          "bottom start": {
+            "label": "Unten am Anfang"
+          },
+          "bottom": {
+            "label": "Unten mittig"
+          },
+          "bottom end": {
+            "label": "Unten am Ende"
+          }
+        }
+      }
+    }
+  },
+  "settings": {
+    "categories": {
+      "general": {
+        "title": "Allgemein"
+      },
+      "appearance": {
+        "title": "Darstellung"
+      },
+      "personal": {
+        "title": "Mein Konto"
+      },
+      "organization": {
+        "title": "Organisation"
+      },
+      "administration": {
+        "title": "Anwendungsverwaltung"
+      }
+    },
+    "sections": {
+      "appearance": {
+        "title": "Layout und Farbschema",
+        "description": "Farbschema und Navigation anpassen."
+      },
+      "shell-theme": {
+        "title": "Theme",
+        "description": "Farben, Ecken und Oberflächen anpassen."
+      },
+      "shell-notifications": {
+        "title": "Benachrichtigungen"
+      },
+      "plugins": {
+        "title": "Plugins"
+      }
+    }
+  },
+  "plugins": {
+    "shell": {
+      "name": "App Shell",
+      "description": "Navigation und Layout der Anwendung."
+    }
+  }
+}

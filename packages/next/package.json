@@ -1,0 +1,53 @@
+{
+  "name": "@bitakit/next",
+  "version": "0.1.0",
+  "type": "module",
+  "files": [
+    "src",
+    "README.md",
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./generated": {
+      "types": "./dist/generated.d.ts",
+      "default": "./dist/generated.js"
+    },
+    "./config": {
+      "types": "./src/config.d.ts",
+      "default": "./src/config.mjs"
+    },
+    "./actions": {
+      "types": "./dist/actions.d.ts",
+      "default": "./dist/actions.js"
+    },
+    "./query": {
+      "types": "./dist/query.d.ts",
+      "default": "./dist/query.js"
+    }
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bitakit/core": "0.1.0",
+    "@bitakit/ui": "0.1.0",
+    "nuqs": "2.10.1"
+  },
+  "peerDependencies": {
+    "next": ">=15",
+    "react": "^18.3.0 || ^19.0.0"
+  },
+  "bin": {
+    "foundation-generate": "./src/cli.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/react": "^19"
+  },
+  "description": "Next.js discovery and routing adapter for SaaS Foundation."
+}

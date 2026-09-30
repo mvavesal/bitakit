@@ -1,0 +1,18 @@
+{
+  "settings": {
+    "messages": {
+      "saving": "Saving…",
+      "loading": "Loading…",
+      "loadFailed": "This setting could not be loaded.",
+      "saveFailed": "The change could not be saved. Please try again.",
+      "invalid": "Enter a valid value.",
+      "readOnly": "You cannot change this setting.",
+      "reset": "Reset to default",
+      "unregistered": "Setting \"{key}\" is referenced but not registered.",
+      "configuration": "Settings configuration error",
+      "empty": "This section has no settings.",
+      "navigation": "Settings sections",
+      "unavailable": "This settings section is not available."
+    }
+  }
+}

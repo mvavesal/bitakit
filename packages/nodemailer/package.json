@@ -1,0 +1,32 @@
+{
+  "name": "@bitakit/nodemailer",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/browser.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@bitakit/core": "0.1.0",
+    "@bitakit/email": "0.1.0",
+    "nodemailer": "10.0.10"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^24",
+    "@types/nodemailer": "^7"
+  },
+  "description": "Server-only Nodemailer SMTP plugin for SaaS Foundation."
+}

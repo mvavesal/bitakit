@@ -1,0 +1,21 @@
+@import '@heroui/styles';
+/* Tailwind sources owned by this installed package; host theme stays authoritative. */
+@import '@bitakit/ui/styles.css';
+@source "./dist";
+
+@import '@bitakit/app-preferences/styles.css';
+
+/* HeroUI muted denotes text; Foundation muted denotes a surface. */
+.toast__description {
+  color: var(--muted-foreground);
+}
+.toast {
+  --overlay: var(--popover);
+  --overlay-foreground: var(--popover-foreground);
+}
+.toast__title {
+  color: var(--popover-foreground);
+}
+.toast__close-button {
+  color: var(--popover-foreground);
+}

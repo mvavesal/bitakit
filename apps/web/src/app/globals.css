@@ -1,0 +1,16 @@
+@import 'tailwindcss' source('../');
+@import '@bitakit/ui/styles.css';
+@import '@bitakit/better-auth-ui/organization-styles.css';
+@import '@bitakit/shell/styles.css';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@import '../../../theme.css';
+
+/* Preserve this application's established border contrast. */
+:root {
+  --border: oklch(0.922 0 0);
+}
+.dark {
+  --border: oklch(1 0 0 / 10%);
+}

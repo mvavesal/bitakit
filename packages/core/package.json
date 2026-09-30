@@ -1,0 +1,39 @@
+{
+  "name": "@bitakit/core",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "discovery",
+    "docs"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/core.d.ts",
+      "default": "./dist/core.js"
+    },
+    "./actions": {
+      "types": "./dist/actions/core.d.ts",
+      "default": "./dist/actions/core.js"
+    },
+    "./discovery": {
+      "types": "./discovery/index.d.ts",
+      "default": "./discovery/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test tests/*.test.mjs action-tests/*.test.mjs",
+    "prepack": "npm run build",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "jiti": "^2.7.0",
+    "typescript": "^5.9.3",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {},
+  "description": "Framework-independent Foundation runtime, actions, and typed services."
+}

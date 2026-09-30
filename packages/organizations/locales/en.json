@@ -1,0 +1,8 @@
+{
+  "plugins": {
+    "organizations": {
+      "name": "Organization service",
+      "description": "Shared access to organizations and memberships."
+    }
+  }
+}

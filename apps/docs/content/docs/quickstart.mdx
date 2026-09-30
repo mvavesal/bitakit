@@ -1,0 +1,80 @@
+---
+title: Quickstart
+description: Create your application. Choose your capabilities. Start building.
+---
+
+Build a small Next.js application with BitaKit already connected.
+You need **Node.js 24**, **npm 10 or newer**, and an internet connection.
+
+<Callout title="Release preview">
+The npm packages are not published yet. The commands below show the intended public
+installation flow and will become usable after release. You do not need to clone or
+build BitaKit to use the published packages.
+</Callout>
+
+## 1. Create your app
+
+Run the generator and follow the prompts to choose a framework and optional capabilities.
+
+```sh
+npx @bitakit/create-app my-app
+```
+
+Choose **Next.js** for the current default path. Start with no optional features for a
+minimal app, or select **Shell** and **Quick Search** for an application layout with settings
+and action search. The generator includes required dependencies automatically.
+
+Prefer a single command? This selects Next.js and the minimal preset:
+
+```sh
+npx @bitakit/create-app my-app --framework next --features none --yes
+```
+
+Choose a new directory name: the generator does not overwrite an existing project.
+
+## 2. Start developing
+
+```sh
+cd my-app
+npm run dev
+```
+
+Open the local address printed in your terminal. Your welcome page is ready to edit.
+The generator has already connected Foundation to your application's router.
+
+## 3. Make it yours
+
+Edit your app's native routes and components. Keep product behavior in your application;
+use BitaKit packages for shared capabilities.
+
+| You own | BitaKit connects |
+| --- | --- |
+| Pages and business logic | Runtime and plugin lifecycle |
+| Framework routes | Links and navigation through the selected integration |
+| Product configuration | Installed capabilities and their dependencies |
+
+You can use your framework's router directly in application code. BitaKit does not
+replace it, and plugins do not need their own router setup on every page.
+
+## Choose your starting point
+
+To create a new project with an application shell and quick search:
+
+```sh
+npx @bitakit/create-app my-app --framework next --features shell,quick-search
+```
+
+Shell includes App Preferences as a prerequisite. Authentication, a database and email
+are separate integrations; the generator does not create a backend.
+
+## Where next?
+
+<Cards>
+  <Card title="Explore packages" href="/docs/packages" description="Choose the capabilities your application needs." />
+  <Card title="Understand BitaKit" href="/docs" description="See how your app, the runtime and plugins fit together." />
+</Cards>
+
+### Framework support
+
+Next.js projects currently use Webpack. TanStack Start is available as an experimental
+generator option; broader compatibility is still being verified.

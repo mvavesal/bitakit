@@ -1,0 +1,42 @@
+node_modules/
+.next/
+dist/
+build/
+.cache/
+.tmp/
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite*
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Local browser verification output
+playwright-report/
+test-results/
+
+# Generated ZenStack client; recreated before dev/build/typecheck
+apps/web/zenstack/schema.ts
+apps/web/zenstack/models.ts
+apps/web/zenstack/input.ts
+apps/web/zenstack/~schema*.prisma
+
+# Generated Foundation plugin imports and messages
+**/.foundation/
+**/foundation-env.d.ts
+
+# Local editor settings and scratch files
+.idea/
+.vscode/
+.claude/
+.codex/
+tmp/
+*.bak
+*.orig
+*.rej
+
+# Generated Fumadocs content
+apps/docs/.source/

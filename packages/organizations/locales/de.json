@@ -1,0 +1,8 @@
+{
+  "plugins": {
+    "organizations": {
+      "name": "Organisations-Service",
+      "description": "Gemeinsamer Zugriff auf Organisationen und Mitgliedschaften."
+    }
+  }
+}

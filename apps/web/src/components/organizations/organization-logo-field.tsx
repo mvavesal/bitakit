@@ -1,0 +1,103 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import BuildingIcon from 'reicon-react/icons/Building';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Field, FieldLabel, FieldDescription, FieldError } from '@/components/ui/field';
+
+export function OrganizationLogoField({
+  disabled,
+  initialLogo = '',
+}: {
+  disabled: boolean;
+  initialLogo?: string;
+}) {
+  const t = useTranslations('Organizations');
+  const input = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState(initialLogo);
+  const [removed, setRemoved] = useState(false);
+  const [invalid, setInvalid] = useState(false);
+  useEffect(
+    () => () => {
+      if (preview.startsWith('blob:')) URL.revokeObjectURL(preview);
+    },
+    [preview],
+  );
+  return (
+    <Field data-invalid={invalid}>
+      <FieldLabel htmlFor="organization-logo" className="sr-only">
+        {t('logo')}
+      </FieldLabel>
+      <div className="flex items-center gap-4">
+        <Avatar className="size-20">
+          {preview && <AvatarImage src={preview} alt={t('logoPreview')} />}
+          <AvatarFallback>
+            <BuildingIcon className="size-8" aria-hidden="true" />
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={disabled}
+              onClick={() => input.current?.click()}
+            >
+              {preview ? t('changeLogo') : t('chooseLogo')}
+            </Button>
+            {preview && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={disabled}
+                onClick={() => {
+                  if (input.current) input.current.value = '';
+                  setPreview('');
+                  setRemoved(true);
+                  setInvalid(false);
+                }}
+              >
+                {t('removeLogo')}
+              </Button>
+            )}
+          </div>
+          <FieldDescription id="organization-logo-hint">{t('logoHint')}</FieldDescription>
+        </div>
+      </div>
+      <input type="hidden" name="removeLogo" value={String(removed)} />
+      <input
+        ref={input}
+        id="organization-logo"
+        name="logo"
+        type="file"
+        className="sr-only"
+        tabIndex={-1}
+        accept="image/png,image/jpeg,image/webp"
+        disabled={disabled}
+        aria-describedby="organization-logo-hint"
+        aria-invalid={invalid}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          if (
+            file.size > 2 * 1024 * 1024 ||
+            !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)
+          ) {
+            event.target.value = '';
+            setPreview(removed ? '' : initialLogo);
+            setInvalid(true);
+            return;
+          }
+          setInvalid(false);
+          setRemoved(false);
+          setPreview(URL.createObjectURL(file));
+        }}
+      />
+      {invalid && <FieldError>{t('logoInvalid')}</FieldError>}
+    </Field>
+  );
+}

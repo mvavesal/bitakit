@@ -1,0 +1,38 @@
+{
+  "name": "@bitakit/organizations",
+  "version": "0.1.0",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "locales"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./demo": {
+      "types": "./dist/demo.d.ts",
+      "default": "./dist/demo.js"
+    },
+    "./locales/*.json": "./locales/*.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@bitakit/core": "0.1.0",
+    "tldts": "^7.4.13",
+    "zod": "^4.6.5"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5"
+  },
+  "description": "Provider-independent organization contracts, service, and demo backend."
+}

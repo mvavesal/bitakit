@@ -1,0 +1,14 @@
+{
+  "Foundation": {
+    "cancel": "Cancel",
+    "submit": "Save",
+    "pending": "Saving…",
+    "invalid": "Check your input.",
+    "unavailable": "Unavailable"
+  },
+  "foundationUI": {
+    "dialog": {
+      "close": "Close"
+    }
+  }
+}

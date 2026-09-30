@@ -1,0 +1,263 @@
+{
+  "foundationUI": {
+    "incoming_invitations": {
+      "notSpecified": "Nicht angegeben",
+      "organization": "Organisation",
+      "role": "Rolle",
+      "status": "Status",
+      "actions": "Aktionen",
+      "owner": "Eigentümer",
+      "admin": "Administrator",
+      "member": "Mitglied",
+      "pending": "Ausstehend",
+      "invitationsForMe": "Einladungen an mich",
+      "invitationsToJoinOtherOrganizationsWithYourAccount": "Einladungen, mit deinem Konto anderen Organisationen beizutreten.",
+      "thisProviderDoesNotSupportInvitations": "Einladungen werden von diesem Anbieter nicht unterstützt.",
+      "searchInvitations": "Einladungen durchsuchen …",
+      "clearInvitationSearch": "Einladungssuche löschen",
+      "thisInvitationIsUnavailableSignInWithTheInvitedEmailAddressIt": "Diese Einladung ist nicht verfügbar. Melde dich mit der eingeladenen E-Mail-Adresse an; sie kann auch abgelaufen oder bereits beantwortet sein.",
+      "validUntil": "Gültig bis",
+      "invitedOn": "Eingeladen am",
+      "invitedAs": "Eingeladen als",
+      "loadingInvitations": "Einladungen werden geladen …",
+      "noMatchingInvitationsFound": "Keine passenden Einladungen gefunden.",
+      "youHaveNoPendingInvitations": "Du hast aktuell keine offenen Einladungen."
+    },
+    "invitation_email_input": {
+      "email": "E-Mail",
+      "add": "hinzufügen",
+      "addEmailAddresses": "E-Mail-Adressen hinzufügen"
+    },
+    "invite_dialog": {
+      "email": "E-Mail",
+      "role": "Rolle",
+      "admin": "Administrator",
+      "member": "Mitglied",
+      "days": "Tage",
+      "cancel": "Abbrechen",
+      "sending": "Wird gesendet …",
+      "validity": "Gültigkeit",
+      "theWorkspaceChangedOrPermissionIsMissingOpenTheInvitationAgain": "Der Arbeitsbereich wurde geändert oder die Berechtigung fehlt. Bitte öffne die Einladung erneut.",
+      "invitationTo": "Einladung zu",
+      "enterUpTo20ValidAddressesAndAValidityPeriodOf1": "Bitte gib bis zu 20 gültige Adressen und eine Gültigkeit von 1 bis 365 Tagen an.",
+      "upTo20AddressesSeparatedByCommasSemicolonsOrNewLines": "Bis zu 20 Adressen, getrennt durch Komma, Semikolon oder Zeilenumbruch.",
+      "sendInvitations": "Einladungen senden",
+      "partialSuccess": "{count} von {total} Einladungen erstellt. Nur fehlgeschlagene Adressen bleiben für einen erneuten Versuch stehen."
+    },
+    "logo_field": {
+      "changeLogo": "Logo ändern",
+      "chooseLogo": "Logo auswählen",
+      "logo": "Logo",
+      "organizationLogo": "Organisationslogo",
+      "removeLogo": "Logo entfernen",
+      "pngJPEGOrWebPUpTo2MB": "PNG, JPEG oder WebP, höchstens 2 MB.",
+      "chooseAValidImageUpTo2MB": "Bitte ein gültiges Bild mit höchstens 2 MB auswählen."
+    },
+    "organization_dialog": {
+      "general": "Allgemein",
+      "name": "Name",
+      "website": "Website",
+      "cancel": "Abbrechen",
+      "saveChanges": "Änderungen speichern",
+      "createOrganization": "Organisation erstellen",
+      "deleteOrganization": "Organisation löschen",
+      "thePublicWebsiteOfYourOrganizationOptional": "Die öffentliche Website deiner Organisation. Optional.",
+      "theWorkspaceChangedOpenItAgain": "Der Arbeitsbereich wurde geändert. Bitte erneut öffnen.",
+      "savingFailedCheckYourInputAndPermissions": "Speichern fehlgeschlagen. Bitte prüfe die Eingaben und deine Berechtigung.",
+      "theChangeCouldNotBeCompleted": "Die Änderung konnte nicht ausgeführt werden.",
+      "appearance": "Erscheinungsbild",
+      "identifier": "Kennung",
+      "changesSaved": "Änderungen gespeichert.",
+      "howYourOrganizationAppearsInTheWorkspace": "So wird deine Organisation im Arbeitsbereich angezeigt.",
+      "uniqueShortNameUsingLowercaseLettersNumbersAndHyphens": "Eindeutiger Kurzname aus Kleinbuchstaben, Zahlen und Bindestrichen.",
+      "saving": "Wird gespeichert …",
+      "loadingOrganizationDetails": "Organisationsdaten werden geladen …",
+      "thisMember": "Dieses Mitglied",
+      "anAdministratorAdministratorsCanManageTheOrganizationAndItsMembers": "zum Administrator machen? Administratoren können die Organisation und ihre Mitglieder verwalten.",
+      "removeThisMemberFromTheOrganization": "Dieses Mitglied aus der Organisation entfernen?",
+      "permanentlyDeleteThisOrganizationAndItsMemberships": "Diese Organisation und ihre Mitgliedschaften dauerhaft löschen?",
+      "confirmRoleChange": "Rollenänderung bestätigen",
+      "confirmRemoval": "Entfernen bestätigen",
+      "promoteConfirm": "{name} zum Administrator machen? Administratoren können die Organisation und ihre Mitglieder verwalten.",
+      "demoteConfirm": "{name} zum Mitglied machen? Die Person verliert ihre Verwaltungsrechte."
+    },
+    "pages": {
+      "invitations": "Einladungen",
+      "members": "Mitglieder",
+      "loadingOrganizations": "Organisationen werden geladen …",
+      "member": "Mitglied",
+      "status": "Status",
+      "role": "Rolle",
+      "actions": "Aktionen",
+      "active": "Aktiv",
+      "email": "E-Mail",
+      "pending": "Ausstehend",
+      "membersAndInvitationsInTheActiveWorkspace": "Mitglieder und Einladungen im aktiven Arbeitsbereich.",
+      "pendingInvitations": "Offene Einladungen",
+      "noMatchingMembers": "Keine passenden Mitglieder.",
+      "noPendingInvitations": "Keine offenen Einladungen.",
+      "pluginTestWithSampleDataNoRealSigninOrEmailDeliveryChanges": "Plugin-Test mit eigenen Beispieldaten. Keine echte Anmeldung, keine E-Mail-Zustellung; Änderungen bleiben nur bis zum Neuladen.",
+      "people": "Personen",
+      "suspended": "Gesperrt"
+    },
+    "people_filters": {
+      "role": "Rolle",
+      "status": "Status",
+      "clearSearch": "Suche löschen",
+      "owner": "Eigentümer",
+      "admin": "Administrator",
+      "member": "Mitglied",
+      "active": "Aktiv",
+      "clearFilters": "Filter zurücksetzen",
+      "back": "Zurück",
+      "search": "Suchen",
+      "nameOrEmail": "Name oder E-Mail",
+      "all": "Alle",
+      "suspended": "Gesperrt",
+      "joinDate": "Beitrittsdatum",
+      "invitationDate": "Einladungsdatum",
+      "pagination": "Seitennavigation",
+      "perPage": "Pro Seite",
+      "resultsPage": "Ergebnisse · Seite",
+      "next": "Weiter",
+      "pageSummary": "{total} Ergebnisse · Seite {page} von {pages}"
+    },
+    "switcher": {
+      "switchOrganization": "Organisation wechseln",
+      "loadingOrganizations": "Organisationen werden geladen …",
+      "clearSearch": "Suche löschen",
+      "noOrganizationsFound": "Keine Organisation gefunden.",
+      "active": "Aktiv",
+      "addOrganization": "Organisation hinzufügen",
+      "selectOrganization": "Organisation wählen",
+      "searchOrganizations": "Organisation suchen",
+      "theOperationFailed": "Der Vorgang ist fehlgeschlagen."
+    },
+    "account": {
+      "checkingSignin": "Anmeldung wird geprüft …",
+      "signInToAccessTheseAccountSettings": "Für diese Kontoeinstellungen benötigst du eine echte Anmeldung.",
+      "logIn": "Anmelden"
+    },
+    "organizations": {
+      "reload": "Erneut laden",
+      "loadingOrganizations": "Organisationen werden geladen …",
+      "selectAnOrganization": "Bitte wähle eine Organisation.",
+      "organizationSettings": "Organisationseinstellungen",
+      "organizationProfile": "Organisationsprofil",
+      "notSpecified": "Nicht angegeben",
+      "organizationLogo": "Organisationslogo",
+      "manageYourWorkspaceAppearanceAndDetails": "Verwalte das Erscheinungsbild und die Angaben deines Arbeitsbereichs.",
+      "informationAboutYourWorkspace": "Informationen zu deinem Arbeitsbereich.",
+      "identifier": "Kennung:",
+      "website": "Website:",
+      "youCanViewTheseDetailsButCannotEditThem": "Du kannst diese Angaben ansehen, aber nicht bearbeiten."
+    },
+    "auth_page_layout": {
+      "backToApplication": "Zurück zur Anwendung"
+    },
+    "roles": {
+      "owner": "Eigentümer",
+      "admin": "Administrator",
+      "member": "Mitglied"
+    },
+    "dateRange": {
+      "applied": "Filter aktiv",
+      "from": "Seit",
+      "to": "Bis",
+      "hint": "Zeitraum auswählen.",
+      "invalidRange": "Das Enddatum muss nach dem Startdatum liegen.",
+      "clear": "Zurücksetzen",
+      "apply": "Anwenden"
+    },
+    "group_actions": {
+      "theActionFailed": "Die Aktion ist fehlgeschlagen.",
+      "moreActions": "Weitere Aktionen"
+    },
+    "dialog": {
+      "close": "Schließen"
+    }
+  },
+  "organizations": {
+    "accept": {
+      "title": "Annehmen",
+      "success": "Einladung angenommen."
+    },
+    "reject": {
+      "title": "Ablehnen",
+      "success": "Einladung abgelehnt."
+    },
+    "open": {
+      "title": "Organisationen"
+    },
+    "create": {
+      "title": "Organisation erstellen"
+    },
+    "edit": {
+      "title": "Organisation bearbeiten"
+    },
+    "delete": {
+      "title": "Organisation löschen"
+    },
+    "remove": {
+      "title": "Entfernen"
+    },
+    "promote": {
+      "title": "Zum Administrator machen"
+    },
+    "demote": {
+      "title": "Zum Mitglied machen"
+    },
+    "invite": {
+      "title": "Mitglied einladen"
+    },
+    "refresh": {
+      "title": "Erneut laden"
+    },
+    "cancel": {
+      "title": "Widerrufen"
+    },
+    "resend": {
+      "title": "Erneut senden"
+    },
+    "disable": {
+      "title": "Sperren"
+    },
+    "enable": {
+      "title": "Entsperren"
+    }
+  },
+  "settings": {
+    "sections": {
+      "profile": {
+        "title": "Profil",
+        "description": "Dein Profilbild und deine persönlichen Angaben."
+      },
+      "security": {
+        "title": "Sicherheit",
+        "description": "E-Mail-Adresse, Passwort, Zwei-Faktor-Authentifizierung, verknüpfte Konten und aktive Sitzungen."
+      },
+      "organization": {
+        "title": "Organisationsprofil"
+      },
+      "members": {
+        "title": "Mitglieder"
+      },
+      "invitations": {
+        "title": "Einladungen"
+      },
+      "organization-members": {
+        "title": "Mitglieder und Einladungen",
+        "description": "Mitglieder und versendete Einladungen der aktiven Organisation verwalten."
+      },
+      "received-invitations": {
+        "title": "Einladungen an mich",
+        "description": "Einladungen, anderen Organisationen beizutreten."
+      }
+    }
+  },
+  "plugins": {
+    "better-auth-ui": {
+      "description": "Original HeroUI-Komponenten für Anmeldung, Konto und Organisationen."
+    }
+  }
+}

@@ -1,0 +1,263 @@
+'use client';
+import { useTranslation } from '@bitakit/ui';
+import { MemberRoleIcon, MemberStatusIcon } from './people-icons.js';
+import {  Alert, AlertDescription  } from '../ui/index.js';
+import {  PageHeader  } from '../ui/index.js';
+import {
+  type AppPreferences,
+} from '@bitakit/app-preferences/core';
+import { IncomingInvitations } from './incoming-invitations.js';
+import { usePeopleFilters, PeopleFilters, PeoplePagination } from './people-filters.js';
+import {  Tabs, TabsList, TabsTrigger  } from '../ui/index.js';
+import { useSyncExternalStore } from 'react';
+import { getService } from '@bitakit/core';
+import { useFoundation } from '@bitakit/ui';
+import {  Avatar, AvatarImage, AvatarFallback  } from '../ui/index.js';
+import {  Badge  } from '../ui/index.js';
+import { 
+  Table,
+  TableHeader,
+  TableHead,
+  TableRow,
+  TableBody,
+  TableCell,
+ } from '../ui/index.js';
+import { organizationService } from '@bitakit/organizations';
+import { organizationGroups } from '@bitakit/organizations';
+import { GroupActions } from './group-actions.js';
+import type { Member, Invitation } from '@bitakit/organizations';
+
+
+
+function MemberActions({ member, organizationId }: { member: Member; organizationId: string }) {
+  return (
+    <GroupActions
+      menu
+      group={organizationGroups.member}
+      context={{ organizationId, memberId: member.id }}
+    />
+  );
+}
+function InvitationActions({
+  invitation,
+  organizationId,
+}: {
+  invitation: Invitation;
+  organizationId: string;
+}) {
+  return (
+    <GroupActions
+      menu
+      group={organizationGroups.invitation}
+      context={{ organizationId, invitationId: invitation.id }}
+    />
+  );
+}
+export function OrganizationsPage({
+  demo = false,
+  view,
+}: { demo?: boolean; settings?: AppPreferences; view?: 'current' | 'pending' } = {}) {
+  const translateUI = useTranslation();
+  const roleLabel = (role: string) => role.split(',').map(value => translateUI(`foundationUI.roles.${value}`, undefined, value)).join(', ');
+  const service = getService(useFoundation().runtime.services, organizationService);
+  const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
+  const active = state.organizations.find((item) => item.id === state.activeId);
+  const model = usePeopleFilters(view);
+  const { matches } = model;
+  const filters = { ...model.filters, tab: view ?? model.filters.tab };
+  const allMembers = state.members.filter(
+    (item) =>
+      matches(item) &&
+      (filters.status === 'all' || (item.disabled ? 'disabled' : 'active') === filters.status),
+  );
+  const allInvitations = state.invitations.filter(
+    (item) => item.status === 'pending' && matches(item),
+  );
+  const total = filters.tab === 'current' ? allMembers.length : allInvitations.length;
+  const page = Math.min(
+    Math.max(1, filters.page),
+    Math.max(1, Math.ceil(total / filters.pageSize)),
+  );
+  const offset = (page - 1) * filters.pageSize;
+  const members = allMembers.slice(offset, offset + filters.pageSize);
+  const invitations = allInvitations.slice(offset, offset + filters.pageSize);
+  return (
+    <section
+      className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6"
+      aria-busy={state.pending}
+    >
+      <PageHeader
+        title={view === 'pending' ? translateUI("foundationUI.pages.invitations", undefined, "Einladungen") : translateUI("foundationUI.pages.members", undefined, "Mitglieder")}
+        subtitle={translateUI("foundationUI.pages.membersAndInvitationsInTheActiveWorkspace", undefined, "Mitglieder und Einladungen im aktiven Arbeitsbereich.")}
+        trailing={
+          <>
+            <GroupActions
+              iconOnly
+              group={organizationGroups.toolbar}
+              context={{ organizationId: state.activeId }}
+            />
+            {state.canManage && (
+              <GroupActions
+                group={organizationGroups.members}
+                context={{ organizationId: state.activeId }}
+                size="default"
+                variant="default"
+              />
+            )}
+          </>
+        }
+      />
+      {demo && (
+        <Alert role="note">
+          <AlertDescription>
+            {translateUI("foundationUI.pages.pluginTestWithSampleDataNoRealSigninOrEmailDeliveryChanges", undefined, "Plugin-Test mit eigenen Beispieldaten. Keine echte Anmeldung, keine E-Mail-Zustellung; Änderungen bleiben nur bis zum Neuladen.")}</AlertDescription>
+        </Alert>
+      )}
+      {state.error && (
+        <p role="alert" className="text-sm text-destructive">
+          {state.error}
+        </p>
+      )}
+      {!state.loaded && state.pending && <p role="status">{translateUI("foundationUI.pages.loadingOrganizations", undefined, "Organisationen werden geladen …")}</p>}
+      {active && (
+        <>
+          <div className="flex min-w-0 flex-col gap-4">
+            {!view && (
+              <Tabs
+                value={filters.tab}
+                onValueChange={(tab) =>
+                  void model.set({
+                    tab: tab === 'pending' ? 'pending' : 'current',
+                    page: 1,
+                    role: null,
+                  })
+                }
+              >
+                <TabsList variant="line" aria-label={translateUI("foundationUI.pages.people", undefined, "Personen")}>
+                  <TabsTrigger value="current">
+                    {translateUI("foundationUI.pages.members", undefined, "Mitglieder")}<Badge variant="secondary">{state.members.length}</Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="pending">
+                    {translateUI("foundationUI.pages.pendingInvitations", undefined, "Offene Einladungen")}{' '}
+                    <Badge variant="secondary">
+                      {state.invitations.filter((item) => item.status === 'pending').length}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+            <PeopleFilters model={model} />
+          </div>
+          {filters.tab === 'current' && (
+            <div className="min-w-0">
+              {!members.length && <p>{translateUI("foundationUI.pages.noMatchingMembers", undefined, "Keine passenden Mitglieder.")}</p>}
+              <div className="min-w-0">
+                <Table className="min-w-2xl table-fixed">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{translateUI("foundationUI.pages.member", undefined, "Mitglied")}</TableHead>
+                      <TableHead>{translateUI("foundationUI.pages.status", undefined, "Status")}</TableHead>
+                      <TableHead className="w-1/5">{translateUI("foundationUI.pages.role", undefined, "Rolle")}</TableHead>
+                      <TableHead>
+                        <span className="sr-only">{translateUI("foundationUI.pages.actions", undefined, "Aktionen")}</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {members.map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Avatar aria-hidden="true">
+                              {member.image && <AvatarImage src={member.image} alt="" />}
+                              <AvatarFallback>
+                                {(member.name.trim() || member.email)
+                                  .split(/\s+/)
+                                  .slice(0, 2)
+                                  .map((part) => part[0])
+                                  .join('')
+                                  .toLocaleUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="font-medium">{member.name}</div>
+                              <div className="text-muted-foreground">{member.email}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={member.disabled ? 'error' : 'success'}>
+                            <MemberStatusIcon status={member.disabled ? 'disabled' : 'active'} />
+                            {member.disabled ? translateUI("foundationUI.pages.suspended", undefined, "Gesperrt") : translateUI("foundationUI.pages.active", undefined, "Aktiv")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-normal">
+                          <Badge variant="secondary">
+                            <MemberRoleIcon role={member.role} />
+                            {roleLabel(member.role)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-normal">
+                          <MemberActions member={member} organizationId={active.id} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+          {filters.tab === 'pending' && (
+            <div className="min-w-0">
+              {!invitations.length ? (
+                <p className="text-sm text-muted-foreground">{translateUI("foundationUI.pages.noPendingInvitations", undefined, "Keine offenen Einladungen.")}</p>
+              ) : (
+                <>
+                  <div className="min-w-0">
+                    <Table className="min-w-2xl table-fixed">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{translateUI("foundationUI.pages.email", undefined, "E-Mail")}</TableHead>
+                          <TableHead>{translateUI("foundationUI.pages.status", undefined, "Status")}</TableHead>
+                          <TableHead className="w-1/5">{translateUI("foundationUI.pages.role", undefined, "Rolle")}</TableHead>
+                          <TableHead>
+                            <span className="sr-only">{translateUI("foundationUI.pages.actions", undefined, "Aktionen")}</span>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invitations.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
+                              {item.email}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="warning">
+                                <MemberStatusIcon status="pending" />
+                                {translateUI("foundationUI.pages.pending", undefined, "Ausstehend")}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                <MemberRoleIcon role={item.role} />
+                                {roleLabel(item.role)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="whitespace-normal">
+                              <InvitationActions invitation={item} organizationId={active.id} />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          <PeoplePagination model={model} total={total} />
+        </>
+      )}
+    </section>
+  );
+}
+

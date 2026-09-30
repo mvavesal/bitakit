@@ -1,0 +1,19 @@
+{
+  "users": {
+    "invite": {
+      "title": "Benutzer einladen",
+      "description": "Lokales Beispiel: Es wird keine E-Mail versendet. Mit error@example.com lässt sich der Fehlerfall ausprobieren.",
+      "submit": "Demo-Einladung erstellen",
+      "success": "Demo-Einladung erstellt",
+      "failure": "Die Demo-Einladung ist fehlgeschlagen. Bitte erneut versuchen.",
+      "fields": {
+        "email": "E-Mail-Adresse"
+      }
+    },
+    "dashboard": {
+      "users": "Benutzerverwaltung",
+      "example": "Dieses Beispiel läuft lokal im Browser und versendet keine E-Mails.",
+      "menu": "Benutzeraktionen"
+    }
+  }
+}
