@@ -41,8 +41,8 @@ BitaKit's public contracts; they do not need to be added to this monorepo.
 Requirements: **Node.js 24** and **npm 10 or newer**.
 
 ```sh
-git clone https://github.com/mvavesal/bita.git
-cd bita
+git clone https://github.com/mvavesal/bitakit.git
+cd bitakit
 npm ci
 npm run dev:docs
 ```
