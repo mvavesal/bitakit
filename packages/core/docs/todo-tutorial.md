@@ -36,7 +36,7 @@ an outcome; successful execution has `status: 'completed'` and its result in `va
 
 ## The service owns the task behavior
 
-[The task service](../examples/todos/services/tasks.mjs) stores tasks in a Map and
+[The task service](../examples/todos/services/tasks.mjs) stores tasks in an array and
 exposes `create(title)`, `list()`, and `delete(id)`. Its factory runs when Core mounts
 the runtime. IDs increase independently of list length, so deletion does not cause
 ID reuse. This is temporary memory, not database persistence.
