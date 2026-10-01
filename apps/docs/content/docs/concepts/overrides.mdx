@@ -1,6 +1,6 @@
 ---
 title: Overrides and customization
-description: Change defaults or behavior without a second registry.
+description: Make a plugin fit your app with a few small changes.
 ---
 
 **Owner:** configuration and contribution replacement in `@bitakit/core`. Framework provider composition is supplied by the selected adapter.
@@ -40,22 +40,24 @@ export default defineService({
 });
 ```
 
-Call it through `app.services.tools.clock`. The internal key remains `todos.clock`; service dependencies still use that key. Omit `exposeAs` to use the file-derived public name `clock`. This option requires the current workspace version.
+Call it through `app.services.tools.clock`. The internal key remains `todos.clock`; service dependencies still use that key. Omit `exposeAs` to use the file-derived public name `clock`. This option requires Core 0.1.1 or newer.
 
 ## Replace an action from the host
 
 ```ts
-// src/actions/add-task.ts
+// src/actions/list-tasks.ts
 import { defineAction } from '@bitakit/core';
 
-export default defineAction<string, { id: number; title: string }, string, 'todos.add'>({
-  replaces: 'todos.add',
+export default defineAction({
+  replaces: 'todos.list',
   requires: ['todos.todos'],
-  execute: ({ app, input }) => app.services.todos.add(input),
+  execute: ({ app }) => app.services.todos.list().slice(0, 5),
 });
 ```
 
-The example retains the same behavior as a starting point for application customization. The target plugin must actually contribute `todos.add`, and the service must implement `add`. The replacement keeps the target ID so existing bindings continue to work. Omitted groups, title, description, icon and order are inherited. Execution logic and guards are not inherited: the replacement must supply the behavior and checks it needs.
+This replaces the `todos.list` action from the [configuration example](/docs/concepts/configuration) with a version that returns the first five tasks. Existing callers still use `todos.list`. You change the behavior in one place without updating every button or caller.
+
+Omitted groups, title, description, icon and order are inherited. Execution logic and guards are not inherited: the replacement must supply the behavior and checks it needs.
 
 Only host-to-plugin action replacement is supported. Missing targets, accidental duplicate IDs, multiple replacements and plugin-to-plugin replacements fail. Constructor-only IDs are not supported replacement targets. Do not create a second registration with the same ID.
 

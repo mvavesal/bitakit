@@ -3,11 +3,11 @@ title: Standalone To-do walkthrough
 description: Follow services, actions, events and cleanup in one runnable feature.
 ---
 
-**Owner:** `@bitakit/core`. This complete Node example uses the current workspace APIs, including events, which are not part of Core 0.1.0. Run it from a checkout after building Core; do not expect the published baseline to run the event-enabled version.
+Build a small To-do feature with services, actions and events. This example runs in Node.js with `@bitakit/core` 0.1.1 or newer.
 
 This walkthrough deliberately uses manual composition to run without a host framework. Its explicit registration IDs are required in that mode. For the simpler discovery-based workflow without registration IDs, start with [Plugins and lifecycle](/docs/concepts/plugins).
 
-Create the following files in one folder inside the workspace so `@bitakit/core` resolves. Keep their relative paths. No React, router, database or build discovery is required.
+Install `@bitakit/core@^0.1.1`, then create the following files in your project. Keep their relative paths. No React, router, database or file discovery is required.
 
 The service owns tasks, three actions invoke it, and the plugin groups them. The delete action reads initial state in setup and reacts after mutations through the same runtime event bus.
 

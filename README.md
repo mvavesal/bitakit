@@ -16,8 +16,8 @@
   <a href="docs/TODO.md">Roadmap</a>
 </p>
 
-> **Early preview.** Core is available on npm. The generator and remaining packages
-> are being prepared for publication. APIs are still evolving; TanStack Start is experimental.
+> **Early release.** BitaKit packages and the app generator are available on npm.
+> APIs are still evolving; TanStack Start is experimental.
 
 ## Build the product you have in mind
 
@@ -103,9 +103,7 @@ Create an app, add a To-do plugin, and bind an action to your interface.
 
 ### 1. Create your app
 
-> **Release preview:** The app generator and framework packages are not published
-> yet. The command below shows the intended setup after release. Core is already
-> available on npm.
+Start with one command. Choose your framework and the features you need.
 
 ```sh
 npx @bitakit/create-app my-app
@@ -286,7 +284,7 @@ See the [package guide](packages/README.md) for individual responsibilities.
 - TanStack Start support is **experimental**; see its [verified scope](packages/tanstack/README.md).
 - The Next.js generator uses Webpack while the tracked Turbopack discovery issue is open.
 - Plugin discovery is not a marketplace, remote installer or sandbox for untrusted code.
-- Core is published; the remaining package releases and hosted documentation are pending.
+- All 14 packages are published on npm. Hosted documentation is being prepared.
 
 ## Contributing and licensing
 

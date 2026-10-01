@@ -44,6 +44,6 @@ Your service still owns its behavior and data. Foundation does not automatically
 
 The same discovered service is available as `app.services.clock`. React consumers obtain `app` from `useFoundationApp` in `@bitakit/ui`. For access before the runtime is ready, or for an optional capability, use `app.optional.services.clock` and handle `undefined`.
 
-A discovered service can override its app-facing name with `exposeAs: 'clock'`; when omitted, its file path supplies the name. That option is also available on `provideService` for package authors. It is part of the workspace API, pending publication.
+A discovered service can override its app-facing name with `exposeAs: 'clock'`; when omitted, its file path supplies the name. That option is also available on `provideService` for package authors. It is available in Core 0.1.1 and newer.
 
 Most application features only need the two files above. For provider packages or standalone programs without discovery, see [Advanced — manual composition](/docs/concepts/manual-composition).

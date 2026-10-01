@@ -593,9 +593,9 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 - Never overwrite an existing destination. Preserve partial output on failure, propagate
   failures, and report completion only after selected installation succeeds. Support explicit
   no-install and dry-run modes and prompt cancellation before filesystem changes.
-- Package publication was explicitly authorized on October 1. The generator manifest is
-  release-ready after archive/export/license checks and CLI tests; public availability
-  still requires a successful registry publication. Local npm tarballs and npm overrides
+- Package publication was explicitly authorized and completed on October 1: Core 0.1.1
+  and the other 13 packages at 0.1.0. Registry endpoints and a freshly installed generator
+  dry-run were verified after archive/export/license checks and CLI tests. Local npm tarballs and npm overrides
   support isolated verification; do not silently link the monorepo or claim publication
   from a successful local build.
 - TanStack implementation was authorized on September 30. Reuse the native nuqs adapter;
@@ -635,7 +635,7 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 - `apps/docs` is the independent Fumadocs/Next.js workspace authorized on September 30.
   Keep English MDX guides in `content/docs` and use upstream layouts, search and components.
 - The public quickstart targets application developers, not repository maintainers.
-  Before npm publication, label public installation commands as a release preview.
+  The package family is published; installation commands now use the public registry.
   Keep local build/archive instructions in the contributor guide, not the public quickstart.
 - Documentation contributions are reviewed repository changes, not runtime plugin registration
   or package publication. External providers may remain in their own repositories.
