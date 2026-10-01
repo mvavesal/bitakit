@@ -2,127 +2,229 @@
   <img src="docs/assets/bitakit-banner-castle-assembly.png" alt="BitaKit — Your app. Your building blocks. A modular castle assembled from stairs, walls, and towers." width="1024">
 </p>
 
-<h1 align="center">Your next app. Your building blocks. Your rules.</h1>
+<h1 align="center">Build your app bit by bit.</h1>
 
 <p align="center">
-  An AI-friendly composition layer for your application.<br>
-  Keep your framework. Structure your features. Build with confidence.
+  <b>Plug in features. Pair with AI. Ship with confidence.</b><br>
+  BitaKit is the AI-friendly composition layer for Next.js and TanStack Start.<br>
+  Break your product into clean plugins and grow it one building block at a time.
 </p>
 
 <p align="center">
-  <a href="packages/core/README.md">Start with Core</a> ·
-  <a href="packages/core/docs/todo-tutorial.md">Build a To-do plugin</a> ·
-  <a href="packages/README.md">Explore packages</a> ·
+  <a href="https://www.npmjs.com/package/@bitakit/core"><img src="https://img.shields.io/npm/v/@bitakit/core?label=%40bitakit%2Fcore&logo=npm&logoColor=122F4D&labelColor=E8EEF5&color=C9D6E6" alt="npm version of @bitakit/core"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-DBCAF6?logo=opensourceinitiative&logoColor=6234B2&labelColor=F0E8FC" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/TypeScript-first-CADFF6?logo=typescript&logoColor=346FB2&labelColor=E8F2FC" alt="TypeScript first">
+  <img src="https://img.shields.io/badge/Next.js-supported-CAF6DB?logo=nextdotjs&logoColor=1F2328&labelColor=E8FCF0" alt="Next.js supported">
+  <img src="https://img.shields.io/badge/TanStack%20Start-experimental-F6DDCA?logo=tanstack&logoColor=B26A34&labelColor=FCF1E8" alt="TanStack Start experimental">
+</p>
+
+<p align="center">
+  <a href="#-from-zero-to-running-app-in-one-command">Quick start</a> ·
+  <a href="#-ship-features-with-your-ai-assistant">AI workflow</a> ·
+  <a href="#-break-your-app-into-plugins">Plugins</a> ·
+  <a href="packages/core/README.md">Core</a> ·
+  <a href="packages/README.md">Packages</a> ·
   <a href="docs/TODO.md">Roadmap</a>
 </p>
 
-> **Early release.** BitaKit packages and the app generator are available on npm.
-> APIs are still evolving; TanStack Start is experimental.
+> [!NOTE]
+> **Early release.** All 14 BitaKit packages and the app generator are on npm.
+> APIs are still evolving, and TanStack Start support is experimental.
 
-## Build the product you have in mind
-
-Keep building with **Next.js** or **TanStack Start**. BitaKit adds a shared structure
-for your application's features: plugins group capabilities, services expose behavior,
-and actions connect that behavior to your interface.
-
-**Your framework builds the app. BitaKit helps its features work together.**
-It complements your framework rather than replacing it: native routes, rendering,
-and deployment stay with your chosen stack. TanStack Start integration is currently
-experimental.
-
-**AI-friendly. Human-readable.** Give your team and coding assistants a common map:
-where features belong, how services connect, and how actions are exposed. Explicit
-contracts and predictable conventions provide context for AI-assisted development
-and make the resulting code easier for people to navigate and review. Tests and
-review remain part of the workflow.
-
-**Modular by design.** Begin with Core and add the packages your product needs.
-Keep a feature's behavior together in a plugin, then compose it with the rest of
-your application.
-
-**Type-safe feature composition.** Carry service method inputs and results, action
-inputs and completed results, known event payloads and configuration types from their
-definitions to callers. Discovery generates the application contracts for editor
-completion and compile-time checks. Optional strict Action IDs catch unknown names;
-runtime schemas and server authorization protect external boundaries. See the
-[Core type-safety guide](apps/docs/content/docs/concepts/type-safety.mdx).
-
-**Your app stays yours.** Keep your native framework routes, choose your visual
-components, and connect your own services through public contracts. The headless
-Core runs without React or a browser; optional integrations connect it to your host.
-
-**Less wiring. More building.** In a configured host, discovery connects supported
-plugin, service, and action files and generates their registration and types.
-Define your feature in the expected structure and let the build handle the wiring.
-[See how discovery works](docs/concepts/discovery.md).
-
-**Room to grow.** Add features through plugins and extend the application through
-shared contracts. Build a focused internal tool, an admin application, or the
-foundation of a SaaS product—without making SaaS a requirement.
-
-```mermaid
-flowchart TB
-    Dev[Your team and AI coding assistants] --> App
-    subgraph App[Your application]
-        Framework[Next.js or TanStack Start — routes and rendering]
-        UI[Your interface and product behavior]
-        Adapter[BitaKit framework adapter]
-        Core[BitaKit Core — composition and lifecycle]
-        Plugins[Feature plugins]
-        Actions[Named actions]
-        Services[Typed services]
-        Framework --> UI
-        Framework --> Adapter
-        Adapter --> Core
-        Core --> Plugins
-        Plugins --> Actions
-        Plugins --> Services
-        UI --> Actions
-        Actions --> Services
-    end
-    Services --> External[Your APIs, storage, and external providers]
-```
-
-The adapter connects BitaKit to the host framework. Core coordinates trusted plugins
-and their lifecycle; it does not take over routing, rendering, or deployment.
-The diagram describes responsibilities, not automatic persistence or generated business logic.
-
-| Build with                      | Responsibility                                                      |
-| ------------------------------- | ------------------------------------------------------------------- |
-| **Core**                        | Plugins, services, actions, configuration, and lifecycle.           |
-| **React bindings**              | Connect your interface to the shared runtime.                       |
-| **Next.js / TanStack adapters** | Connect discovery and navigation to your framework.                 |
-| **Optional plugins**            | Add settings, shell, search, translation, or provider integrations. |
-
-Third-party plugins can live in their own repositories. They connect through public
-contracts; they do not need to become part of this monorepo.
-
-## Build your first feature
-
-Create an app, add a To-do plugin, and bind an action to your interface.
-
-### 1. Create your app
-
-Start with one command. Choose your framework and the features you need.
+## ⚡ From zero to running app in one command
 
 ```sh
 npx @bitakit/create-app my-app
 ```
 
-Choose **Next.js** or **TanStack Start** (experimental). This walkthrough uses Next.js.
-The generator connects the BitaKit provider and build-time discovery.
+Pick **Next.js** or **TanStack Start**, tick the extras you want — app shell, settings,
+⌘K quick search — and start building. Your pages stay plain framework routes.
+No lock-in, no magic folder you can't leave.
+
+## Why BitaKit?
+
+Every app starts clean. Then the features pile up. Imports tangle, every new button
+needs wiring in five places, and both your new teammate and your AI assistant get lost
+in the sprawl.
+
+**BitaKit gives every feature a home.** A plugin groups it, services hold its behavior,
+actions expose it to your UI, events keep everything in sync, and configs give it
+defaults your app can override. Same shape, every time.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🤖 Pair with AI, minus the chaos</h3>
+      Predictable folders and typed contracts give your coding assistant precise context:
+      where a feature lives, what it needs, and what it exposes. Ask for a change,
+      get a small, focused diff you can actually review.
+    </td>
+    <td width="50%" valign="top">
+      <h3>🧩 Your app, in plugins</h3>
+      Split your product into self-contained plugins that own their services, actions
+      and events. Teams — and agents — work side by side without stepping on each other.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🧱 Grow bit by bit</h3>
+      Start with headless Core. Add an app shell, settings, search, authentication,
+      organizations, translations or email when your product needs them — not before.
+    </td>
+    <td width="50%" valign="top">
+      <h3>🔌 Less wiring, more building</h3>
+      Drop a file into the right folder. Build-time discovery generates the imports,
+      registration and types. No hand-kept registries. No provider soup.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🛡️ Type-safe from definition to button</h3>
+      Service methods, action inputs and results, and event payloads carry their types
+      all the way to the call site. Optional strict mode catches unknown action IDs.
+    </td>
+    <td width="50%" valign="top">
+      <h3>🏠 Your stack stays yours</h3>
+      Keep your routes, components, design system and backend. BitaKit composes your
+      features; it never takes over routing, rendering or deployment.
+    </td>
+  </tr>
+</table>
+
+## 🤖 Ship features with your AI assistant
+
+BitaKit's conventions double as a map for AI. Every feature has the same shape, so an
+assistant knows exactly where new code belongs — and you know exactly what to review.
+
+> **You:** Add a delete action to the todos plugin. Disable it while the list is empty.
+
+```text
+src/plugins/todos/
+├── services/
+│   └── tasks.ts      ✏️  adds remove() and emits "todos.changed"
+└── actions/
+    ├── create.ts
+    └── delete.ts     ✨  new — discovered as todos.delete
+```
+
+```ts
+// src/plugins/todos/actions/delete.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction<string>({
+  // Services this action uses. Core checks that they exist before registering it.
+  requires: ['tasks'],
+
+  // Initial state: the task list starts empty, so deleting is disabled.
+  enabled: false,
+
+  // Events this action reacts to.
+  events: ['todos.changed'],
+
+  // Runs each time one of those events is emitted. Core owns the subscription.
+  onEvent(_event, { services, action }) {
+    action.enabled = services.tasks.list().length > 0;
+  },
+
+  // Runs when a bound control or your code executes the action.
+  execute: ({ services, input }) => services.tasks.remove(input),
+});
+```
+
+<details>
+<summary><b>The matching service change</b> — one new method, two <code>emit</code> calls</summary>
+
+```diff
+ import { defineService } from '@bitakit/core';
+
+ export default defineService({
+-  create() {
+-    const tasks: string[] = [];
++  create({ events }) {
++    let tasks: string[] = [];
+
+     return {
+       add(title: string) {
+         tasks.push(title);
++        events.emit('todos.changed');
+       },
+
++      remove(title: string) {
++        tasks = tasks.filter((task) => task !== title);
++        events.emit('todos.changed');
++      },
++
+       list() {
+         return [...tasks];
+       },
+```
+
+</details>
+
+No registry to update. No provider to touch. No subscription to clean up.
+**The diff is as small as the idea.** Every button bound to `todos.delete` disables
+itself while the list is empty — without a single extra line of UI code.
+
+> [!TIP]
+> Reacting to events needs no `setup` method. Add `setup` only when the initial
+> state must be read from existing data, such as tasks loaded from storage.
+
+The same clarity helps human reviewers: one feature, one folder, explicit dependencies.
+Tests and review stay part of your workflow; BitaKit just makes them easier to focus.
+
+## 🧩 Break your app into plugins
+
+A plugin is a feature in a folder. Write your own, install ready-made ones, and snap
+them onto Core — it starts them, checks their dependencies and cleans them up.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/architecture-dark.svg">
+    <img src="docs/assets/readme/architecture-light.svg" width="880" alt="BitaKit architecture. Your pages and components bind actions in BitaKit Core. Your plugins (todos, billing, reports) and optional BitaKit plugins (shell, settings, search, auth, i18n) snap onto Core, which owns services, actions, events, configs, overrides and interceptors. Below Core, the framework adapter discovers src/plugins at build time and generates registration and types.">
+  </picture>
+</p>
+
+Your framework keeps routes and rendering. Plugins share behavior through typed
+services, actions and events instead of reaching into each other's internals.
+
+**Install a plugin, get a feature.** In a Shell app, `npm install @bitakit/quick-search`
+adds a ⌘K search for your app's navigation to the app bar — no provider, no registry,
+no glue code.
+
+**Share plugins like packages.** Plugins can live in your app or in their own
+repositories. Published plugins connect through the same public contracts.
+
+## 🧱 Grow at your own pace
+
+Start small. Add capabilities one building block at a time. Every package except Core
+is optional.
+
+| When you need…            | Add                                                                           | You get                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| A clean feature structure | `@bitakit/core`                                                               | Plugins, services, actions, events, configs and interceptors — Node or browser |
+| React and your framework  | `@bitakit/ui` · `@bitakit/next` or `@bitakit/tanstack`                        | `ActionButton`, hooks, build-time discovery and typed IDs                      |
+| An application frame      | `@bitakit/shell` · `@bitakit/app-preferences`                                 | Layout, navigation, settings pages and saved preferences                       |
+| Fast navigation           | `@bitakit/quick-search`                                                       | ⌘K search across your app's navigation                                         |
+| Users and teams           | `@bitakit/better-auth` · `@bitakit/better-auth-ui` · `@bitakit/organizations` | Authentication, account screens and organizations                              |
+| More languages            | `@bitakit/next-intl`                                                          | Translations and a language preference                                         |
+| Email                     | `@bitakit/email` · `@bitakit/nodemailer`                                      | A provider-independent sending contract with SMTP delivery                     |
+
+## 🚀 Build your first feature
+
+Create an app, add a To-do plugin, and bind an action to your interface.
+
+### 1. Create your app
 
 ```sh
+npx @bitakit/create-app my-app
 cd my-app
 npm run dev
 ```
 
-Your pages and routes remain ordinary Next.js files.
+This walkthrough uses Next.js. The generator connects the BitaKit provider and
+build-time discovery; your pages and routes remain ordinary Next.js files.
 
 ### 2. Add a plugin folder
-
-Create the `todos` feature files under `src/plugins`. The generator creates the app;
-for this example, you add these plugin files yourself.
 
 ```text
 src/
@@ -164,8 +266,8 @@ export default defineService({
 });
 ```
 
-Core creates the service when the plugin starts. This example keeps tasks in memory;
-a page reload clears them. A service does not automatically provide database persistence.
+Core creates the service when the plugin starts. This example keeps tasks in memory,
+so a page reload clears them.
 
 ### 4. Define the action
 
@@ -175,20 +277,20 @@ a page reload clears them. A service does not automatically provide database per
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<string>({
+  // Services this action uses. Core checks that they exist before registering it.
   requires: ['tasks'],
 
+  // Runs when a bound control or your code executes the action.
   execute({ services, input }) {
     services.tasks.add(input);
   },
 });
 ```
 
-The action receives a task title and passes it to the service.
-
 ### 5. Let discovery connect the feature
 
-In the generated app, discovery finds supported files and generates their imports,
-registration, and types during the build.
+Discovery finds supported files and generates their imports, registration and types
+during the build:
 
 | Contribution         | Discovered identity    |
 | -------------------- | ---------------------- |
@@ -196,9 +298,7 @@ registration, and types during the build.
 | `services/tasks.ts`  | Public service `tasks` |
 | `actions/create.ts`  | Action `todos.create`  |
 
-No handwritten list of service or action imports is needed. You write the feature's
-behavior; the configured discovery integration connects it. See
-[how discovery works](docs/concepts/discovery.md) for conventions and boundaries.
+No handwritten import list. See [how discovery works](docs/concepts/discovery.md).
 
 ### 6. Bind the action to your UI
 
@@ -222,29 +322,50 @@ export default function Page() {
 }
 ```
 
-Each click adds **New task** through the action. There is no manual click handler:
-`ActionButton` binds execution and the action's current state to the button. It is
-disabled when the action is disabled or pending, and hidden when the action is hidden.
-Use its `as` prop to render your application's existing button component.
+Each click adds **New task** through the action — no click handler required.
+`ActionButton` follows the action's state: disabled while it is disabled or pending,
+hidden while it is hidden. Use its `as` prop to render your own button component.
 
-This first step demonstrates the connection, not a complete task-list screen: tasks
-are stored but not displayed yet. List rendering, input fields, and a disabled delete
-action are natural next steps. Discovery does not automatically make service data reactive.
+Tasks are stored but not displayed yet; list rendering and input fields are natural
+next steps. For a framework-free version with three actions, follow the
+[To-do tutorial](packages/core/docs/todo-tutorial.md).
 
 **Your framework renders the page. Your plugin defines the feature. BitaKit connects the parts.**
 
-For a standalone, framework-free example with explicit registration and three actions,
-see the [To-do tutorial](packages/core/docs/todo-tutorial.md).
+## 🔍 Under the hood
 
-## Learn the ideas behind the building blocks
+One action, every entry point. Here is the `todos.delete` action from above at runtime:
 
-- **[How does discovery work?](docs/concepts/discovery.md)** Connect supported contributions through file conventions and generated registration.
-- **[Why actions?](docs/concepts/actions.md)** One operation, shared across buttons, menus, and other entry points.
-- **[What is a service?](docs/concepts/services.md)** Reusable behavior, explicit contracts, and managed lifetimes.
-- **[Configuration or user preferences?](docs/concepts/configuration-and-preferences.md)** Understand what Core owns and what optional settings packages add.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/action-loop-dark.svg">
+    <img src="docs/assets/readme/action-loop-light.svg" width="880" alt="Action event loop. 1: a button, menu item or shortcut executes todos.delete. 2: the action calls tasks.remove(). 3: the service emits todos.changed. 4: onEvent updates the action's enabled state. 5: every bound control receives the new state.">
+  </picture>
+</p>
+
+The service owns the data, the event announces the change, and the action decides
+what that means for its controls. Core delivers the event and keeps every binding in
+sync. It runs in Node and the browser without React, and it never persists data for
+you: storage stays your choice.
+
+## 📚 Learn the ideas
+
+- **[How does discovery work?](docs/concepts/discovery.md)** File conventions in, registration and types out.
+- **[Why actions?](docs/concepts/actions.md)** One operation, shared by buttons, menus and links.
+- **[What is a service?](docs/concepts/services.md)** Reusable behavior, explicit contracts, managed lifetimes.
+- **[Configuration or user preferences?](docs/concepts/configuration-and-preferences.md)** What Core owns and what settings packages add.
+- **[Type safety](apps/docs/content/docs/concepts/type-safety.mdx)** How types travel from definitions to callers.
 - **[Build a To-do plugin](packages/core/docs/todo-tutorial.md)** Follow one feature from definition to execution.
 
-## Explore the documentation
+## 🧭 Honest boundaries
+
+- TanStack Start support is **experimental**; see its [verified scope](packages/tanstack/README.md).
+- The Next.js generator uses Webpack while the tracked Turbopack discovery issue is open.
+- Plugins are trusted application code. Discovery is not a marketplace, remote installer or sandbox.
+- Services don't persist data or make it reactive on their own — you choose storage and subscriptions.
+- TypeScript checks your code; validate external input and authorize requests on the server.
+
+## Explore the documentation locally
 
 Requirements: **Node.js 24** and **npm 10 or newer**.
 
@@ -255,16 +376,12 @@ npm ci
 npm run dev:docs
 ```
 
-Open [localhost:3002/docs](http://localhost:3002/docs) for searchable guides.
-The repository is currently private, so cloning requires access. The documentation
-site is a separate Fumadocs application and does not require a database.
+Open [localhost:3002/docs](http://localhost:3002/docs) for searchable guides. The
+repository is currently private, so cloning requires access. Hosted documentation
+is being prepared.
 
-To generate an application before npm publication, follow the generator's
-[local package workflow](packages/create-app/README.md#verify-before-publication).
-The [quick start](apps/docs/content/docs/quickstart.mdx) presents the intended
-application-developer experience.
-
-## Repository map
+<details>
+<summary><b>Repository map</b></summary>
 
 | Directory                            | Purpose                                                        |
 | ------------------------------------ | -------------------------------------------------------------- |
@@ -279,18 +396,17 @@ application-developer experience.
 
 See the [package guide](packages/README.md) for individual responsibilities.
 
-## Current boundaries
-
-- TanStack Start support is **experimental**; see its [verified scope](packages/tanstack/README.md).
-- The Next.js generator uses Webpack while the tracked Turbopack discovery issue is open.
-- Plugin discovery is not a marketplace, remote installer or sandbox for untrusted code.
-- All 14 packages are published on npm. Hosted documentation is being prepared.
+</details>
 
 ## Contributing and licensing
 
 Keep changes focused, preserve the package boundaries, and document public behavior
 in English. Start with the [contributor guide](apps/docs/content/docs/contributing.mdx)
-and the nearest `AGENTS.md` before changing a package or application.
+and the nearest `AGENTS.md` — it guides human contributors and coding assistants alike.
 
 BitaKit is licensed under the [MIT License](LICENSE). Third-party components retain
 their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+<p align="center">
+  <b>Your app. Your building blocks. Built bit by bit.</b>
+</p>

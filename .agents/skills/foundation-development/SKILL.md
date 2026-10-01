@@ -648,6 +648,11 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
   package names and pre-release limitations explicit until publication is verified.
 - Keep database setup in `docs/development-environment.md` and API details in package
   guides. Do not restore outdated prototype APIs as installable examples.
+- Root README diagrams are generated light/dark SVG pairs in `docs/assets/readme`,
+  switched with `<picture>` and `prefers-color-scheme`. Edit `scripts/readme-diagrams.mjs`
+  and regenerate both variants; do not hand-edit the SVGs or reintroduce Mermaid there.
+  The Core block lists the runtime pieces Core owns (services, actions, events, configs,
+  overrides, interceptors); keep it in sync with the Core concept pages.
 - Code comments and new technical documentation are English. Preserve intentionally
   localized catalog values, UI strings and language-test fixtures during cleanup.
 - Ignore local editor settings, scratch files and generated output. Remove confirmed
@@ -701,8 +706,14 @@ transparent light/dark BitaKit logos without recoloring. Registration is not pub
 - Plain Actions may declare events: [...] with one onEvent(event, context) handler.
   The command adapter binds it through the same scoped events.watch before setup;
   no second bus or listener lifecycle. The handler receives { type, data } and the
-  setup context plus signal. It may be async. Setup handles initial state; no fake
-  initial event or automatic global state refresh is implied by declaring events.
+  setup context plus signal. It may be async. Setup is optional and handles initial
+  state that must be read from existing data; no fake initial event or automatic
+  global state refresh is implied by declaring events.
+- Examples whose availability only reacts to events omit setup: declare the known initial
+  state in the definition (for example `enabled: false` for an initially empty list) and
+  update it in onEvent. Use setup only when the initial state must be read from existing
+  data. README, tutorial and example snippets keep short English comments on `requires`,
+  `enabled`, `events`, `onEvent` and `execute`.
 - For local form values, bind the current input and derive availability in resolve.
   Do not turn per-form input into shared Action enabled state through a global event
   unless that shared behavior is intended. Verify two bindings with different inputs.

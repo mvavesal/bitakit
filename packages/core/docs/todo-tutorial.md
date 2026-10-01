@@ -59,10 +59,11 @@ list action   ──┼──▶ task service ──▶ shared in-memory tasks
 delete action ──┘
 ```
 
-The workspace version also emits `todos.changed` after mutations. The delete action
-declares `events` and `onEvent`, checks its initial state in `setup`,
-and disables itself when the list becomes empty. Core removes this subscription
-when the action registration ends. This addition is not in published Core 0.1.0 yet.
+The service also emits `todos.changed` after mutations. The delete action starts
+disabled with `enabled: false`, because the list starts empty, and declares `events`
+and `onEvent` to re-check the list after each change. No `setup` method is needed.
+Core removes this subscription when the action registration ends. Events are
+available since Core 0.1.1.
 
 Deleting a task removes data. It does not unregister the delete action itself.
 Listing tasks is shown as an action to demonstrate the shared execution path;
