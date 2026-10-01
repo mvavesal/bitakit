@@ -28,7 +28,7 @@ optional schemas retain their parse contract. Low-level scoped reads remain avai
 Optional packages can project instance-local facades through `appExtensions` and augment
 `AppExtensionMap`. Core owns no Settings implementation or duplicate state.
 
-Service definitions use `exposeAs` to name their existing instance in `app.services`. Public names must be unique within the service namespace. This is a workspace API pending publication.
+Service definitions use `exposeAs` to name their existing instance in `app.services`. Public names must be unique within the service namespace. Available since Core 0.1.1.
 
 ```ts
 const documents = serviceKey<Documents>('editor.documents');

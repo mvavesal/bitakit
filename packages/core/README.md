@@ -1,27 +1,74 @@
+<p align="center">
+  <img src="https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/assets/bitakit-banner.png" alt="BitaKit — Your app. Your building blocks. An AI-friendly composition layer for modern applications." width="1024">
+</p>
+
 # BitaKit Core
 
-**Give your application a shared home for plugins, services, and actions.**
+**Build bigger apps from smaller, pluggable features — together with your team and AI.**
 
-`@bitakit/core` coordinates how features start, work together, and stop. It runs
-without React, a browser, or a particular router. Your application still owns its
-pages, interface, business rules, and data storage.
+BitaKit gives **developers and AI coding assistants a shared structure** for building
+applications. Organize a feature into a plugin, put reusable behavior in services,
+and expose operations through actions. Each piece has a clear home, a clear role,
+and typed connections to the rest of your app.
 
-BitaKit is a composition layer alongside frameworks such as Next.js and TanStack
-Start, not a replacement for them. Its explicit plugin, service, and action
-conventions give people and AI coding assistants a shared structure to work with.
+**Keep Next.js, TanStack Start, or your own stack.** BitaKit adds feature organization
+and shared lifecycle management alongside your framework. You keep control of your
+routes, UI, business rules, and data.
 
-## Designed for typed composition
+## Contents
 
-- **Typed contracts:** shared service keys connect providers and consumers; action definitions carry inputs, results and custom state.
-- **Inferred application APIs:** discovery generates ActionMap, ServiceMap and ConfigMap from supported contributions.
-- **Typed notifications:** the workspace EventMap connects known event names to their payloads.
-- **Names beside implementations:** the workspace `exposeAs` service option supplies the typed app-facing name directly; discovery defaults it from the file.
-- **Flexible authoring:** flat and nested contribution files resolve to the same logical paths; explicit composition remains available.
-- **Owned lifecycle:** one runtime coordinates dependencies, registrations and cleanup.
+- [Install](#install)
+- [Why add BitaKit?](#why-add-bitakit)
+- [How the pieces fit](#how-the-pieces-fit)
+- [Try a To-do plugin](#try-a-to-do-plugin)
+- [Type safety that follows your feature](#type-safety-that-follows-your-feature)
+- [React to events](#react-to-events)
+- [What belongs outside Core?](#what-belongs-outside-core)
+- [Go deeper](#go-deeper)
+- [License](#license)
 
-Unknown action IDs remain allowed unless strict mode is enabled. External data still
-needs runtime validation. See the [type-safety guide](../../apps/docs/content/docs/concepts/type-safety.mdx)
-and [Core learning path](../../apps/docs/content/docs/concepts/index.mdx) for examples and boundaries.
+## Install
+
+```sh
+npm install @bitakit/core
+```
+
+Core works in **Node.js and the browser**, without React or a router.
+
+Starting a new application? Let the generator connect the packages for you:
+
+```sh
+npx @bitakit/create-app my-app
+```
+
+The generator requires Node.js 24 or newer. Choose Next.js or experimental TanStack
+Start, then select the optional features you want. React bindings and framework
+adapters are available as separate packages.
+
+## Why add BitaKit?
+
+Your framework handles pages and rendering. As an app grows, you also need a clear
+way to organize features, share behavior, connect dependencies, and clean up resources.
+BitaKit gives those pieces a common structure.
+
+- **Smaller pieces. Clearer ownership.** Keep a feature's services and actions together
+  in a plugin. Teams can work on focused parts of the app with explicit connections
+  between them.
+- **A shared language for humans and AI.** Predictable files and typed contracts make
+  it easier to describe a change, give an AI assistant focused context, and review
+  its work. The same conventions guide both developers and coding assistants.
+- **Pluggable features.** Compose the capabilities your app needs. Add a plugin,
+  configure its defaults, or replace supported contributions through the same APIs.
+- **Less repeated wiring.** With discovery configured, file paths supply names and
+  generated types. Core handles startup, dependencies, registration, and cleanup.
+- **Type-safe connections.** Service methods, action inputs and results, and known
+  event payloads carry their types to callers. Your editor helps you connect the pieces.
+- **Your stack stays yours.** Start with headless Core. Add React bindings, settings,
+  an app shell, or provider integrations when they help your product.
+
+**Room to grow.** As your app and team grow, keep changes focused on small features
+with explicit dependencies. This is about scaling your codebase and collaboration;
+performance and infrastructure remain choices for your application.
 
 ## How the pieces fit
 
@@ -56,20 +103,9 @@ Core manages the lifecycle of plugin-created services. A service that acquires
 resources can supply disposal logic. Core does not automatically save data to a
 database or subscribe your UI to service changes.
 
-## Install
-
-```sh
-npm install @bitakit/core
-```
-
-The example below uses Node.js and no UI. For a React application, bindings live
-in `@bitakit/ui`; framework-specific integration lives in `@bitakit/next` or
-`@bitakit/tanstack`. Those packages are separate from Core and are being prepared
-for publication. TanStack support is experimental.
-
 ## Try a To-do plugin
 
-Follow the [To-do tutorial](docs/todo-tutorial.md) to run three actions: create a
+Follow the [To-do tutorial](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/todo-tutorial.md) to run three actions: create a
 task, list tasks, and delete a task. Each action lives in its own file:
 
 ```text
@@ -93,12 +129,25 @@ memory and is lost on restart.
 With a configured framework adapter, contribution files can instead live under
 `src/plugins/todos/services` and `src/plugins/todos/actions`. Its build integration
 generates registration and types. Installing Core alone does not scan folders.
-See [file contributions](docs/file-contributions.md) for the exact conventions.
+See [file contributions](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/file-contributions.md) for the exact conventions.
+
+## Type safety that follows your feature
+
+Define a service once, then use its method types wherever you call it. Discovery
+connects supported files to typed service access, action IDs, and configuration.
+Shared service keys let separate packages agree on the same contract.
+
+Use `exposeAs` when you want a custom public service name; otherwise discovery uses
+the file path. Known event names and payloads are connected through `EventMap`.
+
+Unknown action IDs remain allowed unless strict mode is enabled. TypeScript checks
+code; validate external data and authorize requests at your application boundaries.
+See the [type-safety guide](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/reference.md)
+for examples.
 
 ## React to events
 
-The following API is available in the workspace and is not yet part of the
-published Core 0.1.0 release. Each runtime owns one event service. Services emit
+Available since Core 0.1.1, each runtime owns one event service. Services emit
 notifications after updating their data; actions declare `events` and `onEvent`.
 
 With file discovery configured, IDs can be omitted:
@@ -155,7 +204,7 @@ asynchronous. Core owns subscriptions created in action `setup` and service
 `create`, including cleanup after failed setup. No manual unsubscribe is needed.
 For dynamic subscriptions, `setup` still offers `events.watch`. React components use `useWatchEvent` from `@bitakit/ui`.
 
-See [events and action setup](docs/events.md) for payload typing, errors, async
+See [events and action setup](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/events.md) for payload typing, errors, async
 cancellation, and the distinction from observable-service `watch`.
 
 ## What belongs outside Core?
@@ -169,14 +218,14 @@ Plugins are trusted application code. Core is not a sandbox or a remote plugin m
 
 ## Go deeper
 
-- [Runnable To-do example](examples/todos.mjs)
-- [Core reference](docs/reference.md): configuration, typed services, actions, lifecycle, and advanced integration.
-- [File contributions and configuration](docs/file-contributions.md): discovery and folder conventions.
-- [Source repository](https://github.com/mvavesal/bitakit)
+- [Runnable To-do example](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/examples/todos.mjs)
+- [Core reference](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/reference.md): configuration, typed services, actions, lifecycle, and advanced integration.
+- [File contributions and configuration](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/file-contributions.md): discovery and folder conventions.
+- [npm package](https://www.npmjs.com/package/@bitakit/core)
 
 ## License
 
-[MIT](LICENSE). Third-party dependencies retain their own licenses.
+[MIT](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/LICENSE). Third-party dependencies retain their own licenses.
 
-See [client authentication](docs/auth.md) for the shared provider contract, externally
-configured login/logout paths, UI bindings and an adapter template (workspace APIs).
+See [client authentication](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/auth.md) for the shared provider contract, externally
+configured login/logout paths, UI bindings and an adapter template.

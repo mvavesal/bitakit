@@ -22,7 +22,7 @@
     "@better-auth/api-key": "1.7.5",
     "@hookform/resolvers": "^5.9.1",
     "@bitakit/better-auth": "0.1.0",
-    "@bitakit/core": "0.1.1",
+    "@bitakit/core": "^0.1.1",
     "@bitakit/email": "0.1.0",
     "@bitakit/next": "0.1.0",
     "@bitakit/next-intl": "0.1.0",
