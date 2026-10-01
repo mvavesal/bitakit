@@ -143,3 +143,20 @@ It delegates lifecycle to the existing generic FoundationProvider. Next and TanS
 their router/query providers and generated-config imports. Do not add framework imports,
 a second runtime or query-state storage to UI. Core remains React-free.
 Implementation: `src/components/standard-foundation-provider.tsx` and `foundation-labels.ts`.
+
+## Observe runtime events
+
+`useWatchEvent('todos.changed', (event, { signal }) => { /* event.data */ })`
+subscribes to the current Foundation runtime and cleans up automatically. An array
+of names listens to each event; changing names or runtime replaces the subscription.
+Handlers use the latest committed React callback. The hook requires FoundationProvider
+and begins observing once its runtime is ready; it does not replay earlier events.
+See [Core events](../core/docs/events.md) for payload typing and async semantics.
+
+## Client authentication
+
+`useAuth` observes the registered `AuthService` and exposes its snapshot plus `signIn`
+and `signOut`. `AuthBoundary` handles pending, authenticated, unauthenticated and error
+rendering through host-supplied content; it uses the existing navigation binding for login.
+It has no visual dependency and does not enforce server authorization.
+See [configuration and adapter examples](../core/docs/auth.md).

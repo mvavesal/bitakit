@@ -170,6 +170,25 @@
           }
         }
       }
+    },
+    "pages": {
+      "notFound": {
+        "title": "Page not found",
+        "description": "The page you are looking for is unavailable."
+      },
+      "error": {
+        "title": "Something went wrong",
+        "description": "Please try again.",
+        "retry": "Try again"
+      },
+      "loading": {
+        "title": "Loading",
+        "description": "Please wait a moment."
+      },
+      "accessDenied": {
+        "title": "Access denied",
+        "description": "You do not have access to this page."
+      }
     }
   },
   "settings": {

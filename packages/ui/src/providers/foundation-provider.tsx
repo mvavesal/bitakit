@@ -1,12 +1,12 @@
 'use client';
-import { createElement, useContext, useEffect, useMemo, type ReactNode } from 'react';
+import { createElement, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useActionList } from '@bitakit/ui/actions';
 import type { FoundationConfig } from '@bitakit/core';
 import type { FoundationProviderProps } from '../types/provider.js';
 import { ActionContext } from './action-context.js';
 import { ActionProvider } from './action-provider.js';
 import { FoundationRuntime } from '@bitakit/core';
-import { FoundationContext } from './foundation-context.js';
+import { FoundationContext, type SignOutIntent } from './foundation-context.js';
 import { DialogHost } from '../components/dialog-host.js';
 import { resolveFoundationConfig } from '@bitakit/core';
 const ignore = () => {};
@@ -34,6 +34,7 @@ function FoundationRuntimeProvider({
   children,
 }: FoundationProviderProps) {
   const actions = useActionList();
+  const [signOutIntent, setSignOutIntent] = useState<SignOutIntent>(null);
   const selected = useMemo(
     () =>
       resolveFoundationConfig(config, {
@@ -60,9 +61,12 @@ function FoundationRuntimeProvider({
     if (translate) runtime.setTranslations(translate);
   }, [runtime, translate]);
   useEffect(() => (notify ? runtime.setNotifier(notify) : undefined), [runtime, notify]);
-  useEffect(() => runtime.mount(), [runtime]);
+  useEffect(() => {
+    const stop = runtime.mount();
+    return () => { setSignOutIntent(null); stop(); };
+  }, [runtime]);
   return (
-    <FoundationContext.Provider value={{ runtime, ui, labels, notify: notify ?? ignore }}>
+    <FoundationContext.Provider value={{ runtime, ui, labels, notify: notify ?? ignore, signOutIntent, setSignOutIntent }}>
       {(selected.providers ?? []).reduceRight<ReactNode>(
         (content, provider) =>
           createElement(provider.component, { children: content, key: provider.id }),

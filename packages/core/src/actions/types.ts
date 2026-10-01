@@ -85,6 +85,10 @@ export interface ActionContext<Input = unknown> {
   update(patch: ActionPatch): boolean;
 }
 export interface ActionRegistration {
+  /** Registration-owned cleanup, including external subscriptions. */
+  onDispose(cleanup: () => void): void;
+  /** Reads only this registration; undefined after removal or replacement. */
+  get(): ActionSnapshot | undefined;
   update(patch: ActionPatch): boolean;
   /** Idempotent. Cannot remove a newer registration of the same ID. */
   unregister(): void;

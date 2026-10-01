@@ -1,3 +1,5 @@
+import type { Events, EventErrorHandler, FoundationEvent } from './events/types.js';
+import type { ActionSetup, ActionSetupContext } from './events/action-setup.js';
 import type { ServiceInterceptor } from './interceptors/service.js';
 import { statefulAction, type StatefulBuilder } from './contributions/stateful-action.js';
 import type { ConfigContext, ConfigValues, ConfigDefinition } from './config-service.js';
@@ -30,7 +32,7 @@ export type Translator = ((key: string, values?: MessageValues) => string) & {
 export interface ServiceDefinition<T = unknown> {
   id: string;
   requires?: readonly string[];
-  create(context: { services: Services; config: ConfigContext }): T;
+  create(context: { services: Services; config: ConfigContext; events: Events }): T;
   dispose?: (instance: T) => void;
 }
 export function defineService<const ID extends string, T>(
@@ -207,13 +209,21 @@ export function defineURLAction<
     load: () => new URLAction({ href: definition.href, title: definition.title ?? '' }),
   };
 }
-export type PlainDefinition<Input = unknown, Result = unknown> = Omit<
+export type PlainDefinition<Input = unknown, Result = unknown, Name extends string = string> = Omit<
   ActionConventions,
   'shortcut'
 > &
   Omit<ActionDefinition, 'id' | 'title' | 'groups' | 'execute' | 'resolve' | 'shortcut'> & {
     shortcut?: ActionShortcut<NoInfer<Input>>;
     kind: 'action';
+    /** Runs once per registration; events.watch subscriptions are automatically owned. */
+    setup?: ActionSetup;
+    /** Named custom events delivered to onEvent; independent of observable-service watch. */
+    events?: readonly Name[];
+    onEvent?(
+      event: FoundationEvent<NoInfer<Name>>,
+      context: ActionSetupContext & { signal: AbortSignal },
+    ): void | Promise<void>;
     requires?: readonly string[];
     /** Observable services that invalidate presentation; subscribed once per runtime. */
     watch?: readonly string[];
@@ -245,12 +255,13 @@ export function defineAction<
   Result = void,
   const Id extends string = string,
   const Replaces extends string = string,
+  const Name extends string = string,
 >(
-  definition: Omit<PlainDefinition<Input, Result>, 'kind' | 'id' | 'replaces'> &
+  definition: Omit<PlainDefinition<Input, Result, Name>, 'kind' | 'id' | 'replaces'> &
     Identity<Id, Replaces> & {
       unavailable?: { messageKey: string };
     },
-): PlainDefinition<Input, Result> & Identity<Id, Replaces>;
+): PlainDefinition<Input, Result, Name> & Identity<Id, Replaces>;
 export function defineAction(definition?: any): any {
   if (definition === undefined) return statefulAction();
   const { unavailable, ...action } = definition;
@@ -381,6 +392,8 @@ export function definePlugin<const T extends Plugin>(plugin: T): T {
   return plugin;
 }
 export type FoundationConfig = {
+  /** Receives synchronous throws and async rejections from event handlers. */
+  onEventError?: EventErrorHandler;
   publicServices?: PublicServiceKeys;
   /** Instance-local projections owned by optional packages; never a second state store. */
   appExtensions?: Readonly<

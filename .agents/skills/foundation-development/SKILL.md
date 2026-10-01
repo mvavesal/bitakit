@@ -670,3 +670,62 @@ transparent light/dark BitaKit logos without recoloring. Registration is not pub
 - BitaKit uses MIT; include the license in published package archives. Core 0.1.0 is
   published on npm. README changes require a subsequent publication to appear there;
   do not describe the rest of the package family as published without registry verification.
+
+### Runtime events and action setup
+
+- Core owns one mitt-backed EventService per FoundationRuntime, exposed through
+  runtime.events and app.events. No global bus or optional event plugin is required.
+  Keep React hooks in UI; useWatchEvent observes the same bus with component cleanup.
+- Plain defineAction setup receives events, services, action, app and config. Service
+  create also receives scoped events. events.watch accepts one name or an OR-list
+  and passes a typed { type, data } envelope plus AbortSignal to the handler.
+  The runtime owns setup subscriptions through the exact ActionRegistration; service
+  subscriptions belong to service creation. Failed setup and list/runtime disposal
+  release listeners. Stale setup writes must never modify a replacement Action.
+- Existing definition-level watch still observes service IDs; do not reinterpret it
+  as named events. Existing resolve still derives input-specific execution guards.
+  Event-driven enabled state does not replace server authorization or validation.
+- emit delivers synchronously and does not await async handlers. Both sync throws
+  and async rejections reach onEventError (console.error by default), without stopping
+  other listeners. AbortSignal supports cooperative cancellation, not forced stopping.
+  Disposed scoped emitters cannot send into a later runtime mount.
+- Verify payload typing, multi-event delivery, initial/empty Todo state, setup rollback,
+  repeated mount/unmount listener counts, stale async writes and React StrictMode cleanup.
+  Listener-count tests do not establish that all application code is memory-leak-free.
+- README discovery examples may omit IDs; direct Node/manual composition still needs
+  explicit IDs. Explain path/module inference and custom IDs. Mark new event APIs as
+  workspace-only until a release containing them is actually published.
+
+- Plain Actions may declare events: [...] with one onEvent(event, context) handler.
+  The command adapter binds it through the same scoped events.watch before setup;
+  no second bus or listener lifecycle. The handler receives { type, data } and the
+  setup context plus signal. It may be async. Setup handles initial state; no fake
+  initial event or automatic global state refresh is implied by declaring events.
+- For local form values, bind the current input and derive availability in resolve.
+  Do not turn per-form input into shared Action enabled state through a global event
+  unless that shared behavior is intended. Verify two bindings with different inputs.
+- Execution-success tests assert execution results and ActionStatus.Succeeded, not
+  localized notification strings. Do not reintroduce text assertions in that test.
+
+### Shared client auth navigation and standalone page states
+
+- AuthService retains provider-owned getSnapshot/subscribe/signOut and optionally exposes
+  application-owned AuthPaths and a native signIn delegate. Better Auth accepts these
+  options; other provider adapters remain optional ordinary plugins, not Core dependencies.
+  The adapter template in packages/core/docs/auth.md is not an implemented Auth.js/Clerk adapter.
+- UI useAuth observes the native snapshot with useSyncExternalStore. AuthBoundary waits
+  for pending resolution and handles errors before login navigation. It is not server
+  authorization. Use the existing framework navigation binding; no mirrored session store.
+- Login paths and return destinations are safe root-relative application URLs. The host
+  login flow consumes resolveAuthReturnTo; afterSignIn is the fallback, not an automatic
+  redirect on every session update. Native absolute callbacks use the application's origin.
+- Shared logout navigation must not race a protected boundary's login redirect. Track only
+  the transient navigation intent in the existing provider, clear it after route changes or
+  new login, and ignore async completion from a removed adapter. Direct SDK calls do not
+  invoke useAuth navigation policy. Test failed logout and later protected navigation too.
+- Shell owns standalone NotFoundPage, ErrorPage, LoadingPage and AccessDeniedPage through
+  @bitakit/shell/pages. Reuse existing Empty/Button and package catalogs. No sidebar or
+  ShellProvider is required. Native framework routes own HTTP status, server checks and
+  global-error HTML wrappers. Never render raw errors by default.
+- Empty headings/descriptions must wrap long unbroken content on mobile. Keep the fix in
+  the shared Empty primitive rather than per-page overrides; check light/dark and retry focus.

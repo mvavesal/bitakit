@@ -39,6 +39,7 @@ type Immutable<T> = T extends object ? { readonly [K in keyof T]: Immutable<T[K]
 export type FoundationActions = Namespace<{ [K in KnownActionId]: ActionReference<K> }>;
 
 export interface FoundationApp<Public extends object = PublicServiceMap> extends AppExtensionMap {
+  readonly events: import('../events/types.js').Events;
   readonly actions: FoundationActions;
   readonly config: Namespace<Immutable<ConfigMap>>;
   readonly services: Namespace<Public>;

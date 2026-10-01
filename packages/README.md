@@ -59,3 +59,15 @@ historical domain examples are not a requirement for applications built with Bit
 
 See the [repository README](../README.md), [roadmap](../docs/TODO.md) and
 [package structure standard](../docs/architecture/package-structure-standard.md).
+
+Core now provides runtime-local events backed by mitt. Action setup and service
+creation receive automatically scoped event subscriptions; React's `useWatchEvent`
+binding belongs to UI. See [the event guide](core/docs/events.md). These additions
+are workspace changes pending publication.
+
+## Client authentication and page states
+
+The [client authentication guide](core/docs/auth.md) covers the shared service contract,
+external paths, Better Auth options and an adapter template. UI owns useAuth/AuthBoundary;
+Shell owns standalone page presentation through `@bitakit/shell/pages`. These additions
+are workspace APIs pending release. Auth.js and Clerk implementations remain future work.

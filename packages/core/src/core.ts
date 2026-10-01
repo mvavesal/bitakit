@@ -49,3 +49,9 @@ export type {
 
 export { defineServiceInterceptor, type ServiceInterceptor } from './interceptors/service.js';
 
+
+export type * from './events/types.js';
+export type { ActionSetup, ActionSetupContext, SetupAction } from './events/action-setup.js';
+export { EventService } from './events/service.js';
+
+export { configureAuthPaths, resolveAuthReturnTo, authSignInHref, type AuthPaths, type AuthSignInOptions } from './auth-navigation.js';

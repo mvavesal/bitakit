@@ -421,3 +421,88 @@ test('standard provider replaces plugins in place and appends new plugins withou
     assert.deepEqual(config.plugins, [first, last]);
   } finally { await act(async () => root.unmount()); }
 });
+
+test('event-driven ActionButton and useWatchEvent share the runtime bus and clean up in StrictMode', async () => {
+  const { defineAction, useFoundation, useWatchEvent } = await import('../dist/index.js');
+  let runtime;
+  const received = [];
+  const action = defineAction({
+    id: 'events.delete', title: 'Delete',
+    setup({ events, action }) {
+      action.enabled = false;
+      events.watch('todos.changed', event => { action.enabled = event.data.count > 0; });
+    },
+    execute() {},
+  });
+  const config = { actions: [action] };
+  function Consumer({ label, eventName }) {
+    runtime = useFoundation().runtime;
+    useWatchEvent([eventName], event => { received.push([label, event.data]); });
+    return h(ActionButton, { action: 'events.delete' });
+  }
+  const host = document.createElement('div');
+  const root = createRoot(host);
+  const tree = (label, eventName = 'todos.changed', selected = config) => h(StrictMode, null,
+    h(FoundationProvider, { config: selected, ui, labels }, h(Consumer, { label, eventName })),
+  );
+  let firstRuntime;
+  try {
+    await act(async () => root.render(tree('first')));
+    firstRuntime = runtime;
+    assert.equal(runtime.events.subscriptionCount, 2);
+    assert.equal(host.querySelector('button').disabled, true);
+    await act(async () => runtime.events.emit('todos.changed', { count: 1 }));
+    assert.equal(host.querySelector('button').disabled, false);
+    assert.deepEqual(received, [['first', { count: 1 }]]);
+    await act(async () => root.render(tree('latest')));
+    assert.equal(runtime.events.subscriptionCount, 2);
+    await act(async () => runtime.events.emit('todos.changed', { count: 0 }));
+    assert.equal(host.querySelector('button').disabled, true);
+    assert.deepEqual(received.at(-1), ['latest', { count: 0 }]);
+    await act(async () => root.render(tree('other', 'other')));
+    await act(async () => runtime.events.emit('todos.changed', { count: 1 }));
+    assert.equal(received.length, 2);
+    await act(async () => runtime.events.emit('other', 42));
+    assert.deepEqual(received.at(-1), ['other', 42]);
+    await act(async () => root.render(tree('replacement', 'other', { actions: [action] })));
+    assert.notEqual(runtime, firstRuntime);
+    assert.equal(firstRuntime.events.subscriptionCount, 0);
+    assert.equal(runtime.events.subscriptionCount, 2);
+  } finally {
+    await act(async () => root.unmount());
+  }
+  assert.equal(runtime.events.subscriptionCount, 0);
+  const count = received.length;
+  runtime.events.emit('other', 99);
+  assert.equal(received.length, count);
+});
+
+test('two Add buttons derive availability from their own current input without events', async () => {
+  const { defineAction } = await import('../dist/index.js');
+  const received = [];
+  const config = { actions: [defineAction({
+    id: 'todos.add', title: 'Add',
+    resolve: input => ({ enabled: typeof input === 'string' && input.length > 0 }),
+    execute: ({ input }) => { received.push(input); },
+  })] };
+  const host = document.createElement('div');
+  const root = createRoot(host);
+  const tree = (first, second) => h(FoundationProvider, { config, ui, labels },
+    h(ActionButton, { action: 'todos.add', input: first }),
+    h(ActionButton, { action: 'todos.add', input: second }),
+  );
+  try {
+    await act(async () => root.render(tree('', 'Second')));
+    let buttons = host.querySelectorAll('button');
+    assert.equal(buttons[0].disabled, true);
+    assert.equal(buttons[1].disabled, false);
+    await act(async () => root.render(tree('First', '')));
+    buttons = host.querySelectorAll('button');
+    assert.equal(buttons[0].disabled, false);
+    assert.equal(buttons[1].disabled, true);
+    await act(async () => buttons[0].click());
+    assert.deepEqual(received, ['First']);
+  } finally {
+    await act(async () => root.unmount());
+  }
+});

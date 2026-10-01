@@ -1,3 +1,5 @@
+import { EventService, createEventScope } from './events/service.js';
+import type { Events } from './events/types.js';
 import { ConfigService, type ConfigContext } from './config-service.js';
 import type { ServiceDefinition, Services } from './definitions.js';
 
@@ -7,6 +9,7 @@ export function createServices(
   configFor: (definition: ServiceDefinition<any>) => ConfigContext = () =>
     new ConfigService([{ id: 'app' }]).context('app'),
   decorate: (id: string, instance: any, active: () => boolean) => any = (_id, instance) => instance,
+  events: Events = new EventService(),
 ) {
   let active = true;
   const pending = new Map<string, ServiceDefinition<any>>();
@@ -36,7 +39,10 @@ export function createServices(
       let progressed = false;
       for (const [id, definition] of pending) {
         if (definition.requires?.some((key) => !Object.hasOwn(instances, key))) continue;
+        const eventScope = createEventScope(events);
+        cleanups.push(eventScope.dispose);
         const instance = definition.create({
+          events: eventScope.events,
           services: instances as Services,
           config: configFor(definition),
         });

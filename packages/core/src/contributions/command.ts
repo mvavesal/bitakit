@@ -17,6 +17,17 @@ export function adaptCommand(
   const execute = definition.execute;
   return {
     definition,
+    setup: definition.setup || definition.onEvent
+      ? (context) => {
+          if (definition.onEvent && definition.events?.length) {
+            const onEvent = definition.onEvent;
+            context.events.watch(definition.events, (event, { signal }) =>
+              onEvent(event, { ...context, signal }),
+            );
+          }
+          return definition.setup?.(context);
+        }
+      : undefined,
     requires: definition.requires ?? [],
     watch: definition.watch ?? [],
     registrations: [

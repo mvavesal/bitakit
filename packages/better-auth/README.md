@@ -42,3 +42,15 @@ Sie werden nicht automatisch in eine bereits erzeugte Server-Auth-Instanz injizi
 `createBetterAuthClient` from `@bitakit/better-auth/client` creates the shared browser client with organization/teams, multi-session, API key, and two-factor extensions. These are client capabilities, not server activation: the server must configure the matching native extensions. Native client options such as baseURL are supported; plugins supplied to this helper append additional client extensions. Use the native createAuthClient and existing betterAuthPlugin directly for a different preset.
 
 The main headless adapter entry remains separate from this browser-only subpath.
+
+## Shared client navigation
+
+Pass application-owned `paths: { signIn, afterSignIn, afterSignOut }` as the second
+argument to `betterAuthPlugin`. An optional `signIn(options)` delegates a native login
+flow; without it, `useAuth().signIn()` opens the configured application login page.
+The existing `signOut` override remains supported. Use the shared UI hook for configured
+post-logout navigation; avoid also redirecting inside the override.
+
+See the [client authentication guide](../core/docs/auth.md) for configuration,
+`AuthBoundary`, safe return destinations and a provider adapter template. These additions
+are workspace APIs pending release. Native server configuration and login UI remain external.

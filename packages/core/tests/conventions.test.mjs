@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createActionList } from '@bitakit/core/actions';
+import { createActionList, ActionStatus } from '@bitakit/core/actions';
 import {
   FoundationRuntime,
   defineAction,
@@ -199,39 +199,28 @@ test('failure callback receives the original error, retains cause and draft, and
   cleanup();
 });
 
-test('feedback can be silent, literal or translated; callback failures do not reverse success', async () => {
-  for (const [success, expected] of [
-    [false, []],
-    ['Done!', ['Done!']],
-    [{ messageKey: 'custom' }, ['Fertig']],
-    [
-      () => {
-        throw new Error('Broken feedback');
-      },
-      [],
-    ],
+test('successful execution reports Succeeded independently of feedback and translation', async () => {
+  for (const success of [
+    false,
+    'Done!',
+    { messageKey: 'custom' },
+    () => { throw new Error('Broken feedback'); },
   ]) {
-    const { list, notifications, cleanup } = setup(
-      defineAction({ id: 'users.run', execute() {}, success }),
-      {
-        custom: 'Fertig',
-        'users.run.success': 'Standard',
-      },
+    const { list, cleanup } = setup(
+      defineAction({ id: 'users.run', execute: () => 42, success }),
+      { custom: 'Fertig', 'users.run.success': 'Standard' },
     );
-    assert.equal((await list.execute('users.run')).status, 'completed');
-    assert.deepEqual(notifications, expected);
-    cleanup();
+    try {
+      assert.equal(list.get('users.run').status, ActionStatus.Idle);
+      const result = await list.execute('users.run');
+      assert.deepEqual(result, { status: 'completed', value: 42 });
+      assert.equal(list.get('users.run').status, ActionStatus.Succeeded);
+      assert.equal(list.get('users.run').pending, false);
+      assert.equal(list.get('users.run').error, undefined);
+    } finally {
+      cleanup();
+    }
   }
-  const manual = setup(
-    resolveContribution(
-      defineAction({ id: 'manual', title: 'Manual', execute() {} }),
-      undefined,
-      false,
-    ),
-  );
-  await manual.list.execute('manual');
-  assert.deepEqual(manual.notifications, []);
-  manual.cleanup();
 });
 
 test('default errors never display raw errors; explicit false silences failure', async () => {

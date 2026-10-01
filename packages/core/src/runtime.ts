@@ -1,3 +1,5 @@
+import { EventService, createEventScope } from './events/service.js';
+import { setupAction } from './events/action-setup.js';
 import { serviceObserver } from './interceptors/service-observers.js';
 import { isServiceInterceptor } from './interceptors/service.js';
 import { ConfigService, type ConfigContext } from './config-service.js';
@@ -64,6 +66,7 @@ function orderPlugins(plugins: readonly Plugin[]) {
  */
 export class FoundationRuntime implements ContributionHost {
   readonly app: FoundationApp;
+  readonly events: EventService;
   readonly configuration: ConfigService;
   readonly modules: readonly Plugin[];
   private readonly actionConfigs = new Map<string, { module: string; config: ConfigContext }>();
@@ -109,6 +112,7 @@ export class FoundationRuntime implements ContributionHost {
       { ...config, id: config.appId ?? '@foundation/app' },
       ...(config.plugins ?? []),
     ];
+    this.events = new EventService(config.onEventError);
     this.app = createFoundationApp(this);
     this.configuration = new ConfigService(
       [{ id: config.appId ?? '@foundation/app', config: config.config }, ...(config.plugins ?? [])],
@@ -316,6 +320,7 @@ export class FoundationRuntime implements ContributionHost {
       this.providedServices,
       (definition) => this.configuration.context(serviceModules.get(definition)!),
       serviceObserver(this.modules),
+      this.events,
     );
     try {
       this.extensionCleanups.push(
@@ -461,6 +466,15 @@ export class FoundationRuntime implements ContributionHost {
         ? this.actions.add(registration.id, registration.instance, registration.placement)
         : this.actions.register(registration.definition, registration.placement);
       scope.own(handle.unregister);
+      if (adapted.setup) {
+        const eventScope = createEventScope(this.events);
+        handle.onDispose(eventScope.dispose);
+        const cleanup = adapted.setup({
+          events: eventScope.events, services: this.services,
+          action: setupAction(handle), app: this.app, config,
+        });
+        if (cleanup) handle.onDispose(cleanup);
+      }
       this.registrations.push({ definition: adapted.definition, handle });
     }
   }
@@ -496,6 +510,7 @@ export class FoundationRuntime implements ContributionHost {
     } catch (error) {
       errors.push(error);
     }
+    this.events.clear();
     this.container = undefined;
     this.registrations = [];
     this.actionConfigs.clear();

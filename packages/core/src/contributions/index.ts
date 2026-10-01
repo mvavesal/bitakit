@@ -22,6 +22,7 @@ export type Registration = { id: string; placement: RegistrationOptions } & (
 );
 /** The normalized shape every contribution kind reduces to. */
 export type Adapted = {
+  setup?: import('../events/action-setup.js').ActionSetup;
   /** Final definition after conventions and overrides; the runtime re-translates from it. */
   definition: ResolvedContribution;
   requires: readonly string[];

@@ -396,3 +396,10 @@ Core does not access browser globals for navigation. Mount an ActionList with an
 navigation callback when executing URL Actions outside the UI provider. Without a navigation
 host, URL execution reports an error. The UI ActionProvider supplies browser navigation by
 default; the optional Next and TanStack providers use the application's existing router.
+
+## Runtime events and action setup
+
+See [Events and action setup](events.md) for the built-in runtime-local event bus,
+`defineAction({ setup })`, scoped `events.watch`, payload typing and async semantics.
+Existing definition-level `watch: ['serviceId']` and `resolve` retain their service
+observation and execution-time presentation behavior.

@@ -43,7 +43,7 @@ export function ActionProvider({
   );
   return (
     <ActionContext.Provider value={current}>
-      <UIContext.Provider value={{ onError, Link, pathname }}>{children}</UIContext.Provider>
+      <UIContext.Provider value={{ onError, Link, pathname, navigate }}>{children}</UIContext.Provider>
     </ActionContext.Provider>
   );
 }

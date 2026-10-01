@@ -267,3 +267,33 @@ Notification titles and descriptions accept translation keys, resolved centrally
 Package-owned English and German messages live in `locales/` and are exported as
 `./locales/en.json` and `./locales/de.json`. Compose them in the host request configuration
 with `mergePluginMessages`; app catalogs override matching keys in the same locale.
+
+## Standalone page states
+
+`@bitakit/shell/pages` exports `NotFoundPage`, `ErrorPage`, `LoadingPage` and
+`AccessDeniedPage`. They compose the existing Empty and Button components, inherit the
+central theme, and work without a sidebar, AppShell or ShellProvider. Include the normal
+Shell/theme CSS in the host. Optional `title`, `description` and `children` customize
+content; `ErrorPage` accepts `reset` for the standard retry button. Raw errors are not shown.
+The Shell DE/EN catalogs supply defaults when the translation service is available;
+standalone rendering uses English fallbacks.
+
+For example, a Next.js host keeps native route ownership:
+
+```tsx
+// app/not-found.tsx
+export { NotFoundPage as default } from '@bitakit/shell/pages';
+```
+
+```tsx
+// app/error.tsx
+'use client';
+import { ErrorPage } from '@bitakit/shell/pages';
+export default function Error({ reset }: { reset: () => void }) {
+  return <ErrorPage reset={reset} />;
+}
+```
+
+Use `LoadingPage` in the native loading route or Suspense fallback. A global error route
+still supplies its own required HTML/body wrapper. These components do not set HTTP status,
+create routes, redirect or authorize requests. Host-owned links can be passed as children.

@@ -7,6 +7,7 @@ export const UIContext = createContext<{
   onError: (error: unknown) => void;
   Link?: ComponentType<any>;
   pathname?: string;
+  navigate?: (href: string) => void;
 }>({
   onError: (error) => {
     console.error(error);

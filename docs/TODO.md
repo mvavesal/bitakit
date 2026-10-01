@@ -2,6 +2,12 @@
 
 Status reconciled through September 30, 2026 against current implementation and recorded verification. Checked entries record delivered scope, not unimplemented extensions. Open proposals do not authorize implementation or publication.
 
+- [ ] **High priority: investigate Action instance isolation with a realistic customer form.** Render two independent “Add customer” forms with name, address and customer type, both using the same Action definition. Per-binding inputs and derived availability are already separate, but the registered Action's pending/status and event-written enabled/custom state remain shared. Decide which operations should use centrally managed Actions and which should stay local form behavior before introducing more infrastructure. Compare per-instance execution scopes with the user's reference of global and form-local ActionLists; keep the current single-root architecture until a concrete design is agreed. Verify that input, pending state, completion/errors and targeted events in one form do not unintentionally affect the other, including closing/remounting a form during async execution. This is deferred analysis/sample work, not authorization to implement isolation now.
+
+- [ ] **Evaluate thin form-to-Action bindings after defining instance ownership.** The discussed `useActionInstance`, `useActionForm`, `ActionForm` and `ActionSubmit` names are pseudocode, not available APIs. Reuse an established form library for field values, validation and submit handling; keep customer drafts in one source of truth rather than mirroring them into Action state. A future binding should reuse Core execution, guards, interceptors, pending/error state and owned cleanup. Explore local generic custom data and a shared Action definition in the customer-form sample; do not introduce a parallel Action registry, state store, or a custom form engine.
+
+- [x] **Runtime events and declarative Action reactions (September 30, workspace only).** Added a runtime-local mitt-backed event service, payloads, `events` plus `onEvent`, and scoped `setup`/`events.watch`; UI exposes `useWatchEvent`. Core owns listener cleanup and routes synchronous/asynchronous handler errors. The existing observable-service `watch` remains supported. Verified 95 Core tests, 27 UI tests, the package build, and the runnable Todo example. README/API guides explain ownership, initial checks, async cancellation and the shared-state limitation. Not published to npm.
+
 - [ ] **Prepare npm release readiness.** Audit package contents/exports, dependency versions, npm scope ownership, licensing and publication order. Preserve the private generator until release preparation is complete. Local packed-CLI verification is recorded below; public npm availability is not established. Actual publication requires a separate user instruction.
 
 - [x] **Expose individual Reset to default in App Preferences.** Standard bound reset controls reuse AppPreferences.reset and existing storage adapters, with pending/read-only/error handling. Default fields and Shell appearance cards render them. Section-wide reset remains deferred; Better Auth forms are unchanged.
@@ -105,3 +111,12 @@ Historical planning-only constraint is superseded for the explicitly authorized 
   before promising parity; preserve URL ownership, hydration and history. Do not replace
   nuqs or introduce custom query storage without a separate decision. Full Shell output
   also reports a Vite large-chunk advisory; bundle optimization remains separate work.
+
+- [x] **Shared client auth navigation and standalone Shell page states (October 1).**
+  Added external login/completion/logout paths to the existing auth contract and Better
+  Auth adapter, generic useAuth/AuthBoundary bindings, and an adapter template. Shell
+  provides standalone not-found/error/loading/access-denied components using existing
+  primitives and catalogs. Server authorization, native login UI and routes stay external.
+- [ ] **Additional authentication providers.** Implement and verify optional Auth.js/Clerk
+  adapters when requested. The common contract and template do not constitute working
+  integrations. Action instance/form isolation remains a separate deferred design task.
