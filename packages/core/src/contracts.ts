@@ -1,3 +1,4 @@
+import type { AuthPaths, AuthSignInOptions } from './auth-navigation.js';
 import type { Translator } from './definitions.js';
 export type AuthSnapshot = {
   user: { id: string; name?: string; email?: string } | null;
@@ -5,6 +6,10 @@ export type AuthSnapshot = {
   error: unknown;
 };
 export interface AuthService {
+  /** Optional application-owned navigation configuration. */
+  readonly paths?: AuthPaths;
+  /** Optional SDK-native login flow; UI otherwise navigates to paths.signIn. */
+  signIn?(options?: AuthSignInOptions): Promise<void>;
   getSnapshot(): AuthSnapshot;
   subscribe(listener: () => void): () => void;
   signOut(): Promise<void>;

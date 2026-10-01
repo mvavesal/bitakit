@@ -170,6 +170,25 @@
           }
         }
       }
+    },
+    "pages": {
+      "notFound": {
+        "title": "Seite nicht gefunden",
+        "description": "Die gesuchte Seite ist nicht verfügbar."
+      },
+      "error": {
+        "title": "Ein Fehler ist aufgetreten",
+        "description": "Bitte versuche es erneut.",
+        "retry": "Erneut versuchen"
+      },
+      "loading": {
+        "title": "Wird geladen",
+        "description": "Bitte warte einen Moment."
+      },
+      "accessDenied": {
+        "title": "Kein Zugriff",
+        "description": "Du hast keinen Zugriff auf diese Seite."
+      }
     }
   },
   "settings": {

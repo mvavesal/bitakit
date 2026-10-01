@@ -35,7 +35,11 @@
       "types": "./dist/foundation.d.ts",
       "default": "./dist/foundation.js"
     },
-    "./locales/*.json": "./locales/*.json"
+    "./locales/*.json": "./locales/*.json",
+    "./pages": {
+      "types": "./dist/pages.d.ts",
+      "default": "./dist/pages.js"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

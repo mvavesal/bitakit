@@ -4,6 +4,9 @@ import {
   authService,
   type AuthService,
   type AuthSnapshot,
+  configureAuthPaths,
+  type AuthPaths,
+  type AuthSignInOptions,
 } from '@bitakit/core';
 
 type SessionState = {
@@ -26,13 +29,19 @@ export type BetterAuthClient = {
 };
 export function betterAuthPlugin(
   client: BetterAuthClient,
-  options: { signOut?: () => Promise<void> } = {},
+  options: {
+    paths?: AuthPaths;
+    signIn?: (options?: AuthSignInOptions) => Promise<void>;
+    signOut?: () => Promise<void>;
+  } = {},
 ) {
   const sessionAtom = client.$store.atoms.session;
   if (!sessionAtom) throw new Error('Better Auth client has no session atom.');
   let previous: SessionState | undefined;
   let snapshot: AuthSnapshot;
   const auth: AuthService = {
+    paths: options.paths ? configureAuthPaths(options.paths) : undefined,
+    signIn: options.signIn,
     getSnapshot() {
       const session = sessionAtom.get();
       if (session !== previous) {

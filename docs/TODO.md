@@ -111,3 +111,12 @@ Historical planning-only constraint is superseded for the explicitly authorized 
   before promising parity; preserve URL ownership, hydration and history. Do not replace
   nuqs or introduce custom query storage without a separate decision. Full Shell output
   also reports a Vite large-chunk advisory; bundle optimization remains separate work.
+
+- [x] **Shared client auth navigation and standalone Shell page states (October 1).**
+  Added external login/completion/logout paths to the existing auth contract and Better
+  Auth adapter, generic useAuth/AuthBoundary bindings, and an adapter template. Shell
+  provides standalone not-found/error/loading/access-denied components using existing
+  primitives and catalogs. Server authorization, native login UI and routes stay external.
+- [ ] **Additional authentication providers.** Implement and verify optional Auth.js/Clerk
+  adapters when requested. The common contract and template do not constitute working
+  integrations. Action instance/form isolation remains a separate deferred design task.

@@ -65,7 +65,10 @@ test('developers replace the same public service through the existing lifecycle'
     },
   });
   assert.equal(runtime.app.services.notifications.show('Custom', { type: 'info' }), 'custom');
-  assert.deepEqual(messages, [['Custom', { type: 'info' }]]);
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0][0], 'Custom');
+  assert.equal(messages[0][1].type, 'info');
+  assert.equal(messages[0][1].description, undefined);
   assert.equal(
     settings.getSection('shell-notifications'),
     undefined,

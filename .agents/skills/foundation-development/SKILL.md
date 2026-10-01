@@ -706,3 +706,26 @@ transparent light/dark BitaKit logos without recoloring. Registration is not pub
   unless that shared behavior is intended. Verify two bindings with different inputs.
 - Execution-success tests assert execution results and ActionStatus.Succeeded, not
   localized notification strings. Do not reintroduce text assertions in that test.
+
+### Shared client auth navigation and standalone page states
+
+- AuthService retains provider-owned getSnapshot/subscribe/signOut and optionally exposes
+  application-owned AuthPaths and a native signIn delegate. Better Auth accepts these
+  options; other provider adapters remain optional ordinary plugins, not Core dependencies.
+  The adapter template in packages/core/docs/auth.md is not an implemented Auth.js/Clerk adapter.
+- UI useAuth observes the native snapshot with useSyncExternalStore. AuthBoundary waits
+  for pending resolution and handles errors before login navigation. It is not server
+  authorization. Use the existing framework navigation binding; no mirrored session store.
+- Login paths and return destinations are safe root-relative application URLs. The host
+  login flow consumes resolveAuthReturnTo; afterSignIn is the fallback, not an automatic
+  redirect on every session update. Native absolute callbacks use the application's origin.
+- Shared logout navigation must not race a protected boundary's login redirect. Track only
+  the transient navigation intent in the existing provider, clear it after route changes or
+  new login, and ignore async completion from a removed adapter. Direct SDK calls do not
+  invoke useAuth navigation policy. Test failed logout and later protected navigation too.
+- Shell owns standalone NotFoundPage, ErrorPage, LoadingPage and AccessDeniedPage through
+  @bitakit/shell/pages. Reuse existing Empty/Button and package catalogs. No sidebar or
+  ShellProvider is required. Native framework routes own HTTP status, server checks and
+  global-error HTML wrappers. Never render raw errors by default.
+- Empty headings/descriptions must wrap long unbroken content on mobile. Keep the fix in
+  the shared Empty primitive rather than per-page overrides; check light/dark and retry focus.

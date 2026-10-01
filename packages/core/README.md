@@ -164,3 +164,6 @@ Plugins are trusted application code. Core is not a sandbox or a remote plugin m
 ## License
 
 [MIT](LICENSE). Third-party dependencies retain their own licenses.
+
+See [client authentication](docs/auth.md) for the shared provider contract, externally
+configured login/logout paths, UI bindings and an adapter template (workspace APIs).

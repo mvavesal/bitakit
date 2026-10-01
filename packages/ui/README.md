@@ -152,3 +152,11 @@ of names listens to each event; changing names or runtime replaces the subscript
 Handlers use the latest committed React callback. The hook requires FoundationProvider
 and begins observing once its runtime is ready; it does not replay earlier events.
 See [Core events](../core/docs/events.md) for payload typing and async semantics.
+
+## Client authentication
+
+`useAuth` observes the registered `AuthService` and exposes its snapshot plus `signIn`
+and `signOut`. `AuthBoundary` handles pending, authenticated, unauthenticated and error
+rendering through host-supplied content; it uses the existing navigation binding for login.
+It has no visual dependency and does not enforce server authorization.
+See [configuration and adapter examples](../core/docs/auth.md).
