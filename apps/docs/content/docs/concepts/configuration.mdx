@@ -1,0 +1,66 @@
+---
+title: Configuration
+description: Give plugins defaults and apply explicit host overrides.
+---
+
+**Owner:** `@bitakit/core`. Configuration is an immutable snapshot resolved before services are created. Use it for application defaults and deployment composition. Mutable user preferences belong to App Preferences.
+
+## Define defaults
+
+In a discovery-enabled local plugin:
+
+```ts
+// src/plugins/todos/configs.ts
+import { defineConfig } from '@bitakit/core';
+
+export default defineConfig({
+  defaults: {
+    pageSize: 20,
+    actions: { list: { pageSize: 10 } },
+  },
+});
+```
+
+The plugin folder supplies the module ID `todos`. A single `configs.ts` defines its root config. `configs/actions/list.ts` can instead define just `actions.list`; do not define the same leaf twice.
+
+## Read the correct scope
+
+```ts
+// src/plugins/todos/actions/list.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  requires: ['todos.todos'],
+  execute({ app, config }) {
+    const pageSize = config.action.get('pageSize', 10);
+    return app.services.todos.list().slice(0, pageSize);
+  },
+});
+```
+
+`config.plugin.get('pageSize', 20)` reads the module root. `config.action.get('pageSize', 10)` reads `actions.list.pageSize` for this action. There is no implicit fallback between these scopes. Service factories use their supplied `config.plugin` scope.
+
+A fallback supplies a value and TypeScript inference, not runtime validation. Dot paths address nested values; segment arrays can address literal keys containing dots.
+
+## Override from the host
+
+```ts
+// foundation.config.ts
+export default {
+  configOverrides: {
+    todos: { actions: { list: { pageSize: 50 } } },
+  },
+};
+```
+
+The same `configOverrides` field exists on manual `FoundationConfig`. Objects merge recursively, arrays replace arrays, `undefined` retains defaults and `null` is explicit. Unknown module IDs are rejected. Overrides for known disabled plugins are removed with their contributions.
+
+## Optional schemas
+
+`defineConfig({ schema, defaults })` accepts an existing schema with synchronous `parse(unknown)`. Core calls it on merged values before service creation; invalid configuration prevents startup. Use the application's chosen schema library. A root schema owns the complete config; it is not combined with additional config files. Subtrees may have their own schemas.
+
+## Reading the snapshot
+
+With generated types, `app.config.todos.pageSize` reads the same resolved module snapshot. Low-level callers can use `runtime.configuration.plugin('todos')`. Plain objects and arrays are frozen. There is no configuration write API or automatic service recreation when an object is mutated; replacing the runtime composition supplies a new snapshot.
+
+Configuration shipped in client contributions is client-visible. Keep secrets in explicit server-only composition. Core discovery does not provide a generic server contribution scanner.

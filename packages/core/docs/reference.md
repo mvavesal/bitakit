@@ -28,20 +28,19 @@ optional schemas retain their parse contract. Low-level scoped reads remain avai
 Optional packages can project instance-local facades through `appExtensions` and augment
 `AppExtensionMap`. Core owns no Settings implementation or duplicate state.
 
-Plugins publish selected existing service keys through `publicServices`. Public names must be unique within the service namespace.
+Service definitions use `exposeAs` to name their existing instance in `app.services`. Public names must be unique within the service namespace. This is a workspace API pending publication.
 
 ```ts
 const documents = serviceKey<Documents>('editor.documents');
 export default function documentsPlugin() {
   return definePlugin({
     id: 'documents',
-    publicServices: { documents },
-    services: [provideService(documents, { create: () => createDocumentsService() })],
+    services: [provideService(documents, { exposeAs: 'documents', create: () => createDocumentsService() })],
   });
 }
 ```
 
-`runtime.app.services.documents` resolves that same container instance. Required access reports
+`runtime.app.services.documents` resolves that same container instance. `defineService` supports the same `exposeAs` option. Discovery defaults it to the explicit ID or relative service path, so normal file-based definitions need neither IDs nor name mappings. Existing `publicServices` remains supported for compatibility and aliases to externally supplied services; it is not a private/public access boundary. Required access reports
 FoundationServiceError (`code`, `service`, `reason`, optional `plugin`) when unavailable.
 `app.optional.services.documents` returns undefined before mount or when unavailable. After mount,
 `app.ready` is true; disposal makes optional reads unavailable again. Obtaining a service

@@ -57,7 +57,7 @@
     "@better-auth-ui/react": "1.7.15",
     "@heroui/react": "^3.2.1",
     "@heroui/styles": "^3.2.1",
-    "@bitakit/core": "0.1.0",
+    "@bitakit/core": "0.1.1",
     "@bitakit/app-preferences": "0.1.0",
     "@tanstack/react-query": "^5.103.1",
     "better-auth": "^1.7.5",

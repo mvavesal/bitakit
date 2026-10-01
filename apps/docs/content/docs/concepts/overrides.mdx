@@ -1,0 +1,94 @@
+---
+title: Overrides and customization
+description: Make a plugin fit your app with a few small changes.
+---
+
+**Owner:** configuration and contribution replacement in `@bitakit/core`. Framework provider composition is supplied by the selected adapter.
+
+Choose the smallest existing mechanism for the change:
+
+| Goal                                           | Mechanism                          |
+| ---------------------------------------------- | ---------------------------------- |
+| Change a plugin default                        | `configOverrides`                  |
+| Replace one plugin action's behavior           | Host action with `replaces`        |
+| Limit action visibility or availability        | `actionOverrides`                  |
+| Disable automatic package contribution         | Discovery `packages` configuration |
+| Replace an entire selected contribution domain | Explicit composition array         |
+
+## Override configuration
+
+```ts
+// foundation.config.ts
+export default {
+  configOverrides: {
+    todos: { actions: { list: { pageSize: 50 } } },
+  },
+};
+```
+
+This assumes the `todos` plugin from [configuration](/docs/concepts/configuration). Defaults and overrides resolve before services start. Objects merge; arrays replace; `undefined` preserves defaults. A duplicate config leaf in two source files is an error, not an override.
+
+## Change a service's public name
+
+```ts
+// src/plugins/todos/services/clock.ts
+import { defineService } from '@bitakit/core';
+
+export default defineService({
+  exposeAs: 'tools.clock',
+  create: () => ({ now: () => new Date() }),
+});
+```
+
+Call it through `app.services.tools.clock`. The internal key remains `todos.clock`; service dependencies still use that key. Omit `exposeAs` to use the file-derived public name `clock`. This option requires Core 0.1.1 or newer.
+
+## Replace an action from the host
+
+```ts
+// src/actions/list-tasks.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  replaces: 'todos.list',
+  requires: ['todos.todos'],
+  execute: ({ app }) => app.services.todos.list().slice(0, 5),
+});
+```
+
+This replaces the `todos.list` action from the [configuration example](/docs/concepts/configuration) with a version that returns the first five tasks. Existing callers still use `todos.list`. You change the behavior in one place without updating every button or caller.
+
+Omitted groups, title, description, icon and order are inherited. Execution logic and guards are not inherited: the replacement must supply the behavior and checks it needs.
+
+Only host-to-plugin action replacement is supported. Missing targets, accidental duplicate IDs, multiple replacements and plugin-to-plugin replacements fail. Constructor-only IDs are not supported replacement targets. Do not create a second registration with the same ID.
+
+## Cap availability
+
+```ts
+// foundation.config.ts
+export default {
+  actions: {
+    overrides: { 'todos.add': { enabled: false } },
+  },
+};
+```
+
+Discovery maps `actions.overrides` to the runtime configuration. For manual `FoundationConfig`, use `actionOverrides` directly.
+
+A false cap prevents re-enabling through a reactive subscription. Setting a cap to true does not override the action's own guards. Visibility and availability remain UI/execution concerns, not server authorization.
+
+## Opt out of automatic package loading
+
+```ts
+// foundation.config.ts
+export default {
+  packages: { '@bitakit/quick-search': false },
+};
+```
+
+`packages: false` disables all package discovery. Local source contributions still use their configured discovery path. Disabling package discovery removes its generated imports and public types; it does not uninstall the dependency.
+
+## Understand replacement versus addition
+
+For configured contribution domains, omission inherits the generated selection, an explicit array replaces that selection and `[]` selects none. An explicit actions list replaces declarative actions, including plugin actions; plugin services and setup still run. Independently registered low-level contributions keep their original ownership.
+
+The Next and TanStack adapters also offer `additionalPlugins`: matching plugin IDs replace discovered definitions in place and new IDs append. Their `plugins` prop still means replacement, not append. Keep composition stable across renders. These are host composition options, not a second plugin lifecycle.

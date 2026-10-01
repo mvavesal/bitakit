@@ -30,5 +30,13 @@ scroll-lock rules address layout stability; they do not establish a custom palet
 typography, spacing or component style. Keep future changes within upstream public
 configuration and components.
 
+The user requested a small code-block refinement on October 1: warm tinted surfaces,
+no drop shadow and a subtle border. Central `--docs-code-background` and
+`--docs-code-border` tokens apply to Fumadocs code-block figures in light and dark mode.
+Preserve upstream syntax highlighting, copy controls, scrolling, typography and spacing.
+The light surface is nearly neutral with a trace of warmth. In dark mode, match the
+selected sidebar item's background: 10% primary over the card surface, with a subtle
+neutral border. Reuse the upstream theme tokens for this match.
+
 Check article navigation, search, narrow layouts and both themes in the rendered site
 when these surfaces change. A successful build alone does not verify their appearance.

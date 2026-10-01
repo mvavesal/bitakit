@@ -15,9 +15,17 @@ export function getService<T>(services: Partial<Services>, key: ServiceKey<T>): 
 }
 
 /** The provider must implement the shared contract; registration and cleanup use the normal container. */
+export function provideService<T, const Name extends string>(
+  key: ServiceKey<T>,
+  definition: Omit<ServiceDefinition<NoInfer<T>>, 'id'> & { exposeAs: Name },
+): ServiceDefinition<T> & { id: ServiceKey<T>; exposeAs: Name };
 export function provideService<T>(
   key: ServiceKey<T>,
   definition: Omit<ServiceDefinition<NoInfer<T>>, 'id'>,
+): ServiceDefinition<T> & { id: ServiceKey<T> };
+export function provideService<T>(
+  key: ServiceKey<T>,
+  definition: Omit<ServiceDefinition<T>, 'id'>,
 ): ServiceDefinition<T> & { id: ServiceKey<T> } {
   return { ...definition, id: key };
 }

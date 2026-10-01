@@ -1,0 +1,45 @@
+---
+title: Interceptors
+description: Observe shared execution at the owning runtime boundary.
+---
+
+**Owner:** `@bitakit/core`. Interceptors attach cross-cutting behavior to existing execution and service calls. Keep feature operations in actions and services.
+
+## Action interceptors
+
+```ts
+// src/plugins/todos/interceptors/logging.ts
+import { defineActionInterceptor } from '@bitakit/core';
+
+export default defineActionInterceptor({
+  before() {
+    console.log('To-do action started');
+  },
+});
+```
+
+Plugin action interceptors default to their own plugin, including its internal form submissions. `scope: 'global'` broadens the scope explicitly. Host interceptors default to global; `scope: 'plugin'` limits them to the app module. `order` sorts ascending, with registration order for ties. The legacy `defineInterceptor` is an Action interceptor helper.
+
+## Service interceptors
+
+```ts
+// src/plugins/todos/interceptors/service-calls.ts
+import { defineServiceInterceptor } from '@bitakit/core';
+
+export default defineServiceInterceptor({
+  service: 'todos',
+  method: 'list',
+  before() {
+    console.log('Listing tasks');
+  },
+  after({ result }) {
+    console.log('Task count:', result.length);
+  },
+});
+```
+
+This fragment assumes the discovered `todos` service exposes `list()`. Known service methods infer arguments and awaited results. Omitting `method` observes public string-named methods of the selected service.
+
+Service interceptors currently provide observation-only hooks: return values are ignored, callbacks are not awaited and callback failures are isolated. Do not mutate arguments or results. Original sync returns, promises and errors are preserved. Internal self-calls and calls through an original reference outside the container bypass these hooks; symbol methods and constructors are not observed.
+
+All container consumers see the same wrapped service. Runtime disposal disables observation, including later settlement of in-flight calls, and disposes the original instance. Action and Service interceptors can share a collection; their helpers determine the kind, not their folder names.

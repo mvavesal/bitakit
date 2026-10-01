@@ -10,6 +10,19 @@ BitaKit is a composition layer alongside frameworks such as Next.js and TanStack
 Start, not a replacement for them. Its explicit plugin, service, and action
 conventions give people and AI coding assistants a shared structure to work with.
 
+## Designed for typed composition
+
+- **Typed contracts:** shared service keys connect providers and consumers; action definitions carry inputs, results and custom state.
+- **Inferred application APIs:** discovery generates ActionMap, ServiceMap and ConfigMap from supported contributions.
+- **Typed notifications:** the workspace EventMap connects known event names to their payloads.
+- **Names beside implementations:** the workspace `exposeAs` service option supplies the typed app-facing name directly; discovery defaults it from the file.
+- **Flexible authoring:** flat and nested contribution files resolve to the same logical paths; explicit composition remains available.
+- **Owned lifecycle:** one runtime coordinates dependencies, registrations and cleanup.
+
+Unknown action IDs remain allowed unless strict mode is enabled. External data still
+needs runtime validation. See the [type-safety guide](../../apps/docs/content/docs/concepts/type-safety.mdx)
+and [Core learning path](../../apps/docs/content/docs/concepts/index.mdx) for examples and boundaries.
+
 ## How the pieces fit
 
 Imagine a **To-do plugin** that lets someone add a task:
@@ -106,7 +119,7 @@ export default defineService({
         events.emit('todos.changed', { kind: 'added', id: todo.id });
       },
       remove(id: number) {
-        items = items.filter(todo => todo.id !== id);
+        items = items.filter((todo) => todo.id !== id);
         events.emit('todos.changed', { kind: 'removed', id });
       },
     };

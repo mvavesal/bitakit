@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { organization, multiSession, twoFactor } from 'better-auth/plugins';
@@ -220,7 +222,13 @@ test('native toast surface can be omitted without changing the native auth provi
   for (const enabled of [true, false]) {
     const plugin = betterAuthUIPlugin({ provider: config, toastProvider: enabled });
     const Provider = plugin.providers[0].component;
-    const result = Provider({ children: 'content' });
+    let result;
+    // Inspect the composed element within a React render so its translation hook runs normally.
+    function CompositionProbe() {
+      result = Provider({ children: 'content' });
+      return null;
+    }
+    renderToStaticMarkup(createElement(CompositionProbe));
     assert.equal(result.props.authClient, client);
     assert.equal(result.props.children[0], 'content');
     assert.equal(Boolean(result.props.children[1]), enabled);

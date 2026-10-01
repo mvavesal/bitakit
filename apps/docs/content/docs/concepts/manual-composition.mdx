@@ -1,0 +1,61 @@
+---
+title: Advanced — manual composition
+description: Explicit service contracts and runtime ownership outside a discovery-enabled app.
+---
+
+Use this guide when building a standalone Node program or a provider package that needs a shared contract. In a configured application, start with [Services](/docs/concepts/services): discovery and the host provider already perform registration and lifecycle management.
+
+## Explicit contracts across packages
+
+Use a shared key when independent provider and consumer packages need an agreed contract. Unlike the discovered example above, this standalone composition supplies identities explicitly because no file discovery runs:
+
+```ts
+import {
+  createActionList,
+  definePlugin,
+  FoundationRuntime,
+  getService,
+  provideService,
+  serviceKey,
+} from '@bitakit/core';
+
+interface Clock {
+  now(): Date;
+}
+const clockService = serviceKey<Clock>('example.clock');
+const clockPlugin = definePlugin({
+  id: 'example-clock',
+  services: [
+    provideService(clockService, {
+      exposeAs: 'clock',
+      create: () => ({ now: () => new Date() }),
+    }),
+  ],
+});
+
+const runtime = new FoundationRuntime(createActionList(), { plugins: [clockPlugin] });
+const stop = runtime.mount();
+try {
+  console.log(getService(runtime.services, clockService).now());
+} finally {
+  stop();
+}
+```
+
+`serviceKey` identifies a contract; `provideService` registers its implementation; `getService` returns that instance with its type. Share the key rather than defining unrelated keys in each consumer. `exposeAs` names that same instance in the public app facade.
+
+## Name the service where you define it
+
+`exposeAs: 'clock'` makes the registered instance available as `app.services.clock`. The type comes from the shared service key. You do not need a separate name-mapping list.
+
+For discovered services, the filename already supplies the name; `exposeAs` is only needed when you want a different public name. It does not change the container key or create a second instance.
+
+## When to own a runtime
+
+The example creates and mounts a runtime because it runs without an application host. Mount creates services and installs contributions. The returned cleanup function releases them when the standalone program finishes.
+
+In a configured app, the Foundation provider already owns that lifecycle. Do not repeat these imports or startup code when adding a normal service or action.
+
+Existing `publicServices` mappings remain supported for older compositions and aliases to host-supplied services. They are not a privacy or authorization boundary: services remain accessible through their container keys. New service definitions should keep their name beside their factory with `exposeAs`.
+
+For a complete standalone feature, see the [manual To-do walkthrough](/docs/concepts/tutorial).

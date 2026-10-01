@@ -16,8 +16,8 @@
   <a href="docs/TODO.md">Roadmap</a>
 </p>
 
-> **Early preview.** Core is available on npm. The generator and remaining packages
-> are being prepared for publication. APIs are still evolving; TanStack Start is experimental.
+> **Early release.** BitaKit packages and the app generator are available on npm.
+> APIs are still evolving; TanStack Start is experimental.
 
 ## Build the product you have in mind
 
@@ -40,10 +40,12 @@ review remain part of the workflow.
 Keep a feature's behavior together in a plugin, then compose it with the rest of
 your application.
 
-**Typed where the pieces connect.** Typed service contracts and action definitions
-help you carry inputs and results across feature boundaries. Discovery can generate
-registration and application types from your contributions. Runtime validation and
-server authorization still belong at the appropriate application boundaries.
+**Type-safe feature composition.** Carry service method inputs and results, action
+inputs and completed results, known event payloads and configuration types from their
+definitions to callers. Discovery generates the application contracts for editor
+completion and compile-time checks. Optional strict Action IDs catch unknown names;
+runtime schemas and server authorization protect external boundaries. See the
+[Core type-safety guide](apps/docs/content/docs/concepts/type-safety.mdx).
 
 **Your app stays yours.** Keep your native framework routes, choose your visual
 components, and connect your own services through public contracts. The headless
@@ -101,9 +103,7 @@ Create an app, add a To-do plugin, and bind an action to your interface.
 
 ### 1. Create your app
 
-> **Release preview:** The app generator and framework packages are not published
-> yet. The command below shows the intended setup after release. Core is already
-> available on npm.
+Start with one command. Choose your framework and the features you need.
 
 ```sh
 npx @bitakit/create-app my-app
@@ -190,11 +190,11 @@ The action receives a task title and passes it to the service.
 In the generated app, discovery finds supported files and generates their imports,
 registration, and types during the build.
 
-| Contribution | Discovered identity |
-| --- | --- |
-| `src/plugins/todos/` | Plugin `todos` |
-| `services/tasks.ts` | Public service `tasks` |
-| `actions/create.ts` | Action `todos.create` |
+| Contribution         | Discovered identity    |
+| -------------------- | ---------------------- |
+| `src/plugins/todos/` | Plugin `todos`         |
+| `services/tasks.ts`  | Public service `tasks` |
+| `actions/create.ts`  | Action `todos.create`  |
 
 No handwritten list of service or action imports is needed. You write the feature's
 behavior; the configured discovery integration connects it. See
@@ -266,16 +266,16 @@ application-developer experience.
 
 ## Repository map
 
-| Directory                            | Purpose                                                            |
-| ------------------------------------ | ------------------------------------------------------------------ |
-| `packages/core`                      | Framework-independent runtime, Actions and Node-only discovery     |
-| `packages/ui`                        | React bindings and optional standard components                    |
-| `packages/next`, `packages/tanstack` | Optional framework integrations                                    |
-| `packages/create-app`                | Frontend generator                                                 |
-| Other `packages/*`                   | Optional capabilities and provider integrations                    |
-| `apps/docs`                          | Developer documentation                                            |
-| `docs`                               | Architecture notes and roadmap                                     |
-| `scripts`                            | Workspace and verification tools                                   |
+| Directory                            | Purpose                                                        |
+| ------------------------------------ | -------------------------------------------------------------- |
+| `packages/core`                      | Framework-independent runtime, Actions and Node-only discovery |
+| `packages/ui`                        | React bindings and optional standard components                |
+| `packages/next`, `packages/tanstack` | Optional framework integrations                                |
+| `packages/create-app`                | Frontend generator                                             |
+| Other `packages/*`                   | Optional capabilities and provider integrations                |
+| `apps/docs`                          | Developer documentation                                        |
+| `docs`                               | Architecture notes and roadmap                                 |
+| `scripts`                            | Workspace and verification tools                               |
 
 See the [package guide](packages/README.md) for individual responsibilities.
 
@@ -284,7 +284,7 @@ See the [package guide](packages/README.md) for individual responsibilities.
 - TanStack Start support is **experimental**; see its [verified scope](packages/tanstack/README.md).
 - The Next.js generator uses Webpack while the tracked Turbopack discovery issue is open.
 - Plugin discovery is not a marketplace, remote installer or sandbox for untrusted code.
-- Core is published; the remaining package releases and hosted documentation are pending.
+- All 14 packages are published on npm. Hosted documentation is being prepared.
 
 ## Contributing and licensing
 

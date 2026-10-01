@@ -1,0 +1,140 @@
+---
+title: Standalone To-do walkthrough
+description: Follow services, actions, events and cleanup in one runnable feature.
+---
+
+Build a small To-do feature with services, actions and events. This example runs in Node.js with `@bitakit/core` 0.1.1 or newer.
+
+This walkthrough deliberately uses manual composition to run without a host framework. Its explicit registration IDs are required in that mode. For the simpler discovery-based workflow without registration IDs, start with [Plugins and lifecycle](/docs/concepts/plugins).
+
+Install `@bitakit/core@^0.1.1`, then create the following files in your project. Keep their relative paths. No React, router, database or file discovery is required.
+
+The service owns tasks, three actions invoke it, and the plugin groups them. The delete action reads initial state in setup and reacts after mutations through the same runtime event bus.
+
+## todos/services/tasks.mjs
+
+```js
+import { defineService } from '@bitakit/core';
+
+function createTodoService({ events }) {
+  let tasks = [];
+  let nextId = 1;
+
+  function create(title) {
+    const task = { id: nextId++, title, done: false };
+    tasks.push(task);
+    events.emit('todos.changed', { kind: 'added', id: task.id });
+    return task;
+  }
+
+  return {
+    create,
+    list: () => [...tasks],
+    delete(id) {
+      const previousCount = tasks.length;
+      tasks = tasks.filter((task) => task.id !== id);
+      const removed = tasks.length < previousCount;
+      if (removed) events.emit('todos.changed', { kind: 'removed', id });
+      return removed;
+    },
+  };
+}
+
+export default defineService({
+  id: 'todos',
+  create: createTodoService,
+});
+```
+
+## todos/actions/create.mjs
+
+```js
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  id: 'todos.create',
+  requires: ['todos'],
+  execute: ({ services, input }) => services.todos.create(input),
+});
+```
+
+## todos/actions/list.mjs
+
+```js
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  id: 'todos.list',
+  requires: ['todos'],
+  execute: ({ services }) => services.todos.list(),
+});
+```
+
+## todos/actions/delete.mjs
+
+```js
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  id: 'todos.delete',
+  requires: ['todos'],
+  events: ['todos.changed'],
+  setup({ services, action }) {
+    action.enabled = services.todos.list().length > 0;
+  },
+  onEvent(_event, { services, action }) {
+    action.enabled = services.todos.list().length > 0;
+  },
+  execute: ({ services, input }) => services.todos.delete(input),
+});
+```
+
+## todos/plugin.mjs
+
+```js
+import { definePlugin } from '@bitakit/core';
+import tasks from './services/tasks.mjs';
+import create from './actions/create.mjs';
+import list from './actions/list.mjs';
+import remove from './actions/delete.mjs';
+
+export default definePlugin({
+  id: 'todos',
+  services: [tasks],
+  actions: [create, list, remove],
+});
+```
+
+## todos.mjs
+
+```js
+import { createActionList, FoundationRuntime } from '@bitakit/core';
+import todos from './todos/plugin.mjs';
+
+const actions = createActionList();
+const runtime = new FoundationRuntime(actions, { plugins: [todos] });
+const stop = runtime.mount();
+
+try {
+  await actions.execute('todos.create', 'Learn plugins');
+  await actions.execute('todos.create', 'Connect a service');
+  await actions.execute('todos.create', 'Try actions');
+  console.log('Before:', await actions.execute('todos.list'));
+  await actions.execute('todos.delete', 2);
+  console.log('After:', await actions.execute('todos.list'));
+} finally {
+  stop();
+}
+```
+
+## Run and inspect
+
+```sh
+node todos.mjs
+```
+
+The first list contains three tasks; after deleting ID 2, the second contains IDs 1 and 3. Successful execution returns `{ status: 'completed', value: ... }`. Failed execution rejects; inspect the execution outcome rather than assuming every call ran.
+
+The list is temporary memory. Events notify subscribers after a mutation; they do not hold the task data. Removing a task does not unregister the delete action. Runtime cleanup releases registrations and owned subscriptions.
+
+Try deleting every task: setup/onEvent makes the delete action unavailable once the service is empty. A real product must still validate inputs and authorize mutations on the server.

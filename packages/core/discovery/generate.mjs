@@ -32,7 +32,6 @@ export async function generateFoundation(root) {
   const definitions = [];
   const serviceTypes = [];
   const publicServiceTypes = [];
-  const publicServicesByModule = new Map();
   const configTypes = [];
   const allMessages = {};
   const pluginIds = new Set();
@@ -122,10 +121,6 @@ export async function generateFoundation(root) {
           `DiscoveredActionEntry<typeof ${name}, ${quote(moduleId)}, ${conventions}>`,
         );
     if (kind === 'services') {
-      publicServicesByModule.set(
-        moduleId,
-        `discoverPublicServices([${names}], ${quote(moduleId)})`,
-      );
       for (const name of names) {
         serviceTypes.push(`DiscoveredServiceEntry<typeof ${name}, ${quote(moduleId)}>`);
         publicServiceTypes.push(`DiscoveredPublicServiceEntry<typeof ${name}>`);
@@ -162,7 +157,6 @@ export async function generateFoundation(root) {
   const appSetup = appSetupFile ? importFile(appSetupFile) : 'undefined';
   const appActions = emit('actions', await appEntries('actions'), appManifest.id ?? '');
   const appServices = emit('services', await appEntries('services'), appManifest.id ?? '');
-  const appPublicServices = publicServicesByModule.get(appManifest.id ?? '');
   const appConfig = emit('configs', await appEntries('configs'), appId);
   let interceptorEntries = await appEntries('interceptors');
   if (config.interceptors?.enabled !== undefined) {
@@ -279,7 +273,7 @@ export async function generateFoundation(root) {
       manifest.id,
     );
     definitions.push(
-      `{ id: ${quote(manifest.id)}, publicServices: ${publicServicesByModule.get(manifest.id)}, metadata: ${quote(metadata)}, dependencies: ${quote(manifest.dependencies ?? [])}, actions: ${actions}, services: ${services}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, views: [${views}], pages: [${pages}], setup: ${setup}, contributions: ${pluginContributions} }`,
+      `{ id: ${quote(manifest.id)}, metadata: ${quote(metadata)}, dependencies: ${quote(manifest.dependencies ?? [])}, actions: ${actions}, services: ${services}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, views: [${views}], pages: [${pages}], setup: ${setup}, contributions: ${pluginContributions} }`,
     );
     for (const file of await resolveEntry('locales', 'locales')) {
       if (!file.endsWith('.json')) continue;
@@ -294,7 +288,7 @@ export async function generateFoundation(root) {
   await writeChanged(
     path.join(output, 'plugins.ts'),
     `${header}${[...contributionTypes.values()].map(({ kind, index, entries }) => `type KindMap${index} = ${entries.join(' & ')}; declare module ${quote(kind.from)} { interface ${kind.types.map} extends KindMap${index} {} }`).join('\n')}
-${imports.join('\n')}\nimport { ${imports.some(entry => entry.includes('= discoveredFile(')) ? 'discoveredFile, ' : ''}discoverActions, discoverServices, discoverPublicServices, discoverInterceptors, discoverConfig, ${actionTypes.length ? 'type DiscoveredActionEntry, ' : ''}${serviceTypes.length ? 'type DiscoveredServiceEntry, ' : ''}${publicServiceTypes.length ? 'type DiscoveredPublicServiceEntry, ' : ''}${configTypes.some(entry => entry.includes('DiscoveredConfigEntry')) ? 'type DiscoveredConfigEntry, ' : ''}type FoundationConfig } from '@bitakit/core';\ntype DiscoveredServices = ${serviceTypes.join(' & ') || '{}'};\ntype DiscoveredPublicServices = ${publicServiceTypes.join(' & ') || '{}'};\ntype DiscoveredActions = ${actionTypes.join(' & ') || '{}'};\ndeclare module '@bitakit/core' { interface PublicServiceMap extends DiscoveredPublicServices {} interface ServiceMap extends DiscoveredServices {} interface ActionMap extends DiscoveredActions {} interface ConfigMap { ${configTypes.join(' \n')} } }\nexport const foundationConfig = { publicServices: ${appPublicServices}, appId: ${quote(appId)}, metadata: ${quote(appManifest.metadata ?? {})}, dependencies: ${quote(appManifest.dependencies ?? [])}, pages: [${appPages}], views: [${appViews}], setup: ${appSetup}, groups: ${quote(config.groups ?? [])}, actionOverrides: ${quote((config.actions && config.actions.overrides) || {})}, config: ${appConfig}, configOverrides: ${quote(Object.fromEntries(Object.entries(config.configOverrides ?? {}).filter(([id]) => !pluginIds.has(id) || enabledModuleIds.has(id))))}, services: ${appServices}, interceptors: ${interceptors}, providers: [${providers}], actions: ${appActions}, contributions: ${appContributions}, plugins: [${definitions.join(',\n')}] } satisfies FoundationConfig;\n`,
+${imports.join('\n')}\nimport { ${imports.some(entry => entry.includes('= discoveredFile(')) ? 'discoveredFile, ' : ''}discoverActions, discoverServices, discoverInterceptors, discoverConfig, ${actionTypes.length ? 'type DiscoveredActionEntry, ' : ''}${serviceTypes.length ? 'type DiscoveredServiceEntry, ' : ''}${publicServiceTypes.length ? 'type DiscoveredPublicServiceEntry, ' : ''}${configTypes.some(entry => entry.includes('DiscoveredConfigEntry')) ? 'type DiscoveredConfigEntry, ' : ''}type FoundationConfig } from '@bitakit/core';\ntype DiscoveredServices = ${serviceTypes.join(' & ') || '{}'};\ntype DiscoveredPublicServices = ${publicServiceTypes.join(' & ') || '{}'};\ntype DiscoveredActions = ${actionTypes.join(' & ') || '{}'};\ndeclare module '@bitakit/core' { interface PublicServiceMap extends DiscoveredPublicServices {} interface ServiceMap extends DiscoveredServices {} interface ActionMap extends DiscoveredActions {} interface ConfigMap { ${configTypes.join(' \n')} } }\nexport const foundationConfig = { appId: ${quote(appId)}, metadata: ${quote(appManifest.metadata ?? {})}, dependencies: ${quote(appManifest.dependencies ?? [])}, pages: [${appPages}], views: [${appViews}], setup: ${appSetup}, groups: ${quote(config.groups ?? [])}, actionOverrides: ${quote((config.actions && config.actions.overrides) || {})}, config: ${appConfig}, configOverrides: ${quote(Object.fromEntries(Object.entries(config.configOverrides ?? {}).filter(([id]) => !pluginIds.has(id) || enabledModuleIds.has(id))))}, services: ${appServices}, interceptors: ${interceptors}, providers: [${providers}], actions: ${appActions}, contributions: ${appContributions}, plugins: [${definitions.join(',\n')}] } satisfies FoundationConfig;\n`,
   );
   await writeChanged(
     path.join(output, 'messages.json'),

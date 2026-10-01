@@ -83,10 +83,11 @@ export function discoverServices(
     ({ value, path }) => ({
       ...value,
       id: value.id ?? [moduleId, ...path].filter(Boolean).join('.'),
+      exposeAs: value.exposeAs ?? value.id ?? path.join('.'),
     }),
   );
 }
-/** Public names follow explicit IDs or local file paths; storage IDs retain their module scope. */
+/** Compatibility projection. New generated hosts carry names directly on discovered services. */
 export function discoverPublicServices(
   files: readonly DiscoveredFile[],
   moduleId = '',
@@ -97,7 +98,7 @@ export function discoverPublicServices(
     files,
     (value) => !!value && typeof value.create === 'function',
   )) {
-    const name = value.id ?? path.join('.');
+    const name = value.exposeAs ?? value.id ?? path.join('.');
     if (sources.has(name))
       throw new Error(`Duplicate public service "${name}": ${sources.get(name)} and ${source}`);
     sources.set(name, source);
@@ -194,16 +195,19 @@ export type DiscoveredActionEntry<
   F extends DiscoveredFile<infer T, infer P>
     ? ActionTree<T, Conventions extends false ? never : Join<Module, P>>
     : {};
-type ServiceTree<T, P extends string> = T extends { create: (...args: any[]) => infer R }
-  ? { [K in T extends { id: infer ID extends string } ? ID : P]: R }
+type ServiceTree<T, P extends string, Public extends boolean = false> = T extends { create: (...args: any[]) => infer R }
+  ? { [K in Public extends true
+      ? T extends { exposeAs: infer Name extends string } ? Name : T extends { id: infer ID extends string } ? ID : P
+      : T extends { id: infer ID extends string } ? ID : P]: R }
   : T extends object
     ? UnionToIntersection<
-        { [K in keyof T & string]: ServiceTree<T[K], Join<P, K>> }[keyof T & string]
+        { [K in keyof T & string]: ServiceTree<T[K], Join<P, K>, Public> }[keyof T & string]
       >
     : {};
 export type DiscoveredServiceEntry<F, Module extends string = ''> =
   F extends DiscoveredFile<infer T, infer P> ? ServiceTree<T, Join<Module, P>> : {};
-export type DiscoveredPublicServiceEntry<F> = DiscoveredServiceEntry<F>;
+export type DiscoveredPublicServiceEntry<F> =
+  F extends DiscoveredFile<infer T, infer P> ? ServiceTree<T, P, true> : {};
 
 type ConfigOutput<T> =
   T extends ConfigDefinition<infer V>

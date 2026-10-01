@@ -1,0 +1,17 @@
+{
+  "title": "Core concepts",
+  "pages": [
+    "index",
+    "plugins",
+    "services",
+    "actions",
+    "events",
+    "configuration",
+    "discovery",
+    "overrides",
+    "type-safety",
+    "interceptors",
+    "manual-composition",
+    "tutorial"
+  ]
+}

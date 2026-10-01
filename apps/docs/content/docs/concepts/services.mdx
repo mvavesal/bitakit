@@ -1,0 +1,49 @@
+---
+title: Services
+description: Define reusable behavior in one file and call it from your feature.
+---
+
+A service is an object with functions your feature can reuse. For example, a clock service provides the current time. Several actions can call the same service.
+
+The examples below assume your app already has Foundation discovery configured, as described in the [quickstart](/docs/quickstart).
+
+## 1. Create the service file
+
+```ts
+// src/services/clock.ts
+import { defineService } from '@bitakit/core';
+
+export default defineService({
+  create: () => ({ now: () => new Date() }),
+});
+```
+
+That is the complete service definition. The filename supplies the name `clock`; Foundation creates the service for you. TypeScript infers that `now()` returns a `Date`.
+
+## 2. Use it in an action
+
+```ts
+// src/actions/current-time.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  requires: ['clock'],
+  execute: ({ services }) => services.clock.now(),
+});
+```
+
+The action declares that it needs `clock`, then calls its function. Discovery finds both files, connects them and generates their types. You do not write registration IDs, a service-name mapping or runtime startup code.
+
+## What Foundation handles
+
+Core creates one service instance for this registration, makes it available to consumers and handles cleanup when the owning runtime stops. The configured app provider owns that lifecycle. A service can supply `dispose(instance)` if it acquires resources that need cleanup.
+
+Your service still owns its behavior and data. Foundation does not automatically persist data or subscribe the UI to changes. See [Events](/docs/concepts/events) when other parts of the feature need to react to a change.
+
+## Other ways to use a service
+
+The same discovered service is available as `app.services.clock`. React consumers obtain `app` from `useFoundationApp` in `@bitakit/ui`. For access before the runtime is ready, or for an optional capability, use `app.optional.services.clock` and handle `undefined`.
+
+A discovered service can override its app-facing name with `exposeAs: 'clock'`; when omitted, its file path supplies the name. That option is also available on `provideService` for package authors. It is available in Core 0.1.1 and newer.
+
+Most application features only need the two files above. For provider packages or standalone programs without discovery, see [Advanced — manual composition](/docs/concepts/manual-composition).

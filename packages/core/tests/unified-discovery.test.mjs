@@ -45,6 +45,10 @@ test('folder-only plugins provide inferred service methods, Action references an
         loadCount: async (folder: string) => folder.length,
       }) });
     `);
+    await put('src/plugins/documents/services/clock.ts', `
+      import { defineService } from '@bitakit/core';
+      export default defineService({ exposeAs: 'tools.clock', create: () => ({ now: () => new Date() }) });
+    `);
     await put('src/plugins/documents/actions/create.ts', `
       import { defineAction } from '@bitakit/core';
       export default defineAction({ execute: ({ app }) => app.services.documents.createDraft('New draft') });
@@ -89,10 +93,15 @@ test('folder-only plugins provide inferred service methods, Action references an
     `);
     await generateFoundation(root);
     const output = path.join(root, '.foundation/plugins.ts');
+    const generated = await readFile(output, 'utf8');
+    assert.doesNotMatch(generated, /discoverPublicServices|publicServices:/);
     const consumer = await put('consumer.ts', `
       import type { FoundationRuntime } from '@bitakit/core';
       declare const runtime: FoundationRuntime;
       const app = runtime.app;
+      const date: Date = app.services.tools.clock.now();
+      // @ts-expect-error exposeAs replaces the public file-derived name.
+      app.services.clock;
       const title: string = app.services.documents.createDraft('Typed').title;
       app.actions.documents.save.execute({title: 'Saved'}).then(result => {
         if (result.status === 'completed') { const title: string = result.value.title; }
@@ -129,6 +138,7 @@ test('folder-only plugins provide inferred service methods, Action references an
     assert.deepEqual(foundationConfig.plugins.map(plugin => plugin.id), ['documents']);
     const action = runtime.app.actions.documents.create;
     const stop = runtime.mount();
+    assert.ok(runtime.app.services.tools.clock.now() instanceof Date);
     const service = runtime.app.services.documents;
     assert.equal(service, runtime.services['documents.documents']);
     assert.equal(action, runtime.app.actions.documents.create);
