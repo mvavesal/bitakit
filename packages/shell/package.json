@@ -49,7 +49,7 @@
     "@heroui/react": "^3.2.6",
     "@heroui/styles": "^3.2.6",
     "@bitakit/app-preferences": "0.1.0",
-    "@bitakit/core": "0.1.1",
+    "@bitakit/core": "^0.1.1",
     "@bitakit/ui": "0.1.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",

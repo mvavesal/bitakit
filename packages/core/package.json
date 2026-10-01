@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -8,7 +8,8 @@
     "README.md",
     "discovery",
     "docs",
-    "examples"
+    "examples",
+    "assets"
   ],
   "exports": {
     ".": {
@@ -37,7 +38,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {},
-  "description": "Framework-independent Foundation runtime, actions, and typed services.",
+  "description": "AI-friendly, type-safe building blocks for modular apps: plugins, services, actions, and events.",
   "license": "MIT",
   "repository": {
     "type": "git",

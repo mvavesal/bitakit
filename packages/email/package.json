@@ -17,7 +17,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@bitakit/core": "0.1.1"
+    "@bitakit/core": "^0.1.1"
   },
   "devDependencies": {
     "typescript": "^5"

@@ -23,7 +23,7 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "0.1.1",
+    "@bitakit/core": "^0.1.1",
     "tldts": "^7.4.13",
     "zod": "^4.6.5"
   },
