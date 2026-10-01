@@ -181,14 +181,21 @@ export default defineService({
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<number>({
+  // Services this action uses. Core checks that they exist before registering it.
   requires: ['todos'],
+
+  // Initial state: the list starts empty, so deleting is disabled.
+  enabled: false,
+
+  // Events this action reacts to.
   events: ['todos.changed'],
-  setup({ services, action }) {
+
+  // Runs each time one of those events is emitted. Core owns the subscription.
+  onEvent(_event, { services, action }) {
     action.enabled = services.todos.list().length > 0;
   },
-  onEvent(event, { services, action }) {
-    action.enabled = services.todos.list().length > 0;
-  },
+
+  // Runs when a bound control or your code executes the action.
   execute: ({ services, input }) => services.todos.remove(input),
 });
 ```
@@ -198,10 +205,15 @@ app namespace). Plugin contributions also receive their plugin namespace. Provid
 an explicit `id` when you need a custom identity. Direct imports without discovery,
 including the Node tutorial above, still need explicit IDs.
 
+Reacting to events needs no `setup` method. Declaring events does not send an
+initial event, so state that is known up front, such as `enabled: false` for an
+empty list, belongs in the definition. Add `setup` only when the initial state must
+be read from existing data; it runs once when the action registers.
+
 `events: ['todos.loaded', 'todos.changed']` calls `onEvent` for
 **each** matching event. Handlers receive `{ type, data }` and can be synchronous or
-asynchronous. Core owns subscriptions created in action `setup` and service
-`create`, including cleanup after failed setup. No manual unsubscribe is needed.
+asynchronous. Core owns the `onEvent` subscription and those created in action `setup`
+and service `create`, including cleanup after failed setup. No manual unsubscribe is needed.
 For dynamic subscriptions, `setup` still offers `events.watch`. React components use `useWatchEvent` from `@bitakit/ui`.
 
 See [events and action setup](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/events.md) for payload typing, errors, async

@@ -9,7 +9,7 @@ This walkthrough deliberately uses manual composition to run without a host fram
 
 Install `@bitakit/core@^0.1.1`, then create the following files in your project. Keep their relative paths. No React, router, database or file discovery is required.
 
-The service owns tasks, three actions invoke it, and the plugin groups them. The delete action reads initial state in setup and reacts after mutations through the same runtime event bus.
+The service owns tasks, three actions invoke it, and the plugin groups them. The delete action starts disabled because the list starts empty, then reacts after mutations through the same runtime event bus. It needs no setup method.
 
 ## todos/services/tasks.mjs
 
@@ -77,14 +77,22 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   id: 'todos.delete',
+
+  // Services this action uses. Core checks that they exist before registering it.
   requires: ['todos'],
+
+  // Initial state: the task list starts empty, so deleting is disabled.
+  enabled: false,
+
+  // Events this action reacts to.
   events: ['todos.changed'],
-  setup({ services, action }) {
-    action.enabled = services.todos.list().length > 0;
-  },
+
+  // Runs each time one of those events is emitted. Core owns the subscription.
   onEvent(_event, { services, action }) {
     action.enabled = services.todos.list().length > 0;
   },
+
+  // Runs when a bound control or your code executes the action.
   execute: ({ services, input }) => services.todos.delete(input),
 });
 ```
@@ -137,4 +145,4 @@ The first list contains three tasks; after deleting ID 2, the second contains ID
 
 The list is temporary memory. Events notify subscribers after a mutation; they do not hold the task data. Removing a task does not unregister the delete action. Runtime cleanup releases registrations and owned subscriptions.
 
-Try deleting every task: setup/onEvent makes the delete action unavailable once the service is empty. A real product must still validate inputs and authorize mutations on the server.
+Try deleting every task: onEvent makes the delete action unavailable once the service is empty. A real product must still validate inputs and authorize mutations on the server.
