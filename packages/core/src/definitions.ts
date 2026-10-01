@@ -31,10 +31,18 @@ export type Translator = ((key: string, values?: MessageValues) => string) & {
 };
 export interface ServiceDefinition<T = unknown> {
   id: string;
+  /** Optional name for this same instance in app.services. Discovery defaults to the file path. */
+  exposeAs?: string;
   requires?: readonly string[];
   create(context: { services: Services; config: ConfigContext; events: Events }): T;
   dispose?: (instance: T) => void;
 }
+export function defineService<const ID extends string, T, const Name extends string>(
+  definition: ServiceDefinition<T> & { id: ID; exposeAs: Name },
+): ServiceDefinition<T> & { id: ID; exposeAs: Name };
+export function defineService<T, const Name extends string>(
+  definition: Omit<ServiceDefinition<T>, 'id'> & { exposeAs: Name },
+): Omit<ServiceDefinition<T>, 'id'> & { exposeAs: Name };
 export function defineService<const ID extends string, T>(
   definition: ServiceDefinition<T> & { id: ID },
 ): ServiceDefinition<T> & { id: ID };
@@ -366,7 +374,7 @@ export function definePage(page: PluginPageDefinition): PluginPageDefinition {
   return page;
 }
 export type Plugin = {
-  /** Public app aliases for existing typed service keys; internal services remain private. */
+  /** Aliases for externally supplied services or existing compositions. Prefer service.exposeAs. */
   publicServices?: PublicServiceKeys;
   /** Instance-local projections owned by optional packages; never a second state store. */
   appExtensions?: Readonly<

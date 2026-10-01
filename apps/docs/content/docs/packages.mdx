@@ -4,24 +4,24 @@ description: Choose capabilities without moving application behavior into Core.
 ---
 
 BitaKit packages use the registered `@bitakit` scope. The source and generator have
-been migrated; public npm publication is still pending.
+been migrated; Core 0.1.0 is the published baseline recorded in the repository. The remaining packages and newer workspace APIs are still release previews.
 
-| Package | Responsibility |
-| --- | --- |
-| `core` | Framework-independent runtime, Actions and typed service registration |
-| `ui` | React bindings and optional standard themed components |
-| `next` | Next.js navigation, URL query adapter and discovery integration |
-| `tanstack` | Experimental TanStack Router/Start integration |
-| `app-preferences` | Settings definitions, catalog, values and persistence contracts |
-| `shell` | Application layout and shared settings surfaces |
-| `quick-search` | Optional search across public Foundation Actions |
-| `email` | Provider-independent email message and sending contract |
-| `nodemailer` | Server-side SMTP implementation of the email contract |
-| `better-auth` | Authentication service integration |
-| `better-auth-ui` | Optional authentication and account UI integration |
-| `organizations` | Shared organization service contracts and integration points |
-| `next-intl` | Translation integration for Next.js |
-| `create-app` | Frontend project generator |
+| Package           | Responsibility                                                        |
+| ----------------- | --------------------------------------------------------------------- |
+| `core`            | Framework-independent runtime, Actions and typed service registration |
+| `ui`              | React bindings and optional standard themed components                |
+| `next`            | Next.js navigation, URL query adapter and discovery integration       |
+| `tanstack`        | Experimental TanStack Router/Start integration                        |
+| `app-preferences` | Settings definitions, catalog, values and persistence contracts       |
+| `shell`           | Application layout and shared settings surfaces                       |
+| `quick-search`    | Optional search across public Foundation Actions                      |
+| `email`           | Provider-independent email message and sending contract               |
+| `nodemailer`      | Server-side SMTP implementation of the email contract                 |
+| `better-auth`     | Authentication service integration                                    |
+| `better-auth-ui`  | Optional authentication and account UI integration                    |
+| `organizations`   | Shared organization service contracts and integration points          |
+| `next-intl`       | Translation integration for Next.js                                   |
+| `create-app`      | Frontend project generator                                            |
 
 ## Framework ownership
 
@@ -37,6 +37,10 @@ server-side SMTP configuration and includes the contract package as a dependency
 
 External providers can use the same public service contract and existing plugin registration.
 They do not need to be merged into this repository to work.
+
+## Core documentation
+
+Start with [Core concepts](/docs/concepts): plugins, services, actions, events, configuration and discovery. The [To-do walkthrough](/docs/concepts/tutorial) shows their collaboration in runnable code.
 
 ## Documentation roadmap
 

@@ -1,0 +1,71 @@
+---
+title: Type safety
+description: Carry contracts from definitions to consumers.
+---
+
+**Owner:** `@bitakit/core` types and discovery; React bindings consume the same contracts through `@bitakit/ui`.
+
+BitaKit is designed around type-safe feature composition. Define the contract at its source, then let service access, action execution and bindings carry the types to callers.
+
+| Boundary                     | What TypeScript knows                        |
+| ---------------------------- | -------------------------------------------- |
+| `serviceKey<T>`              | The shared provider and consumer contract    |
+| Discovered service factory   | Public method arguments and return types     |
+| Discovered action definition | Known action ID, input and completed result  |
+| Stateful action definition   | Custom state shape and execution result      |
+| Config discovery             | Resolved module structure through ConfigMap  |
+| EventMap                     | Known event names and discriminated payloads |
+
+## Typed action inputs
+
+```ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction<{ title: string }>()({
+  initialState: {},
+  execute(input) {
+    return { title: input.title, saved: true };
+  },
+});
+```
+
+The curried `defineAction<Input>()({...})` form keeps input explicit while inferring the return type. In the context-based `defineAction<Input, Result>({...})` form, supply both types when explicitly specifying generics; supplying only Input leaves Result at its default `void`.
+
+In a discovered contribution, its effective ID maps to that input and inferred result. Generated `ActionMap`, `ServiceMap` and `ConfigMap` declarations connect definitions to consumers; keep the generated declaration file included in the host TypeScript project. Editors can then complete known IDs and service methods. `requires` separately declares runtime dependencies.
+
+## Strict action IDs
+
+Unknown action IDs are allowed by default for dynamic integrations. Applications that want to reject them at compile time can augment the public contract:
+
+```ts
+// src/foundation-types.d.ts
+import '@bitakit/core';
+
+declare module '@bitakit/core' {
+  interface ActionMapOptions {
+    strict: true;
+  }
+}
+```
+
+Classes and function factories that establish their ID at construction do not automatically enter the generated ActionMap. Declare their contracts manually when typed lookup is required. Explicit compositions can likewise augment the public maps or preserve precise plugin tuple types.
+
+## Typed events
+
+```ts
+import '@bitakit/core';
+
+declare module '@bitakit/core' {
+  interface EventMap {
+    'todos.changed': { kind: 'added' | 'removed'; id: number };
+  }
+}
+```
+
+Known names require their declared payload; unknown names remain allowed with `unknown` data. This augmentation provides types, not runtime registration. See [events](/docs/concepts/events) for inference and multi-event handlers.
+
+## Runtime boundaries
+
+TypeScript does not validate network responses, stored JSON or user input. Parse untrusted values with the application's existing schema library and keep authorization on the server. A config fallback is not a schema. Typed service access does not guarantee an optional provider is mounted; use optional access or declare the dependency.
+
+This is why these guides identify the typed boundaries precisely rather than claiming every dynamic string or external response is automatically safe.

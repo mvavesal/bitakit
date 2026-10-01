@@ -452,7 +452,7 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 - Core discovery reads opt-in Foundation metadata from direct dependencies and optionalDependencies exposing package.json. The foundation.plugin subpath default-exports a synchronous Plugin factory; optional foundation.configuration metadata passes a resolved root config path, otherwise no argument is passed. Emit client imports without executing them at build time; invoke factories per provider composition. Factories describe resources; service construction and disposal stay in the existing runtime.
 - foundation.discovery points to a trusted Node-safe default factory of contribution kind descriptors. Explicit kinds override package defaults by name; preserve existing validation for duplicate kinds and folders. App Preferences exposes its discovery descriptors this way.
 - packages: false or a package-name false entry disables automatic package contributions. Generated types must drop disabled/removed package capabilities. Do not activate arbitrary, transitive or development dependencies. Backend configuration and credentials remain explicit.
-- Plugin publicServices maps public app names to existing typed service keys. The app facade projects the current runtime container; it is not another service registry. Public aliases live under app.services and must not collide within that namespace.
+- Service definitions and provideService carry their app-facing name through exposeAs. Runtime composition derives aliases onto the existing container; it never creates another instance or registry. Legacy publicServices maps remain compatible for older compositions and aliases to host-owned services. Names must not collide within app.services; identical legacy/inline mappings within one module are idempotent. This is not a private/public authorization boundary.
 - useFoundationApp belongs to UI, subscribes to readiness, and returns existing instances. Direct required access reports FoundationServiceError; app.optional.services provides availability checks before mount and after removal. Service data still requires its own subscription hook. Never claim direct access is reactive or retain disposed services.
 - Local contributions and installed package factories provide generated public-service completion. Manual compositions can use useFoundationApp<typeof plugins>() with precise tuple/factory types. Broad Plugin annotations erase exposed property types. Compile-time absent-property errors and missing npm imports cannot be replaced by runtime diagnostics.
 - createBetterAuthIntegration optionally composes the existing organization adapter and UI through organizations options, sharing its auth client and defaulting to accountSettings.catalog. Do not duplicate that wiring in hosts or claim this activates backend organization support.
@@ -461,7 +461,7 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 - Validate changed contracts with focused type, lifecycle, discovery and hydration tests. Do not repeat successful checks without new changes or run full builds/browser suites for unrelated edits.
 
 - Local discovery treats each immediate folder under src/plugins as a plugin. plugin.config.ts is optional; its explicit ID overrides the folder name. foundation.config.ts can override the directory. Reuse the existing scanner and contribution pipeline.
-- Local defineService contributions expose app.services using their relative file path or explicit ID. Preserve the existing module-scoped raw service key and runtime ownership. Generated types infer method inputs, outputs and promises without requiring manual ServiceKey declarations for ordinary local services.
+- Local defineService contributions expose app.services using exposeAs, then their explicit ID or relative file path. Generated hosts carry names on service definitions, without separate publicServices maps. Preserve the module-scoped raw key used by requires and the services context; app-facing aliases do not rename those keys. Generated and manual composition types preserve literal names and method input/output contracts. Do not use an unqualified public alias in a raw plugin service context.
 - app.actions projects dotted Action IDs as typed references. References execute through the existing ActionList, reflect current registrations and guards, and exclude internal actions from enumeration. ActionButton, ActionBinding and useAction accept same-list references; do not duplicate action state.
 - Plain command execution receives app alongside the existing services/config context. Setup retains its existing scoped contract. Do not imply that setup or service factories receive the new app facade.
 - Services have no root-level aliases. Use app.services, app.actions and app.optional.services consistently in examples. Preserve existing action input contracts; this change does not add an action-parameter system.
@@ -593,9 +593,11 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 - Never overwrite an existing destination. Preserve partial output on failure, propagate
   failures, and report completion only after selected installation succeeds. Support explicit
   no-install and dry-run modes and prompt cancellation before filesystem changes.
-- The package remains private pending release review. Local npm tarballs and npm overrides
-  support isolated verification before publication; do not silently link the monorepo or
-  assume the npm scope exists. No package publication is authorized by generator work.
+- Package publication was explicitly authorized on October 1. The generator manifest is
+  release-ready after archive/export/license checks and CLI tests; public availability
+  still requires a successful registry publication. Local npm tarballs and npm overrides
+  support isolated verification; do not silently link the monorepo or claim publication
+  from a successful local build.
 - TanStack implementation was authorized on September 30. Reuse the native nuqs adapter;
   Start remains experimental because upstream does not promise support. Record verified
   paths and versions rather than claiming complete portability. Do not replace nuqs.

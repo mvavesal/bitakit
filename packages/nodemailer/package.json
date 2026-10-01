@@ -19,7 +19,7 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "0.1.0",
+    "@bitakit/core": "0.1.1",
     "@bitakit/email": "0.1.0",
     "nodemailer": "10.0.10"
   },

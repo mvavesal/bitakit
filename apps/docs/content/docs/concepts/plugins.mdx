@@ -1,0 +1,72 @@
+---
+title: Plugins and lifecycle
+description: Compose a feature through the existing runtime.
+---
+
+**Owner:** `@bitakit/core`. Plugins are trusted application code. They group services, actions and other contributions; Core does not render their UI.
+
+## Start with two files
+
+In a host with Foundation discovery configured, a plugin starts as a folder. Add a service and an action; their paths supply their names automatically.
+
+```text
+src/plugins/todos/
+  services/todos.ts
+  actions/add.ts
+```
+
+### The service owns the tasks
+
+```ts
+// src/plugins/todos/services/todos.ts
+import { defineService } from '@bitakit/core';
+
+export default defineService({
+  create() {
+    const items: { id: number; title: string }[] = [];
+    return {
+      add(title: string) {
+        const task = { id: items.length + 1, title };
+        items.push(task);
+        return task;
+      },
+      list: () => [...items],
+    };
+  },
+});
+```
+
+The `id` on a task is application data, not a service registration ID. This in-memory example only adds and lists tasks; it does not persist them.
+
+### The action calls the service
+
+```ts
+// src/plugins/todos/actions/add.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction<string, { id: number; title: string }>({
+  title: 'Add task',
+  requires: ['todos.todos'],
+  execute: ({ app, input }) => app.services.todos.add(input),
+});
+```
+
+### The paths supply the identities
+
+| Source                           | Automatically derived identity |
+| -------------------------------- | ------------------------------ |
+| Plugin folder `todos/`           | Plugin `todos`                 |
+| Service file `services/todos.ts` | Public service `todos`         |
+| Action file `actions/add.ts`     | Action `todos.add`             |
+
+Neither contribution needs an explicit registration `id`. Discovery generates the imports, registration and types. The action declares its dependency with `requires`; `todos.todos` is the plugin-scoped container key (plugin `todos`, service `todos`). The shorter `app.services.todos` is the typed application API for the same instance.
+
+No `plugin.config.ts` or manual contribution list is needed for this example. Add explicit IDs only when a custom identity is required or must stay stable after moving a file. See [discovery](/docs/concepts/discovery) for flat filenames and [overrides](/docs/concepts/overrides) for intentional replacement.
+
+## What happens automatically
+
+The configured host discovers the files. Core creates the service, registers the action and releases their owned resources when the application provider unmounts. You do not create an ActionList, mount a runtime or write a stop function for each feature.
+
+Services remain available to all actions that depend on them. Declare dependencies with `requires`; Foundation reports missing or cyclic dependencies during startup.
+
+Next, read [Services](/docs/concepts/services) and [Actions](/docs/concepts/actions). Manual runtime ownership is covered separately in [Advanced — manual composition](/docs/concepts/manual-composition).

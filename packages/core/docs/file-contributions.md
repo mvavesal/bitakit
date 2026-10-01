@@ -159,3 +159,16 @@ object collections and arrays. `interceptors/actions/save.ts` and
 Use defineActionInterceptor or defineServiceInterceptor to set that discriminator automatically.
 The legacy defineInterceptor remains an Action definition. Service observers can select one method
 or all methods; see the Core README for lifecycle and observation boundaries.
+
+## Inline service names
+
+`defineService({ exposeAs: 'clock', create: ... })` and
+`provideService(clockKey, { exposeAs: 'clock', create: ... })` expose the same container
+instance through `app.services.clock`. Omit `exposeAs` in ordinary discovered files:
+Core uses the explicit service ID or relative file path. An explicit name changes only
+the app facade, not the internal module-scoped key used by `requires` and factory contexts.
+
+Generated hosts carry this name on each service definition instead of emitting a separate
+`publicServices` map. Runtime name resolution and collision checks are shared with manual
+composition. Existing public mappings and `discoverPublicServices` remain compatible.
+Generated and manual plugin types infer inline names, including dotted namespaces.

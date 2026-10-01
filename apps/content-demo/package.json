@@ -13,7 +13,7 @@
     "@bitakit/app-preferences": "0.1.0",
     "@bitakit/better-auth": "^0.1.0",
     "@bitakit/better-auth-ui": "^0.1.0",
-    "@bitakit/core": "0.1.0",
+    "@bitakit/core": "0.1.1",
     "@bitakit/next": "0.1.0",
     "@bitakit/organizations": "0.1.0",
     "@bitakit/shell": "0.1.0",

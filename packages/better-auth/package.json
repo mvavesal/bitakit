@@ -30,7 +30,7 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "0.1.0",
+    "@bitakit/core": "0.1.1",
     "@better-auth/api-key": "1.7.5"
   },
   "peerDependencies": {

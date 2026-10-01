@@ -11,9 +11,17 @@ export interface PublicServiceMap {}
 /** Optional packages contribute their own typed facades without Core depending on them. */
 export interface AppExtensionMap {}
 
-type Published<P> = P extends { publicServices: infer Keys extends PublicServiceKeys }
+type PublishedKeys<P> = P extends { publicServices: infer Keys extends PublicServiceKeys }
   ? { readonly [K in keyof Keys]: Keys[K] extends ServiceKey<infer T> ? T : never }
   : {};
+type PublishedDefinition<D> = D extends {
+  exposeAs: infer Name extends string;
+  create: (...args: any[]) => infer T;
+} ? { readonly [K in Name]: T } : {};
+type PublishedDefinitions<P> = P extends { services: readonly (infer D)[] }
+  ? Intersection<PublishedDefinition<D>>
+  : {};
+type Published<P> = P extends unknown ? PublishedKeys<P> & PublishedDefinitions<P> : never;
 type Intersection<U> = (U extends unknown ? (value: U) => void : never) extends (
   value: infer I,
 ) => void

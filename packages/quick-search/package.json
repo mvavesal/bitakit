@@ -32,7 +32,7 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "0.1.0",
+    "@bitakit/core": "0.1.1",
     "@bitakit/ui": "0.1.0",
     "cmdk": "^1.1.1",
     "reicon-react": "1.2.5"

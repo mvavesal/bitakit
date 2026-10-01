@@ -1,6 +1,7 @@
 'use client';
 import {
   getService,
+  definePlugin,
   provideService,
   scopeModule,
   type Plugin,
@@ -74,18 +75,17 @@ export type AppPreferencesPluginOptions = {
  * Foundation integration: typed services, declarative installers for `settings`,
  * `settings.sections` and `settings.renderers`, and the pre-mount rendering bridge.
  */
-export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}): Plugin & {
-  publicServices: { preferences: typeof settingsService };
-} {
+export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) {
   const preferences =
     options.settings ??
     createAppPreferences({ storage: createLocalStorage({ prefix: 'foundation.settings.' }) });
   const messages = Object.freeze({ ...defaultSettingsMessages, ...options.messages });
-  return {
+  return definePlugin({
     id: 'app-preferences',
     setup: ({ app, services }) => bindSettingsNavigation(app, getService(services, settingsService), services.i18n),
     appExtensions: { settings: (runtime) => createSettingsAccess(runtime, () => preferences) },
-    publicServices: { preferences: settingsService },
+    // A host-owned service has no definition here to carry its public name.
+    ...(options.provideSettings === false ? { publicServices: { preferences: settingsService } } : {}),
     metadata: {
       name: 'App Preferences',
       description: 'Application preferences and their rendering.',
@@ -93,7 +93,7 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}):
     services: [
       ...(options.provideSettings === false
         ? []
-        : [provideService(settingsService, { create: () => preferences })]),
+        : [provideService(settingsService, { exposeAs: 'preferences', create: () => preferences })]),
       provideService(settingsRendererService, {
         create: () => new SettingsRendererService(options.defaults ?? builtInRenderers),
       }),
@@ -128,5 +128,5 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}):
         );
       },
     },
-  };
+  } satisfies Plugin);
 }

@@ -27,6 +27,7 @@ import type {
 import { PluginScope, assignScopeModule } from './scope.js';
 import { createServices } from './services.js';
 import { createFoundationApp } from './app/access.js';
+import { serviceAliases } from './app/service-aliases.js';
 import type { FoundationApp } from './app/types.js';
 import { fallbackTitle } from './conventions.js';
 import {
@@ -111,7 +112,7 @@ export class FoundationRuntime implements ContributionHost {
     this.modules = [
       { ...config, id: config.appId ?? '@foundation/app' },
       ...(config.plugins ?? []),
-    ];
+    ].map((module) => ({ ...module, publicServices: serviceAliases(module) }));
     this.events = new EventService(config.onEventError);
     this.app = createFoundationApp(this);
     this.configuration = new ConfigService(

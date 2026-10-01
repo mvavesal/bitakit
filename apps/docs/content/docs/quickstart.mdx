@@ -7,9 +7,9 @@ Build a small Next.js application with BitaKit already connected.
 You need **Node.js 24**, **npm 10 or newer**, and an internet connection.
 
 <Callout title="Release preview">
-The npm packages are not published yet. The commands below show the intended public
-installation flow and will become usable after release. You do not need to clone or
-build BitaKit to use the published packages.
+  The generator and application package set are not published yet. Core 0.1.0 is a separate
+  published baseline. The commands below show the intended public installation flow and will become
+  usable after release. You do not need to clone or build BitaKit to use the published packages.
 </Callout>
 
 ## 1. Create your app
@@ -47,11 +47,11 @@ The generator has already connected Foundation to your application's router.
 Edit your app's native routes and components. Keep product behavior in your application;
 use BitaKit packages for shared capabilities.
 
-| You own | BitaKit connects |
-| --- | --- |
-| Pages and business logic | Runtime and plugin lifecycle |
-| Framework routes | Links and navigation through the selected integration |
-| Product configuration | Installed capabilities and their dependencies |
+| You own                  | BitaKit connects                                      |
+| ------------------------ | ----------------------------------------------------- |
+| Pages and business logic | Runtime and plugin lifecycle                          |
+| Framework routes         | Links and navigation through the selected integration |
+| Product configuration    | Installed capabilities and their dependencies         |
 
 You can use your framework's router directly in application code. BitaKit does not
 replace it, and plugins do not need their own router setup on every page.
@@ -70,8 +70,16 @@ are separate integrations; the generator does not create a backend.
 ## Where next?
 
 <Cards>
-  <Card title="Explore packages" href="/docs/packages" description="Choose the capabilities your application needs." />
-  <Card title="Understand BitaKit" href="/docs" description="See how your app, the runtime and plugins fit together." />
+  <Card
+    title="Explore packages"
+    href="/docs/packages"
+    description="Choose the capabilities your application needs."
+  />
+  <Card
+    title="Understand BitaKit"
+    href="/docs"
+    description="See how your app, the runtime and plugins fit together."
+  />
 </Cards>
 
 ### Framework support

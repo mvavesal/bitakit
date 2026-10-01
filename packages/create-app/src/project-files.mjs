@@ -15,7 +15,7 @@ export async function configureProject(
 ) {
   const manifest = JSON.parse(await readFile(path.join(plan.target, 'package.json'), 'utf8'));
   for (const name of ['core', 'ui', ...packages])
-    manifest.dependencies[`@bitakit/${name}`] = '0.1.0';
+    manifest.dependencies[`@bitakit/${name}`] = name === 'core' ? '0.1.1' : '0.1.0';
   Object.assign(manifest.dependencies, { 'tw-animate-css': '^1.4.0' }, dependencies);
   Object.assign((manifest.devDependencies ??= {}), devDependencies);
   Object.assign(manifest.scripts, scripts);

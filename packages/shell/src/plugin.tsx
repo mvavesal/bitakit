@@ -155,9 +155,8 @@ export function shellPlugin(options: ShellOptions = {}) {
       name: 'App Shell',
       description: 'Navigation und Layout der Anwendung.',
     },
-    publicServices: { notifications: notificationService },
     services: [
-      ...(notifications ? [provideService(notificationService, translatedNotifications(notificationDefinition))] : []),
+      ...(notifications ? [provideService(notificationService, { ...translatedNotifications(notificationDefinition), exposeAs: 'notifications' })] : []),
       provideService(shellService, {
         requires: options.settings ? [] : [settingsService],
         create: ({ services }) => ({

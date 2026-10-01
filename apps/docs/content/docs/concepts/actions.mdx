@@ -1,0 +1,81 @@
+---
+title: Actions
+description: Define an operation once and bind its current state.
+---
+
+**Owner:** definitions and execution in `@bitakit/core`; React bindings in `@bitakit/ui`; router integration in the host adapter.
+
+An action combines an identity, presentation and execution behavior. UI controls read its current snapshot rather than copying its title, visibility or enabled state.
+
+## Define an action
+
+In a discovery-enabled host, this file defines `todos.add`. The `todos` service must expose `add(title: string)`, as in the [plugin example](/docs/concepts/plugins).
+
+```ts
+// src/actions/todos/add.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction<string, { id: number; title: string }>({
+  title: 'Add task',
+  requires: ['todos.todos'],
+  execute: ({ app, input }) => app.services.todos.add(input),
+});
+```
+
+Direct manual composition requires `id: 'todos.add'`. Discovery can infer IDs from paths; explicit IDs remain supported. Contribution files generate the typed ActionMap used by bindings.
+
+## Bind existing controls
+
+Inside a client component below the root Foundation provider:
+
+```tsx
+import { ActionButton } from '@bitakit/ui/actions';
+import { Button } from '@/components/ui/button';
+
+export function AddTask({ title }: { title: string }) {
+  return <ActionButton action="todos.add" input={title} as={Button} />;
+}
+```
+
+`Button` is the host's existing standard control. `useAction` and `ActionBinding` support custom compositions through the same execution engine. Typed references such as `app.actions.todos.add` are also accepted and must come from the same provider.
+
+## Availability and input
+
+`resolve(input, context)` derives input-specific presentation and guards. Bind current form input instead of copying each form's state into a global action flag. Two bindings of one action can have different inputs and availability. Reuse the feature's existing validation schema; UI availability does not replace server validation or authorization.
+
+For shared changes, [events and setup](/docs/concepts/events) can update the registration. `watch: ['serviceId']` instead observes an observable service. These mechanisms have different purposes.
+
+## Action types
+
+| Kind          | Use it for                          | Responsibility                      |
+| ------------- | ----------------------------------- | ----------------------------------- |
+| Action        | Execute an operation                | Core execution and guards           |
+| URL action    | Navigate to an existing destination | Native links and framework routing  |
+| Form action   | Collect values and submit           | Core definition plus UI form host   |
+| Dialog action | Display a custom dialog body        | Core definition plus UI dialog host |
+
+Render navigation through ActionLink/native links, preserving new-tab behavior. A URL action does not create its destination route. Do not execute an action handler again when following its link.
+
+Groups place an action in named presentation areas. The host must render that group; declaring a group does not automatically add a menu. Register a contribution once with all placements. Internal form-submit actions stay out of public enumeration.
+
+Titles and descriptions use the shared translation resolution. Optional success/failure feedback is explicit; absent feedback is silent. Keep the operation in the action and reusable domain behavior in its service.
+
+## Execution status and custom state
+
+Snapshots expose `ActionStatus.Idle`, `Pending`, `Succeeded` and `Failed`, plus the last error. The executor owns these fields and prevents concurrent execution of the same registration. Successful calls return a completed outcome; skipped calls preserve the previous status/error, and failed executions reject. A successful retry clears the error.
+
+For registration-owned state, the curried definition infers state and result while accepting explicit input:
+
+```ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction<{ title: string }>()({
+  initialState: { savedCount: 0 },
+  execute(input) {
+    this.state.update((current) => ({ savedCount: current.savedCount + 1 }));
+    return { title: input.title };
+  },
+});
+```
+
+This example counts executions; it does not save data. Use method syntax so `this` is bound. State starts as a structured clone for each registration, is shared by its bindings and is not persisted. Updates after removal are ignored. Keep durable domain data in a service. See [type safety](/docs/concepts/type-safety) and [overrides](/docs/concepts/overrides).

@@ -10,3 +10,20 @@ html > body[data-scroll-locked] {
   margin-right: 0px !important;
   --removed-body-scroll-bar-size: 0px !important;
 }
+
+:root {
+  --docs-code-background: oklch(0.98 0.003 75);
+  --docs-code-border: oklch(0.92 0.004 75);
+}
+
+.dark {
+  --docs-code-background: color-mix(in srgb, var(--color-fd-primary) 10%, var(--color-fd-card));
+  --docs-code-border: color-mix(in srgb, var(--color-fd-primary) 15%, var(--color-fd-card));
+}
+
+figure.shiki {
+  --color-fd-border: var(--docs-code-border);
+  background-color: var(--docs-code-background);
+  border-color: var(--docs-code-border);
+  box-shadow: none;
+}
