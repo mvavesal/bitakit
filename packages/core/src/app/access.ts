@@ -73,7 +73,7 @@ export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
     for (const [name, create] of Object.entries(plugin.appExtensions ?? {})) {
       if (
         Object.hasOwn(extensions, name) ||
-        ['actions', 'config', 'services', 'ready', 'optional'].includes(name)
+        ['actions', 'events', 'config', 'services', 'ready', 'optional'].includes(name)
       )
         throw new Error(`Duplicate app extension "${name}" in plugin "${plugin.id}".`);
       extensions[name] = create(runtime);
@@ -81,6 +81,7 @@ export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
   }
   return Object.freeze({
     ...extensions,
+    events: runtime.events,
     actions: createActionAccess(runtime.actions),
     get config() {
       return Object.freeze(
@@ -97,5 +98,5 @@ export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
       return runtime.isReady();
     },
     optional: Object.freeze({ services: project(tree, true) }),
-  }) as FoundationApp;
+  }) as unknown as FoundationApp;
 }

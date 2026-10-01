@@ -82,6 +82,69 @@ With a configured framework adapter, contribution files can instead live under
 generates registration and types. Installing Core alone does not scan folders.
 See [file contributions](docs/file-contributions.md) for the exact conventions.
 
+## React to events
+
+The following API is available in the workspace and is not yet part of the
+published Core 0.1.0 release. Each runtime owns one event service. Services emit
+notifications after updating their data; actions declare `events` and `onEvent`.
+
+With file discovery configured, IDs can be omitted:
+
+```ts
+// src/services/todos.ts
+import { defineService } from '@bitakit/core';
+
+export default defineService({
+  create({ events }) {
+    let items: { id: number; title: string }[] = [];
+    let nextId = 1;
+    return {
+      list: () => [...items],
+      add(title: string) {
+        const todo = { id: nextId++, title };
+        items.push(todo);
+        events.emit('todos.changed', { kind: 'added', id: todo.id });
+      },
+      remove(id: number) {
+        items = items.filter(todo => todo.id !== id);
+        events.emit('todos.changed', { kind: 'removed', id });
+      },
+    };
+  },
+});
+```
+
+```ts
+// src/actions/todos/delete.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction<number>({
+  requires: ['todos'],
+  events: ['todos.changed'],
+  setup({ services, action }) {
+    action.enabled = services.todos.list().length > 0;
+  },
+  onEvent(event, { services, action }) {
+    action.enabled = services.todos.list().length > 0;
+  },
+  execute: ({ services, input }) => services.todos.remove(input),
+});
+```
+
+Here discovery supplies `todos` and `todos.delete` from the paths (with no explicit
+app namespace). Plugin contributions also receive their plugin namespace. Provide
+an explicit `id` when you need a custom identity. Direct imports without discovery,
+including the Node tutorial above, still need explicit IDs.
+
+`events: ['todos.loaded', 'todos.changed']` calls `onEvent` for
+**each** matching event. Handlers receive `{ type, data }` and can be synchronous or
+asynchronous. Core owns subscriptions created in action `setup` and service
+`create`, including cleanup after failed setup. No manual unsubscribe is needed.
+For dynamic subscriptions, `setup` still offers `events.watch`. React components use `useWatchEvent` from `@bitakit/ui`.
+
+See [events and action setup](docs/events.md) for payload typing, errors, async
+cancellation, and the distinction from observable-service `watch`.
+
 ## What belongs outside Core?
 
 - **React rendering:** the UI bindings and your visual components.

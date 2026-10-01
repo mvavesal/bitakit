@@ -37,6 +37,21 @@ export function createActionList(
   const store = createStore<State>(() => ({ actions: Object.create(null) }));
   const lifecycle = new ExecutionLifecycle();
   const owners = new Map<string, symbol>();
+  const disposal = new Map<symbol, Set<() => void>>();
+  function release(owner: symbol) {
+    const cleanups = disposal.get(owner);
+    disposal.delete(owner);
+    const errors: unknown[] = [];
+    for (const cleanup of [...(cleanups ?? [])].reverse()) {
+      try {
+        cleanup();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    cleanups?.clear();
+    if (errors.length) throw new AggregateError(errors, 'Action cleanup failed.');
+  }
   const placements = new Map<string, { count: number; original: boolean }>();
   let disposed = false;
   const bindings = new InstanceBindings(environment);
@@ -187,7 +202,17 @@ export function createActionList(
     definitions = { ...definitions, [id]: action };
     publish(id);
     return {
-      update: (patch) => owners.get(id) === owner && update(id, patch),
+      get: () => (owners.get(id) === owner && !disposed ? get(id) : undefined),
+      onDispose(cleanup) {
+        if (owners.get(id) !== owner || disposed) {
+          cleanup();
+          return;
+        }
+        let cleanups = disposal.get(owner);
+        if (!cleanups) disposal.set(owner, (cleanups = new Set()));
+        cleanups.add(cleanup);
+      },
+      update: (patch) => !disposed && owners.get(id) === owner && update(id, patch),
       unregister() {
         if (owners.get(id) !== owner) return;
         owners.delete(id);
@@ -196,7 +221,11 @@ export function createActionList(
         const next = { ...definitions };
         delete next[id];
         definitions = next;
-        publish(id);
+        try {
+          release(owner);
+        } finally {
+          publish(id);
+        }
       },
     };
   }
@@ -216,7 +245,7 @@ export function createActionList(
     };
     const registration = register(definition, placement);
     return {
-      update: registration.update,
+      ...registration,
       unregister: bindings.attach(id, action, registration),
     };
   }
@@ -226,12 +255,25 @@ export function createActionList(
   function dispose() {
     if (disposed) return;
     disposed = true;
-    bindings.dispose();
+    const errors: unknown[] = [];
+    try {
+      bindings.dispose();
+    } catch (error) {
+      errors.push(error);
+    }
+    for (const owner of [...disposal.keys()]) {
+      try {
+        release(owner);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
     lifecycle.clear();
     owners.clear();
     placements.clear();
     definitions = Object.create(null);
     store.setState({ actions: Object.create(null) });
+    if (errors.length) throw new AggregateError(errors, 'Action list cleanup failed.');
   }
 
   for (const action of initialActions) register(action);

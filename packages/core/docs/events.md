@@ -1,0 +1,157 @@
+# Events and action setup
+
+Workspace API, pending publication. Core owns one mitt-backed event bus per
+`FoundationRuntime`, available as `runtime.events` and `app.events`. There is no
+global bus, React dependency, replay buffer, persistence, or cross-process delivery.
+
+## Sending and receiving
+
+Service `create({ events })` and action `setup({ events, services, action, app, config })`
+receive scoped views of the same bus. Emit after the source data has changed:
+
+```ts
+events.emit('todos.changed', { kind: 'added', id: 42 });
+
+events.watch(['todos.loaded', 'todos.changed'], (event, { signal }) => {
+  console.log(event.type, event.data, signal.aborted);
+});
+```
+
+Each event invokes the handler once, even if its name appears twice in the array.
+The array means OR, not waiting for all events or batching them. Names are literal;
+`*` is not a wildcard. Callbacks may emit further events synchronously, so applications
+must avoid event cycles.
+
+`watch` returns an idempotent function for optional early unsubscription. In action
+setup and service creation, ownership is automatic. Direct `app.events.watch` calls
+are caller-owned until runtime unmount; use the returned cleanup outside these scopes.
+
+## Declarative Action events
+
+For a fixed set of custom events, declare one shared handler:
+
+```ts
+export default defineAction({
+  events: ['todos.changed', 'selection.changed'],
+  onEvent(event, { services, action, signal }) {
+    switch (event.type) {
+      case 'todos.changed':
+        action.enabled = services.todos.list().length > 0;
+        break;
+      case 'selection.changed':
+        // Use event.data or call a feature-specific function.
+        break;
+    }
+  },
+});
+```
+
+The handler receives the same context as setup, plus the subscription's AbortSignal.
+It may be async. Subscriptions are installed before `setup` and share its owned
+scope, including rollback when setup fails. Declaring events does not synthesize
+an initial event, execute the Action, or automatically refresh all Actions. Use
+setup for an initial check; use onEvent for the reaction you actually need.
+Known payloads are inferred from the event names when defineAction's generics are
+inferred. Supplying explicit type arguments uses the default event-name type unless
+that parameter is also specified; events.watch can infer its names independently.
+
+For local form input, prefer the existing per-binding input rather than writing a
+shared enabled flag from text-change events:
+
+```ts
+export default defineAction({
+  resolve: (text: string) => ({ enabled: typeof text === 'string' && text.length > 0 }),
+  execute: ({ input, services }) => services.todos.add(input),
+});
+
+// Inside the React form; text is the current form value.
+<ActionButton action="todos.add" input={text} />
+```
+
+Each binding evaluates its own input. Two forms using the same Action can therefore
+have different enabled states. Mutating nested input fields in place is not observed;
+pass updated input values through the existing form/React state. A custom event
+that writes action.enabled instead changes the shared registration for all bindings.
+
+## Action lifecycle
+
+`setup` runs synchronously once per registration, after the services exist. It can
+return a cleanup for other resources. Register async event handlers inside setup;
+do not make setup itself async. Public `app.services` becomes available only after
+runtime mount; setup uses its directly supplied `services` context.
+
+`action.enabled`, `visible`, `checked`, and other presentation properties write to
+the existing ActionList store. `action.get()` reads the current snapshot;
+`action.update(patch)` supports combined updates. There is no mirrored action store.
+Writes after removal are ignored, including writes from a previous registration
+after another action takes its ID.
+
+Run the initial check explicitly after subscribing. Events are notifications, not
+stored state. The service remains the source of truth. Existing `resolve(input, context)`
+can derive input-specific guards at execution time; changing `enabled` is only a
+presentation/global execution guard, not server authorization or input validation.
+
+Action removal, list disposal, runtime unmount, and failed setup release subscriptions.
+Service subscriptions follow service disposal. Runtime remount creates fresh owned
+subscriptions. A disposed scoped sender cannot emit into a later mount.
+
+Definition-level `watch: ['serviceId']` keeps its existing meaning: subscribe to an
+observable service and refresh presentation. `events.watch(...)` listens to named
+events; it does not reinterpret that older property.
+
+## Async handlers and errors
+
+`emit` dispatches synchronously in registration order and returns `void`. An async
+handler starts immediately, but the emitter does not await its promise. Handlers
+can overlap; there is no serialization or latest-request-wins behavior.
+
+Both synchronous throws and promise rejections go to
+`FoundationConfig.onEventError(error, event)`. The default reports to `console.error`.
+One failing handler does not prevent other handlers from receiving the event.
+Errors are reported even if the handler rejects after unsubscription.
+
+Each subscription supplies an `AbortSignal`, aborted when unsubscribed. Pass it to
+abort-aware operations and check it before external side effects after `await`:
+
+```ts
+events.watch('documents.reload', async (event, { signal }) => {
+  const response = await fetch('/api/documents', { signal });
+  const documents = await response.json();
+  if (!signal.aborted) updateDocuments(documents);
+});
+```
+
+Unsubscription cannot forcibly cancel arbitrary JavaScript or undo side effects.
+Applications decide how to handle expected cancellation in their handler/error reporter.
+
+## Typed payloads
+
+Augment the shared event map for known names. This does not register anything at runtime:
+
+```ts
+declare module '@bitakit/core' {
+  interface EventMap {
+    'todos.changed': { kind: 'added' | 'removed'; id: number };
+    'todos.loaded': undefined;
+  }
+}
+```
+
+Known events require matching payloads. Multi-event handlers receive a discriminated
+`{ type, data }` union. Unknown names remain permitted with an `unknown` payload,
+so independently developed plugins can participate without a global registry.
+
+## React
+
+```ts
+import { useWatchEvent } from '@bitakit/ui';
+
+useWatchEvent(['todos.loaded', 'todos.changed'], (event) => {
+  // React to event.type and event.data.
+});
+```
+
+The hook subscribes once the Foundation runtime is ready, follows current callbacks,
+and unsubscribes when names/runtime change or the component unmounts. Inline name
+arrays do not resubscribe when their contents stay the same. Events emitted before
+the subscription are not replayed; read source state for initial rendering.

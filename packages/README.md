@@ -59,3 +59,8 @@ historical domain examples are not a requirement for applications built with Bit
 
 See the [repository README](../README.md), [roadmap](../docs/TODO.md) and
 [package structure standard](../docs/architecture/package-structure-standard.md).
+
+Core now provides runtime-local events backed by mitt. Action setup and service
+creation receive automatically scoped event subscriptions; React's `useWatchEvent`
+binding belongs to UI. See [the event guide](core/docs/events.md). These additions
+are workspace changes pending publication.

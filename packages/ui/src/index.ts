@@ -16,3 +16,5 @@ export * from './actions/index.js';
 export { usePluginConfig } from './hooks/use-plugin-config.js';
 
 export { useTranslation, type Translate } from './hooks/use-translation.js';
+
+export { useWatchEvent } from './hooks/use-watch-event.js';

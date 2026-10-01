@@ -49,3 +49,7 @@ export type {
 
 export { defineServiceInterceptor, type ServiceInterceptor } from './interceptors/service.js';
 
+
+export type * from './events/types.js';
+export type { ActionSetup, ActionSetupContext, SetupAction } from './events/action-setup.js';
+export { EventService } from './events/service.js';
