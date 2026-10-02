@@ -3,25 +3,29 @@ title: Configuration
 description: Give plugins defaults and apply explicit host overrides.
 ---
 
-**Owner:** `@bitakit/core`. Configuration is an immutable snapshot resolved before services are created. Use it for application defaults and deployment composition. Mutable user preferences belong to App Preferences.
+**Owner:** `@bitakit/core`. Configuration is an immutable snapshot resolved before services are created. Use it for developer defaults and deployment composition. Mutable user preferences belong to App Preferences.
 
 ## Define defaults
 
-In a discovery-enabled local plugin:
+Each file under `configs/` defines the subtree named by its path:
 
 ```ts
-// src/plugins/todos/configs.ts
+// src/plugins/todos/configs/limits.ts  →  app.config.todos.limits
 import { defineConfig } from '@bitakit/core';
 
 export default defineConfig({
-  defaults: {
-    pageSize: 20,
-    actions: { list: { pageSize: 10 } },
-  },
+  defaults: { maxItems: 100, pageSize: 20 },
 });
 ```
 
-The plugin folder supplies the module ID `todos`. A single `configs.ts` defines its root config. `configs/actions/list.ts` can instead define just `actions.list`; do not define the same leaf twice.
+```ts
+// src/plugins/todos/configs/actions/list.ts  →  config.action inside todos.list
+import { defineConfig } from '@bitakit/core';
+
+export default defineConfig({ defaults: { pageSize: 10 } });
+```
+
+The plugin folder supplies the module ID `todos`. A plain object export works too. Do not define the same leaf twice; that is an error, not an override.
 
 ## Read the correct scope
 
@@ -30,33 +34,36 @@ The plugin folder supplies the module ID `todos`. A single `configs.ts` defines 
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  execute({ app, config }) {
+  title: 'List tasks',
+  execute({ services, config }) {
     const pageSize = config.action.get('pageSize', 10);
-    return app.services.todos.list().slice(0, pageSize);
+    return services.todos.tasks.list().slice(0, pageSize);
   },
 });
 ```
 
-`config.plugin.get('pageSize', 20)` reads the module root. `config.action.get('pageSize', 10)` reads `actions.list.pageSize` for this action. There is no implicit fallback between these scopes. Service factories use their supplied `config.plugin` scope.
+`config.plugin.get('limits.pageSize', 20)` reads the plugin's whole tree; `config.action.get('pageSize', 10)` reads `actions.list.pageSize` for this action. There is no implicit fallback between the two scopes. Service factories receive the same `config` object with the plugin scope.
 
-A fallback supplies a value and TypeScript inference, not runtime validation. Dot paths address nested values; segment arrays can address literal keys containing dots.
+A fallback supplies a value and TypeScript inference, not runtime validation. Dot paths address nested values; segment arrays address literal keys containing dots.
 
 ## Override from the host
 
 ```ts
-// foundation.config.ts
-export default {
+// bitakit.config.ts
+import { defineBitaKit } from '@bitakit/core/discovery';
+
+export default defineBitaKit({
   configOverrides: {
-    todos: { actions: { list: { pageSize: 50 } } },
+    todos: { limits: { maxItems: 50 }, actions: { list: { pageSize: 50 } } },
   },
-};
+});
 ```
 
-The same `configOverrides` field exists on manual `FoundationConfig`. Objects merge recursively, arrays replace arrays, `undefined` retains defaults and `null` is explicit. Unknown module IDs are rejected. Overrides for known disabled plugins are removed with their contributions.
+The same `configOverrides` field exists on a manual `FoundationConfig`. Objects merge recursively, arrays replace arrays, `undefined` retains defaults and `null` is explicit. Unknown module IDs are rejected. Overrides for disabled plugins are removed with their contributions.
 
 ## Configure an installed package
 
-Some installed packages read their options from a config file of your app. Shell reads `src/configs/shell.ts`; Quick Search (0.2 and later) reads `src/configs/quick-search.ts`, for example to add plugin results:
+Some installed packages read their options from a config file of your app. Shell reads `src/configs/shell.ts`; Quick Search reads `src/configs/quick-search.ts`, for example to add plugin results:
 
 ```ts
 // src/configs/quick-search.ts
@@ -68,14 +75,14 @@ export default defineConfig({
 });
 ```
 
-Without the file, the package uses its defaults. A package names the file it reads with `foundation.configuration` in its `package.json`, and discovery passes the values to the package's plugin when the app starts. The package README lists its options.
+Without the file, the package uses its defaults. A package names the file it reads with `bitakit.configuration` in its `package.json`, and discovery passes the resolved values to the package's plugin when the app starts. The package README lists its options.
 
 ## Optional schemas
 
-`defineConfig({ schema, defaults })` accepts an existing schema with synchronous `parse(unknown)`. Core calls it on merged values before service creation; invalid configuration prevents startup. Use the application's chosen schema library. A root schema owns the complete config; it is not combined with additional config files. Subtrees may have their own schemas.
+`defineConfig({ schema, defaults })` accepts a schema with synchronous `parse(unknown)` (zod, valibot, Standard Schema). Core calls it on the merged values before services start; invalid configuration is a startup error attributed to the plugin. A root schema (`configs/index.ts`) owns the complete config and cannot be combined with other config files; subtrees may carry their own schemas.
 
 ## Reading the snapshot
 
-With generated types, `app.config.todos.pageSize` reads the same resolved module snapshot. Low-level callers can use `runtime.configuration.plugin('todos')`. Plain objects and arrays are frozen. There is no configuration write API or automatic service recreation when an object is mutated; replacing the runtime composition supplies a new snapshot.
+With generated types, `app.config.todos.limits.maxItems` reads the resolved module snapshot, and `usePluginConfig('todos', 'limits.maxItems', 100)` does the same in React. Low-level callers use `runtime.configuration.plugin('todos')`. Plain objects and arrays are frozen. There is no configuration write API; replacing the runtime composition supplies a new snapshot.
 
-Configuration shipped in client contributions is client-visible. Keep secrets in explicit server-only composition. Core discovery does not provide a generic server contribution scanner.
+Configuration shipped in client contributions is client-visible. Keep secrets in explicit server-only composition.

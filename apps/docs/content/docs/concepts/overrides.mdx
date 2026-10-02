@@ -3,30 +3,75 @@ title: Overrides and customization
 description: Make a plugin fit your app with a few small changes.
 ---
 
-**Owner:** configuration and contribution replacement in `@bitakit/core`. Framework provider composition is supplied by the selected adapter.
+**Owner:** configuration and composition in `@bitakit/core`; discovery options in `bitakit.config.ts`.
 
 Choose the smallest existing mechanism for the change:
 
-| Goal                                           | Mechanism                          |
-| ---------------------------------------------- | ---------------------------------- |
-| Change a plugin default                        | `configOverrides`                  |
-| Replace one plugin action's behavior           | Host action with `replaces`        |
-| Limit action visibility or availability        | `actionOverrides`                  |
-| Disable automatic package contribution         | Discovery `packages` configuration |
-| Replace an entire selected contribution domain | Explicit composition array         |
+| Goal                                           | Mechanism                           |
+| ---------------------------------------------- | ----------------------------------- |
+| Change a plugin default                        | `configOverrides`                   |
+| Limit an action's visibility or availability   | `actions.overrides`                 |
+| Turn a local plugin on or off                  | `plugins.overrides`                 |
+| Disable an installed package's plugin          | `packages`                          |
+| Replace a plugin from the host                 | `additionalPlugins` on the provider |
+| Replace an entire selected contribution domain | Explicit composition array          |
+
+All discovery options live in `bitakit.config.ts` and are typed by `defineBitaKit`.
 
 ## Override configuration
 
 ```ts
-// foundation.config.ts
-export default {
+// bitakit.config.ts
+import { defineBitaKit } from '@bitakit/core/discovery';
+
+export default defineBitaKit({
   configOverrides: {
     todos: { actions: { list: { pageSize: 50 } } },
   },
-};
+});
 ```
 
 This assumes the `todos` plugin from [configuration](/docs/concepts/configuration). Defaults and overrides resolve before services start. Objects merge; arrays replace; `undefined` preserves defaults. A duplicate config leaf in two source files is an error, not an override.
+
+## Cap availability
+
+```ts
+// bitakit.config.ts
+export default defineBitaKit({
+  actions: {
+    overrides: { 'todos.clear': { enabled: false } },
+  },
+});
+```
+
+Discovery maps `actions.overrides` to the runtime's `actionOverrides`. A `false` cap wins over any function-valued result; `true` does not override the action's own guards. Visibility and availability remain UI and execution concerns, not server authorization.
+
+An app does not replace a plugin's action in place. Cap it, add the app's own action, or change the plugin; every caller keeps the original ID.
+
+## Turn local plugins on or off
+
+```ts
+// bitakit.config.ts
+export default defineBitaKit({
+  plugins: {
+    autoEnable: true,
+    overrides: { demo: { enabled: false } },
+  },
+});
+```
+
+Every folder under the plugin directory is a plugin and is enabled by default. `autoEnable: false` turns off all of them unless an override enables one; `overrides` sets single plugins by ID. A disabled plugin contributes nothing: no services, actions, pages, slots or settings. To keep a plugin but cap one of its actions, use `actions.overrides` instead.
+
+## Opt out of automatic package loading
+
+```ts
+// bitakit.config.ts
+export default defineBitaKit({
+  packages: { '@bitakit/quick-search': false },
+});
+```
+
+`packages: false` disables all package discovery. Local plugins still use the configured plugin directory. Disabling package discovery removes its generated imports, styles and public types; it does not uninstall the dependency.
 
 ## Change a service's public name
 
@@ -34,76 +79,23 @@ This assumes the `todos` plugin from [configuration](/docs/concepts/configuratio
 // src/plugins/todos/services/clock.ts
 import { defineService } from '@bitakit/core';
 
-export default defineService({
-  exposeAs: 'tools.clock',
-  create: () => ({ now: () => new Date() }),
-});
+export default defineService(() => ({ now: () => new Date() }), { exposeAs: 'tools.clock' });
 ```
 
-Call it through `app.services.tools.clock`. Its ID stays `todos.clock`. In Core 0.1, `requires` and the `services` context use that ID; from 0.2 both `'tools.clock'` and `'todos.clock'` work, because a name means the same service in every plugin. Inside contributions use `services['tools.clock']`; only `app.services` nests dotted names. Omit `exposeAs` to use the file-derived public name `clock`. This option requires Core 0.1.1 or newer.
+The service keeps its ID `todos.clock` and gains the alias `services.tools.clock`; both names mean the same instance in every plugin. Omit `exposeAs` unless a flat or shared name is deliberate; two services with the same name fail at startup. `provides: contract` adds a contract alias such as `auth` instead.
 
-## Replace an action from the host
+## Replace a plugin from the host
 
-```ts
-// src/actions/list-tasks.ts
-import { defineAction } from '@bitakit/core';
+`BitaKitProvider` accepts `additionalPlugins`: an entry with an existing ID replaces that plugin in place, a new ID appends. Use it to pass a configured instance of a package plugin instead of its discovered default:
 
-export default defineAction({
-  replaces: 'todos.list',
-  // This action lives in the app, not in the todos plugin, so it lists the plugin's service.
-  requires: ['todos.todos'],
-  execute: ({ app }) => app.services.todos.list().slice(0, 5),
-});
+```tsx
+<BitaKitProvider additionalPlugins={[appPreferencesPlugin({ storage })]}>
+  {children}
+</BitaKitProvider>
 ```
 
-This replaces the `todos.list` action from the [configuration example](/docs/concepts/configuration) with a version that returns the first five tasks. Existing callers still use `todos.list`. You change the behavior in one place without updating every button or caller.
-
-Omitted groups, title, description, icon and order are inherited. Execution logic and guards are not inherited: the replacement must supply the behavior and checks it needs.
-
-Only host-to-plugin action replacement is supported. Missing targets, accidental duplicate IDs, multiple replacements and plugin-to-plugin replacements fail. Constructor-only IDs are not supported replacement targets. Do not create a second registration with the same ID.
-
-## Cap availability
-
-```ts
-// foundation.config.ts
-export default {
-  actions: {
-    overrides: { 'todos.add': { enabled: false } },
-  },
-};
-```
-
-Discovery maps `actions.overrides` to the runtime configuration. For manual `FoundationConfig`, use `actionOverrides` directly.
-
-A false cap prevents re-enabling through a reactive subscription. Setting a cap to true does not override the action's own guards. Visibility and availability remain UI/execution concerns, not server authorization.
-
-## Turn local plugins on or off
-
-```ts
-// foundation.config.ts
-export default {
-  plugins: {
-    autoEnable: true,
-    overrides: { demo: { enabled: false } },
-  },
-};
-```
-
-Every folder under the plugin directory is a plugin and is enabled by default. `autoEnable: false` turns off all of them unless an override enables one; `overrides` sets single plugins by ID. A disabled plugin contributes nothing: no services, actions, pages, views or settings. To keep a plugin but cap one of its actions, use `actions.overrides` instead.
-
-## Opt out of automatic package loading
-
-```ts
-// foundation.config.ts
-export default {
-  packages: { '@bitakit/quick-search': false },
-};
-```
-
-`packages: false` disables all package discovery. Local source contributions still use their configured discovery path. Disabling package discovery removes its generated imports and public types; it does not uninstall the dependency.
+Keep the array stable across renders. The lower-level `plugins` prop still means replacement, not append.
 
 ## Understand replacement versus addition
 
-For configured contribution domains, omission inherits the generated selection, an explicit array replaces that selection and `[]` selects none. An explicit actions list replaces declarative actions, including plugin actions; plugin services and setup still run. Independently registered low-level contributions keep their original ownership.
-
-The Next and TanStack adapters also offer `additionalPlugins`: matching plugin IDs replace discovered definitions in place and new IDs append. Their `plugins` prop still means replacement, not append. Keep composition stable across renders. These are host composition options, not a second plugin lifecycle.
+For the provider's `actions`, `plugins`, `interceptors` and `providers` props, omission inherits the generated selection, an explicit array replaces that selection and `[]` selects none. An explicit `actions` list replaces declarative actions, including plugin actions; those plugins' services and setup still run. These are host composition options, not a second plugin lifecycle.

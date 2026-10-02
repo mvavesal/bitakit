@@ -7,7 +7,7 @@ description: Your framework. Your features. A simpler way to connect them.
 
 Build your next feature with less wiring. BitaKit connects your services, actions and plugins while you keep your framework and your app's behavior.
 
-Start small: create a service, add an action, and use it. TypeScript carries the types from your definition to the caller. Add settings, an app shell or integrations when you need them.
+Start small: create a service, add an action, and bind it. TypeScript carries the types from your definition to the caller. Add settings, an app shell or integrations when you need them.
 
 ## Start here
 
@@ -17,15 +17,16 @@ New to the terms? [Core concepts](/docs/concepts) explains each piece. Curious h
 
 ## How the pieces fit
 
-- **Core** manages plugin lifecycle, Actions and shared service contracts.
-- **UI** connects the runtime to React. Framework integrations connect navigation.
-- **Plugins** own their functionality and translations. Install only the capabilities you need.
+- **Core** manages plugin lifecycle, services, actions, events and shared contracts.
+- **UI** connects the runtime to React. Framework integrations connect navigation and run discovery at build time.
+- **Plugins** own their functionality, UI and translations. Install only the capabilities you need.
 - **Your app** supplies product behavior, routes and configuration.
 
 ## Current availability
 
-The generator and the BitaKit packages are available on npm (Core 0.1.1 or newer, the other packages 0.1.0). These guides already cover the next release: anything marked **0.2** is not on npm yet.
-Next.js generation currently uses Webpack. TanStack Start is experimental.
+The generator and the BitaKit packages are available on npm (0.1). These guides describe
+the next release, 0.2, which changes the plugin API; it is not on npm yet. TanStack Start is
+experimental.
 
 ## Grow the documentation
 

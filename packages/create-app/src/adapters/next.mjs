@@ -14,14 +14,14 @@ import {
 const require = createRequire(import.meta.url);
 
 const layout = `import type { ReactNode } from 'react';
-import { FoundationProvider } from '@bitakit/next';
+import { BitaKitProvider } from '@/bitakit.gen';
 import './globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <FoundationProvider>{children}</FoundationProvider>
+        <BitaKitProvider>{children}</BitaKitProvider>
       </body>
     </html>
   );
@@ -69,24 +69,22 @@ export const next = {
     await configureProject(plan, {
       packages: ['next', ...plan.features.map((feature) => optionalPackages[feature])],
       scripts: {
-        typecheck: 'foundation-generate && next typegen && tsc --noEmit',
-        // The Next adapter uses Webpack while a Turbopack alias issue is open.
-        dev: 'next dev --webpack',
-        build: 'next build --webpack',
+        typecheck: 'bitakit generate && next typegen && tsc --noEmit',
+        dev: 'next dev',
+        build: 'next build',
       },
     });
-    // create-next-app's empty page moves into the route group that renders the app frame.
     await rm(path.join(plan.target, 'src/app/page.tsx'), { force: true });
     const subtitle = plan.sample
       ? 'Open Todos in the navigation, or add a feature with npx bitakit add plugin notes.'
       : 'Edit this page, or add a feature with npx bitakit add plugin notes.';
     const files = {
-      'next.config.ts': `import { withFoundation } from '@bitakit/next/config';
+      'next.config.ts': `import { withBitaKit } from '@bitakit/next/config';
 
-export default withFoundation({});
+export default withBitaKit({});
 `,
       'src/app/layout.tsx': layout,
-      'src/app/globals.css': projectStyles('../..'),
+      'src/app/globals.css': projectStyles('..'),
     };
     if (shell)
       Object.assign(files, {

@@ -1,24 +1,51 @@
-/** Extend this interface with application event names and payloads. */
+/** Event names and payloads. Generated from every plugin's `events.ts`; may also be augmented by hand. */
 export interface EventMap {}
+/** Events whose `emit` waits for the handlers and returns whether none cancelled. */
+export interface CancelableEventMap {}
+
 export type EventName = Extract<keyof EventMap, string> | (string & {});
 export type EventData<Name extends string> = Name extends keyof EventMap ? EventMap[Name] : unknown;
+/** `todos.*` matches every declared `todos.<name>` event. */
+export type EventsMatching<Pattern extends string> = Pattern extends `${infer Prefix}.*`
+  ? Extract<keyof EventMap, `${Prefix}.${string}`> extends never
+    ? string
+    : Extract<keyof EventMap, `${Prefix}.${string}`>
+  : Pattern;
+
 export type FoundationEvent<Name extends string = string> = Name extends string
-  ? Readonly<{ type: Name; data: EventData<Name> }>
+  ? Readonly<{
+      type: Name;
+      data: EventData<Name>;
+      /** Present on cancelable events: stops the operation that asked. */
+      cancel?: (reason?: string) => void;
+      cancelled?: boolean;
+    }>
   : never;
 export type EventHandler<Name extends string = string> = (
-  event: FoundationEvent<Name>,
+  event: FoundationEvent<EventsMatching<Name>>,
   context: { signal: AbortSignal },
 ) => void | Promise<void>;
 export type EventErrorHandler = (error: unknown, event: FoundationEvent) => void;
+export type EmitResult<Name extends string> = Name extends keyof CancelableEventMap
+  ? Promise<boolean>
+  : void;
+type EmitArguments<Name extends string> =
+  undefined extends EventData<Name> ? [data?: EventData<Name>] : [data: EventData<Name>];
+
 export interface Events {
-  /** Each matching event invokes the handler once. Returns an optional early unsubscribe. */
+  /** Each matching event invokes the handler once. Returns the unsubscribe function. */
+  on<const Name extends EventName>(
+    names: Name | readonly Name[],
+    handler: EventHandler<Name>,
+  ): () => void;
+  /** @deprecated Use `on`. */
   watch<const Name extends EventName>(
     names: Name | readonly Name[],
     handler: EventHandler<Name>,
   ): () => void;
-  /** Synchronous delivery; promises are observed for errors, not awaited. */
-  emit<Name extends EventName>(
-    name: Name,
-    ...data: undefined extends EventData<Name> ? [data?: EventData<Name>] : [data: EventData<Name>]
-  ): void;
+  /**
+   * Synchronous delivery; async handlers are observed for errors, not awaited. A cancelable
+   * event waits for its handlers and resolves to false when one of them cancelled.
+   */
+  emit<Name extends EventName>(name: Name, ...data: EmitArguments<Name>): EmitResult<Name>;
 }

@@ -52,7 +52,11 @@ Examples:
               message: 'What do you want to create?',
               options: [
                 { value: 'app', label: 'An app', hint: 'Next.js or TanStack Start' },
-                { value: 'plugin', label: 'A standalone plugin', hint: 'an npm package with a playground' },
+                {
+                  value: 'plugin',
+                  label: 'A standalone plugin',
+                  hint: 'an npm package with a playground',
+                },
               ],
             }),
           )
@@ -61,21 +65,31 @@ Examples:
       if (!interactive) throw new Error('Provide a project directory. Use --help for examples.');
       const fallback = type === 'plugin' ? 'my-plugin' : 'my-app';
       directory = await answer(
-        prompts.text({ message: 'Project directory', placeholder: fallback, defaultValue: fallback }),
+        prompts.text({
+          message: 'Project directory',
+          placeholder: fallback,
+          defaultValue: fallback,
+        }),
       );
     }
     options.framework ??= interactive
       ? await answer(
           prompts.select({
             message: type === 'plugin' ? 'Playground framework' : 'Framework',
-            options: Object.entries(adapters).map(([value, adapter]) => ({ value, label: adapter.label })),
+            options: Object.entries(adapters).map(([value, adapter]) => ({
+              value,
+              label: adapter.label,
+            })),
           }),
         )
       : 'next';
     let selected =
       options.features === 'none'
         ? []
-        : options.features?.split(',').map((name) => name.trim()).filter(Boolean);
+        : options.features
+            ?.split(',')
+            .map((name) => name.trim())
+            .filter(Boolean);
     if (type === 'app' && !selected)
       selected = interactive
         ? await answer(
@@ -83,21 +97,32 @@ Examples:
               message: 'Features',
               required: false,
               initialValues: defaultFeatures,
-              options: Object.entries(features).map(([value, feature]) => ({ value, label: feature.label })),
+              options: Object.entries(features).map(([value, feature]) => ({
+                value,
+                label: feature.label,
+              })),
             }),
           )
         : defaultFeatures;
     let sample = options.sample;
     if (type === 'app' && sample === undefined)
       sample = interactive
-        ? await answer(prompts.confirm({ message: 'Add the Todos sample plugin to learn from?', initialValue: true }))
+        ? await answer(
+            prompts.confirm({
+              message: 'Add the Todos sample plugin to learn from?',
+              initialValue: true,
+            }),
+          )
         : false;
     const plan = await planProject(directory, { ...options, type, features: selected, sample });
     const summary = [
       `Project:   ${plan.target}`,
       `Type:      ${plan.type === 'plugin' ? `plugin package with a ${adapters[plan.framework].label} playground` : `${adapters[plan.framework].label} app`}`,
       ...(plan.type === 'app'
-        ? [`Features:  ${plan.features.join(', ') || 'none'}`, `Sample:    ${plan.sample ? 'Todos plugin' : 'no'}`]
+        ? [
+            `Features:  ${plan.features.join(', ') || 'none'}`,
+            `Sample:    ${plan.sample ? 'Todos plugin' : 'no'}`,
+          ]
         : []),
       `Install:   ${plan.install ? 'yes' : 'no'}`,
     ].join('\n');
@@ -119,8 +144,15 @@ Examples:
       'npm run dev',
       '',
       ...(plan.type === 'plugin'
-        ? ['Edit src/ — the playground reloads.', 'npm test        run the plugin tests', 'npm run build   build the package for npm']
-        : ['npx bitakit add plugin notes   add a feature', 'npx bitakit doctor             check the project']),
+        ? [
+            'Edit src/ — the playground reloads.',
+            'npm test        run the plugin tests',
+            'npm run build   build the package for npm',
+          ]
+        : [
+            'npx bitakit add plugin notes   add a feature',
+            'npx bitakit doctor             check the project',
+          ]),
     ].join('\n');
     if (interactive) prompts.outro(`Done! Next steps:\n\n${steps}`);
     else console.log(`\nDone! Next steps:\n\n${steps}\n`);

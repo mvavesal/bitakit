@@ -1,3 +1,4 @@
 #!/usr/bin/env node
-import { generateFoundationHost } from '@bitakit/core/discovery';
-await generateFoundationHost(process.cwd());
+// Deprecated: use "bitakit generate" from @bitakit/cli. Kept so older scripts keep working.
+import { generateFoundation } from '@bitakit/core/discovery';
+await generateFoundation(process.cwd());

@@ -1,45 +1,50 @@
 ---
 title: Interceptors
-description: Observe shared execution at the owning runtime boundary.
+description: Observe or gate actions and observe service calls across a feature.
 ---
 
 **Owner:** `@bitakit/core`. Interceptors attach cross-cutting behavior to existing execution and service calls. Keep feature operations in actions and services.
 
+One helper covers both targets. A file under `interceptors/` default-exports one definition or an array of them.
+
 ## Action interceptors
 
 ```ts
-// src/plugins/todos/interceptors/logging.ts
-import { defineActionInterceptor } from '@bitakit/core';
+// src/plugins/todos/interceptors/audit.ts
+import { defineInterceptor } from '@bitakit/core';
 
-export default defineActionInterceptor({
-  before() {
-    console.log('To-do action started');
+export default defineInterceptor({
+  action: 'todos.*', // exact IDs, 'todos.*' for one plugin, '*' for everything
+  order: 10,
+  before: ({ id, input, services }) => {
+    if (id === 'todos.clear' && !services.auth.getSnapshot().user) return false; // cancels
   },
+  after: ({ id, result }) => console.debug('done', id, result),
+  onError: ({ id, error }) => console.error('failed', id, error),
 });
 ```
 
-Plugin action interceptors default to their own plugin, including its internal form submissions. `scope: 'global'` broadens the scope explicitly. Host interceptors default to global; `scope: 'plugin'` limits them to the app module. `order` sorts ascending, with registration order for ties. The legacy `defineInterceptor` is an Action interceptor helper.
+`before` runs before `execute` and may return a promise; `false` skips the run with the reason `intercepted`. `after` and `onError` observe completed and failed runs. The context is the action's execute context plus `translate`. A definition without `action` observes every action of its own plugin.
+
+Plugin interceptors match only their own plugin's actions unless `scope: 'global'`. App interceptors (under `src/interceptors`) are global unless `scope: 'plugin'`. `order` sorts ascending, with registration order for ties. Without `interceptors.enabled` in `bitakit.config.ts`, every discovered app interceptor is active; a list selects them.
 
 ## Service interceptors
 
 ```ts
 // src/plugins/todos/interceptors/service-calls.ts
-import { defineServiceInterceptor } from '@bitakit/core';
+import { defineInterceptor } from '@bitakit/core';
 
-export default defineServiceInterceptor({
-  service: 'todos',
+export default defineInterceptor({
+  service: 'todos.tasks',
   method: 'list',
-  before() {
-    console.log('Listing tasks');
-  },
-  after({ result }) {
-    console.log('Task count:', result.length);
-  },
+  before: ({ args }) => console.debug('Listing tasks', args),
+  after: ({ result }) => console.debug('Task count:', result.length),
+  onError: ({ error }) => console.error(error),
 });
 ```
 
-This fragment assumes the discovered `todos` service exposes `list()`. Known service methods infer arguments and awaited results. Omitting `method` observes public string-named methods of the selected service.
+Known service methods infer arguments and awaited results. Omitting `method` observes every public method of the service.
 
-Service interceptors currently provide observation-only hooks: return values are ignored, callbacks are not awaited and callback failures are isolated. Do not mutate arguments or results. Original sync returns, promises and errors are preserved. Internal self-calls and calls through an original reference outside the container bypass these hooks; symbol methods and constructors are not observed.
+Service hooks observe only: return values are ignored, callbacks are not awaited and callback failures are isolated. Do not mutate arguments or results. Original sync returns, promises and errors are preserved. Internal self-calls bypass these hooks. Every consumer sees the same wrapped service; runtime disposal disables observation and disposes the original instance.
 
-All container consumers see the same wrapped service. Runtime disposal disables observation, including later settlement of in-flight calls, and disposes the original instance. Action and Service interceptors can share a collection; their helpers determine the kind, not their folder names.
+`action` and `service` are mutually exclusive in one definition; export an array to combine them in one file.

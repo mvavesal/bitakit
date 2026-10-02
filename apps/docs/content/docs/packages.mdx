@@ -3,7 +3,7 @@ title: Packages
 description: Choose capabilities without moving application behavior into Core.
 ---
 
-Start with Core. Add the packages your app needs. All packages below are available on npm under `@bitakit`; these guides use Core 0.1.1 and the 0.1.0 application packages.
+Start with Core. Add the packages your app needs. All packages below are published on npm under `@bitakit` (0.1); these guides describe the next release, 0.2.
 
 | Package           | Responsibility                                                        |
 | ----------------- | --------------------------------------------------------------------- |
@@ -13,7 +13,7 @@ Start with Core. Add the packages your app needs. All packages below are availab
 | `tanstack`        | Experimental TanStack Router/Start integration                        |
 | `app-preferences` | Settings definitions, catalog, values and persistence contracts       |
 | `shell`           | Application layout and shared settings surfaces                       |
-| `quick-search`    | Optional search across public Foundation Actions                      |
+| `quick-search`    | Optional search across the app's navigation actions                   |
 | `email`           | Provider-independent email message and sending contract               |
 | `nodemailer`      | Server-side SMTP implementation of the email contract                 |
 | `better-auth`     | Authentication service integration                                    |
@@ -24,7 +24,7 @@ Start with Core. Add the packages your app needs. All packages below are availab
 
 ## Framework ownership
 
-Choose the integration matching the router that manages your Foundation surface.
+Choose the integration matching the router that manages your BitaKit surface.
 The integration uses the application's router through peer dependencies; installing a
 second router does not switch it automatically. App-owned routes remain native framework routes.
 

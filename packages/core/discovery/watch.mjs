@@ -1,11 +1,12 @@
 import { watch } from 'node:fs';
 import { generateFoundation } from './generate.mjs';
 
-const ignored = /(^|\/)(node_modules|\.next|\.foundation|\.git|dist)(?:\/|$)/;
+const ignored =
+  /(^|[\\/])(node_modules|\.next|\.foundation|\.git|\.tanstack|\.output|dist|coverage)([\\/]|$)|bitakit\.gen\./;
 
 /**
- * Framework-independent development discovery. The bundler observes generated imports. Plugins
- * included from outside the project (`plugins.include`) are watched as well.
+ * Framework-independent development discovery. The bundler observes the generated imports.
+ * Plugins included from outside the project (`plugins.include`) are watched as well.
  */
 export function watchFoundation(root, onError = console.error) {
   let timer;

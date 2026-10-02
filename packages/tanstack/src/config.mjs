@@ -1,25 +1,22 @@
-import path from 'node:path';
-import { generateFoundationHost, watchFoundation } from '@bitakit/core/discovery';
+import { generateFoundation, watchFoundation } from '@bitakit/core/discovery';
 
-/** Vite integration reuses Core discovery and lets Vite watch its generated import graph. */
-export function foundation() {
+/**
+ * Vite integration: runs discovery before the config is resolved and keeps regenerating in
+ * development. The generated file lives in `src/bitakit.gen.tsx`; no alias is needed.
+ */
+export function bitakit() {
   let stop;
   return {
-    name: 'saas-foundation',
+    name: 'bitakit',
     enforce: 'pre',
     async config(config) {
-      const root = path.resolve(config.root ?? process.cwd());
-      await generateFoundationHost(root);
-      return {
-        resolve: {
-          alias: { '@bitakit/tanstack/generated': path.join(root, '.foundation/app.ts') },
-        },
-        ssr: { noExternal: [/^@bitakit\//] },
-      };
+      const root = config.root ?? process.cwd();
+      await generateFoundation(root);
+      return { ssr: { noExternal: [/^@bitakit\//] } };
     },
     configureServer(server) {
       stop = watchFoundation(server.config.root, (error) =>
-        server.config.logger.error(String(error)),
+        server.config.logger.error(error?.stack ?? String(error)),
       );
       server.httpServer?.once('close', () => stop?.());
     },
@@ -28,3 +25,10 @@ export function foundation() {
     },
   };
 }
+/** @deprecated Use bitakit(). */
+export const foundation = bitakit;
+export { generateFoundation };
+/** Typed identity for `bitakit.config.ts`. */
+export const defineBitaKit = (config) => config;
+/** @deprecated Use defineBitaKit. */
+export const defineFoundation = defineBitaKit;

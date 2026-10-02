@@ -38,12 +38,11 @@
   },
   "dependencies": {
     "jiti": "^2.7.0",
-    "mitt": "^3.0.1",
     "typescript": "^5.9.3",
     "zustand": "^5.0.0"
   },
   "devDependencies": {},
-  "description": "AI-friendly, type-safe building blocks for modular apps: plugins, services, actions, and events.",
+  "description": "AI-friendly, type-safe building blocks for modular apps: plugins, services, actions, events.",
   "license": "MIT",
   "repository": {
     "type": "git",

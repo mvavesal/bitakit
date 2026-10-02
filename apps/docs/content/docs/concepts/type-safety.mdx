@@ -5,52 +5,40 @@ description: Carry contracts from definitions to consumers.
 
 **Owner:** `@bitakit/core` types and discovery; React bindings consume the same contracts through `@bitakit/ui`.
 
-BitaKit is designed around type-safe feature composition. Define the contract at its source, then let service access, action execution and bindings carry the types to callers.
+BitaKit is designed around type-safe feature composition. Define the contract at its source, then let service access, action execution, events and bindings carry the types to callers.
 
-| Boundary                     | What TypeScript knows                        |
-| ---------------------------- | -------------------------------------------- |
-| `serviceKey<T>`              | The shared provider and consumer contract    |
-| Discovered service factory   | Public method arguments and return types     |
-| Discovered action definition | Known action ID, input and completed result  |
-| Stateful action definition   | Custom state shape and execution result      |
-| Config discovery             | Resolved module structure through ConfigMap  |
-| EventMap                     | Known event names and discriminated payloads |
+| Boundary                     | What TypeScript knows                                           |
+| ---------------------------- | --------------------------------------------------------------- |
+| `defineContract<T>('auth')`  | The shared provider and consumer contract                       |
+| Discovered service factory   | Method arguments and return types of `services.<plugin>.<file>` |
+| Discovered action definition | Action ID, input and completed result                           |
+| `events.ts`                  | Event names, payloads and which events are cancelable           |
+| `configs/`                   | The resolved config tree of each plugin through `ConfigMap`     |
+| Declared slots               | Slot names through `SlotMap`                                    |
 
 ## Typed action inputs
 
 ```ts
 import { defineAction } from '@bitakit/core';
+import { z } from 'zod';
 
 export default defineAction({
-  execute: ({ input }: { input: { title: string } }) => ({ title: input.title, saved: true }),
+  title: 'Create task',
+  input: z.object({ title: z.string().min(1) }),
+  execute: ({ services, input }) => services.todos.tasks.add(input.title), // input is { title: string }
 });
 ```
 
-TypeScript infers the input from the annotated parameter and the result from the return value. In the context-based `defineAction<Input, Result>({...})` form, supply both types when explicitly specifying generics; supplying only Input leaves Result at its default `void`.
+With an `input` schema, the input and the result are inferred and the schema validates at runtime. Without one, name the input explicitly: `defineAction<string>({ ... })`; the result is then `unknown`, and `defineAction<string, number>` names both.
 
-For custom Action state, use the curried form:
-
-```ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<{ title: string }>()({
-  initialState: {},
-  execute(input) {
-    return { title: input.title, saved: true };
-  },
-});
-```
-
-The curried `defineAction<Input>()({...})` form keeps input explicit while inferring the return type.
-
-In a discovered contribution, its effective ID maps to that input and inferred result. Generated `ActionMap`, `ServiceMap` and `ConfigMap` declarations connect definitions to consumers; keep the generated declaration file included in the host TypeScript project. Editors can then complete known IDs and service methods. `requires` separately lists services from other plugins, which Foundation checks at startup.
+In a discovered contribution, the effective ID maps to that input and result in the generated `ActionMap`, so `useAction('todos.create')`, `<Action id="todos.create" input={...}>` and `app.actions.todos.create.execute(...)` autocomplete the ID and check the input. Keep the generated `src/bitakit.gen.tsx` in the host TypeScript project.
 
 ## Strict action IDs
 
-Unknown action IDs are allowed by default for dynamic integrations. Applications that want to reject them at compile time can augment the public contract:
+Generated apps reject unknown action IDs at compile time: discovery augments `ActionMapOptions` with `{ strict: true }`. Set `strict: false` in `bitakit.config.ts` to allow dynamic IDs, or augment the option yourself in a manual composition:
 
 ```ts
-// src/foundation-types.d.ts
+// src/bitakit-types.d.ts
 import '@bitakit/core';
 
 declare module '@bitakit/core' {
@@ -60,24 +48,27 @@ declare module '@bitakit/core' {
 }
 ```
 
-Classes and function factories that establish their ID at construction do not automatically enter the generated ActionMap. Declare their contracts manually when typed lookup is required. Explicit compositions can likewise augment the public maps or preserve precise plugin tuple types.
+## Typed services, events and config
 
-## Typed events
+Discovery derives `ServiceMap` from each service factory's return type, `EventMap` and `CancelableEventMap` from `defineEvents` in `events.ts`, and `ConfigMap` from `defineConfig` schemas or defaults. Manual compositions augment the same interfaces:
 
 ```ts
 import '@bitakit/core';
 
 declare module '@bitakit/core' {
+  interface ServiceMap {
+    'todos.tasks': { list(): Task[]; add(title: string): void };
+  }
   interface EventMap {
     'todos.changed': { kind: 'added' | 'removed'; id: number };
   }
 }
 ```
 
-Known names require their declared payload; unknown names remain allowed with `unknown` data. This augmentation provides types, not runtime registration. See [events](/docs/concepts/events) for inference and multi-event handlers.
+Known names require their declared payload; unknown names remain allowed with `unknown` data. These augmentations provide types, not runtime registration. `requires` separately lists services from other plugins, which BitaKit checks at startup.
 
 ## Runtime boundaries
 
-TypeScript does not validate network responses, stored JSON or user input. Parse untrusted values with the application's existing schema library and keep authorization on the server. A config fallback is not a schema. Typed service access does not guarantee an optional provider is mounted; use optional access or declare the dependency.
+TypeScript does not validate network responses, stored JSON or user input. Parse untrusted values with the application's schema library — an action's `input` schema does this for action inputs — and keep authorization on the server. A config fallback is not a schema. Typed service access does not guarantee an optional provider is mounted; check `app.has('auth')` or declare the dependency.
 
 This is why these guides identify the typed boundaries precisely rather than claiming every dynamic string or external response is automatically safe.

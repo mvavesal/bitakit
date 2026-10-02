@@ -1,5 +1,4 @@
-import type { Plugin } from '../definitions.js';
-import { isServiceInterceptor } from './service.js';
+import { isServiceInterceptor, matchesTarget, type InterceptorSpec } from './define.js';
 
 /** Observer errors are isolated from business execution, as with Action lifecycle observers. */
 function notify(callback: ((event: any) => unknown) | undefined, event: object) {
@@ -12,19 +11,26 @@ function notify(callback: ((event: any) => unknown) | undefined, event: object) 
   }
 }
 
-/** Creates a runtime-local projection; all container consumers receive the same service wrapper. */
-export function serviceObserver(modules: readonly Plugin[]) {
-  const aliases = new Map(modules.flatMap((module) => Object.entries(module.publicServices ?? {})));
-  const entries = modules
-    .flatMap((module) => (module.interceptors ?? []).filter(isServiceInterceptor))
+/**
+ * Wraps service instances whose ID or alias matches an interceptor's `service` target. All
+ * container consumers receive the same wrapper; frozen instances are supported.
+ */
+export function serviceObserver(
+  interceptors: readonly InterceptorSpec[],
+  namesOf: (id: string) => readonly string[],
+) {
+  const entries = interceptors
+    .filter(isServiceInterceptor)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   return (id: string, instance: any, active: () => boolean): any => {
-    const selected = entries.filter(
-      (entry) => (aliases.get(entry.service) ?? entry.service) === id,
+    if (!instance || (typeof instance !== 'object' && typeof instance !== 'function'))
+      return instance;
+    const names = [id, ...namesOf(id)];
+    const selected = entries.filter((entry) =>
+      names.some((name) => matchesTarget(entry.service, name)),
     );
     if (!selected.length) return instance;
     const cache = new Map<PropertyKey, { original: Function; wrapped: Function }>();
-    // A forwarding shell also supports frozen service objects without mutating their methods.
     return new Proxy(Object.create(Object.getPrototypeOf(instance)), {
       has: (_target, key) => key in instance,
       ownKeys: () => Reflect.ownKeys(instance),
@@ -49,8 +55,8 @@ export function serviceObserver(modules: readonly Plugin[]) {
           const emit = (phase: 'before' | 'after' | 'onError', extra = {}) => {
             if (!active()) return;
             for (const entry of observers)
-              notify(entry[phase], {
-                service: entry.service,
+              notify(entry[phase] as ((event: any) => unknown) | undefined, {
+                service: id,
                 method: key,
                 args: Object.freeze([...args]),
                 ...extra,
@@ -65,7 +71,6 @@ export function serviceObserver(modules: readonly Plugin[]) {
             throw error;
           }
           if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
-            // Observe settlement without replacing the original Promise or changing sync methods.
             void Promise.resolve(result).then(
               (value) => emit('after', { result: value }),
               (error) => emit('onError', { error }),

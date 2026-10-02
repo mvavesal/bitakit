@@ -344,7 +344,7 @@ function actionLoop(t) {
   parts.push(rect(tx, ty, 30, 16, { rx: 8, fill: t.accentSoft }));
   parts.push(`<circle cx="${tx + 22}" cy="${ty + 8}" r="6" fill="#ffffff"/>`);
   parts.push(text(tx + 40, ty + 12.5, 'enabled', { size: 12, fill: t.text }));
-  parts.push(text(xs[1] + 16, y0 + 118, 'onEvent()', { size: 11.5, fill: t.muted, mono: true }));
+  parts.push(text(xs[1] + 16, y0 + 118, 'reads the store', { size: 11.5, fill: t.muted }));
 
   // 3. The service that owns the data.
   box(xs[2], 'SERVICE');
@@ -354,12 +354,12 @@ function actionLoop(t) {
   parts.push(text(xs[2] + 16, y0 + 76, 'remove()', { size: 11.5, fill: t.muted, mono: true }));
   parts.push(text(xs[2] + 16, y0 + 94, 'list()', { size: 11.5, fill: t.muted, mono: true }));
 
-  // 4. The runtime event.
-  box(xs[3], 'EVENT');
+  // 4. The service's observable store.
+  box(xs[3], 'STORE');
   parts.push(
-    text(xs[3] + 16, y0 + 52, 'todos.changed', { size: 13, weight: 600, fill: t.text, mono: true }),
+    text(xs[3] + 16, y0 + 52, 'tasks.state', { size: 13, weight: 600, fill: t.text, mono: true }),
   );
-  parts.push(text(xs[3] + 16, y0 + 76, 'one bus per runtime', { size: 11.5, fill: t.muted }));
+  parts.push(text(xs[3] + 16, y0 + 76, 'observable state', { size: 11.5, fill: t.muted }));
 
   // Forward path.
   const fy = y0 + 52;
@@ -395,9 +395,9 @@ function actionLoop(t) {
       'arrow',
     ),
   );
-  parts.push(step(t, xs[2] + bw + gap / 2, fy - 12, 3, 'emit'));
+  parts.push(step(t, xs[2] + bw + gap / 2, fy - 12, 3, 'state.set()'));
 
-  // Return path: the event reaches onEvent, and the new state reaches every control.
+  // Return path: the store change re-evaluates enabled, and the new state reaches every control.
   const by = y0 + bh;
   const loopY = by + 30;
   const actionX = xs[1] + bw / 2;
@@ -414,7 +414,7 @@ function actionLoop(t) {
       'arrow-accent',
     ),
   );
-  parts.push(step(t, (actionX + eventX) / 2, loopY + 22, 4, 'onEvent updates enabled', true));
+  parts.push(step(t, (actionX + eventX) / 2, loopY + 22, 4, 'enabled re-evaluated', true));
   const ry = y0 + 112;
   parts.push(
     path(
@@ -431,7 +431,7 @@ function actionLoop(t) {
   return svg(
     W,
     H,
-    'Action event loop: a bound button, menu item or shortcut executes todos.delete; the action calls tasks.remove(); the service emits todos.changed; onEvent updates the action enabled state; every bound control receives the new state.',
+    'Action loop: a bound button, menu item or shortcut executes todos.delete; the action calls tasks.remove(); the service updates its store; the store change re-evaluates the action enabled function; every bound control receives the new state.',
     parts.join(''),
   );
 }

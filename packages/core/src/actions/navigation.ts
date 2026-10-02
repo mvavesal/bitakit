@@ -35,12 +35,13 @@ export function safeHref(href: string | undefined): string | undefined {
   }
 }
 
-export function navigate(context: ActionContext) {
+/** Navigates to `href`, or to the registration's current href; the registration must still exist. */
+export function navigate(context: ActionContext, href?: string) {
   const current = context.get();
-  const href = safeHref(current?.href);
-  if (!href) throw new Error('Invalid navigation target.');
+  const target = current ? safeHref(href ?? current.href) : undefined;
+  if (!target) throw new Error('Invalid navigation target.');
   if (!isBrandedInstance(context.environment, NavigationHost, 'navigation'))
     throw new Error('A NavigationHost is required.');
   // This dispatches navigation. Completion does NOT mean the next route has loaded.
-  (context.environment as NavigationHost).go(href);
+  (context.environment as NavigationHost).go(target);
 }

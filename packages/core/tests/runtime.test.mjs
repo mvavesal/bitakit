@@ -6,22 +6,27 @@ import {
   FoundationRuntime,
   createRuntime,
   defineAction,
-  defineFormAction,
+  definePlugin,
   defineService,
+  isFoundationStartupError,
   mergePluginMessages,
 } from '../dist/core.js';
 
 test('createRuntime creates the ActionList unless one is passed, and accepts host services', async () => {
-  const notes = {
+  const notes = definePlugin({
     id: 'notes',
-    services: [defineService({ id: 'notes.store', exposeAs: 'store', create: () => ({ count: () => 2 }) })],
-    actions: [defineAction({ id: 'notes.count', execute: ({ services }) => services.store.count() })],
-  };
+    services: { store: defineService(() => ({ count: () => 2 }), { exposeAs: 'store' }) },
+    actions: {
+      count: defineAction({
+        execute: ({ services }) => services.store.count() + services.notes.store.count(),
+      }),
+    },
+  });
   const runtime = createRuntime({ plugins: [notes] });
   assert.ok(runtime instanceof FoundationRuntime);
   const stop = runtime.mount();
   try {
-    assert.equal((await runtime.actions.execute('notes.count')).value, 2);
+    assert.equal((await runtime.actions.execute('notes.count')).value, 4);
   } finally {
     stop();
   }
@@ -38,147 +43,140 @@ test('createRuntime creates the ActionList unless one is passed, and accepts hos
   }
 });
 
-const form = (submit = async () => {}) =>
-  defineFormAction({
-    id: 'users.invite',
-    title: 'users.title',
-    fields: { email: { type: 'email', label: 'email', required: true } },
-    submit,
-    success: { messageKey: 'success' },
-    failure: { messageKey: 'error' },
-  });
-const config = (action) => ({
-  groups: ['users.menu'],
-  plugins: [
-    {
-      id: 'users',
-      actions: [action],
-      setup({ app }) {
-        app.actions.getGroup('users.menu').attach(action.id);
-      },
-    },
-  ],
-});
-
-test('pending form survives translation update; execution guard and scopes clean up on remount', async () => {
+test('a pending action survives translation updates; scopes clean up on stop and come back on remount', async () => {
   const list = createActionList();
   let finish,
     calls = 0;
-  const action = form(async () => {
-    calls++;
-    await new Promise((resolve) => {
-      finish = resolve;
-    });
+  const runtime = new FoundationRuntime(list, {
+    groups: ['users.menu'],
+    plugins: [
+      definePlugin({
+        id: 'users',
+        actions: {
+          invite: defineAction({
+            title: 'users.title',
+            execute: async () => {
+              calls++;
+              await new Promise((resolve) => {
+                finish = resolve;
+              });
+            },
+          }),
+        },
+        setup({ app }) {
+          app.actions.getGroup('users.menu').attach('users.invite');
+        },
+      }),
+    ],
   });
-  const runtime = new FoundationRuntime(list, config(action));
   runtime.setTranslations((key) => `en:${key}`);
   const cleanup = runtime.mount();
-  assert.equal(list.get(action.id).groups[0].id, 'users.menu');
-  await list.execute(action.id);
-  const state = runtime.getSnapshot();
-  const pending = list.execute(`${action.id}.submit`, {
-    email: 'a@example.com',
-  });
+  assert.equal(list.get('users.invite').groups[0].id, 'users.menu');
+  assert.equal(list.get('users.invite').title, 'en:users.title');
+  const pending = list.execute('users.invite');
   runtime.setTranslations((key) => `de:${key}`);
-  assert.equal(runtime.getSnapshot(), state);
-  assert.equal(list.get(action.id).title, 'de:users.title');
-  assert.equal(list.get(`${action.id}.submit`).pending, true);
-  runtime.close();
-  assert.equal(runtime.getSnapshot(), state);
-  assert.deepEqual(await list.execute(`${action.id}.submit`, { email: 'a@example.com' }), {
-    status: 'skipped',
-    reason: 'pending',
-  });
+  assert.equal(list.get('users.invite').title, 'de:users.title');
+  assert.equal(list.get('users.invite').pending, true);
+  assert.deepEqual(await list.execute('users.invite'), { status: 'skipped', reason: 'pending' });
   finish();
   await pending;
   assert.equal(calls, 1);
-  runtime.close();
-  assert.equal(runtime.getSnapshot(), null);
+  assert.equal(list.get('users.invite').pending, false);
   cleanup();
   assert.deepEqual(Object.keys(list.getState().actions), []);
   const again = runtime.mount();
-  assert.ok(list.get(action.id));
+  assert.ok(list.get('users.invite'));
+  assert.equal(list.get('users.invite').groups[0].id, 'users.menu');
   again();
-});
-
-test('invalid form data never reaches the service; failed submit keeps the dialog retryable', async () => {
-  const list = createActionList();
-  let calls = 0;
-  const action = form(async () => {
-    calls++;
-    throw new Error('Network');
-  });
-  const runtime = new FoundationRuntime(list, config(action));
-  const cleanup = runtime.mount();
-  assert.equal((await list.execute(`${action.id}.submit`, {})).status, 'skipped');
-  await list.execute(action.id);
-  await assert.rejects(list.execute(`${action.id}.submit`, { email: 'invalid' }));
-  assert.equal(calls, 0);
-  await assert.rejects(list.execute(`${action.id}.submit`, { email: 'a@example.com' }));
-  assert.equal(calls, 1);
-  assert.ok(runtime.getSnapshot());
-  assert.equal(list.get(`${action.id}.submit`).pending, false);
-  list.update(action.id, { enabled: false });
-  assert.equal(
-    (await list.execute(`${action.id}.submit`, { email: 'a@example.com' })).status,
-    'skipped',
-  );
-  cleanup();
+  assert.deepEqual(Object.keys(list.getState().actions), []);
 });
 
 test('failed setup rolls back actions, placements and services without touching host actions', () => {
   const list = createActionList([{ id: 'host', title: 'Host' }]);
-  let disposed = 0;
+  let stopped = 0;
   const runtime = new FoundationRuntime(list, {
     groups: ['menu'],
     plugins: [
-      {
+      definePlugin({
         id: 'broken',
-        services: [
-          defineService({
-            id: 'test',
-            create: () => ({}),
-            dispose: () => disposed++,
+        services: {
+          test: defineService(({ onStop }) => {
+            onStop(() => stopped++);
+            return {};
           }),
-        ],
-        actions: [form()],
+        },
+        actions: { run: defineAction({ execute() {} }) },
         setup({ app }) {
           app.actions.getGroup('menu').attach('host');
           throw new Error('Setup failed');
         },
-      },
+      }),
     ],
   });
-  assert.throws(() => runtime.mount(), /Setup failed/);
+  assert.throws(
+    () => runtime.mount(),
+    (error) =>
+      isFoundationStartupError(error) &&
+      error.plugin === 'broken' &&
+      /Setup failed/.test(error.message),
+  );
   assert.deepEqual(Object.keys(list.getState().actions), ['host']);
   assert.equal(list.get('host').groups.length, 0);
-  assert.equal(disposed, 1);
+  assert.equal(stopped, 1);
+});
+
+test('setup receives the plugin scope and services, and its cleanup runs on stop', async () => {
+  const log = [];
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'demo',
+        services: { s: defineService(() => ({ name: 'service' })) },
+        setup({ app, services }) {
+          log.push(['setup', services.demo.s.name, typeof app.actions.getGroup]);
+          const handle = app.actions
+            .getGroup('demo.menu')
+            .add({ id: 'demo.dynamic', title: 'Dynamic', execute: () => 'dynamic' });
+          log.push(['added', typeof handle.dispose]);
+          return () => log.push(['cleanup']);
+        },
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  assert.equal((await runtime.actions.execute('demo.dynamic')).value, 'dynamic');
+  assert.equal(runtime.actions.get('demo.dynamic').groups[0].id, 'demo.menu');
+  stop();
+  assert.equal(runtime.actions.get('demo.dynamic'), undefined);
+  assert.deepEqual(log, [['setup', 'service', 'function'], ['added', 'function'], ['cleanup']]);
 });
 
 test('service dependency failures are explicit and release created services', () => {
-  let disposed = 0;
-  const runtime = new FoundationRuntime(createActionList(), {
-    groups: [],
+  let stopped = 0;
+  const runtime = createRuntime({
     plugins: [
-      {
+      definePlugin({
         id: 'test',
-        services: [
-          defineService({
-            id: 'first',
-            create: () => ({}),
-            dispose: () => disposed++,
+        services: {
+          first: defineService(({ onStop }) => {
+            onStop(() => stopped++);
+            return {};
           }),
-          defineService({
-            id: 'second',
-            requires: ['missing'],
-            create: () => ({}),
-          }),
-        ],
-      },
+          second: defineService(() => ({}), { requires: ['missing'] }),
+        },
+      }),
     ],
   });
-  assert.throws(() => runtime.mount(), /Service "second" requires service "missing"/);
-  assert.equal(disposed, 1);
+  assert.throws(
+    () => runtime.mount(),
+    (error) =>
+      isFoundationStartupError(error) &&
+      error.plugin === 'test' &&
+      /Service "test\.second" requires service "missing", but no service has that name/.test(
+        error.message,
+      ),
+  );
+  assert.equal(stopped, 1);
 });
 
 test('plugin messages fall back per key without mutating host dictionaries', () => {
@@ -198,17 +196,27 @@ test('plugin messages fall back per key without mutating host dictionaries', () 
 });
 
 test('host catalogs override plugin keys and add a language with per-key fallback', () => {
-  const plugins = { en: { shell: { title: 'Shell', help: 'Help' } }, de: { shell: { title: 'Rahmen' } } };
+  const plugins = {
+    en: { shell: { title: 'Shell', help: 'Help' } },
+    de: { shell: { title: 'Rahmen' } },
+  };
   const app = { en: { shell: { title: 'Application' } }, fa: { shell: { title: 'برنامه' } } };
   assert.equal(mergePluginMessages({ app, plugins, locale: 'de' }).shell.title, 'Rahmen');
-  assert.deepEqual(mergePluginMessages({ app, plugins, locale: 'fa' }).shell, { title: 'برنامه', help: 'Help' });
+  assert.deepEqual(mergePluginMessages({ app, plugins, locale: 'fa' }).shell, {
+    title: 'برنامه',
+    help: 'Help',
+  });
   assert.equal(mergePluginMessages({ app, plugins, locale: 'en' }).shell.title, 'Application');
   assert.equal(plugins.en.shell.title, 'Shell');
 });
 
 test('a group keeps its title whichever registration or configured entry mentions it first', () => {
   const titled = () =>
-    defineAction({ id: 'todos.export', groups: [new ActionGroup('todos.bulk', 'Bulk actions')], execute() {} });
+    defineAction({
+      id: 'todos.export',
+      groups: [new ActionGroup('todos.bulk', 'Bulk actions')],
+      execute() {},
+    });
   const plain = () => defineAction({ id: 'todos.clear', groups: ['todos.bulk'], execute() {} });
   const cases = [
     ['plain name first', {}, [plain(), titled()]],
@@ -216,20 +224,22 @@ test('a group keeps its title whichever registration or configured entry mention
     ['configured groups first', { groups: ['todos.bulk'] }, [plain(), titled()]],
   ];
   for (const [label, config, actions] of cases) {
-    const runtime = createRuntime({ ...config, plugins: [{ id: 'todos', actions }] });
+    const runtime = createRuntime({ ...config, plugins: [definePlugin({ id: 'todos', actions })] });
     const stop = runtime.mount();
     try {
       assert.equal(runtime.getGroup('todos.bulk').title, 'Bulk actions', label);
       assert.equal(runtime.getGroup(new ActionGroup('todos.bulk')).title, 'Bulk actions', label);
-      // Both actions stay in the same group, which is matched by ID.
       for (const id of ['todos.clear', 'todos.export'])
-        assert.ok(runtime.actions.get(id).groups.some((group) => group.id === 'todos.bulk'), `${label}: ${id}`);
+        assert.ok(
+          runtime.actions.get(id).groups.some((group) => group.id === 'todos.bulk'),
+          `${label}: ${id}`,
+        );
     } finally {
       stop();
     }
   }
-  // Conflicting titles: the first title stays.
   const runtime = createRuntime({});
   runtime.getGroup(new ActionGroup('todos.bulk', 'First'));
   assert.equal(runtime.getGroup(new ActionGroup('todos.bulk', 'Second')).title, 'First');
+  assert.throws(() => createRuntime({ groups: ['a', 'a'] }), /listed twice/);
 });

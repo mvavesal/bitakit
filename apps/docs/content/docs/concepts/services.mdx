@@ -1,64 +1,140 @@
 ---
 title: Services
-description: Define reusable behavior in one file and call it from your feature.
+description: Define behavior and state in one file and call it from your feature.
 ---
 
-A service is an object with functions your feature can reuse. For example, a clock service provides the current time. Several actions can call the same service.
+A service is an object with functions and state your feature reuses. For example, a tasks service holds the task list and provides `add()`. Several actions and pages can use the same service.
 
-The examples below assume your app already has Foundation discovery configured, as described in the [quickstart](/docs/quickstart).
+The examples below assume your app already has BitaKit discovery configured, as described in the [quickstart](/docs/quickstart).
 
 ## 1. Create the service file
 
 ```ts
-// src/services/clock.ts
+// src/plugins/todos/services/tasks.ts
 import { defineService } from '@bitakit/core';
 
-export default defineService({
-  create: () => ({ now: () => new Date() }),
+export type Task = { id: number; title: string };
+
+export default defineService(({ store }) => {
+  // Observable state: actions and pages follow it without any wiring.
+  const state = store<{ items: Task[] }>({ items: [] });
+
+  return {
+    state,
+    list: () => state.get().items,
+    add(title: string) {
+      state.set((s) => ({ items: [...s.items, { id: Date.now(), title }] }));
+    },
+  };
 });
 ```
 
-That is the complete service definition. The filename supplies the name `clock`; Foundation creates the service for you. TypeScript infers that `now()` returns a `Date`.
+That is the complete service definition. The folder and file name supply the ID `todos.tasks`; BitaKit creates the service when the plugin starts. TypeScript infers that `list()` returns `Task[]`.
+
+The factory receives one context object:
+
+| Key        | What it is                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------- |
+| `store`    | `store(initial)` creates observable state with `get()`, `set(value or updater)` and `subscribe()` |
+| `services` | Other services, reached as `services.<plugin>.<file>`                                             |
+| `events`   | Emit this plugin's [events](/docs/concepts/events) and listen to others                           |
+| `config`   | This plugin's [configuration](/docs/concepts/configuration): `config.plugin.get(path, fallback)`  |
+| `onStart`  | Registers async work awaited before the app is ready, with an `AbortSignal`                       |
+| `onStop`   | Registers cleanup that runs when the runtime stops                                                |
 
 ## 2. Use it in an action
 
 ```ts
-// src/actions/current-time.ts
+// src/plugins/todos/actions/add.ts
 import { defineAction } from '@bitakit/core';
 
-export default defineAction({
-  execute: ({ services }) => services.clock.now(),
+export default defineAction<string>({
+  title: 'Add task',
+  execute: ({ services, input }) => services.todos.tasks.add(input),
 });
 ```
 
-The action calls the service's function. Both files belong to your app, so the action needs no declaration. Discovery finds both files, connects them and generates their types. You do not write registration IDs, a service-name mapping or runtime startup code.
+The action calls the service as `services.todos.tasks`. Discovery finds both files, connects them and generates their types. You do not write registration IDs, a service-name mapping or runtime startup code.
+
+## 3. Read it in a page
+
+```tsx
+// src/plugins/todos/ui/pages/index.tsx
+'use client';
+
+import { useServiceState } from '@bitakit/ui';
+
+export default function TodosPage() {
+  // Re-renders whenever the tasks store changes.
+  const tasks = useServiceState('todos.tasks', (state) => state.items, []);
+  return (
+    <ul>
+      {tasks.map((task) => (
+        <li key={task.id}>{task.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+`useServiceState(name, selector?, fallback?)` subscribes to the store a service exposes as `state` (or to a `subscribe`/`getSnapshot` pair) and re-renders when the selected value changes. It returns the fallback until the runtime is ready. `useService(name)` returns the instance itself without subscribing; `app.has(name)` tells whether a service is available right now.
+
+Actions follow stores too: a function-valued field such as `enabled: ({ services }) => services.todos.tasks.list().length > 0` re-runs on every change. See [actions](/docs/concepts/actions#availability).
 
 ## Use a service from another plugin
 
-An action can use any service, but list one that belongs to another plugin in `requires`. If that plugin is missing or turned off, startup reports it instead of the first click failing:
+Any contribution can use any service. List one that belongs to another plugin in `requires` when you want startup to report a missing plugin instead of the first click:
 
 ```ts
 // src/plugins/reports/actions/summary.ts
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
+  title: 'Summary',
   requires: ['billing.invoices'],
-  execute: ({ app }) => app.services.invoices.total(),
+  execute: ({ services }) => services.billing.invoices.total(),
 });
 ```
 
-`billing.invoices` is the ID of the `invoices` service in the `billing` plugin. Services follow the same rule. A service that uses another service while it is being created lists it too, even in the same plugin: that sets the creation order and lets Foundation report cycles.
+`billing.invoices` is the ID of the `invoices` service in the `billing` plugin. A service lists the services its factory reads in the second argument of `defineService`, even within the same plugin: that sets the creation order and lets BitaKit report cycles:
 
-## What Foundation handles
+```ts
+export default defineService(({ services }) => ({ total: () => services.billing.invoices.sum() }), {
+  requires: ['billing.invoices'],
+});
+```
 
-Core creates one service instance for this registration, makes it available to consumers and handles cleanup when the owning runtime stops. The configured app provider owns that lifecycle. A service can supply `dispose(instance)` if it acquires resources that need cleanup.
+A service that is not listed still fails with a named error, with suggestions for close names, when it is first read.
 
-Your service still owns its behavior and data. Foundation does not automatically persist data or subscribe the UI to changes. See [Events](/docs/concepts/events) when other parts of the feature need to react to a change.
+## Lifecycle and resources
 
-## Other ways to use a service
+Core creates one instance per runtime, in dependency order, makes it available to every contribution and stops it in reverse order when the runtime stops. Put async startup work in `onStart` and cleanup in `onStop`:
 
-The same discovered service is available as `app.services.clock`. React consumers obtain `app` from `useFoundationApp` in `@bitakit/ui`. For access before the runtime is ready, or for an optional capability, use `app.optional.services.clock` and handle `undefined`.
+```ts
+export default defineService(({ store, onStart, onStop }) => {
+  const state = store<{ items: Task[] }>({ items: [] });
+  onStart(async ({ signal }) => {
+    const response = await fetch('/api/tasks', { signal });
+    state.set({ items: await response.json() });
+  });
+  onStop(() => state.set({ items: [] }));
+  return { state };
+});
+```
 
-A discovered service can override its app-facing name with `exposeAs: 'clock'`; when omitted, its file path supplies the name. That option is also available on `provideService` for package authors. It is available in Core 0.1.1 and newer.
+The app is ready after every `onStart` has completed. A factory or start hook that throws is a startup error that names the plugin and the file; in development the plugin is turned off and the rest of the app keeps running.
 
-Most application features only need the two files above. For provider packages or standalone programs without discovery, see [Advanced — manual composition](/docs/concepts/manual-composition).
+Your service still owns its behavior and data. `store()` is in-memory state: BitaKit does not persist it, and `store.optimistic(apply, commit)` helps when the commit may fail. Use [events](/docs/concepts/events) when another plugin needs to react to a change.
+
+## Names, contracts and aliases
+
+Services are named `<plugin>.<file>` and nested accordingly: `services/billing/invoices.ts` in plugin `finance` is `services.finance.billing.invoices`. Two options change that:
+
+- `provides: contract` registers the instance under a shared contract key as well, such as `auth` or `i18n`. Contracts are created with `defineContract<T>('auth')` and shared between the package that provides a service and the plugins that use it.
+- `exposeAs: 'clock'` adds a flat alias in `services`. Use it only for deliberate flattening; two services with the same name fail at startup.
+
+```ts
+export default defineService(() => createAuthClient(), { provides: authService });
+```
+
+Most application features only need the files above. For packages or standalone programs without discovery, see [Advanced — manual composition](/docs/concepts/manual-composition).

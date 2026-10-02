@@ -1,23 +1,100 @@
-import type { Plugin } from './definitions.js';
+import type {
+  Plugin,
+  PluginPageDefinition,
+  PluginView,
+  ProviderDefinition,
+} from './definitions.js';
+import type { PresentationType } from './presentation.js';
+import { FoundationStartupError } from './startup-error.js';
 
 /** Exact, canonical paths only. Routers remain responsible for dynamic parameters. */
-export function validatePluginPages(plugins: readonly Plugin[]) {
-  const paths = new Set<string>();
+export function validatePluginPages(plugins: readonly Pick<Plugin, 'id' | 'pages'>[]) {
+  const owners = new Map<string, string>();
   for (const plugin of plugins) {
     for (const page of plugin.pages ?? []) {
-      if (!/^\/(?:[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*)?$/.test(page.path))
-        throw new Error(`Invalid plugin page path "${page.path}" in "${plugin.id}".`);
-      if (paths.has(page.path)) throw new Error(`Duplicate plugin page path "${page.path}".`);
-      paths.add(page.path);
+      if (
+        !/^\/(?:(?:[a-zA-Z0-9_-]+|\[[a-zA-Z0-9_-]+\])(?:\/(?:[a-zA-Z0-9_-]+|\[[a-zA-Z0-9_-]+\]))*)?$/.test(
+          page.path,
+        )
+      )
+        throw new FoundationStartupError(
+          `Invalid plugin page path "${page.path}" in plugin "${plugin.id}". Use a root-relative path such as /todos.`,
+          plugin.id,
+        );
+      const owner = owners.get(page.path);
+      if (owner)
+        throw new FoundationStartupError(
+          `Plugins "${owner}" and "${plugin.id}" both define a page at ${page.path}.`,
+          plugin.id,
+        );
+      owners.set(page.path, plugin.id);
     }
   }
 }
-/** The registered page for a pathname and the ID of the module that owns it. */
-export function findPluginPage(plugins: readonly Plugin[], pathname: string) {
-  const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
-  for (const plugin of plugins) {
-    const page = plugin.pages?.find((entry) => entry.path === path);
-    if (page) return { ...page, plugin: plugin.id, key: `${plugin.id}:${page.path}` };
+/** Matches one registered path against a pathname; `[id]` segments capture parameters. */
+function matchPath(pattern: string, pathname: string): Record<string, string> | undefined {
+  const expected = pattern.split('/').filter(Boolean);
+  const actual = pathname.split('/').filter(Boolean);
+  if (expected.length !== actual.length) return undefined;
+  const params: Record<string, string> = {};
+  for (const [index, segment] of expected.entries()) {
+    const match = /^\[(.+)\]$/.exec(segment);
+    if (match) params[match[1]] = decodeURIComponent(actual[index]);
+    else if (segment !== actual[index]) return undefined;
   }
-  return undefined;
+  return params;
+}
+/**
+ * The registered page for a pathname, with its parameters and the ID of the module that owns
+ * it. Exact paths win over parameterized ones.
+ */
+export function findPluginPage(plugins: readonly Pick<Plugin, 'id' | 'pages'>[], pathname: string) {
+  const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
+  let fallback:
+    | (PluginPageDefinition & { plugin: string; key: string; params: Record<string, string> })
+    | undefined;
+  for (const plugin of plugins) {
+    for (const page of plugin.pages ?? []) {
+      if (page.path === path)
+        return { ...page, plugin: plugin.id, key: `${plugin.id}:${page.path}`, params: {} };
+      if (!fallback && page.path.includes('[')) {
+        const params = matchPath(page.path, path);
+        if (params)
+          fallback = { ...page, plugin: plugin.id, key: `${plugin.id}:${page.path}`, params };
+      }
+    }
+  }
+  return fallback;
+}
+
+type Exported<T> = {
+  default: T;
+  layout?: string;
+  order?: number;
+  requires?: readonly string[];
+  id?: string;
+};
+/** A page from `ui/pages/<path>.tsx`: the default export is the component; the path comes from the file. */
+export function pluginPage(module: Exported<unknown>, path: string): PluginPageDefinition {
+  const value = module.default as PluginPageDefinition | PresentationType<'component'>;
+  if (value && typeof value === 'object' && 'component' in value)
+    return value as PluginPageDefinition;
+  return { path, component: value as PresentationType<'component'>, layout: module.layout };
+}
+/** A slot view from `ui/slots/<slot>.tsx`. */
+export function pluginSlot(module: Exported<unknown>, slot: string): PluginView {
+  const value = module.default as PluginView | PresentationType<'component'>;
+  if (value && typeof value === 'object' && 'component' in value) return value as PluginView;
+  return { slot, component: value as PresentationType<'component'>, order: module.order };
+}
+/** A React provider from `ui/providers/<name>.tsx`. */
+export function pluginProvider(module: Exported<unknown>, id: string): ProviderDefinition {
+  const value = module.default as ProviderDefinition | PresentationType<'provider'>;
+  if (value && typeof value === 'object' && 'component' in value)
+    return value as ProviderDefinition;
+  return {
+    id: module.id ?? id,
+    component: value as PresentationType<'provider'>,
+    requires: module.requires,
+  };
 }

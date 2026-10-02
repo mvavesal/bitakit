@@ -33,12 +33,12 @@ Features bring their prerequisites: Shell adds App Preferences, and Quick Search
 ## What you get
 
 - The official framework project (`create-next-app` or the blank TanStack Start template), with your pages and routes as ordinary framework files.
-- The BitaKit provider in the root layout and build-time discovery: files in `src/plugins/<name>/` become plugins without a registry.
-- A catch-all route that renders plugin pages, and the generated package stylesheet (`.foundation/styles.css`) imported once.
+- Build-time discovery (`withBitaKit` in `next.config.ts`, or the `bitakit()` Vite plugin) and `<BitaKitProvider>` from the generated `src/bitakit.gen.tsx` in the root layout: files in `src/plugins/<name>/` become plugins without a registry.
+- A catch-all route that renders plugin pages, and the generated package stylesheet `src/bitakit.gen.css` imported once. `src/bitakit.gen.*` is ignored by Git.
 - With Shell: the application layout, settings pages and `src/configs/shell.ts`. In Next.js, your home page is then `src/app/(app)/page.tsx`.
 - `README.md` and `AGENTS.md` for your project, and the `bitakit` command as a dev dependency: `npx bitakit add plugin notes` adds a feature, `npx bitakit doctor` checks the project.
 
-The generator does not create a backend, authentication, a database or email; those are separate integrations. Next.js projects use Webpack while a Turbopack discovery issue is open.
+The generator does not create a backend, authentication, a database or email; those are separate integrations.
 
 ## Plugin packages
 
@@ -46,7 +46,7 @@ The generator does not create a backend, authentication, a database or email; th
 npx @bitakit/create-app my-plugin --plugin
 ```
 
-This creates a package with the same folders as a plugin inside an app (`src/services`, `src/actions`, `src/pages`), a headless test and a `playground/` app that loads the plugin source with hot reload. `npm run dev` starts the playground, `npm test` runs the tests, and `npm run build` builds the package for npm.
+This creates a package with the same folders as a plugin inside an app (`src/services`, `src/actions`, `src/events.ts`, `src/ui/pages`), a headless test with `mountPlugin`, and a `playground/` app that discovers the plugin source with hot reload and shows the Inspector. `npm run dev` starts the playground, `npm test` runs the tests, `npm run typecheck` checks the types, and `npm run build` runs `bitakit build` to produce `dist/plugin.js`, the entry apps discover through `bitakit.plugin` in `package.json`.
 
 ## Contributing
 

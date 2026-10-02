@@ -1,30 +1,24 @@
 import { defineService } from '@bitakit/core';
 
-function createTodoService({ events }) {
-  let tasks = [];
-  let nextId = 1;
-
-  function create(title) {
-    const task = { id: nextId++, title, done: false };
-    tasks.push(task);
-    events.emit('todos.changed', { kind: 'added', id: task.id });
-    return task;
-  }
+/** The Todos data and behavior: an observable store plus the methods that change it. */
+export default defineService(({ store, events }) => {
+  const state = store({ items: [], nextId: 1 });
 
   return {
-    create,
-    list: () => [...tasks],
+    state,
+    create(title) {
+      const task = { id: state.get().nextId, title, done: false };
+      state.set((s) => ({ items: [...s.items, task], nextId: s.nextId + 1 }));
+      events.emit('todos.changed', { kind: 'added', id: task.id });
+      return task;
+    },
+    list: () => [...state.get().items],
     delete(id) {
-      const previousCount = tasks.length;
-      tasks = tasks.filter((task) => task.id !== id);
-      const removed = tasks.length < previousCount;
+      const before = state.get().items.length;
+      state.set((s) => ({ ...s, items: s.items.filter((task) => task.id !== id) }));
+      const removed = state.get().items.length < before;
       if (removed) events.emit('todos.changed', { kind: 'removed', id });
       return removed;
     },
   };
-}
-
-export default defineService({
-  id: 'todos',
-  create: createTodoService,
 });

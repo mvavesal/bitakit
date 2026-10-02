@@ -43,7 +43,7 @@
 
 ## Authentication and organizations
 
-- Better Auth möglichst unverändert verwenden: native Komponenten, APIs und Datenverträge bevorzugen; Customization auf notwendige Foundation-Anbindung und ausdrücklich vereinbarte Darstellung begrenzen. Keine parallelen eigenen Auth-/Organisationsmechanismen. Weitergehende Eigenlösungen vorher mit dem Nutzer abstimmen.
+- Better Auth möglichst unverändert verwenden: native Komponenten, APIs und Datenverträge bevorzugen; Customization auf notwendige BitaKit-Anbindung und ausdrücklich vereinbarte Darstellung begrenzen. Keine parallelen eigenen Auth-/Organisationsmechanismen. Weitergehende Eigenlösungen vorher mit dem Nutzer abstimmen.
 
 - Better Auth owns authentication and Organization plugin membership/role checks; ZenStack is the server-only database adapter. Do not reintroduce Strapi or parallel Supabase Auth sessions.
 - Never expose auth/session/account/member tables through generic CRUD. Auth tables have database RLS and revoked Supabase public-role grants; preserve those migration protections.
@@ -53,52 +53,55 @@
 
 ## Platform actions
 
-- Keep `packages/core/src/actions` router/UI/settings independent. Host metadata, execution environment and pre-commit validation are opaque core extension points; base classes and platform projection/validation live in `packages/core/src/actions`; concrete application behavior lives under `apps/web/src/actions`.
-- Use the single root ActionList, with globally unique action IDs. Placement group IDs are presentation grouping, not action namespaces. Do not nest a second ActionProvider for app pages/dialogs.
-- Register a contribution once with all placements and preserve its cleanup handle (or use the registration hook). All renderers read current snapshots; no copied title/icon/enabled/visible state.
-- URLAction reads the current href at execution. Render real navigation as links without also executing handlers. Preserve safe URL validation, native new-tab semantics, and disabled/hidden guards. Navigation dispatch completion is not route-load completion.
-- Contribution kinds are normalized by adapters in `packages/core/src/contributions`; the runtime only registers. Discovery generates a typed `ActionMap`: prefer typed `useAction`/`ActionButton` IDs and declare `defineAction<Input>` where UI passes input. Registrations flagged `internal` (form submits) must stay out of every action enumeration.
+- Keep `packages/core/src/actions` router/UI/settings independent. Host metadata and the execution environment are opaque core extension points; the ActionList lives in `packages/core/src/actions`, the one action adapter in `packages/core/src/contributions`; application behavior lives in `src/plugins/<id>/actions` or the app's `src/actions`.
+- `defineAction({ ... })` is the only action shape. Presentation fields (`title`, `enabled`, `visible`, `icon`, `href`, ...) take a value or a function of `{ input, services, config, app }` that re-runs when a service store changes; `href`, `dialog`, `input` (schema), `confirm`, `concurrency` and `success`/`failure` are options. Do not reintroduce `defineURLAction`, `defineDialogAction`, form actions, class or factory action exports, `resolve`/`watch`, `events`/`onEvent`, `setup` or `initialState` on actions; state belongs in a service `store()`.
+- Use the single root ActionList, with globally unique action IDs (`<plugin>.<file>`). Group IDs are presentation grouping, not action namespaces. Do not nest a second ActionProvider for app pages/dialogs.
+- Register a contribution once with all placements and preserve its cleanup handle. All renderers read current snapshots; no copied title/icon/enabled/visible state.
+- Navigation actions read the current href at execution. Render real navigation as links without also executing handlers. Preserve safe URL validation, native new-tab semantics, and disabled/hidden guards. Navigation dispatch completion is not route-load completion.
+- Discovery generates typed `ActionMap`, `ServiceMap`, `EventMap`, `ConfigMap` and `SlotMap` augmentations into `src/bitakit.gen.tsx`; strict action IDs are on by default in generated apps. Registrations flagged `internal` must stay out of every action enumeration.
 - Keep the foundation generic. The public Course Studio is historical demo code, not the product's architecture or a mandate for new domain models.
 
 ## Localization
 
-- UI translations live in `apps/web/locales/en.json` and `de.json`, organized by feature namespaces. Use next-intl for client/server translations and locale-aware formatting; keep matching keys in both catalogs.
+- UI translations live in `apps/web/locales/en.json` and `de.json`, organized by feature namespaces. Use next-intl for client/server translations and locale-aware formatting; keep matching keys in both catalogs. Plugins ship their own catalogs in `locales/<lang>.json` under their namespace; discovery merges them into `src/bitakit.gen.messages.json`.
 - Locale is a validated browser cookie, resolved by `src/i18n/request.ts`. Keep existing paths/intercepted Settings routes. Do not duplicate locale in a second store or add URL locale prefixes without a product requirement.
 - Language settings write through AppPreferences; the optional root `locale.set` action forwards to the same setting. The server validates and saves the preference. Preserve mounted application state on language changes. User-authored content and historical sample content are not translated automatically.
 
 ## Action and Settings organization
 
-- Action/URLAction classes, registry, execution, and subscriptions belong to packages/core/src/actions. React hooks and generic UI bindings belong to packages/ui. Do not rebuild these in the app or add app ActionButton/ActionLink wrappers, per-action hooks, or bootstrap effects.
-- App Actions are discovered from `src/actions/**/*.action.ts` (also form-action/dialog-action suffixes) through the generic `@bitakit/core/discovery` generator. `src/providers/actions-provider.tsx` owns the single root ActionList and composes the FoundationProvider. Do not restore a manual per-action registry. Explicit runtime registration remains available. App actions contain business behavior; normal usage is define, discover, bind.
-- Use package ActionButton/Checkbox/RadioGroup with `as` for app UI. Use the shared useAction hook or ActionBinding for custom controls. Disabled/hidden/pending guards and execution belong to the package.
+- Action classes, the registry, execution and subscriptions belong to packages/core/src/actions. React hooks and generic UI bindings belong to packages/ui. Do not rebuild these in the app or add app ActionButton/ActionLink wrappers, per-action hooks, or bootstrap effects.
+- App actions are discovered from `src/plugins/<id>/actions/<name>.ts` and `src/actions/<name>.ts` (folders only; the `x.action.ts` and `actions.x.ts` spellings are legacy and rewritten by `bitakit migrate`) through `@bitakit/core/discovery`. The generated `BitaKitProvider` in `src/bitakit.gen.tsx` owns the single root ActionList. Do not restore a manual per-action registry. Normal usage is define, discover, bind.
+- Use `<Action id input kind>` from `@bitakit/ui` to bind any control, `ActionButton`/`ActionLink` as sugar, `useAction` with its prop getters for custom controls and `useActionGroup` for menus and navigation. Disabled/hidden/pending guards and execution belong to the package. Do not recreate the removed `ActionBinding`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`, `ActionGroupBinding`, `ActionMenuView` or `useRegisterActions`.
+- Read service state with `useServiceState(name, selector, fallback)` and `useService`; observe events with `useEvent`; check availability with `app.has(name)` instead of the removed `app.optional.services`.
 - Keep the package in small focused files. Core exports are separate from implementation; class state, registration, execution, lifecycle, React hooks and components have explicit modules.
 - `src/components/settings/base` provides reusable settings shells, routing, navigation and discovery. Built-in content and its contribution belong together in `src/settings/sections/<section>`. Add each contribution to `settings/standard-settings.ts`; do not edit base components to add sections.
 - Trusted extra settings contributions use the SettingsSection/AppPreferences contract. Register plugin pages under existing sections and retain cleanup handles. Storage definitions must also be registered on the server; UI registration alone grants no persistence access.
 
-## Foundation-Entwicklungsleitfaden
+## BitaKit-Entwicklungsleitfaden
 
-Vor Änderungen an Foundation-Packages, Actions, Plugins, Integrationen oder Beispiel-Apps den projektspezifischen [Skill zur Foundation-Entwicklung](.agents/skills/foundation-development/SKILL.md) lesen. Er dokumentiert die vereinbarten Abläufe, UI-Anforderungen und Regressionen aus dem Review.
+Vor Änderungen an BitaKit-Packages, Actions, Plugins, Integrationen oder Beispiel-Apps den projektspezifischen [Skill zur BitaKit-Entwicklung](.agents/skills/foundation-development/SKILL.md) lesen. Er dokumentiert die vereinbarten Konventionen, die `define*`-Formen, die React-Bindings, die Paketgrenzen und den Prüfablauf; die Historie früherer Reviews steht in [REVIEW.md](REVIEW.md).
 
-Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern den Foundation-Skill im selben Arbeitsschritt aktualisieren und veraltete Aussagen entfernen. Die Übereinstimmung mit dem implementierten Stand gehört zur Abschlussprüfung.
+Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern den Skill im selben Arbeitsschritt aktualisieren und veraltete Aussagen entfernen. Die Übereinstimmung mit dem implementierten Stand gehört zur Abschlussprüfung.
 
-## Foundation package boundary
+## Package boundary
 
-- `@bitakit/core` owns the framework-independent runtime and Actions. Core has no React dependency, React types, or UI renderer exports; React bindings belong to @bitakit/ui. Settings remains independently usable.
-- Provider-specific adapters belong to optional packages, never Core. Register them as ordinary plugins, not a parallel integration system.
-- Use shared typed service keys for plugin contracts; declare required services and preserve server/client separation.
+- `@bitakit/core` owns the framework-independent runtime, the `define*` helpers and Actions. Core has no React dependency, React types, or UI renderer exports; React bindings belong to @bitakit/ui. Settings remains independently usable.
+- Provider-specific adapters belong to optional packages, never Core. Register them as ordinary plugins, not a parallel integration system. Packages opt into discovery with `bitakit: { plugin: './plugin' }` in `package.json`; `bitakit build` produces that entry.
+- Use shared typed contracts (`defineContract`, `provides`) for plugin services; declare required services with `requires` and preserve server/client separation.
 
 ## Minimal host application code
 
-- Reuse the existing Foundation architecture and package APIs before adding host code. Keep application code limited to product behavior, native framework routes, and essential composition/configuration.
+- Reuse the existing BitaKit architecture and package APIs before adding host code. Keep application code limited to product behavior, native framework routes, and essential composition/configuration (`next.config.ts` with `withBitaKit`, `<BitaKitProvider>` in the root layout, optional `bitakit.config.ts`).
 - Core already manages service registration, plugin lifecycle, and plugin-provided providers. The Better Auth adapter already registers the shared authentication service. Use these mechanisms; do not introduce a parallel registry, provider bootstrap, session store, or authentication binding in the app.
 - Keep reusable provider-specific wiring in its optional adapter package, not Core or duplicated host files. Preserve server/client boundaries and explicit server configuration.
 - Before adding host infrastructure, identify the concrete gap in existing package APIs. Moving boilerplate to another app folder is not simplification. Do not add wrappers or abstractions solely to reduce visible line count.
 - Keep demo/catalog code separate from required application integration so it can be removed independently. Preserve native framework routing for app-owned pages.
+- Never edit generated files (`src/bitakit.gen.*`); they are ignored by Git and rewritten by discovery.
 - Write all new documentation, development guidance, and code comments in English, regardless of conversation language. Product localization catalogs are separate from this rule.
 
 ## Headless Core and generic UI bindings
 
-- Core must remain usable on the backend without React or a UI library. Presentation payloads are opaque extension types; Core never renders them.
+- Core must remain usable on the backend without React or a UI library. Presentation payloads are opaque extension types; Core never renders them. React belongs under `ui/` of a plugin; nothing outside `ui/` may import React.
 - packages/ui contains generic bindings and host-driven rendering only. Do not add shadcn, Radix, HeroUI, or copied visual components to this package.
 - Apps and optional visual plugins own only their required UI components. Visual plugins never import app code or request a host component catalog. They consume generic action bindings from packages/ui and inherit the central application CSS theme tokens.
 - Do not replace removed primitives with another central component-library package. Keep standard library components in the consuming app, and keep business execution/guards in Core.

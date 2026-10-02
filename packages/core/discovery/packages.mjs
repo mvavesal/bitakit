@@ -2,9 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
-/** Reads opt-in metadata from direct dependencies. Never imports client plugin code in Node. */
+/**
+ * Reads opt-in metadata (`bitakit` in package.json, `foundation` as the older name) from direct
+ * dependencies and, transitively, from the plugin packages they depend on, so installing
+ * `@bitakit/shell` also activates `@bitakit/app-preferences`. Never imports client code in Node.
+ */
 export async function installedContributions(root, selection, jiti) {
-  if (selection === false) return { plugins: [], kinds: [], styles: [] };
+  if (selection === false)
+    return { plugins: [], kinds: [], configurations: {}, styles: [], packages: [] };
   const manifestFile = path.join(root, 'package.json');
   const manifest = await readFile(manifestFile, 'utf8')
     .then(JSON.parse)
@@ -12,35 +17,38 @@ export async function installedContributions(root, selection, jiti) {
       if (error.code === 'ENOENT') return {};
       throw error;
     });
-  const require = createRequire(manifestFile);
   const plugins = [];
   const kinds = [];
   const configurations = {};
   const stylesheets = [];
-  for (const name of Object.keys({
-    ...manifest.dependencies,
-    ...manifest.optionalDependencies,
-  }).sort()) {
-    if (selection?.[name] === false) continue;
+  const packages = [];
+  const visited = new Set();
+  const queue = Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies })
+    .sort()
+    .map((name) => ({ name, from: manifestFile }));
+  while (queue.length) {
+    const { name, from } = queue.shift();
+    if (visited.has(name) || selection?.[name] === false) continue;
+    visited.add(name);
     let file;
     try {
-      // Opt-in packages expose their manifest as a public subpath.
-      file = require.resolve(`${name}/package.json`);
+      file = createRequire(from).resolve(`${name}/package.json`);
     } catch (error) {
       if (error.code === 'MODULE_NOT_FOUND' || error.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED')
         continue;
       throw error;
     }
     const installed = JSON.parse(await readFile(file, 'utf8'));
-    const metadata = installed.foundation;
+    const metadata = installed.bitakit ?? installed.foundation;
     if (!metadata) continue;
+    packages.push(name);
     const specifier = (entry) => {
       if (
         typeof entry !== 'string' ||
         !/^\.\/[\w./-]+$/.test(entry) ||
         entry.split('/').includes('..')
       )
-        throw new Error(`Invalid Foundation export in package "${name}".`);
+        throw new Error(`Invalid BitaKit export in package "${name}".`);
       return `${name}/${entry.slice(2)}`;
     };
     if (metadata.plugin) {
@@ -57,13 +65,20 @@ export async function installedContributions(root, selection, jiti) {
         theme: list(metadata.theme).map(specifier),
       });
     if (metadata.discovery) {
-      const discover = await jiti.import(require.resolve(specifier(metadata.discovery)), {
-        default: true,
-      });
+      const discover = await jiti.import(
+        createRequire(from).resolve(specifier(metadata.discovery)),
+        { default: true },
+      );
       kinds.push(...discover());
     }
+    // Plugin packages activate the plugin packages they depend on.
+    for (const dependency of Object.keys({
+      ...installed.dependencies,
+      ...installed.peerDependencies,
+    }).sort())
+      if (!visited.has(dependency)) queue.push({ name: dependency, from: file });
   }
-  return { plugins, kinds, configurations, styles: orderStyles(stylesheets) };
+  return { plugins, kinds, configurations, styles: orderStyles(stylesheets), packages };
 }
 
 /** Package styles after the styles of the packages they depend on; theme files come last. */

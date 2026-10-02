@@ -1,96 +1,87 @@
 ---
 title: Discovery and file conventions
-description: Let a configured host generate imports and types.
+description: Let the build generate imports and types from your plugin folders.
 ---
 
 **Owner:** the Node-only `@bitakit/core/discovery` entry. Framework adapters connect it to the build. Installing Core alone does not scan folders.
 
-## Start with the feature
+## One feature, one folder
 
 ```text
 src/plugins/todos/
-  services/todos.ts
-  actions/add.ts
-  actions/list.ts
-  configs.ts
+├── services/items.ts         defineService   → services.todos.items
+├── actions/add.ts            defineAction    → todos.add
+├── events.ts                 defineEvents    → todos.changed
+├── configs/limits.ts         defineConfig    → app.config.todos.limits
+├── interceptors/audit.ts     defineInterceptor
+├── setup.ts                  plugin setup (optional)
+├── plugin.config.ts          dependencies and metadata (optional)
+├── locales/en.json           { "todos": { ... } }
+└── ui/
+    ├── pages/index.tsx       /todos          (file path = URL)
+    ├── slots/app-bar.end.tsx component placed in slot "app-bar.end"
+    └── providers/query.tsx   React provider wrapped around the app
 ```
 
-Every immediate folder under `src/plugins` defines a local plugin. Its folder name is the default plugin ID. Optional `plugin.config.ts` overrides metadata and dependencies. Root app contributions live directly under `src`; they do not require a wrapper plugin.
+Every immediate folder under `src/plugins` is a plugin; its folder name is the plugin ID. Folders are the one convention: the kind comes from the folder, the name from the file path, and nested folders add segments (`actions/tasks/clear.ts` → `todos.tasks.clear`). Root app contributions live in the same folders directly under `src`; their IDs carry no prefix.
 
-For this example, the folder already supplies `todos`, so no manifest or explicit `id` is needed. An explicit `id` is an optional override when the inferred name does not fit your application.
-
-## Flat or nested: the same logical feature
-
-**Folders and dots express the same logical path.** Each row below shows two ways to name one contribution, relative to `src/plugins/todos/`.
-
-| Nested folders            | Equivalent | Flat filename             | Same result                   |
-| ------------------------- | :--------: | ------------------------- | ----------------------------- |
-| `actions/add.ts`          |     =      | `actions.add.ts`          | Action `todos.add`            |
-| `actions/list.ts`         |     =      | `actions.list.ts`         | Action `todos.list`           |
-| `services/todos.ts`       |     =      | `services.todos.ts`       | Public service `todos`        |
-| `configs/actions/list.ts` |     =      | `configs.actions.list.ts` | Config subtree `actions.list` |
-
-The file contents stay the same. For example, a default-exported `defineAction` in either `actions/add.ts` or `actions.add.ts` registers the same `todos.add` action when no explicit ID overrides it.
-
-### You can mix folders and dots
-
-For the configuration of the list action, all three paths are equivalent:
-
-```text
-configs/actions/list.ts     ← nested folders
-           =
-configs/actions.list.ts     ← folders and dots
-           =
-configs.actions.list.ts     ← flat filename
-```
-
-Each resolves to `actions.list` inside the same plugin configuration. Choose one spelling per contribution; different contributions may use different styles.
-
-<Callout title="Equivalent paths are alternatives">
-  Keep only one version of each contribution. Creating both `actions/add.ts` and `actions.add.ts`
-  defines the same action twice and produces a duplicate-contribution error.
+<Callout title="Legacy spellings">
+  `actions.add.ts` and `add.action.ts` from 0.1, and the old `pages/`, `views/` and `providers/`
+  folders, are still read with a warning. `npx bitakit migrate` rewrites them to the folder
+  convention; `--dry-run` lists the changes first.
 </Callout>
-
-The segments still matter: `configs.list.ts` resolves to `list`, while `configs.actions.list.ts` resolves to `actions.list`. Removing `actions` changes the configuration path; replacing a slash with a dot does not.
-
-## Automatic loading, step by step
-
-1. The configured build adapter discovers supported files and opted-in direct dependencies.
-2. Core generates static imports, composition and TypeScript declarations.
-3. The host provider consumes that generated configuration.
-4. Core mounts the selected plugins, constructs services and registers actions.
-5. Renderers bind to the existing action snapshots and groups.
-
-Development integration watches file additions, changes and removals. Production changes require a new build and deployment. Browser code never scans the filesystem. Automatic registration does not automatically render a new menu group or create a route.
-
-## IDs and filenames
-
-| File                      | Meaning                                      |
-| ------------------------- | -------------------------------------------- |
-| `actions/add.ts`          | Action named `add` inside the owning module  |
-| `actions.add.ts`          | Equivalent spelling of the same contribution |
-| `services/todos.ts`       | Service with inferred public name `todos`    |
-| `configs/actions/list.ts` | Config subtree `actions.list`                |
-| `interceptors/logging.ts` | Interceptor contribution                     |
-
-The local plugin's `actions/add.ts` becomes `todos.add`. Explicit IDs take precedence. Services retain internal module namespaces while exposing their relative path or explicit public name. Manual imports without discovery still need explicit IDs.
-
-Root app action IDs remain unprefixed when there is no app manifest. An explicit root `src/plugin.config.ts` ID supplies a namespace. Moving a contribution can therefore change inferred identities; use explicit IDs when identity must survive a move.
 
 ## What is discovered
 
-TypeScript and TSX contributions need a default export. Helper files without one, declaration files, `server` path segments and segments starting with `-` are excluded. Dot and directory segments are equivalent. Legacy suffixes such as `.action.ts` and `.service.ts` remain supported. Duplicate logical contributions are errors, even if their filenames use different spellings.
+A TypeScript or TSX file participates when it has a default export; discovery detects the export with the TypeScript parser and never executes the module. Files without a default export are reported as skipped; prefix helper files with `-` to silence that. Declaration files and anything under `server/` are excluded. Everything under `ui/` that is not in `pages/`, `slots/` or `providers/` is an ordinary component, never a contribution; everything under `ui/` is React, and nothing outside it may import React.
 
-Discovery emits static imports and Action, Service and Config maps. It does not execute client contribution modules. Build configuration, manifests and opt-in discovery adapters are trusted build code. Excluding a server path does not make transitive server imports safe for client code.
+| File                       | Meaning                                                                  |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `actions/add.ts`           | Action `todos.add`                                                       |
+| `services/items.ts`        | Service `todos.items`, reached as `services.todos.items`                 |
+| `events.ts`                | The plugin's events, `todos.<name>`                                      |
+| `configs/limits.ts`        | Config subtree `limits`; `configs/actions/add.ts` configures `todos.add` |
+| `interceptors/audit.ts`    | Interceptor, plugin-local by default                                     |
+| `ui/pages/tasks/[id].tsx`  | Page `/todos/tasks/:id`, receives `params.id`                            |
+| `ui/slots/app-bar.end.tsx` | Component in slot `app-bar.end`                                          |
+| `ui/providers/query.tsx`   | React provider `todos.query`                                             |
 
-## Collections and package discovery
+A default export may also be a record of definitions (`actions/index.ts` exporting `{ add, clear }` equals two files). Duplicate logical paths are errors that name both files. Class and factory action exports are not discovered.
 
-Actions and services can be exported as named collections instead of separate files. Define helpers preserve callback typing. A plain action function is treated as an Action factory, not automatically as an execute callback.
+## Automatic loading, step by step
 
-Direct dependencies can opt into package discovery through exported `package.json` and Foundation metadata. Transitive dependencies do not activate automatically. A package's plugin factory describes contributions; Core acquires and disposes resources at runtime.
+1. The framework adapter (`withBitaKit` in `next.config.ts`, `bitakit()` in `vite.config.ts`) runs discovery before the build and watches during development.
+2. Discovery writes `src/bitakit.gen.tsx` (`createBitaKitConfig()`, `BitaKitProvider` and the typed `ServiceMap`, `ActionMap`, `EventMap`, `ConfigMap` and `SlotMap`), `src/bitakit.gen.css` (styles of installed packages) and `src/bitakit.gen.messages.json` (plugin locales).
+3. The root layout renders `<BitaKitProvider>` from `@/bitakit.gen`, which mounts the runtime.
+4. Core creates the services, registers the actions and installs interceptors and UI.
+5. Bindings read the live action state and service stores.
 
-Generated `.foundation/` files and `foundation-env.d.ts` should stay out of Git. Native application routes remain owned by the framework. An action ID or group never creates a route or renders a menu by itself.
+Ignore `src/bitakit.gen.*` in Git. Production changes require a new build. Browser code never scans the filesystem. Automatic registration does not create a route or render a menu by itself; a page comes from `ui/pages`, a navigation entry from `groups: ['navigation']`.
 
-Use [manual composition](/docs/concepts/manual-composition) when you do not have a discovery-enabled host.
+`npx bitakit info` lists what discovery finds; `npx bitakit doctor` checks the wiring, pages, links, service names and styles; `npx bitakit generate [--watch]` runs the generator by hand.
 
-Read [overrides](/docs/concepts/overrides) before replacing a contribution, and [type safety](/docs/concepts/type-safety) for generated contracts and strict IDs.
+## `plugin.config.ts` and `bitakit.config.ts`
+
+`plugin.config.ts` is optional. It declares `dependencies`, display `metadata`, an `id` other than the folder name and `entries` that relocate a kind. Discovery derives everything else.
+
+`bitakit.config.ts` configures discovery for the whole app:
+
+```ts
+import { defineBitaKit } from '@bitakit/core/discovery';
+
+export default defineBitaKit({
+  configOverrides: { todos: { limits: { maxItems: 50 } } },
+  actions: { overrides: { 'todos.clear': { enabled: false } } },
+  plugins: { overrides: { demo: { enabled: false } }, include: { notes: '../notes/src' } },
+  packages: { '@bitakit/quick-search': false },
+  slots: ['dashboard.content'],
+});
+```
+
+Other options: `directory` and `plugins.directory` move the roots, `plugins.autoEnable: false` turns plugins off unless enabled, `interceptors.enabled` selects app interceptors, `strict: false` allows unknown action IDs, `groups` declares action groups and `kinds` adds integration contribution kinds. See [overrides](/docs/concepts/overrides).
+
+## Installed packages
+
+A package becomes a plugin by declaring `bitakit: { plugin: './plugin' }` in its `package.json`. Direct dependencies and the plugin packages they depend on are activated; the package's styles join `bitakit.gen.css`. `bitakit build` produces that entry from the same folders apps use, so a plugin can move between `src/plugins/<id>` of an app and `src/` of a package unchanged. Installing an arbitrary npm dependency does not activate it.
+
+Use [manual composition](/docs/concepts/manual-composition) when you do not have a discovery-enabled host, and read [type safety](/docs/concepts/type-safety) for the generated contracts.

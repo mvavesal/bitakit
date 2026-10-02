@@ -17,7 +17,8 @@ function internalPath(value: string | undefined): string | undefined {
 
 export function configureAuthPaths(paths: AuthPaths): AuthPaths {
   for (const value of [paths.signIn, paths.afterSignIn, paths.afterSignOut]) {
-    if (!internalPath(value)) throw new Error('Auth paths must be safe root-relative application URLs.');
+    if (!internalPath(value))
+      throw new Error('Auth paths must be safe root-relative application URLs.');
   }
   if (pathname(paths.signIn) === pathname(paths.afterSignIn)) {
     throw new Error('The post-login destination must differ from the login page.');

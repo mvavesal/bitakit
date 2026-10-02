@@ -27,14 +27,17 @@ export async function planProject(directory, options = {}) {
   });
   if (existing) throw new Error(`Destination already exists: ${target}. Choose a new directory.`);
   const type = options.type ?? 'app';
-  if (!['app', 'plugin'].includes(type)) throw new Error(`Unknown project type: ${type}. Use app or plugin.`);
+  if (!['app', 'plugin'].includes(type))
+    throw new Error(`Unknown project type: ${type}. Use app or plugin.`);
   const framework = options.framework ?? 'next';
   if (!Object.hasOwn(adapters, framework))
     throw new Error(
       `Unsupported framework: ${framework}. Available: ${Object.keys(adapters).join(', ')}.`,
     );
   // A plugin package's playground is a full app with the App Shell.
-  const features = resolveFeatures(type === 'plugin' ? defaultFeatures : (options.features ?? defaultFeatures));
+  const features = resolveFeatures(
+    type === 'plugin' ? defaultFeatures : (options.features ?? defaultFeatures),
+  );
   return {
     type,
     target,
@@ -68,7 +71,8 @@ export async function createApp(plan, { run, packagesDir, install = plan.install
   const adapter = adapters[plan.framework];
   await adapter.scaffold(plan, run);
   await adapter.configure(plan);
-  if (plan.sample) await writeProjectFiles(path.join(plan.target, 'src/plugins/todos'), pluginFiles('todos'));
+  if (plan.sample)
+    await writeProjectFiles(path.join(plan.target, 'src/plugins/todos'), pluginFiles('todos'));
   if (packagesDir) await useLocalPackages(plan.target, packagesDir);
   if (install) await run('npm', ['install'], plan.target);
   return plan.target;
@@ -94,7 +98,9 @@ export async function useLocalPackages(target, directory) {
     }
   }
   for (const field of ['dependencies', 'devDependencies'])
-    for (const name of Object.keys(manifest[field] ?? {}).filter((name) => name.startsWith('@bitakit/'))) {
+    for (const name of Object.keys(manifest[field] ?? {}).filter((name) =>
+      name.startsWith('@bitakit/'),
+    )) {
       if (!overrides[name])
         throw new Error(
           `Missing npm tarball for ${name} in ${source}. Files were generated; installation has not started.`,

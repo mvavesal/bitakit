@@ -1,48 +1,52 @@
 ---
 title: Standalone To-do walkthrough
-description: Follow services, actions, events and cleanup in one runnable feature.
+description: Follow a service with a store, actions, events and cleanup in one runnable feature.
 ---
 
-Build a small To-do feature with services, actions and events. This example runs in Node.js with `@bitakit/core`.
+Build a small To-do feature with a service, actions and events. This example runs in Node.js with `@bitakit/core` and no framework.
 
-This walkthrough deliberately uses manual composition to run without a host framework. Its explicit registration IDs are required in that mode. For the simpler discovery-based workflow without registration IDs, start with [Plugins and lifecycle](/docs/concepts/plugins).
+It uses manual composition: `definePlugin` groups the files, and the record keys supply the same IDs discovery derives from file paths in an app. For the discovery-based workflow, start with [Plugins and lifecycle](/docs/concepts/plugins).
 
-Install `@bitakit/core`, then create the following files in your project. Keep their relative paths. No React, router, database or file discovery is required.
+Install `@bitakit/core`, then create the following files in your project. Keep their relative paths. No React, router, database or file discovery is required. The same files ship in the package under `examples/`.
 
-The service owns tasks, three actions invoke it, and the plugin groups them. The delete action starts disabled because the list starts empty, then reacts after mutations through the same runtime event bus. It needs no setup method.
+The service owns tasks in a store, three actions invoke it, the events file declares `todos.changed`, and the plugin groups them. The delete action is disabled while the list is empty because its `enabled` function reads the store.
 
 ## todos/services/tasks.mjs
 
 ```js
 import { defineService } from '@bitakit/core';
 
-function createTodoService({ events }) {
-  let tasks = [];
-  let nextId = 1;
-
-  function create(title) {
-    const task = { id: nextId++, title, done: false };
-    tasks.push(task);
-    events.emit('todos.changed', { kind: 'added', id: task.id });
-    return task;
-  }
+/** The Todos data and behavior: an observable store plus the methods that change it. */
+export default defineService(({ store, events }) => {
+  const state = store({ items: [], nextId: 1 });
 
   return {
-    create,
-    list: () => [...tasks],
+    state,
+    create(title) {
+      const task = { id: state.get().nextId, title, done: false };
+      state.set((s) => ({ items: [...s.items, task], nextId: s.nextId + 1 }));
+      events.emit('todos.changed', { kind: 'added', id: task.id });
+      return task;
+    },
+    list: () => [...state.get().items],
     delete(id) {
-      const previousCount = tasks.length;
-      tasks = tasks.filter((task) => task.id !== id);
-      const removed = tasks.length < previousCount;
+      const before = state.get().items.length;
+      state.set((s) => ({ ...s, items: s.items.filter((task) => task.id !== id) }));
+      const removed = state.get().items.length < before;
       if (removed) events.emit('todos.changed', { kind: 'removed', id });
       return removed;
     },
   };
-}
+});
+```
 
-export default defineService({
-  id: 'todos',
-  create: createTodoService,
+## todos/events.mjs
+
+```js
+import { defineEvents, event } from '@bitakit/core';
+
+export default defineEvents({
+  changed: event(),
 });
 ```
 
@@ -52,8 +56,7 @@ export default defineService({
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  id: 'todos.create',
-  execute: ({ services, input }) => services.todos.create(input),
+  execute: ({ services, input }) => services.todos.tasks.create(input),
 });
 ```
 
@@ -63,8 +66,7 @@ export default defineAction({
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  id: 'todos.list',
-  execute: ({ services }) => services.todos.list(),
+  execute: ({ services }) => services.todos.tasks.list(),
 });
 ```
 
@@ -74,21 +76,9 @@ export default defineAction({
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  id: 'todos.delete',
-
-  // Initial state: the task list starts empty, so deleting is disabled.
-  enabled: false,
-
-  // Events this action reacts to.
-  events: ['todos.changed'],
-
-  // Runs each time one of those events is emitted. Core owns the subscription.
-  onEvent(_event, { services, action }) {
-    action.enabled = services.todos.list().length > 0;
-  },
-
-  // Runs when a bound control or your code executes the action.
-  execute: ({ services, input }) => services.todos.delete(input),
+  // Re-evaluated whenever the tasks store changes: disabled while the list is empty.
+  enabled: ({ services }) => services.todos.tasks.state.get().items.length > 0,
+  execute: ({ services, input }) => services.todos.tasks.delete(input),
 });
 ```
 
@@ -97,14 +87,16 @@ export default defineAction({
 ```js
 import { definePlugin } from '@bitakit/core';
 import tasks from './services/tasks.mjs';
+import events from './events.mjs';
 import create from './actions/create.mjs';
 import list from './actions/list.mjs';
 import remove from './actions/delete.mjs';
 
 export default definePlugin({
   id: 'todos',
-  services: [tasks],
-  actions: [create, list, remove],
+  events,
+  services: { tasks }, // todos.tasks → services.todos.tasks
+  actions: { create, list, delete: remove }, // todos.create, todos.list, todos.delete
 });
 ```
 
@@ -119,20 +111,19 @@ const { actions } = runtime;
 const stop = runtime.mount();
 
 try {
+  console.log('Delete enabled before:', actions.get('todos.delete').enabled);
   await actions.execute('todos.create', 'Learn plugins');
   await actions.execute('todos.create', 'Connect a service');
-  await actions.execute('todos.create', 'Try actions');
-  console.log('Before:', await actions.execute('todos.list'));
+  console.log('Delete enabled after:', actions.get('todos.delete').enabled);
+  console.log('Before:', (await actions.execute('todos.list')).value);
   await actions.execute('todos.delete', 2);
-  console.log('After:', await actions.execute('todos.list'));
+  console.log('After:', (await actions.execute('todos.list')).value);
 } finally {
   stop();
 }
 ```
 
-`createRuntime` is new in 0.2. With Core 0.1, write `new FoundationRuntime(createActionList(), { plugins: [todos] })` and use `runtime.actions`.
-
-The actions use the plugin's own `todos` service without declaring it. Only services from other plugins go in `requires`, so that a missing plugin is reported at startup.
+`createRuntime(config, { actions, services })` creates the ActionList unless you pass one and accepts host-owned services. `mount()` returns the stop function; `runtime.ready` resolves after every service `onStart`.
 
 ## Run and inspect
 
@@ -140,8 +131,8 @@ The actions use the plugin's own `todos` service without declaring it. Only serv
 node todos.mjs
 ```
 
-The first list contains three tasks; after deleting ID 2, the second contains IDs 1 and 3. Successful execution returns `{ status: 'completed', value: ... }`. Failed execution rejects; inspect the execution outcome rather than assuming every call ran.
+The delete action reports `false` before the first task and `true` after it. The first list contains two tasks; after deleting ID 2, the second contains only ID 1. Successful execution returns `{ status: 'completed', value: ... }`. Failed execution rejects; inspect the execution outcome rather than assuming every call ran.
 
-The list is temporary memory. Events notify subscribers after a mutation; they do not hold the task data. Removing a task does not unregister the delete action. Runtime cleanup releases registrations and owned subscriptions.
+The store is temporary memory. Events notify subscribers after a mutation; they do not hold the task data. Removing a task does not unregister the delete action. Runtime cleanup releases registrations, stores and owned subscriptions.
 
-Try deleting every task: onEvent makes the delete action unavailable once the service is empty. A real product must still validate inputs and authorize mutations on the server.
+Try deleting every task: the `enabled` function makes the delete action unavailable once the store is empty. A real product must still validate inputs and authorize mutations on the server.

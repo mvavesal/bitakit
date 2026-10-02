@@ -44,6 +44,10 @@ export interface ActionDefinition extends RegistrationOptions {
   internal?: boolean;
   /** Opaque, immutable host metadata. The core never interprets it. */
   metadata?: unknown;
+  /** `exclusive` (default) skips while running; `per-input` tracks each input; `latest` aborts the previous run. */
+  concurrency?: 'exclusive' | 'per-input' | 'latest';
+  /** Key for `per-input` pending when the input is not a primitive. */
+  concurrencyKey?: (input: any) => string;
 }
 
 export type ActionPresentation = Partial<
@@ -68,6 +72,8 @@ export type ActionSnapshot = Readonly<
     enabled: boolean;
     visible: boolean;
     pending: boolean;
+    /** Inputs currently running, by concurrency key; `*` for exclusive actions. */
+    pendingKeys: readonly string[];
     status: ActionStatus;
     error?: unknown;
     state: unknown;
@@ -81,6 +87,8 @@ export interface ActionContext<Input = unknown> {
   get(): ActionSnapshot | undefined;
   /** Optional host dependency injection, owned by this list (never global). */
   readonly environment: unknown;
+  /** Aborts when the registration is disposed or a newer `latest` run supersedes this one. */
+  readonly signal: AbortSignal;
   /** Updates only this registration, even if the handler finishes after replacement. */
   update(patch: ActionPatch): boolean;
 }
@@ -104,6 +112,7 @@ export type ExecutionResult<Value = unknown> =
         | 'pending'
         | 'no-handler'
         | 'intercepted'
+        | 'cancelled'
         | 'replaced';
     };
 

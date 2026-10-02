@@ -38,10 +38,7 @@ import { LoadingPage, ErrorPage } from '@bitakit/shell/pages';
 
 function ProtectedContent({ children }) {
   return (
-    <AuthBoundary
-      pending={<LoadingPage />}
-      renderError={() => <ErrorPage />}
-    >
+    <AuthBoundary pending={<LoadingPage />} renderError={() => <ErrorPage />}>
       {children}
     </AuthBoundary>
   );
@@ -64,34 +61,44 @@ does not invoke this UI navigation policy. Configure only one owner for logout n
 
 ## Writing another adapter
 
-Implement the existing `AuthService`, register it with `provideService(authService, ...)`,
-and use an ordinary plugin. No Core change, provider registry or host bootstrap is needed.
-The following is an adapter template: `source` is a normalized SDK bridge that the
-adapter author implements using their provider's public APIs, not an Auth.js or Clerk API.
+Implement the existing `AuthService` and register it as a service that `provides` the
+`authService` contract, in an ordinary plugin. No Core change, provider registry or host
+bootstrap is needed. The following is an adapter template: `source` is a normalized SDK
+bridge that the adapter author implements using their provider's public APIs, not an
+Auth.js or Clerk API.
 
 ```ts
 import {
-  authService, configureAuthPaths, definePlugin, provideService,
-  type AuthPaths, type AuthService,
+  authService,
+  configureAuthPaths,
+  definePlugin,
+  defineService,
+  type AuthPaths,
+  type AuthService,
 } from '@bitakit/core';
 
 export function customAuthPlugin(source: AuthService, paths: AuthPaths) {
   return definePlugin({
     id: 'custom-auth',
-    services: [provideService(authService, {
-      create: () => ({
-        paths: configureAuthPaths(paths),
-        getSnapshot: () => source.getSnapshot(),
-        subscribe: listener => source.subscribe(listener),
-        signOut: () => source.signOut(),
-        ...(source.signIn
-          ? { signIn: options => source.signIn!(options) }
-          : {}),
-      }),
-    })],
+    services: {
+      // Reached as services['custom-auth'].session and, through the contract, services.auth.
+      session: defineService(
+        (): AuthService => ({
+          paths: configureAuthPaths(paths),
+          getSnapshot: () => source.getSnapshot(),
+          subscribe: (listener) => source.subscribe(listener),
+          signOut: () => source.signOut(),
+          ...(source.signIn ? { signIn: (options) => source.signIn!(options) } : {}),
+        }),
+        { provides: authService },
+      ),
+    },
   });
 }
 ```
+
+Inside a plugin folder the same service is `services/session.ts` with the options as the
+second argument; discovery derives the ID.
 
 The bridge must return a stable `{ user, pending, error }` snapshot until it changes;
 `user` contains at least `id`, and `null` means signed out only once `pending` is false

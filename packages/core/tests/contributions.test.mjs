@@ -1,108 +1,210 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Action, createActionList } from '@bitakit/core/actions';
-import { FoundationRuntime, defineAction, defineFormAction, ActionFailure } from '../dist/core.js';
+import {
+  ActionGroup,
+  createRuntime,
+  defineAction,
+  definePlugin,
+  defineService,
+  isActionSpec,
+} from '../dist/core.js';
 
-function mountWith(actions, messages = {}) {
-  const list = createActionList();
-  const notifications = [];
-  const runtime = new FoundationRuntime(list, { plugins: [{ id: 'demo', actions }] });
-  runtime.setTranslations(
-    Object.assign((key) => messages[key] ?? key, { has: (key) => Object.hasOwn(messages, key) }),
-  );
-  runtime.setNotifier((message) => notifications.push(message));
-  const cleanup = runtime.mount();
-  return { list, runtime, notifications, cleanup };
-}
-
-test('completed executions return the handler value for commands, class actions and form submissions', async () => {
-  class Create extends Action {
-    async execute(input) {
-      return { id: `created:${input}` };
-    }
-  }
-  const { list, cleanup } = mountWith([
-    defineAction({ id: 'demo.count', execute: () => 42, success: false }),
-    () => new Create({ id: 'demo.create', title: 'Create' }),
-    defineFormAction({
-      id: 'demo.invite',
-      fields: { email: { type: 'email' } },
-      submit: ({ email }) => ({ email }),
-    }),
-  ]);
-  assert.deepEqual(await list.execute('demo.count'), { status: 'completed', value: 42 });
-  assert.deepEqual(await list.execute('demo.create', 'a'), {
-    status: 'completed',
-    value: { id: 'created:a' },
-  });
-  await list.execute('demo.invite');
-  assert.deepEqual(await list.execute('demo.invite.submit', { email: 'a@example.com' }), {
-    status: 'completed',
-    value: { email: 'a@example.com' },
-  });
-  cleanup();
-});
-
-test('class actions receive the invocation context and may update only their own registration', async () => {
-  class Toggle extends Action {
-    execute(value, context) {
-      context.update({ checked: value });
-      return context.id;
-    }
-  }
-  const { list, cleanup } = mountWith([
-    () => new Toggle({ id: 'demo.toggle', title: 'Toggle', checked: false }),
-  ]);
-  assert.equal((await list.execute('demo.toggle', true)).value, 'demo.toggle');
-  assert.equal(list.get('demo.toggle').checked, true);
-  cleanup();
-});
-
-test('class feedback is opt-in: declared messages use the shared pipeline, undeclared errors stay raw', async () => {
-  const boom = new Error('Secret');
-  class Silent extends Action {
-    execute() {
-      throw boom;
-    }
-  }
-  class Loud extends Action {
-    success = ({ result, input }) => `${result}:${input}`;
-    failure = ({ error }) => (error === boom ? { messageKey: 'demo.failed' } : undefined);
-    execute(input) {
-      if (input === 'fail') throw boom;
-      return 'ok';
-    }
-  }
-  const { list, notifications, cleanup } = mountWith(
-    [
-      () => new Silent({ id: 'demo.silent', title: 'Silent' }),
-      () => new Loud({ id: 'demo.loud', title: 'Loud' }),
+test('execute receives one context: input, services, config, app, events, signal, id, get and update', async () => {
+  let seen;
+  const runtime = createRuntime({
+    configOverrides: { demo: { actions: { inspect: { label: 'Inspector' } } } },
+    plugins: [
+      definePlugin({
+        id: 'demo',
+        config: { actions: { inspect: { label: 'default', limit: 2 } } },
+        services: { counter: defineService(() => ({ value: 1 })) },
+        actions: {
+          inspect: defineAction({
+            execute: (context) => {
+              seen = context;
+              context.update({ checked: true });
+              return [
+                context.input,
+                context.services.demo.counter.value,
+                context.config.action.get('label'),
+                context.config.action.get('limit'),
+                context.config.plugin.get('actions.inspect.limit'),
+                context.app.has('demo.counter'),
+                typeof context.events.emit,
+                context.signal instanceof AbortSignal,
+                context.id,
+                context.get()?.id,
+              ];
+            },
+          }),
+        },
+      }),
     ],
-    { 'demo.failed': 'Fehlgeschlagen' },
-  );
-  await assert.rejects(list.execute('demo.silent'), (error) => error === boom);
-  assert.deepEqual(notifications, []);
-  await list.execute('demo.loud', 'a');
-  assert.deepEqual(notifications, ['ok:a']);
-  await assert.rejects(list.execute('demo.loud', 'fail'), (error) => {
-    assert.ok(error instanceof ActionFailure);
-    assert.equal(error.feedback, 'Fehlgeschlagen');
-    assert.equal(error.cause, boom);
-    return true;
   });
-  assert.equal(list.get('demo.loud').pending, false);
-  cleanup();
+  const stop = runtime.mount();
+  try {
+    assert.deepEqual((await runtime.actions.execute('demo.inspect', 'in')).value, [
+      'in',
+      1,
+      'Inspector',
+      2,
+      2,
+      true,
+      'function',
+      true,
+      'demo.inspect',
+      'demo.inspect',
+    ]);
+    assert.equal(runtime.actions.get('demo.inspect').checked, true);
+    assert.deepEqual(Object.keys(seen).sort(), [
+      'app',
+      'config',
+      'environment',
+      'events',
+      'get',
+      'id',
+      'input',
+      'services',
+      'signal',
+      'update',
+    ]);
+  } finally {
+    stop();
+  }
 });
 
-test('form submission registrations are internal: executable, translated, but hidden from enumeration', () => {
-  const { list, runtime, cleanup } = mountWith(
-    [defineFormAction({ id: 'demo.invite', title: 'invite.title', fields: {}, submit() {} })],
-    { 'invite.title': 'Einladen' },
+test('completed executions return the handler value, sync or async; the value is never stored on the action', async () => {
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'demo',
+        actions: {
+          count: defineAction({ execute: () => 42 }),
+          create: defineAction({ execute: async ({ input }) => ({ id: `created:${input}` }) }),
+        },
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  try {
+    assert.deepEqual(await runtime.actions.execute('demo.count'), {
+      status: 'completed',
+      value: 42,
+    });
+    assert.deepEqual(await runtime.actions.execute('demo.create', 'a'), {
+      status: 'completed',
+      value: { id: 'created:a' },
+    });
+    assert.equal(runtime.actions.get('demo.create').value, undefined);
+    assert.equal(Object.hasOwn(runtime.actions.get('demo.create'), 'input'), false);
+  } finally {
+    stop();
+  }
+});
+
+test('dialog actions open the host dialog with the input instead of running; one dialog at a time', async () => {
+  const Rename = () => null;
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'demo',
+        actions: { rename: defineAction({ title: 'Rename', dialog: Rename, dialogSize: 'wide' }) },
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  try {
+    assert.equal(runtime.getSnapshot(), null);
+    assert.deepEqual(await runtime.actions.execute('demo.rename', { id: 3 }), {
+      status: 'completed',
+      value: undefined,
+    });
+    const state = runtime.getSnapshot();
+    assert.equal(state.definition.dialog, Rename);
+    assert.equal(state.definition.dialogSize, 'wide');
+    assert.deepEqual(state.input, { id: 3 });
+    assert.equal(typeof state.token, 'symbol');
+    await runtime.actions.execute('demo.rename', { id: 4 });
+    assert.equal(runtime.getSnapshot(), state, 'an open dialog is not replaced');
+    runtime.close();
+    assert.equal(runtime.getSnapshot(), null);
+  } finally {
+    stop();
+  }
+  assert.throws(
+    () => defineAction({ dialog: Rename, execute() {} }),
+    /opens a dialog or runs execute, not both/,
   );
-  assert.equal(list.get('demo.invite').internal, undefined);
-  assert.equal(list.get('demo.invite.submit').internal, true);
-  assert.equal(list.get('demo.invite.submit').title, 'Einladen');
-  runtime.setTranslations((key) => (key === 'invite.title' ? 'Invite' : key));
-  assert.equal(list.get('demo.invite.submit').title, 'Invite');
-  cleanup();
+  assert.throws(() => defineAction(), /expects an object/);
+  assert.equal(isActionSpec(defineAction({ execute() {} })), true);
+  assert.equal(isActionSpec({ execute() {} }), false);
+});
+
+test('internal actions execute by ID but stay out of enumeration; placement fields and metadata pass through', async () => {
+  const bulk = new ActionGroup('demo.bulk', 'Bulk');
+  const runtime = createRuntime({
+    groups: ['demo.menu'],
+    plugins: [
+      definePlugin({
+        id: 'demo',
+        actions: {
+          visible: defineAction({
+            title: 'Visible',
+            groups: ['demo.menu', bulk],
+            order: 2,
+            dividerBefore: true,
+            shortcut: { keys: 'Mod+S' },
+            metadata: { origin: 'test' },
+            execute: () => 'v',
+          }),
+          hidden: defineAction({ internal: true, execute: () => 'h' }),
+        },
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  try {
+    const action = runtime.actions.get('demo.visible');
+    assert.deepEqual(
+      action.groups.map((group) => group.id),
+      ['demo.menu', 'demo.bulk'],
+    );
+    assert.equal(action.groups[1], bulk);
+    assert.equal(action.order, 2);
+    assert.equal(action.dividerBefore, true);
+    assert.deepEqual(action.shortcut, { keys: 'Mod+S' });
+    assert.deepEqual(action.metadata, { origin: 'test' });
+    assert.equal(runtime.getGroup('demo.bulk').title, 'Bulk');
+    assert.deepEqual(Object.keys(runtime.app.actions.demo), ['visible']);
+    assert.equal((await runtime.actions.execute('demo.hidden')).value, 'h');
+    assert.throws(() => runtime.app.actions.demo.hidden.execute(), /Internal Action/);
+  } finally {
+    stop();
+  }
+});
+
+test('a dialog action with a dynamic enabled can still be gated, and its dialog receives the resolved input', async () => {
+  const Dialog = () => null;
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'demo',
+        actions: {
+          edit: defineAction({ dialog: Dialog, enabled: ({ input }) => input !== undefined }),
+        },
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  try {
+    assert.deepEqual(await runtime.actions.execute('demo.edit'), {
+      status: 'skipped',
+      reason: 'disabled',
+    });
+    assert.equal(runtime.getSnapshot(), null);
+    await runtime.actions.execute('demo.edit', 'item');
+    assert.equal(runtime.getSnapshot().input, 'item');
+  } finally {
+    stop();
+  }
 });

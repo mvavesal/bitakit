@@ -1,12 +1,12 @@
 import { EventService, createEventScope } from './events/service.js';
-import { setupAction } from './events/action-setup.js';
-import { serviceObserver } from './interceptors/service-observers.js';
-import { isServiceInterceptor } from './interceptors/service.js';
 import { ConfigService, type ConfigContext } from './config-service.js';
-import { contributionPath, contributionSource } from './contribution-origin.js';
-import { ServiceNames, type ServiceRequester } from './service-names.js';
+import {
+  contributionPath,
+  contributionSource,
+  setContributionPath,
+} from './contribution-origin.js';
+import { ServiceNames, type ServiceEntry, type ServiceRequester } from './service-names.js';
 import { FoundationStartupError, isFoundationStartupError, moduleLabel } from './startup-error.js';
-import { applyActionReplacements } from './replacements.js';
 import { findPluginPage, validatePluginPages } from './pages.js';
 import { projectedDestination, type Destination } from './destinations.js';
 import { resolveText } from './translation.js';
@@ -18,23 +18,25 @@ import {
   type ActionSnapshot,
 } from '@bitakit/core/actions';
 import type {
-  Contribution,
+  ActionSpec,
   ContributionInstaller,
   ContributionMap,
   ResolvedContribution,
-  ResolvedForm,
-  Field,
   FoundationConfig,
   Plugin,
+  PluginPageDefinition,
+  PluginView,
+  ProviderDefinition,
+  ServiceDefinition,
   Services,
   Translator,
 } from './definitions.js';
+import type { Events } from './events/types.js';
 import { PluginScope, assignScopeModule } from './scope.js';
-import { createServices } from './services.js';
+import { createServices, type Observable } from './services.js';
 import { createFoundationApp } from './app/access.js';
-import { serviceAliases } from './app/service-aliases.js';
 import type { FoundationApp } from './app/types.js';
-import { fallbackTitle } from './conventions.js';
+import { fallbackTitle, resolveContribution } from './conventions.js';
 import {
   isActionFailure,
   evaluateFeedback,
@@ -42,63 +44,206 @@ import {
   type MessageValues,
 } from './actions/feedback.js';
 import {
-  adaptContribution,
+  adaptAction,
   type ContributionHost,
   type DialogState,
   type FeedbackOutcome,
   type OpenableDefinition,
   type Override,
 } from './contributions/index.js';
+import {
+  isServiceInterceptor,
+  matchesTarget,
+  type ActionInterceptorSpec,
+  type InterceptorSpec,
+} from './interceptors/define.js';
+import { serviceObserver } from './interceptors/service-observers.js';
+import type { Confirmation } from './confirmation.js';
+import { deprecated } from './compat.js';
 export type { DialogState } from './contributions/index.js';
 
-function orderPlugins(plugins: readonly Plugin[]) {
-  const remaining = new Map(plugins.map((plugin) => [plugin.id, plugin]));
-  if (remaining.size !== plugins.length) throw new Error('Duplicate plugin ID.');
-  const ordered: Plugin[] = [];
+/** A plugin after normalization: records resolved to arrays with IDs, `ui` merged with the legacy fields. */
+export type NormalizedPlugin = Omit<
+  Plugin,
+  'services' | 'actions' | 'pages' | 'views' | 'providers'
+> & {
+  readonly id: string;
+  readonly services: readonly (ServiceDefinition<any> & { id: string })[];
+  readonly actions: readonly ResolvedContribution[];
+  readonly pages: readonly PluginPageDefinition[];
+  readonly views: readonly PluginView[];
+  readonly providers: readonly ProviderDefinition[];
+};
+
+function attributed(error: unknown, plugin: string, what: string, appId: string) {
+  if (isFoundationStartupError(error)) return error;
+  const message = error instanceof Error ? error.message : String(error);
+  return new FoundationStartupError(
+    `${what} in ${moduleLabel(plugin, appId)}: ${message}`,
+    plugin,
+    {
+      cause: error,
+      app: plugin === appId,
+    },
+  );
+}
+
+function normalize(module: Plugin, appId: string): NormalizedPlugin {
+  const id = module.id;
+  const isApp = id === appId;
+  try {
+    const services: (ServiceDefinition<any> & { id: string })[] = Array.isArray(module.services)
+      ? module.services.map((service) => {
+          if (!service.id)
+            throw new Error(
+              'A service in an array needs an id. Prefer a record: services: { items: service }.',
+            );
+          return service as ServiceDefinition<any> & { id: string };
+        })
+      : Object.entries((module.services ?? {}) as Record<string, ServiceDefinition<any>>).map(
+          ([key, service]) => ({
+            ...service,
+            id: service.id ?? (isApp ? key : `${id}.${key}`),
+          }),
+        );
+    const actions: ResolvedContribution[] = Array.isArray(module.actions)
+      ? module.actions.map((action) => {
+          const resolved = resolveContribution(action);
+          if (!contributionPath(resolved))
+            setContributionPath(
+              resolved,
+              resolved.id.startsWith(`${id}.`)
+                ? resolved.id.slice(id.length + 1).split('.')
+                : resolved.id.split('.'),
+              contributionSource(resolved),
+            );
+          return resolved;
+        })
+      : Object.entries((module.actions ?? {}) as Record<string, ActionSpec<any, any>>).map(
+          ([key, action]) => {
+            const resolved = resolveContribution(action, isApp ? key : `${id}.${key}`);
+            if (!contributionPath(resolved))
+              setContributionPath(resolved, key.split('.'), contributionSource(resolved));
+            return resolved;
+          },
+        );
+    if (module.publicServices)
+      deprecated('publicServices', 'Use exposeAs or provides on the service definition.');
+    return {
+      ...module,
+      id,
+      services,
+      actions,
+      pages: module.ui?.pages ?? module.pages ?? [],
+      views: module.ui?.slots ?? module.views ?? [],
+      providers: module.ui?.providers ?? module.providers ?? [],
+    };
+  } catch (error) {
+    throw attributed(error, id, 'Plugin definition', appId);
+  }
+}
+
+function orderPlugins(plugins: readonly NormalizedPlugin[], appId: string) {
+  const remaining = new Map<string, NormalizedPlugin>();
+  for (const plugin of plugins) {
+    if (remaining.has(plugin.id))
+      throw new FoundationStartupError(
+        `Plugin ID "${plugin.id}" is used twice. Rename one plugin folder or set a different id in plugin.config.ts.`,
+        plugin.id,
+        { app: plugin.id === appId },
+      );
+    remaining.set(plugin.id, plugin);
+  }
+  const ordered: NormalizedPlugin[] = [];
   while (remaining.size) {
-    const plugin = [...remaining.values()].find(
-      (item) => item.dependencies?.every((id) => ordered.some((done) => done.id === id)) ?? true,
+    const plugin = [...remaining.values()].find((item) =>
+      (item.dependencies ?? []).every((id) => ordered.some((done) => done.id === id)),
     );
-    if (!plugin) throw new Error('Missing or cyclic plugin dependency.');
-    ordered.push(plugin);
-    remaining.delete(plugin.id);
+    if (plugin) {
+      ordered.push(plugin);
+      remaining.delete(plugin.id);
+      continue;
+    }
+    for (const item of remaining.values()) {
+      const missing = (item.dependencies ?? []).find(
+        (id) => !plugins.some((candidate) => candidate.id === id),
+      );
+      if (missing)
+        throw new FoundationStartupError(
+          `Plugin "${item.id}" depends on "${missing}", which is not installed or is disabled. Known plugins: ${plugins.map((candidate) => candidate.id).join(', ')}.`,
+          item.id,
+          { app: item.id === appId },
+        );
+    }
+    const path: string[] = [];
+    let current = remaining.keys().next().value!;
+    while (!path.includes(current)) {
+      path.push(current);
+      current = (remaining.get(current)!.dependencies ?? []).find((id) => remaining.has(id))!;
+    }
+    const cycle = [...path.slice(path.indexOf(current)), current];
+    throw new FoundationStartupError(
+      `Plugin dependency cycle: ${cycle.join(' → ')}. Break it with an event or a shared service that both can require.`,
+      cycle[0],
+      { app: cycle[0] === appId },
+    );
   }
   return ordered;
 }
 
+type Deferred = { promise: Promise<void>; resolve(): void; reject(error: unknown): void };
+function deferred(): Deferred {
+  let resolve!: () => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<void>((done, fail) => {
+    resolve = done;
+    reject = fail;
+  });
+  promise.catch(() => {});
+  return { promise, resolve, reject };
+}
+
 /**
- * Mounts plugins into the host's ActionList. Each contribution kind is normalized by an adapter
- * in `./contributions`; the runtime owns services, translation, dialogs, ordering and cleanup.
+ * Mounts plugins into the host's ActionList. The runtime owns services, events, translation,
+ * dialogs, confirmation, ordering and cleanup; every contribution goes through one adapter.
  */
 export class FoundationRuntime implements ContributionHost {
   readonly app: FoundationApp;
   readonly events: EventService;
   readonly configuration: ConfigService;
-  readonly modules: readonly Plugin[];
+  readonly modules: readonly NormalizedPlugin[];
+  readonly groups: Map<string, ActionGroup>;
+  private readonly appId: string;
+  private readonly order: readonly NormalizedPlugin[];
+  private readonly names: ServiceNames;
   private readonly actionConfigs = new Map<string, { module: string; config: ConfigContext }>();
-  private ready = false;
+  private mounted = false;
   private readinessListeners = new Set<() => void>();
-  isReady = () => this.ready;
+  private readyDeferred = deferred();
+  private startController?: AbortController;
+  isReady = () => this.mounted;
   subscribeReady = (listener: () => void) => {
     this.readinessListeners.add(listener);
     return () => {
       this.readinessListeners.delete(listener);
     };
   };
+  /** Resolves when every service's `onStart` has completed; rejects with the attributed startup error. */
+  get ready(): Promise<void> {
+    return this.readyDeferred.promise;
+  }
   private setReady(ready: boolean) {
-    this.ready = ready;
+    this.mounted = ready;
     this.readinessListeners.forEach((listener) => listener());
+    // Presentation may read app.ready.
+    if (this.container) this.actions.refresh();
   }
   private listeners = new Set<() => void>();
   private state: DialogState | null = null;
-  private registrations: {
-    definition: ResolvedContribution;
-    handle: ActionRegistration;
-  }[] = [];
+  private registrations: { definition: ResolvedContribution; handle: ActionRegistration }[] = [];
   private scopes: PluginScope[] = [];
   private extensionCleanups: (() => void)[] = [];
   private container?: ReturnType<typeof createServices>;
-  private names?: ServiceNames;
   private view?: Services;
   private translate: Translator = (key) => key;
   private translationRevision = 0;
@@ -106,52 +251,78 @@ export class FoundationRuntime implements ContributionHost {
   getTranslationRevision = () => this.translationRevision;
   subscribeTranslations = (listener: () => void) => {
     this.translationListeners.add(listener);
-    return () => { this.translationListeners.delete(listener); };
+    return () => {
+      this.translationListeners.delete(listener);
+    };
   };
   private notifier?: (message: string, kind: 'success' | 'failure') => unknown;
-  private formFeedback = new WeakMap<DialogState, FeedbackOutcome>();
-  readonly groups: Map<string, ActionGroup>;
+  private confirmHandler?: (request: Confirmation) => Promise<boolean> | boolean;
+  private confirmWarned = false;
+
   constructor(
     readonly actions: ActionList,
     readonly config: FoundationConfig,
-    private providedServices: Partial<Services> = {},
+    private providedServices: Readonly<Record<string, unknown>> = {},
   ) {
+    this.appId = config.appId ?? 'app';
+    const { plugins = [], appId: _appId, ...appModule } = config;
     this.modules = [
-      { ...config, id: config.appId ?? '@foundation/app' },
-      ...(config.plugins ?? []),
-    ].map((module) => ({ ...module, publicServices: serviceAliases(module) }));
+      normalize({ ...appModule, id: this.appId } as Plugin, this.appId),
+      ...plugins.map((plugin) => normalize(plugin, this.appId)),
+    ];
+    this.order = orderPlugins(this.modules, this.appId);
     this.events = new EventService(config.onEventError);
+    for (const module of this.modules)
+      if (module.events) {
+        try {
+          this.events.declare(module.id, module.events);
+        } catch (error) {
+          throw attributed(error, module.id, 'Event declaration', this.appId);
+        }
+      }
+    this.names = new ServiceNames(this.serviceEntries(), this.appId);
     this.app = createFoundationApp(this);
-    this.configuration = new ConfigService(
-      [{ id: config.appId ?? '@foundation/app', config: config.config }, ...(config.plugins ?? [])],
-      config.configOverrides,
-    );
+    try {
+      this.configuration = new ConfigService(
+        this.modules.map((module) => ({ id: module.id, config: module.config })),
+        config.configOverrides,
+      );
+    } catch (error) {
+      throw attributed(error, this.appId, 'Configuration', this.appId);
+    }
     validatePluginPages(this.modules);
-    if (new Set(config.groups ?? []).size !== (config.groups ?? []).length)
-      throw new Error('Duplicate action group.');
-    this.groups = new Map((config.groups ?? []).map((id) => [id, new ActionGroup(id)]));
+    const groups = config.groups ?? [];
+    const duplicate = groups.find((id, index) => groups.indexOf(id) !== index);
+    if (duplicate) throw new Error(`Action group "${duplicate}" is listed twice in groups.`);
+    this.groups = new Map(groups.map((id) => [id, new ActionGroup(id)]));
   }
-  private get appId() {
-    return this.config.appId ?? '@foundation/app';
+
+  private serviceEntries(): ServiceEntry[] {
+    const entries: ServiceEntry[] = Object.keys(this.providedServices).map((id) => ({
+      id,
+      aliases: [],
+      plugin: this.appId,
+    }));
+    for (const module of this.modules) {
+      for (const service of module.services)
+        entries.push({
+          id: service.id,
+          aliases: [service.exposeAs, service.provides as string | undefined].filter(
+            (alias): alias is string => typeof alias === 'string',
+          ),
+          plugin: module.id,
+        });
+      for (const [alias, key] of Object.entries(module.publicServices ?? {}))
+        entries.push({ id: key as string, aliases: [alias], plugin: module.id });
+    }
+    return entries;
   }
-  private order?: readonly Plugin[];
-  /** Modules in install order: dependencies first, the application module included. */
-  private moduleOrder() {
-    this.order ??= orderPlugins([
-      {
-        id: this.appId,
-        dependencies: this.config.dependencies,
-        contributions: this.config.contributions,
-        installs: this.config.installs,
-      },
-      ...(this.config.plugins ?? []),
-    ]);
-    return this.order;
+  /** Every name (ID and aliases) that resolves to a container key. */
+  private aliasesOf(id: string): readonly string[] {
+    return this.names.names().filter((name) => name !== id && this.names.key(name) === id);
   }
-  /**
-   * Declarative contributions of one kind in install order. Pure and available before mount, so
-   * UI integrations can derive an initial render snapshot equivalent to the mounted state.
-   */
+
+  /** Declarative contributions of one kind in install order; available before mount. */
   contributionsOf<K extends string>(
     kind: K,
   ): readonly {
@@ -159,19 +330,14 @@ export class FoundationRuntime implements ContributionHost {
     app: boolean;
     values: readonly (K extends keyof ContributionMap ? ContributionMap[K] : unknown)[];
   }[] {
-    return this.moduleOrder().flatMap((module) => {
+    return this.order.flatMap((module) => {
       const values = module.contributions?.[kind];
       return values?.length
         ? [{ module: module.id, app: module.id === this.appId, values: values as readonly any[] }]
         : [];
     });
   }
-  /**
-   * What a URL Action leads to and which plugin owns it, from existing registrations: the
-   * destination an integration projected (settings sections), else a page of this app owned by
-   * the plugin whose page path matches, else by the plugin that contributed the Action. External
-   * links and Actions without a URL have none; the application is never named as the owner.
-   */
+  /** What a URL Action leads to and which plugin owns it, from existing registrations. */
   destinationOf(action: Pick<ActionSnapshot, 'id' | 'href' | 'metadata'>): Destination | undefined {
     const owner = (plugin?: string) => (plugin && plugin !== this.appId ? { plugin } : {});
     const projected = projectedDestination(action.metadata);
@@ -181,41 +347,40 @@ export class FoundationRuntime implements ContributionHost {
     const page = findPluginPage(this.modules, href.split(/[?#]/)[0]);
     return { kind: 'page', ...owner(page ? page.plugin : this.ownerOf(action.id)) };
   }
-  /**
-   * The plugin whose contributions registered an Action. Undefined for the application's own
-   * Actions and for Actions registered outside contributions.
-   */
   private ownerOf(id: string): string | undefined {
     const module = this.actionConfigs.get(id)?.module;
     return module && module !== this.appId ? module : undefined;
   }
-  /**
-   * One group per ID. The first title given for an ID is kept, whichever registration or
-   * configured `groups` entry mentions the ID first; groups are always matched by ID.
-   */
+  /** One group per ID; the first title given for an ID is kept. */
   getGroup = (entry: string | ActionGroup) => {
     const id = typeof entry === 'string' ? entry : entry.id;
     const group = this.groups.get(id);
-    if (group && (typeof entry === 'string' || group.title !== undefined || entry.title === undefined))
+    if (
+      group &&
+      (typeof entry === 'string' || group.title !== undefined || entry.title === undefined)
+    )
       return group;
     const next = typeof entry === 'string' ? new ActionGroup(id) : entry;
     this.groups.set(id, next);
     return next;
   };
-  /**
-   * Services by public name (exposeAs) and by container key, exactly as every contribution sees
-   * them: a name means the same service in every module, which is what the generated ServiceMap
-   * describes. A live, read-only view; the container stays the only owner of the instances.
-   */
+
+  /** The live service tree every contribution sees. */
   get services(): Services {
-    if (!this.container || !this.names) throw new Error('Foundation is not mounted.');
-    return (this.view ??= this.names.view(this.container.services as Record<string, unknown>));
+    if (!this.view) throw new Error('Foundation is not mounted.');
+    return this.view;
   }
-  /** The container by key only, for the runtime's own key-based checks. */
-  private get instances(): Readonly<Record<string, unknown>> {
-    if (!this.container) throw new Error('Foundation is not mounted.');
-    return this.container.services as Record<string, unknown>;
+  servicesIfMounted(): Services | undefined {
+    return this.mounted ? this.view : undefined;
   }
+  hasService(name: string): boolean {
+    return (
+      !!this.container &&
+      this.names.known(name) &&
+      Object.hasOwn(this.container.services, this.names.key(name))
+    );
+  }
+
   getSnapshot = () => this.state;
   getServerSnapshot = () => null;
   subscribe = (listener: () => void) => {
@@ -233,23 +398,24 @@ export class FoundationRuntime implements ContributionHost {
     return resolveText(this.translate, key, fallback, values);
   }
   title(definition: ResolvedContribution) {
+    if (typeof definition.title === 'function') return fallbackTitle(definition);
     return definition.title !== undefined
       ? this.text(definition.title, this.text(`${definition.id}.title`, definition.title))
-      : this.text(
-          definition.conventions !== false ? `${definition.id}.title` : undefined,
-          fallbackTitle(definition),
-        );
+      : this.text(`${definition.id}.title`, fallbackTitle(definition));
   }
   description(definition: ResolvedContribution) {
+    if (typeof definition.description === 'function') return undefined;
     return definition.description === undefined
-      ? undefined
-      : this.text(definition.description, this.text(`${definition.id}.description`, definition.description));
+      ? this.text(`${definition.id}.description`, '') || undefined
+      : this.text(
+          definition.description,
+          this.text(`${definition.id}.description`, definition.description),
+        );
   }
-  fieldLabel(definition: ResolvedForm, name: string, field: Field) {
-    const key =
-      field.label ??
-      (definition.conventions !== false ? `${definition.id}.fields.${name}` : undefined);
-    return this.text(key, field.label ?? name.charAt(0).toUpperCase() + name.slice(1));
+  tooltip(definition: ResolvedContribution) {
+    if (typeof definition.tooltip === 'function' || definition.tooltip === undefined)
+      return undefined;
+    return this.text(definition.tooltip, this.text(`${definition.id}.tooltip`, definition.tooltip));
   }
   /** Installs one presentation sink; disposing an older owner cannot clear its replacement. */
   setNotifier(notify: (message: string, kind: 'success' | 'failure') => unknown) {
@@ -258,7 +424,6 @@ export class FoundationRuntime implements ContributionHost {
       if (this.notifier === notify) this.notifier = undefined;
     };
   }
-  /** Presentation failures, including rejected promises, never change the Action outcome. */
   notify(message: string | false, kind: 'success' | 'failure' = 'success') {
     if (!message) return;
     try {
@@ -266,6 +431,23 @@ export class FoundationRuntime implements ContributionHost {
     } catch {
       /* presentation only */
     }
+  }
+  /** Installs the host's confirmation dialog for actions with `confirm`. */
+  setConfirm(handler: (request: Confirmation) => Promise<boolean> | boolean) {
+    this.confirmHandler = handler;
+    return () => {
+      if (this.confirmHandler === handler) this.confirmHandler = undefined;
+    };
+  }
+  async confirm(request: Confirmation): Promise<boolean> {
+    if (this.confirmHandler) return this.confirmHandler(request);
+    if (!this.confirmWarned) {
+      this.confirmWarned = true;
+      console.warn(
+        '[bitakit] An action asks for confirmation, but no confirmation handler is installed. Proceeding without asking.',
+      );
+    }
+    return true;
   }
   translator(): Translator {
     const translate: Translator = (key, values) => this.translate(key, values);
@@ -281,110 +463,97 @@ export class FoundationRuntime implements ContributionHost {
   openDialog(definition: OpenableDefinition, input: unknown) {
     this.publish({ definition, input, token: Symbol() });
   }
-  rememberFormFeedback(state: DialogState, outcome: FeedbackOutcome) {
-    this.formFeedback.set(state, outcome);
-  }
+  /**
+   * Resolves a feedback option. Without one, the `<id>.success` / `<id>.failure` catalog keys
+   * apply; a failure without any message shows the error in development and a generic text
+   * in production. Feedback callbacks can never turn a success into a failure.
+   */
   feedback<C>(
     definition: ResolvedContribution,
     kind: 'success' | 'failure',
-    option: Feedback<C>,
-    context: C,
+    option: Feedback<C> | undefined,
+    context: C & { error?: unknown },
   ): FeedbackOutcome {
+    if (option === false) return { message: false, closeDialog: true };
+    const key = `${definition.id}.${kind}`;
+    if (option === undefined) {
+      if (this.translate.has?.(key)) return { message: this.text(key, key), closeDialog: true };
+      if (kind === 'failure') return { message: defaultFailure(context.error), closeDialog: false };
+      return { message: false, closeDialog: true };
+    }
     const value = evaluateFeedback(option, context);
     if (value === false) return { message: false, closeDialog: true };
     try {
-      return {
-        message:
-          (value.message ? this.text(value.message, this.text(`${definition.id}.${kind}`, value.message, value.values), value.values) : value.message) ??
-          (value.messageKey ? this.text(value.messageKey, value.messageKey, value.values) : false),
-        closeDialog: value.closeDialog ?? true,
-      };
+      const message =
+        (value.message
+          ? this.text(value.message, this.text(key, value.message, value.values), value.values)
+          : value.message) ??
+        (value.messageKey
+          ? this.text(value.messageKey, value.messageKey, value.values)
+          : undefined);
+      if (message === undefined) {
+        if (this.translate.has?.(key))
+          return { message: this.text(key, key), closeDialog: value.closeDialog ?? true };
+        return {
+          message: kind === 'failure' ? defaultFailure(context.error) : false,
+          closeDialog: value.closeDialog ?? kind !== 'failure',
+        };
+      }
+      return { message, closeDialog: value.closeDialog ?? true };
     } catch {
       return { message: false, closeDialog: true };
     }
-  }
-
-  /** Public submission path; the internal submit registration owns validation and pending guards. */
-  async submitForm(definition: ResolvedForm, values: Record<string, string>) {
-    const state = this.state;
-    if (state?.definition !== definition) return;
-    const outcome = await this.actions.execute(`${definition.id}.submit`, values);
-    if (outcome.status !== 'completed' || this.state !== state) return;
-    const feedback = this.formFeedback.get(state);
-    this.formFeedback.delete(state);
-    if (!feedback) return;
-    this.notify(feedback.message);
-    if (feedback.closeDialog) this.close();
   }
   setTranslations(translate: Translator) {
     this.translate = translate;
     this.translationRevision += 1;
     this.translationListeners.forEach((listener) => listener());
-    for (const { definition, handle } of this.registrations) {
+    for (const { definition, handle } of this.registrations)
       handle.update({
         title: this.title(definition),
         description: this.description(definition),
-        tooltip:
-          definition.tooltip === undefined
-            ? undefined
-            : this.text(definition.tooltip, this.text(`${definition.id}.tooltip`, definition.tooltip)),
+        tooltip: this.tooltip(definition),
       });
-    }
   }
   close = () => {
-    if (
-      this.state?.definition.kind === 'form' &&
-      this.actions.get(`${this.state.definition.id}.submit`)?.pending
-    )
-      return;
     this.publish(null);
   };
+
   mount() {
     if (this.container) throw new Error('Foundation is already mounted.');
-    const selected = applyActionReplacements(this.config.plugins ?? [], this.config.actions ?? []);
-    const plugins = orderPlugins([
-      {
-        id: this.config.appId ?? '@foundation/app',
-        dependencies: this.config.dependencies,
-        setup: this.config.setup,
-        actions: selected.actions,
-        services: this.config.services,
-        config: this.config.config,
-        contributions: this.config.contributions,
-        installs: this.config.installs,
-      },
-      ...selected.plugins,
-    ]);
-    const serviceModules = new Map(
-      plugins.flatMap((plugin) =>
-        (plugin.services ?? []).map((service) => [service, plugin.id] as const),
-      ),
-    );
-    this.names = new ServiceNames(this.modules, this.appId);
+    const plugins = this.order;
+    const owners = new Map<ServiceDefinition<any>, string>();
+    for (const plugin of plugins)
+      for (const service of plugin.services) owners.set(service, plugin.id);
+    const interceptors: InterceptorSpec[] = plugins.flatMap((plugin) => plugin.interceptors ?? []);
     this.container = createServices(
-      plugins.flatMap((plugin) => plugin.services ?? []),
+      plugins.flatMap((plugin) => plugin.services),
       this.providedServices,
-      (definition) => this.configuration.context(serviceModules.get(definition)!),
-      serviceObserver(this.modules),
+      (definition) => this.configuration.context(owners.get(definition) ?? this.appId),
+      serviceObserver(interceptors, (id) => this.aliasesOf(id)),
       this.events,
       {
         names: this.names,
         appId: this.appId,
-        moduleOf: (definition) => serviceModules.get(definition) ?? this.appId,
+        moduleOf: (definition) => owners.get(definition) ?? this.appId,
         sourceOf: (definition) => contributionSource(definition),
       },
+      (definition) => definition.id!,
     );
+    this.view = this.names.tree(this.container.services, () => !this.mounted);
+    const moduleEvents = new Map<string, Events>();
     try {
       this.extensionCleanups.push(
         this.actions.subscribeExecution((event) => {
-          if (
-            event.phase === 'failed' &&
-            event.context.get() &&
-            isActionFailure(event.error)
-          )
+          if (event.phase === 'failed' && event.context.get() && isActionFailure(event.error))
             this.notify(event.error.feedback, 'failure');
         }),
       );
+      for (const plugin of plugins) {
+        const scope = createEventScope(this.events, plugin.id);
+        this.extensionCleanups.push(scope.dispose);
+        moduleEvents.set(plugin.id, scope.events);
+      }
       this.connectTranslation();
       this.installInterceptors(plugins);
       const composed = Object.freeze(
@@ -398,12 +567,11 @@ export class FoundationRuntime implements ContributionHost {
         this.scopes.push(scope);
       }
       this.installContributions(plugins);
-      const observed = new Set<string>();
       plugins.forEach((plugin, index) => {
-        for (const contribution of plugin.actions ?? [])
-          this.install(this.scopes[index], contribution, observed, plugin.id);
+        for (const contribution of plugin.actions)
+          this.install(this.scopes[index], contribution, plugin.id, moduleEvents.get(plugin.id)!);
       });
-      this.observe(observed);
+      this.observe(this.container.observed);
       plugins.forEach((plugin, index) => {
         const scope = this.scopes[index];
         try {
@@ -417,27 +585,43 @@ export class FoundationRuntime implements ContributionHost {
       this.unmount();
       throw error;
     }
-    this.setReady(true);
+    const controller = new AbortController();
+    this.startController = controller;
+    const pending = this.readyDeferred;
+    const finish = () => {
+      if (this.startController !== controller) return;
+      this.setReady(true);
+      pending.resolve();
+    };
+    if (!this.container.hasStartHooks) finish();
+    else
+      void this.container.start(controller.signal).then(finish, (error) => {
+        if (this.startController !== controller) return;
+        pending.reject(error);
+      });
     return () => this.unmount();
   }
   /** Routes each contribution kind to the one module that installs it; cleanup stays with the contributor. */
-  private installContributions(plugins: readonly Plugin[]) {
+  private installContributions(plugins: readonly NormalizedPlugin[]) {
     const installers = new Map<string, { module: string; install: ContributionInstaller<any> }>();
     for (const plugin of plugins)
       for (const [kind, install] of Object.entries(plugin.installs ?? {})) {
         if (!install) continue;
         const existing = installers.get(kind);
         if (existing)
-          throw new Error(
+          throw new FoundationStartupError(
             `Contribution kind "${kind}" is installed by both "${existing.module}" and "${plugin.id}".`,
+            plugin.id,
           );
         installers.set(kind, { module: plugin.id, install });
       }
     for (const plugin of plugins)
       for (const [kind, values] of Object.entries(plugin.contributions ?? {}))
         if (values?.length && !installers.has(kind))
-          throw new Error(
+          throw new FoundationStartupError(
             `"${plugin.id}" contributes "${kind}", but no enabled plugin installs that kind.`,
+            plugin.id,
+            { app: plugin.id === this.appId },
           );
     for (const [kind, { install }] of installers)
       plugins.forEach((plugin, index) => {
@@ -456,58 +640,72 @@ export class FoundationRuntime implements ContributionHost {
       });
   }
   private connectTranslation() {
-    const i18n = this.services.i18n;
+    const i18n = this.hasService('i18n') ? this.services.i18n : undefined;
     if (!i18n) return;
     this.setTranslations(i18n.translate);
     this.extensionCleanups.push(i18n.subscribe(() => this.setTranslations(i18n.translate)));
   }
-  private installInterceptors(plugins: readonly Plugin[]) {
-    const entries = [
-      ...(this.config.interceptors ?? []).map((definition) => ({
-        definition,
-        module: this.config.appId ?? '@foundation/app',
-        global: !isServiceInterceptor(definition) && definition.scope !== 'plugin',
-      })),
-      ...plugins.flatMap((plugin) =>
-        (plugin.interceptors ?? []).map((definition) => ({
-          definition,
-          module: plugin.id,
-          global: !isServiceInterceptor(definition) && definition.scope === 'global',
-        })),
-      ),
-    ].sort((a, b) => (a.definition.order ?? 0) - (b.definition.order ?? 0));
-    for (const { definition, module, global } of entries) {
-      if (isServiceInterceptor(definition)) continue;
+  private installInterceptors(plugins: readonly NormalizedPlugin[]) {
+    const entries = plugins
+      .flatMap((plugin) => (plugin.interceptors ?? []).map((spec) => ({ spec, module: plugin.id })))
+      .filter(({ spec }) => !isServiceInterceptor(spec))
+      .sort((a, b) => (a.spec.order ?? 0) - (b.spec.order ?? 0));
+    for (const { spec, module } of entries) {
+      const definition = spec as ActionInterceptorSpec;
+      const global =
+        definition.scope === 'global' || (module === this.appId && definition.scope !== 'plugin');
       const requester = {
         label: `An interceptor in ${moduleLabel(module, this.appId)}`,
-        source: contributionSource(definition),
+        source: contributionSource(spec),
       };
-      let interceptor: Pick<import('./definitions.js').FoundationInterceptor, 'before'>;
       try {
-        if ('create' in definition) this.requireServices(module, definition.requires, requester);
-        interceptor =
-          'create' in definition
-            ? definition.create({
-                services: this.services,
-                translate: this.translator(),
-                config: this.configuration.context(module),
-              })
-            : definition;
+        this.requireServices(module, definition.requires, requester);
       } catch (error) {
         throw this.attribute(error, module, 'Interceptor', requester.source);
       }
-      this.extensionCleanups.push(
-        this.actions.use({
-          before: (context) => {
-            const target = this.actionConfigs.get(context.id);
-            if (!global && target?.module !== module) return;
-            return interceptor.before({
-              ...context,
-              config: target?.config ?? this.configuration.context(module),
-            });
-          },
-        }),
-      );
+      const applies = (id: string) =>
+        matchesTarget(definition.action ?? '*', id) &&
+        (global || this.actionConfigs.get(id)?.module === module);
+      const context = <T extends { id: string }>(base: T) => ({
+        ...base,
+        services: this.services,
+        config: this.actionConfigs.get(base.id)?.config ?? this.configuration.context(module),
+        app: this.app,
+        translate: this.translator(),
+      });
+      const report = (error: unknown) =>
+        console.error(`[bitakit] Interceptor in ${moduleLabel(module, this.appId)} failed.`, error);
+      if (definition.before)
+        this.extensionCleanups.push(
+          this.actions.use({
+            before: (base) =>
+              applies(base.id) ? definition.before!(context(base) as never) : undefined,
+          }),
+        );
+      if (definition.after || definition.onError)
+        this.extensionCleanups.push(
+          this.actions.subscribeExecution((event) => {
+            if (!applies(event.id)) return;
+            try {
+              if (event.phase === 'completed' && definition.after)
+                void Promise.resolve(
+                  definition.after({
+                    ...context(event.context),
+                    result: event.result?.status === 'completed' ? event.result.value : undefined,
+                  } as never),
+                ).catch(report);
+              if (event.phase === 'failed' && definition.onError)
+                void Promise.resolve(
+                  definition.onError({
+                    ...context(event.context),
+                    error: isActionFailure(event.error) ? event.error.cause : event.error,
+                  } as never),
+                ).catch(report);
+            } catch (error) {
+              report(error);
+            }
+          }),
+        );
     }
   }
   /** Resolves required names to container keys; a missing one is attributed to `module`. */
@@ -516,16 +714,14 @@ export class FoundationRuntime implements ContributionHost {
     ids: readonly string[] = [],
     requester: ServiceRequester,
   ): string[] {
-    const instances = this.instances;
+    const instances = this.container!.services;
     const exists = (key: string) => Object.hasOwn(instances, key);
     return ids.map((id) => {
-      const key = this.names!.key(id);
-      if (!exists(key))
-        throw this.names!.missing(module, id, requester, exists, Object.keys(instances));
+      const key = this.names.key(id);
+      if (!exists(key)) throw this.names.missing(module, id, requester, exists);
       return key;
     });
   }
-  /** Keeps attributed errors; otherwise names the module (and source) that failed to start. */
   private attribute(error: unknown, module: string, what: string, source?: string) {
     if (isFoundationStartupError(error)) return error;
     const message = error instanceof Error ? error.message : String(error);
@@ -535,69 +731,59 @@ export class FoundationRuntime implements ContributionHost {
       { cause: error, source, app: module === this.appId },
     );
   }
-  /** One path for every kind: adapt, check dependencies, register, remember for re-translation. */
+  /** One path for every action: adapt, check dependencies, register, remember for re-translation. */
   private install(
     scope: PluginScope,
-    contribution: Contribution,
-    observed: Set<string>,
+    contribution: ResolvedContribution,
     module: string,
+    events: Events,
   ) {
-    const path =
-      (typeof contribution === 'object' ? contribution.configPath : undefined) ??
-      contributionPath(contribution) ??
-      (typeof contribution === 'object' && contribution.id ? contribution.id.split('.') : []);
+    const path = contributionPath(contribution) ?? contribution.id.split('.');
     const source = contributionSource(contribution);
-    let adapted: ReturnType<typeof adaptContribution>;
-    let config: ConfigContext;
+    let adapted: ReturnType<typeof adaptAction>;
     try {
-      config = this.configuration.context(module, path);
-      adapted = adaptContribution(contribution, this, config);
-      const requester = { label: `Action "${adapted.definition.id}"`, source };
-      this.requireServices(module, adapted.requires, requester);
-      for (const id of adapted.watch) {
-        const key = this.names!.key(id);
-        const service = (this.instances as Record<string, { subscribe?: unknown }>)[key];
-        if (!service || typeof service.subscribe !== 'function')
-          throw new Error(`Observed service "${id}" must provide subscribe(listener).`);
-        observed.add(key);
-      }
-    } catch (error) {
-      const id = typeof contribution === 'object' && contribution.id ? ` "${contribution.id}"` : '';
-      throw this.attribute(error, module, `Action${id}`, source);
-    }
-    for (const registration of adapted.registrations) {
-      try {
+      if (contribution.resolve)
+        deprecated('resolve', 'Use function-valued fields such as enabled: ({ input }) => ...');
+      if (contribution.watch)
+        deprecated('watch', 'Services are observed automatically; remove watch.');
+      const config = this.configuration.context(module, path);
+      adapted = adaptAction(contribution, this, config, events);
+      this.requireServices(module, adapted.requires, {
+        label: `Action "${adapted.definition.id}"`,
+        source,
+      });
+      for (const registration of adapted.registrations) {
         this.actionConfigs.set(registration.id, { module, config });
-        const handle = registration.instance
-          ? this.actions.add(registration.id, registration.instance, registration.placement)
-          : this.actions.register(registration.definition, registration.placement);
+        const handle = this.actions.register(registration.definition, registration.placement);
         scope.own(handle.unregister);
-        if (adapted.setup) {
-          const eventScope = createEventScope(this.events);
-          handle.onDispose(eventScope.dispose);
-          const cleanup = adapted.setup({
-            events: eventScope.events, services: this.services,
-            action: setupAction(handle), app: this.app, config,
-          });
-          if (cleanup) handle.onDispose(cleanup);
+        if (adapted.confirm) {
+          const confirm = adapted.confirm;
+          handle.onDispose(
+            this.actions.use({
+              before: (context) => (context.id === registration.id ? confirm(context) : undefined),
+            }),
+          );
         }
         this.registrations.push({ definition: adapted.definition, handle });
-      } catch (error) {
-        throw this.attribute(error, module, `Action "${registration.id}"`, source);
       }
+    } catch (error) {
+      throw this.attribute(error, module, `Action "${contribution.id}"`, source);
     }
   }
-  private observe(observed: Set<string>) {
-    for (const id of observed) {
-      const service = (
-        this.instances as Record<string, { subscribe(listener: () => void): () => void }>
-      )[id];
-      this.extensionCleanups.push(service.subscribe(() => this.actions.refresh()));
-    }
-    // Cover synchronous initial emissions and sources changed during setup.
+  /** Every store and observable service refreshes action presentation when it changes. */
+  private observe(observed: ReadonlySet<Observable>) {
+    for (const source of observed)
+      this.extensionCleanups.push(
+        source.subscribe(() => {
+          if (this.container) this.actions.refresh();
+        }),
+      );
     if (observed.size) this.actions.refresh();
   }
   private unmount() {
+    const starting = this.startController !== undefined && !this.mounted;
+    this.startController?.abort();
+    this.startController = undefined;
     this.setReady(false);
     const errors: unknown[] = [];
     for (const cleanup of this.extensionCleanups.splice(0).reverse()) {
@@ -620,24 +806,41 @@ export class FoundationRuntime implements ContributionHost {
       errors.push(error);
     }
     this.events.clear();
+    for (const module of this.modules)
+      if (module.events) this.events.declare(module.id, module.events);
     this.container = undefined;
-    this.names = undefined;
     this.view = undefined;
     this.registrations = [];
     this.actionConfigs.clear();
+    if (starting)
+      this.readyDeferred.reject(
+        new Error('The runtime stopped before its services finished starting.'),
+      );
+    this.readyDeferred = deferred();
     this.publish(null);
     if (errors.length) throw new AggregateError(errors, 'Foundation cleanup failed.');
   }
 }
 
+function defaultFailure(error: unknown) {
+  let development = true;
+  try {
+    development = process.env.NODE_ENV !== 'production';
+  } catch {
+    /* no process */
+  }
+  if (!development) return 'Something went wrong.';
+  return error instanceof Error && error.message ? error.message : 'Action failed.';
+}
+
 /**
  * Creates the runtime for one composition; `runtime.mount()` starts it and returns the stop
- * function. Core creates the ActionList unless you pass one, for example a list already shared
- * with an ActionProvider. `services` supplies host-owned services, such as authentication.
+ * function. Core creates the ActionList unless you pass one. `services` supplies host-owned
+ * services, such as authentication, under their contract names.
  */
 export function createRuntime(
   config: FoundationConfig,
-  options: { actions?: ActionList; services?: Partial<Services> } = {},
+  options: { actions?: ActionList; services?: Readonly<Record<string, unknown>> } = {},
 ): FoundationRuntime {
   return new FoundationRuntime(options.actions ?? createActionList(), config, options.services);
 }

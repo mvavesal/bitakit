@@ -1,12 +1,9 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { createJiti } from 'jiti';
+import { loadDiscoveryConfig } from '@bitakit/core/discovery';
 
-/**
- * The project around a working directory: an application (plugins live in its plugin
- * directory) or a standalone plugin package (contributions live in `src`).
- */
-export async function findProject(cwd = process.cwd()) {
+/** The nearest package.json above `cwd`: the project root and its manifest, without reading any configuration. */
+export async function findProjectRoot(cwd = process.cwd()) {
   let directory = path.resolve(cwd);
   for (;;) {
     const file = path.join(directory, 'package.json');
@@ -14,12 +11,21 @@ export async function findProject(cwd = process.cwd()) {
       if (error.code === 'ENOENT') return undefined;
       throw error;
     });
-    if (manifest) return describeProject(directory, manifest);
+    if (manifest) return { root: directory, manifest };
     const parent = path.dirname(directory);
     if (parent === directory)
       throw new Error('No package.json found. Run this command inside a BitaKit app or plugin.');
     directory = parent;
   }
+}
+
+/**
+ * The project around a working directory: an application (plugins live in its plugin
+ * directory) or a standalone plugin package (contributions live in `src`).
+ */
+export async function findProject(cwd = process.cwd()) {
+  const { root, manifest } = await findProjectRoot(cwd);
+  return describeProject(root, manifest);
 }
 
 async function describeProject(root, manifest) {
@@ -29,27 +35,49 @@ async function describeProject(root, manifest) {
     : dependencies['@tanstack/react-start'] || dependencies['@tanstack/react-router']
       ? 'tanstack'
       : undefined;
-  // A package that publishes a Foundation plugin entry is itself the plugin.
-  if (manifest.foundation?.plugin && !framework)
+  const metadata = manifest.bitakit ?? manifest.foundation;
+  // A package that publishes a plugin entry is itself the plugin.
+  if (metadata?.plugin && !framework)
     return {
       kind: 'plugin',
       root,
       manifest,
-      pluginId: manifest.foundation.id ?? packagePluginId(manifest.name),
+      metadata,
+      pluginId: metadata.id ?? packagePluginId(manifest.name),
       moduleRoot: path.join(root, 'src'),
     };
-  const config = await loadConfig(root);
+  // A configuration that cannot be evaluated (for example a 0.1 file importing a removed export)
+  // still describes a project: commands that need it rethrow `configError`, doctor reports it.
+  let loaded;
+  let configError;
+  try {
+    loaded = await loadDiscoveryConfig(root);
+  } catch (error) {
+    configError = error;
+    const legacy =
+      (await exists(path.join(root, 'foundation.config.ts'))) &&
+      !(await exists(path.join(root, 'bitakit.config.ts')));
+    loaded = {
+      config: {},
+      file: path.join(root, legacy ? 'foundation.config.ts' : 'bitakit.config.ts'),
+      legacy,
+    };
+  }
+  const { config, file, legacy } = loaded;
   return {
     kind: 'app',
     root,
     manifest,
     framework,
+    configFile: file,
+    legacyConfig: legacy,
+    configError,
     pluginsDirectory: path.resolve(root, config.plugins?.directory ?? './src/plugins'),
     appDirectory: path.resolve(root, config.directory ?? './src'),
   };
 }
 
-/** `@acme/bitakit-notes` → `notes`; the package manifest may set `foundation.id` explicitly. */
+/** `@acme/bitakit-notes` → `notes`; the package manifest may set `bitakit.id` explicitly. */
 export function packagePluginId(name = '') {
   return (
     name
@@ -58,13 +86,6 @@ export function packagePluginId(name = '') {
       .replace(/-plugin$/, '')
       .replace(/[^a-z0-9-]/g, '-') || 'plugin'
   );
-}
-
-async function loadConfig(root) {
-  const file = path.join(root, 'foundation.config.ts');
-  if (!(await exists(file))) return {};
-  const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false });
-  return jiti.import(file, { default: true });
 }
 
 export async function exists(file) {

@@ -17,3 +17,5 @@ apps/web/zenstack/models.ts
 apps/web/zenstack/input.ts
 apps/*/next-env.d.ts
 
+**/src/bitakit.gen.*
+.bitakit/

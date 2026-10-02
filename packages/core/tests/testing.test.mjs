@@ -4,116 +4,202 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mountPlugin } from '../testing/index.mjs';
-import { isFoundationStartupError } from '../dist/core.js';
+import { definePlugin, defineService, isFoundationStartupError } from '../dist/core.js';
 
-/** A plugin package inside Core, so its files resolve @bitakit/core from the workspace. */
-async function pluginPackage(files, run) {
+/** A project inside Core, so plugin files resolve @bitakit/core from the workspace. */
+async function project(files, run) {
   const root = await mkdtemp(fileURLToPath(new URL('../.copy-', import.meta.url)));
   try {
     for (const [file, source] of Object.entries(files)) {
       await mkdir(path.dirname(path.join(root, file)), { recursive: true });
       await writeFile(path.join(root, file), source);
     }
-    await run(path.join(root, 'src'));
+    await run(root);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 }
 
-test('mountPlugin runs the plugin setup through the runtime lifecycle and rolls back a failed start', () =>
-  pluginPackage(
-    {
-      'package.json': JSON.stringify({ name: 'bitakit-tasks' }),
-      'src/services/tasks.ts': `import { defineService } from '@bitakit/core';
-type Log = { entries: string[]; fail: boolean };
-export default defineService({
-  create({ services }) {
-    const log = (services as unknown as { log: Log }).log;
-    log.entries.push('service created');
-    return { log, items: ['first'] };
-  },
-  dispose(tasks) { tasks.log.entries.push('service disposed'); },
+/** A plugin folder with services, actions, events.ts, configs, setup and a UI page that must never load in Node. */
+const notesPlugin = {
+  'package.json': JSON.stringify({ name: 'demo', type: 'module' }),
+  'src/plugins/notes/services/items.ts': `import { defineService } from '@bitakit/core';
+type Log = { entries: string[]; failStart?: boolean };
+export default defineService(({ store, events, services, onStart, onStop }) => {
+  const log = (services as any).log as Log;
+  const state = store({ items: [] as string[] });
+  onStart(async () => {
+    await Promise.resolve();
+    if (log.failStart) throw new Error('queue unavailable');
+    log.entries.push('started');
+  });
+  onStop(() => log.entries.push('stopped'));
+  return {
+    state,
+    add(title: string) {
+      state.set((current) => ({ items: [...current.items, title] }));
+      events.emit('notes.changed', { title });
+      return title;
+    },
+  };
 });
 `,
-      'src/setup.ts': `import type { Setup } from '@bitakit/core';
-type Log = { entries: string[]; fail: boolean };
+  'src/plugins/notes/actions/add.ts': `import { defineAction } from '@bitakit/core';
+export default defineAction<string, string>({ execute: ({ services, input }) => services.notes.items.add(input) });
+`,
+  'src/plugins/notes/actions/clear.ts': `import { defineAction } from '@bitakit/core';
+export default defineAction({
+  enabled: ({ services }) => services.notes.items.state.get().items.length > 0,
+  execute: ({ services }) => services.notes.items.state.set({ items: [] }),
+});
+`,
+  'src/plugins/notes/events.ts': `import { defineEvents, event } from '@bitakit/core';
+export default defineEvents({ changed: event<{ title: string }>() });
+`,
+  'src/plugins/notes/configs/limits.ts': `export default { maxItems: 3 };
+`,
+  'src/plugins/notes/setup.ts': `import type { Setup } from '@bitakit/core';
 const setup: Setup = ({ app, services }) => {
-  const log = (services as unknown as { log: Log }).log;
+  const log = (services as any).log as { entries: string[]; failSetup?: boolean };
   log.entries.push('setup');
-  app.actions.getGroup('tasks').add({ id: 'tasks.count', title: 'Count', execute: () => services.tasks.items.length });
-  app.own(() => log.entries.push('scope released'));
-  if (log.fail) throw new Error('queue unavailable');
-  return () => log.entries.push('setup cleanup');
+  if (log.failSetup) throw new Error('setup exploded');
+  app.actions.getGroup('notes').add({ id: 'notes.count', title: 'Count', execute: () => services.notes.items.state.get().items.length });
+  return () => log.entries.push('cleanup');
 };
 export default setup;
 `,
-    },
-    async (directory) => {
-      const log = { entries: [], fail: false };
-      const plugin = await mountPlugin(directory, { services: { log } });
-      try {
-        assert.deepEqual(log.entries, ['service created', 'setup']);
-        assert.equal((await plugin.execute('count')).value, 1);
-      } finally {
-        plugin.stop();
-      }
-      assert.deepEqual(log.entries.slice(2), ['setup cleanup', 'scope released', 'service disposed']);
-      assert.equal(plugin.actions.get('tasks.count'), undefined);
+  'src/plugins/notes/ui/pages/index.tsx': 'export default () => <main />;\n',
+};
 
-      const failing = { entries: [], fail: true };
-      await assert.rejects(mountPlugin(directory, { services: { log: failing } }), (error) => {
-        assert.ok(isFoundationStartupError(error));
-        assert.equal(error.plugin, 'tasks');
-        assert.match(error.message, /Setup in plugin "tasks" failed to start: queue unavailable/);
-        return true;
-      });
-      // Everything the failed start created is released before the error reaches the test.
-      assert.deepEqual(failing.entries, ['service created', 'setup', 'scope released', 'service disposed']);
-    },
-  ));
-
-test('mountPlugin discovers a plugin folder and runs it headlessly', async () => {
-  // Inside the package so the plugin files resolve @bitakit/core from the workspace.
-  const root = await mkdtemp(fileURLToPath(new URL('../.copy-', import.meta.url)));
-  try {
-    const put = async (file, source) => {
-      await mkdir(path.dirname(path.join(root, file)), { recursive: true });
-      await writeFile(path.join(root, file), source);
-    };
-    await put('package.json', JSON.stringify({ name: '@acme/bitakit-notes-plugin' }));
-    await put('src/services/notes.ts', `import { defineService } from '@bitakit/core';
-export default defineService({
-  create({ events }) {
-    const items: string[] = [];
-    return { list: () => items, add(title: string) { items.push(title); events.emit('notes.changed'); } };
-  },
-});
-`);
-    await put('src/actions/add.ts', `import { defineAction } from '@bitakit/core';
-export default defineAction<string>({ requires: ['notes'], execute: ({ services, input }) => services.notes.add(input) });
-`);
-    await put('src/actions/clear.ts', `import { defineAction } from '@bitakit/core';
-export default defineAction({
-  requires: ['notes'],
-  enabled: false,
-  events: ['notes.changed'],
-  onEvent(_event, { services, action }) { action.enabled = services.notes.list().length > 0; },
-  execute: () => {},
-});
-`);
-    await put('src/pages/notes.tsx', 'export default { path: "/notes", component: () => <main /> };');
-    const plugin = await mountPlugin(path.join(root, 'src'));
+test('mountPlugin discovers a plugin folder and runs services, actions, events.ts and setup through the runtime lifecycle', () =>
+  project(notesPlugin, async (root) => {
+    const log = { entries: [] };
+    const plugin = await mountPlugin(path.join(root, 'src/plugins/notes'), { services: { log } });
     try {
-      assert.equal(plugin.id, 'notes');
-      assert.equal(plugin.actions.get('notes.clear')?.enabled, false);
-      assert.equal((await plugin.execute('add', 'Write tests')).status, 'completed');
-      assert.deepEqual(plugin.services.notes.list(), ['Write tests']);
-      assert.equal(plugin.app.services.notes.list().length, 1);
-      assert.equal(plugin.actions.get('notes.clear')?.enabled, true);
+      assert.equal(plugin.id, 'notes', 'the folder under plugins/ names the plugin');
+      assert.deepEqual(
+        log.entries,
+        ['setup', 'started'],
+        'mountPlugin resolves after every onStart',
+      );
+      assert.equal(plugin.app.ready, true);
+      assert.equal(plugin.runtime.services, plugin.services);
+      assert.equal(plugin.actions.get('notes.clear').enabled, false);
+      assert.deepEqual(await plugin.execute('add', 'Write tests'), {
+        status: 'completed',
+        value: 'Write tests',
+      });
+      assert.equal((await plugin.execute('notes.count')).value, 1, 'full IDs are accepted as well');
+      assert.deepEqual(plugin.services.notes.items.state.get(), { items: ['Write tests'] });
+      assert.equal(plugin.app.services.notes.items, plugin.services.notes.items);
+      assert.equal(
+        plugin.actions.get('notes.clear').enabled,
+        true,
+        'presentation follows the service store',
+      );
+      assert.deepEqual(plugin.events.recorded, [
+        { type: 'notes.changed', data: { title: 'Write tests' } },
+      ]);
+      const seen = [];
+      plugin.events.on('notes.changed', (event) => seen.push(event.data.title));
+      await plugin.execute('add', 'Second');
+      assert.deepEqual(seen, ['Second']);
+      assert.equal(plugin.events.recorded.length, 2);
+      assert.equal(plugin.app.config.notes.limits.maxItems, 3);
+      assert.equal((await plugin.execute('clear')).status, 'completed');
+      assert.equal(plugin.actions.get('notes.clear').enabled, false);
     } finally {
       plugin.stop();
     }
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
+    assert.deepEqual(log.entries, ['setup', 'started', 'cleanup', 'stopped']);
+    assert.equal(plugin.actions.get('notes.add'), undefined);
+    assert.equal(plugin.app.ready, false);
+
+    const overridden = await mountPlugin(path.join(root, 'src/plugins/notes'), {
+      services: { log: { entries: [] } },
+      configOverrides: { notes: { limits: { maxItems: 1 } } },
+    });
+    try {
+      assert.equal(overridden.app.config.notes.limits.maxItems, 1);
+    } finally {
+      overridden[Symbol.dispose]();
+    }
+    assert.equal(overridden.app.ready, false);
+  }));
+
+test('a failed start or setup rejects with the attributed error and releases everything that was created', () =>
+  project(notesPlugin, async (root) => {
+    const failing = { entries: [], failStart: true };
+    await assert.rejects(
+      mountPlugin(path.join(root, 'src/plugins/notes'), { services: { log: failing } }),
+      (error) => {
+        assert.ok(isFoundationStartupError(error));
+        assert.equal(error.plugin, 'notes');
+        assert.match(error.message, /onStart in plugin "notes" failed: queue unavailable/);
+        assert.match(error.source, /src\/plugins\/notes\/services\/items\.ts$/);
+        return true;
+      },
+    );
+    assert.deepEqual(
+      failing.entries,
+      ['setup', 'cleanup', 'stopped'],
+      'the rejected mount is stopped before the error reaches the test',
+    );
+
+    const exploding = { entries: [], failSetup: true };
+    await assert.rejects(
+      mountPlugin(path.join(root, 'src/plugins/notes'), { services: { log: exploding } }),
+      (error) => {
+        assert.ok(isFoundationStartupError(error));
+        assert.equal(error.plugin, 'notes');
+        assert.match(error.message, /Setup in plugin "notes" failed to start: setup exploded/);
+        return true;
+      },
+    );
+    assert.deepEqual(exploding.entries, ['setup', 'stopped']);
+  }));
+
+test('mountPlugin derives the ID from the package name, accepts an explicit one and composes dependency plugins', () =>
+  project(
+    {
+      'package.json': JSON.stringify({ name: '@acme/bitakit-notes-plugin', type: 'module' }),
+      'src/services/items.ts': `import { defineService } from '@bitakit/core';
+export default defineService(({ services }) => ({ theme: () => services.shell.theme.name }), { requires: ['shell.theme'] });
+`,
+      'src/actions/list.ts': `import { defineAction } from '@bitakit/core';
+export default defineAction({ execute: ({ services }) => services.shell.theme.name });
+`,
+    },
+    async (root) => {
+      const shell = definePlugin({
+        id: 'shell',
+        services: { theme: defineService(() => ({ name: 'dark' })) },
+      });
+      const plugin = await mountPlugin(path.join(root, 'src'), { plugins: [shell] });
+      try {
+        assert.equal(plugin.id, 'notes');
+        assert.equal((await plugin.execute('list')).value, 'dark');
+        assert.equal(plugin.services.notes.items.theme(), 'dark');
+        assert.deepEqual(plugin.events.recorded, []);
+      } finally {
+        plugin.stop();
+      }
+      const custom = await mountPlugin(path.join(root, 'src'), { id: 'custom', plugins: [shell] });
+      try {
+        assert.equal(custom.id, 'custom');
+        assert.ok(custom.actions.get('custom.list'));
+        assert.equal(custom.services.custom.items.theme(), 'dark');
+      } finally {
+        custom.stop();
+      }
+      await assert.rejects(mountPlugin(path.join(root, 'src')), (error) => {
+        assert.ok(isFoundationStartupError(error));
+        assert.equal(error.plugin, 'notes');
+        assert.match(
+          error.message,
+          /requires service "shell\.theme", but no service has that name/,
+        );
+        return true;
+      });
+    },
+  ));

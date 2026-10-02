@@ -18,21 +18,25 @@ flowchart LR
     Action --> Service[Task service]
 ```
 
-Core owns registration and execution. React bindings read the shared action state
-and connect it to controls. A shortcut or search surface still needs its corresponding
-binding or optional plugin; defining an action alone does not create UI.
+Core owns registration and execution. React bindings (`<Action>`, `useAction`) read the
+shared action state and connect it to controls. A shortcut or search surface still needs
+its corresponding binding or optional plugin; defining an action alone does not create UI.
 
 ## Action or service method?
 
-Use a service for reusable task behavior, such as `add(title)`. Use an action to expose
-an application operation that calls that behavior and participates in the shared
-execution system. Not every internal function needs an action.
+Use a service for reusable behavior and state, such as `add(title)` and a `store()` of
+tasks. Use an action to expose an application operation that calls that behavior and
+participates in the shared execution system: guards, pending, confirmation, feedback.
+Not every internal function needs an action.
 
-Visibility and enabled guards help the interface behave consistently. They do not
-replace server authorization or validation of untrusted input.
+Presentation fields such as `enabled` and `visible` take a value or a function of the
+input and services; functions re-run when a store they read changes. They help the
+interface behave consistently but do not replace server authorization or validation of
+untrusted input.
 
-For navigation, URL actions describe destinations and UI renders real links. Your
-framework router still owns the routes; an action does not create a page.
+For navigation, an action with `href` describes a destination and the UI renders a real
+link. Your framework router still owns the routes; an action does not create a page.
 
 Continue with the [To-do tutorial](../../packages/core/docs/todo-tutorial.md),
-[services](services.md), or the [Core reference](../../packages/core/docs/reference.md).
+[services](services.md), the [Actions guide](../../apps/docs/content/docs/concepts/actions.mdx)
+or the [Core reference](../../packages/core/docs/reference.md).

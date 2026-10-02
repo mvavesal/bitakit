@@ -1,6 +1,4 @@
-import { provideService } from './service-key.js';
-import type { Translator } from './definitions.js';
-import { definePlugin } from './definitions.js';
+import { defineService, definePlugin, type Translator } from './definitions.js';
 import { translationService, type TranslationService } from './contracts.js';
 
 /** Shared key-or-literal resolution for automatic and imperatively registered Actions. */
@@ -19,7 +17,10 @@ export function resolveText(
   }
 }
 /** Adapter primitive. No locale store: the current translator delegates to its provider. */
-export function createTranslationPlugin(initial: Translator, catalog?: TranslationService['getCatalog']) {
+export function createTranslationPlugin(
+  initial: Translator,
+  catalog?: TranslationService['getCatalog'],
+) {
   let current = initial;
   let currentCatalog = catalog;
   const listeners = new Set<() => void>();
@@ -37,7 +38,7 @@ export function createTranslationPlugin(initial: Translator, catalog?: Translati
   };
   return definePlugin({
     id: 'translation',
-    services: [provideService(translationService, { create: () => service })],
+    services: { i18n: defineService(() => service, { provides: translationService }) },
     translation: service,
     update(next: Translator, nextCatalog = currentCatalog) {
       current = next;

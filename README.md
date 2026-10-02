@@ -28,8 +28,9 @@
 
 > [!NOTE]
 > **Early release.** The BitaKit packages and the app generator are on npm (0.1).
-> This repository already contains the next release: features marked **0.2** are not on npm yet.
-> APIs are still evolving, and TanStack Start support is experimental.
+> This repository contains the next release, 0.2, which changes the plugin API described
+> below; it is not on npm yet. APIs are still evolving, and TanStack Start support is
+> experimental.
 
 ## ⚡ From zero to running app in one command
 
@@ -47,9 +48,9 @@ Every app starts clean. Then the features pile up. Imports tangle, every new but
 needs wiring in five places, and both your new teammate and your AI assistant get lost
 in the sprawl.
 
-**BitaKit gives every feature a home.** A plugin groups it, services hold its behavior,
-actions expose it to your UI, events keep everything in sync, and configs give it
-defaults your app can override. Same shape, every time.
+**BitaKit gives every feature a home.** A plugin groups it, services hold its behavior
+and state, actions expose it to your UI, events tell other plugins what happened, and
+configs give it defaults your app can override. Same shape, every time.
 
 <table>
   <tr>
@@ -81,7 +82,7 @@ defaults your app can override. Same shape, every time.
     <td width="50%" valign="top">
       <h3>🛡️ Type-safe from definition to button</h3>
       Service methods, action inputs and results, and event payloads carry their types
-      all the way to the call site. Optional strict mode catches unknown action IDs.
+      all the way to the call site. Strict action IDs are on by default in generated apps.
     </td>
     <td width="50%" valign="top">
       <h3>🏠 Your stack stays yours</h3>
@@ -101,7 +102,7 @@ assistant knows exactly where new code belongs — and you know exactly what to 
 ```text
 src/plugins/todos/
 ├── services/
-│   └── tasks.ts      ✏️  adds remove() and emits "todos.changed"
+│   └── tasks.ts      ✏️  adds remove()
 └── actions/
     ├── create.ts
     └── delete.ts     ✨  new — discovered as todos.delete
@@ -111,49 +112,35 @@ src/plugins/todos/
 // src/plugins/todos/actions/delete.ts
 import { defineAction } from '@bitakit/core';
 
-export default defineAction<string>({
-  // Initial state: the task list starts empty, so deleting is disabled.
-  enabled: false,
+export default defineAction<number>({
+  title: 'Delete',
 
-  // Events this action reacts to.
-  events: ['todos.changed'],
+  // Re-evaluated whenever the tasks store changes: disabled while the list is empty.
+  enabled: ({ services }) => services.todos.tasks.state.get().items.length > 0,
 
-  // Runs each time one of those events is emitted. Core owns the subscription.
-  onEvent(_event, { app, action }) {
-    action.enabled = app.services.tasks.list().length > 0;
-  },
-
-  // Runs when a bound control or your code executes the action.
-  execute: ({ app, input }) => app.services.tasks.remove(input),
+  // Runs when a bound control or your code executes "todos.delete".
+  execute: ({ services, input }) => services.todos.tasks.remove(input),
 });
 ```
 
 <details>
-<summary><b>The matching service change</b> — one new method, two <code>emit</code> calls</summary>
+<summary><b>The matching service change</b> — one new method</summary>
 
 ```diff
- import { defineService } from '@bitakit/core';
+ export default defineService(({ store }) => {
+   const state = store<{ items: Task[] }>({ items: [] });
 
- export default defineService({
--  create() {
--    const tasks: string[] = [];
-+  create({ events }) {
-+    let tasks: string[] = [];
-
-     return {
-       add(title: string) {
-         tasks.push(title);
-+        events.emit('todos.changed');
-       },
-
-+      remove(title: string) {
-+        tasks = tasks.filter((task) => task !== title);
-+        events.emit('todos.changed');
-+      },
+   return {
+     state,
+     add(title: string) {
+       state.set((s) => ({ items: [...s.items, { id: Date.now(), title }] }));
+     },
 +
-       list() {
-         return [...tasks];
-       },
++    remove(id: number) {
++      state.set((s) => ({ items: s.items.filter((task) => task.id !== id) }));
++    },
+   };
+ });
 ```
 
 </details>
@@ -163,8 +150,9 @@ No registry to update. No provider to touch. No subscription to clean up.
 itself while the list is empty — without a single extra line of UI code.
 
 > [!TIP]
-> Reacting to events needs no `setup` method. Add `setup` only when the initial
-> state must be read from existing data, such as tasks loaded from storage.
+> Presentation fields such as `enabled`, `visible` and `title` take a value or a
+> function. A function reads the current input and services, and Core re-runs it
+> whenever a store it reads changes.
 
 The same clarity helps human reviewers: one feature, one folder, explicit dependencies.
 Tests and review stay part of your workflow; BitaKit just makes them easier to focus.
@@ -199,7 +187,7 @@ is optional.
 | When you need…            | Add                                                                           | You get                                                                        |
 | ------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | A clean feature structure | `@bitakit/core`                                                               | Plugins, services, actions, events, configs and interceptors — Node or browser |
-| React and your framework  | `@bitakit/ui` · `@bitakit/next` or `@bitakit/tanstack`                        | `ActionButton`, hooks, build-time discovery and typed IDs                      |
+| React and your framework  | `@bitakit/ui` · `@bitakit/next` or `@bitakit/tanstack`                        | `<Action>`, hooks, build-time discovery and typed IDs                          |
 | An application frame      | `@bitakit/shell` · `@bitakit/app-preferences`                                 | Layout, navigation, settings pages and saved preferences                       |
 | Fast navigation           | `@bitakit/quick-search`                                                       | ⌘K search across your app's navigation                                         |
 | Users and teams           | `@bitakit/better-auth` · `@bitakit/better-auth-ui` · `@bitakit/organizations` | Authentication, account screens and organizations                              |
@@ -238,8 +226,9 @@ src/
             └── create.ts
 ```
 
-A **service** owns the task behavior. An **action** exposes an operation to your UI.
-The plugin folder groups them into one feature.
+A **service** owns the tasks. An **action** exposes an operation to your UI. The plugin
+folder groups them into one feature. (`npx bitakit add plugin todos` scaffolds a
+complete plugin for you; here we write the two files by hand to see how they fit.)
 
 ### 3. Define the service
 
@@ -248,25 +237,24 @@ The plugin folder groups them into one feature.
 ```ts
 import { defineService } from '@bitakit/core';
 
-export default defineService({
-  create() {
-    const tasks: string[] = [];
+export type Task = { id: number; title: string };
 
-    return {
-      add(title: string) {
-        tasks.push(title);
-      },
+export default defineService(({ store }) => {
+  // Observable state: actions and pages follow it without any wiring.
+  const state = store<{ items: Task[] }>({ items: [] });
 
-      list() {
-        return [...tasks];
-      },
-    };
-  },
+  return {
+    state,
+    add(title: string) {
+      state.set((s) => ({ items: [...s.items, { id: Date.now(), title }] }));
+    },
+  };
 });
 ```
 
-Core creates the service when the plugin starts. This example keeps tasks in memory,
-so a page reload clears them.
+Core creates the service when the plugin starts. `store()` holds the tasks in memory,
+so a page reload starts empty; replace the body with calls to your API when you are
+ready.
 
 ### 4. Define the action
 
@@ -276,28 +264,27 @@ so a page reload clears them.
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<string>({
-  // Runs when a bound control or your code executes the action.
-  execute({ app, input }) {
-    app.services.tasks.add(input);
-  },
+  title: 'Add a task',
+  // Runs when a bound control or your code executes "todos.create".
+  execute: ({ services, input }) => services.todos.tasks.add(input),
 });
 ```
 
-`defineAction<string>` declares the input: the task title. The action uses its plugin's
-own service directly, with no declaration.
+`defineAction<string>` declares the input: the task title. Services are reached as
+`services.<plugin>.<file>`, and TypeScript knows the methods of `services.todos.tasks`.
 
 ### 5. Let discovery connect the feature
 
-Discovery finds supported files and generates their imports, registration and types
-during the build:
+Discovery finds the files and generates their imports, registration and types into
+`src/bitakit.gen.tsx` while the dev server runs:
 
-| Contribution         | Discovered identity                |
-| -------------------- | ---------------------------------- |
-| `src/plugins/todos/` | Plugin `todos`                     |
-| `services/tasks.ts`  | Service `tasks` (ID `todos.tasks`) |
-| `actions/create.ts`  | Action `todos.create`              |
+| Contribution         | Discovered identity                                      |
+| -------------------- | -------------------------------------------------------- |
+| `src/plugins/todos/` | Plugin `todos`                                           |
+| `services/tasks.ts`  | Service `todos.tasks`, reached as `services.todos.tasks` |
+| `actions/create.ts`  | Action `todos.create`                                    |
 
-No handwritten import list. Only a service from another plugin goes in an action's
+No handwritten import list. A service from another plugin can be listed in an action's
 `requires`, so a missing plugin is reported at startup. See
 [how discovery works](docs/concepts/discovery.md).
 
@@ -308,69 +295,50 @@ No handwritten import list. Only a service from another plugin goes in an action
 ```tsx
 'use client';
 
-import { ActionButton } from '@bitakit/ui';
+import { Action } from '@bitakit/ui';
 
 export default function Page() {
   return (
     <main>
       <h1>My tasks</h1>
 
-      <ActionButton action="todos.create" input="New task">
-        Add a task
-      </ActionButton>
+      <Action id="todos.create" input="New task">
+        <button />
+      </Action>
     </main>
   );
 }
 ```
 
-You see an **Add a task** button. Each click adds **New task** through the action — no
-click handler required. `ActionButton` follows the action's state: disabled while it is
-disabled or pending, hidden while it is hidden. Use its `as` prop to render your own
-button component.
+You see an **Add a task** button. `<Action>` merges the action into its child: the label
+is the action's title, each click adds **New task** through the action, and the button
+disables itself while the action runs or is disabled — no click handler required. Put
+your own component inside, such as `<Button />` from your design system.
 
 ### 7. Show the tasks
 
-The page cannot know when the service changes, so let the service announce it with an
-event:
-
-```diff
- export default defineService({
--  create() {
-+  create({ events }) {
-     const tasks: string[] = [];
-
-     return {
-       add(title: string) {
-         tasks.push(title);
-+        events.emit('todos.changed');
-       },
-```
-
-Then read the list whenever that event arrives. Replace `src/app/page.tsx`:
+The service's `store()` is observable, so a page can read it directly:
 
 ```tsx
 'use client';
 
-import { useState } from 'react';
-import { ActionButton, useFoundationApp, useWatchEvent } from '@bitakit/ui';
+import { Action, useServiceState } from '@bitakit/ui';
 
 export default function Page() {
-  const app = useFoundationApp();
-  const [tasks, setTasks] = useState<string[]>([]);
-  // Re-read the list whenever the service announces a change.
-  useWatchEvent('todos.changed', () => setTasks(app.services.tasks.list()));
+  // Re-renders whenever the tasks store changes.
+  const tasks = useServiceState('todos.tasks', (state) => state.items, []);
 
   return (
     <main>
       <h1>My tasks</h1>
 
-      <ActionButton action="todos.create" input="New task">
-        Add a task
-      </ActionButton>
+      <Action id="todos.create" input="New task">
+        <button />
+      </Action>
 
       <ul>
-        {tasks.map((task, index) => (
-          <li key={index}>{task}</li>
+        {tasks.map((task) => (
+          <li key={task.id}>{task.title}</li>
         ))}
       </ul>
     </main>
@@ -378,8 +346,9 @@ export default function Page() {
 }
 ```
 
-Each click now adds a **New task** line to the list. The hook removes its subscription
-when the page goes away. For a framework-free version with three actions, follow the
+Each click now adds a **New task** line to the list. No event, no subscription and no
+cleanup: the hook follows the store and releases itself with the page. For a
+framework-free version with three actions, follow the
 [To-do tutorial](packages/core/docs/todo-tutorial.md).
 
 **Your framework renders the page. Your plugin defines the feature. BitaKit connects the parts.**
@@ -391,30 +360,31 @@ One action, every entry point. Here is the `todos.delete` action from above at r
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/action-loop-dark.svg">
-    <img src="docs/assets/readme/action-loop-light.svg" width="880" alt="Action event loop. 1: a button, menu item or shortcut executes todos.delete. 2: the action calls tasks.remove(). 3: the service emits todos.changed. 4: onEvent updates the action's enabled state. 5: every bound control receives the new state.">
+    <img src="docs/assets/readme/action-loop-light.svg" width="880" alt="Action loop. 1: a button, menu item or shortcut executes todos.delete. 2: the action calls tasks.remove(). 3: the service updates its store. 4: the store change re-evaluates the action's enabled function. 5: every bound control receives the new state.">
   </picture>
 </p>
 
-The service owns the data, the event announces the change, and the action decides
-what that means for its controls. Core delivers the event and keeps every binding in
-sync. It runs in Node and the browser without React, and it never persists data for
-you: storage stays your choice.
+The service owns the data in a store, and the action's `enabled` function decides what
+that data means for its controls. Core re-evaluates every function-valued field when a
+store changes and keeps every binding in sync. It runs in Node and the browser without
+React, and it never persists data for you: storage stays your choice.
 
 ## 📚 Learn the ideas
 
 - **[How does discovery work?](docs/concepts/discovery.md)** File conventions in, registration and types out.
 - **[Why actions?](docs/concepts/actions.md)** One operation, shared by buttons, menus and links.
-- **[What is a service?](docs/concepts/services.md)** Reusable behavior, explicit contracts, managed lifetimes.
+- **[What is a service?](docs/concepts/services.md)** Behavior and observable state with an owner.
 - **[Configuration or user preferences?](docs/concepts/configuration-and-preferences.md)** What Core owns and what settings packages add.
+- **[Events](packages/core/docs/events.md)** Typed notifications between plugins.
 - **[Type safety](apps/docs/content/docs/concepts/type-safety.mdx)** How types travel from definitions to callers.
 - **[Build a To-do plugin](packages/core/docs/todo-tutorial.md)** Follow one feature from definition to execution.
 
 ## 🧭 Honest boundaries
 
 - TanStack Start support is **experimental**; see its [verified scope](packages/tanstack/README.md).
-- The Next.js generator uses Webpack while the tracked Turbopack discovery issue is open.
+- Plugins run in the browser today. Server-side plugin halves (route handlers, jobs) are planned, not shipped.
 - Plugins are trusted application code. Discovery is not a marketplace, remote installer or sandbox.
-- Services don't persist data or make it reactive on their own — you choose storage and subscriptions.
+- `store()` is in-memory state. Services don't persist data on their own — you choose storage.
 - TypeScript checks your code; validate external input and authorize requests on the server.
 
 ## Explore the documentation locally
@@ -440,6 +410,7 @@ is being prepared.
 | `packages/core`                      | Framework-independent runtime, Actions and Node-only discovery |
 | `packages/ui`                        | React bindings and optional standard components                |
 | `packages/next`, `packages/tanstack` | Optional framework integrations                                |
+| `packages/cli`                       | The `bitakit` command: add, generate, migrate, doctor, build   |
 | `packages/create-app`                | Frontend generator                                             |
 | Other `packages/*`                   | Optional capabilities and provider integrations                |
 | `apps/docs`                          | Developer documentation                                        |

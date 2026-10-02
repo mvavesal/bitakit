@@ -1,9 +1,11 @@
-import type { FoundationConfig } from './definitions.js';
+import type { FoundationConfig, Plugin, ProviderDefinition } from './definitions.js';
 
 export type FoundationOverrides = Pick<
   FoundationConfig,
   'actions' | 'plugins' | 'interceptors' | 'providers'
 >;
+const providersOf = (plugin: Pick<Plugin, 'ui' | 'providers'>): readonly ProviderDefinition[] =>
+  plugin.ui?.providers ?? plugin.providers ?? [];
 
 /** Undefined inherits. An explicit list replaces that domain, including an empty list. */
 export function resolveFoundationConfig(
@@ -23,7 +25,7 @@ export function resolveFoundationConfig(
           })),
     actions: overrides.actions ?? discovered.actions ?? [],
     interceptors: overrides.interceptors ?? discovered.interceptors ?? [],
-    providers: overrides.providers ?? discovered.providers ?? [],
+    providers: overrides.providers ?? providersOf(discovered),
   };
   const removed = new Set(
     (discovered.plugins ?? [])
@@ -40,7 +42,7 @@ export function resolveFoundationConfig(
       throw new Error(`Invalid or duplicate plugin "${plugin.id}".`);
     pluginIds.add(plugin.id);
   }
-  const pluginProviders = (config.plugins ?? []).flatMap((plugin) => plugin.providers ?? []);
+  const pluginProviders = (config.plugins ?? []).flatMap((plugin) => providersOf(plugin));
   if (overrides.providers === undefined && pluginProviders.length)
     config.providers = [...pluginProviders, ...config.providers!];
   const seen = new Set<string>();

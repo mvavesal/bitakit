@@ -20,7 +20,8 @@ export class InstanceBindings {
   attach(id: string, action: Action<any, any>, registration: ActionRegistration) {
     {
       const host = this.environment;
-      if (isBrandedInstance(host, NavigationHost, 'navigation')) action.bindNavigation((href) => host.go(href));
+      if (isBrandedInstance(host, NavigationHost, 'navigation'))
+        action.bindNavigation((href) => host.go(href));
     }
     const entry: Entry = {
       action,

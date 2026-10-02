@@ -20,7 +20,7 @@ import { defineAction } from '@bitakit/core';
 export default defineAction({
   title: 'Clear all',
   groups: ['todos.bulk'],
-  execute: ({ app }) => app.services.todos.clear(),
+  execute: ({ services }) => services.todos.tasks.clear(),
 });
 ```
 
@@ -31,13 +31,13 @@ import { defineAction } from '@bitakit/core';
 export default defineAction({
   title: 'Export tasks',
   groups: ['todos.bulk'],
-  execute: ({ app }) => JSON.stringify(app.services.todos.list()),
+  execute: ({ services }) => JSON.stringify(services.todos.tasks.list()),
 });
 ```
 
-Both actions are now in the group `todos.bulk`. You do not create a group first; naming it is enough. An action can be in several groups, and one group can hold actions from different plugins. Group names follow the [action ID rules](/docs/concepts/actions#id).
+Both actions are now in the group `todos.bulk`. You do not create a group first; naming it is enough. An action can be in several groups, and one group can hold actions from different plugins. Group names follow the [action ID rules](/docs/concepts/actions#identity).
 
-These examples use the `todos` service from the [Actions guide](/docs/concepts/actions#start-here).
+These examples use the `tasks` service from the [Actions guide](/docs/concepts/actions#start-here).
 
 ## Show a group
 
@@ -52,73 +52,51 @@ The menu lists every visible action of `todos.bulk` and updates when they change
 The same group can look different in another place. Here it is a dropdown menu and a toolbar at the same time:
 
 ```tsx
-// src/components/todos/bulk-actions.tsx
+// src/plugins/todos/ui/bulk-actions.tsx
 'use client';
 
-import {
-  ActionGroup,
-  ActionGroupBinding,
-  ActionMenu,
-  type ActionGroupsViewProps,
-} from '@bitakit/ui';
-
-const bulk = new ActionGroup('todos.bulk');
-
-function Toolbar({ groups }: ActionGroupsViewProps) {
-  return (
-    <div role="toolbar">
-      {groups
-        .flatMap((group) => group.items)
-        .map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            disabled={item.disabled}
-            onClick={() => item.run().catch(() => {})}
-          >
-            {item.title}
-          </button>
-        ))}
-    </div>
-  );
-}
+import { ActionMenu, useActionGroup } from '@bitakit/ui';
+import { Button } from '@bitakit/ui/components';
 
 export function BulkActions() {
+  const bulk = useActionGroup('todos.bulk');
   return (
     <>
       {/* The group as a dropdown menu… */}
       <ActionMenu group="todos.bulk" label="Bulk actions" />
       {/* …and the same group as a toolbar. */}
-      <ActionGroupBinding groups={[bulk]} context={undefined} as={Toolbar} />
+      <div role="toolbar">
+        {bulk.items.map((item) => (
+          <Button key={item.id} {...item.props()}>
+            {item.title}
+          </Button>
+        ))}
+      </div>
     </>
   );
 }
 ```
 
-`ActionGroupBinding` gives your component the group's current actions, ready to run. You decide the markup.
+`useActionGroup(group, input?)` gives your component the group's current visible actions as controls, ready to spread on any element. You decide the markup. `useActionGroups([...])` returns several groups at once.
 
 ## How components use groups
 
 | Component                                                                    | Groups                                          | What happens                                                   |
 | ---------------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------- |
 | `ActionMenu` (`@bitakit/ui`)                                                 | the group you name                              | Shows a dropdown menu                                          |
-| `ActionGroupBinding` (`@bitakit/ui`)                                         | the groups you pass                             | Hands the actions to your own component                        |
+| `useActionGroup`, `useActionGroups` (`@bitakit/ui`)                          | the groups you pass                             | Hands the controls to your own component                       |
 | `ActionSidebarNavigation`, `ActionNavigationMenu` (`@bitakit/ui/components`) | `navigation` unless you pass `groups`           | Sidebar or top navigation, one section per group               |
 | Shell                                                                        | `navigation` unless you set `navigationGroups`  | The app's main navigation; Shell adds its Settings entry there |
 | Quick Search                                                                 | the first group of each result                  | Section heading; group titles are searchable                   |
 | App Preferences                                                              | puts each settings page in its category's group | Search shows settings under their category                     |
 
-To show an action in the app's main navigation, put it in the `navigation` group:
+To show an action in the app's main navigation, put a navigation action in the `navigation` group:
 
 ```ts
 // src/plugins/todos/actions/open.ts
-import { defineURLAction } from '@bitakit/core';
+import { defineAction } from '@bitakit/core';
 
-export default defineURLAction({
-  title: 'Tasks',
-  href: '/todos',
-  groups: ['navigation'],
-});
+export default defineAction({ title: 'Tasks', href: '/todos', groups: ['navigation'] });
 ```
 
 ## Give a group a title
@@ -142,11 +120,11 @@ import { bulk } from '../groups';
 export default defineAction({
   title: 'Clear all',
   groups: [bulk],
-  execute: ({ app }) => app.services.todos.clear(),
+  execute: ({ services }) => services.todos.tasks.clear(),
 });
 ```
 
-Other actions can keep the plain name `'todos.bulk'`. They are in the same group, and the title applies to all of them, whichever action is registered first. If two places give one group different titles, the first title wins, so set it in one place. The title is shown as written.
+Other actions can keep the plain name `'todos.bulk'`. They are in the same group, and the runtime keeps the first title given for an ID, whichever action is registered first. If two places give one group different titles, the first title wins, so set it in one place. The title is shown as written.
 
 ## More options
 
@@ -163,33 +141,46 @@ export default defineAction({
   groups: ['todos.bulk'],
   order: 100, // after items with smaller numbers
   dividerBefore: true,
-  execute: ({ app }) => app.services.todos.clear(),
+  execute: ({ services }) => services.todos.tasks.clear(),
 });
 ```
 
-`ActionMenu`, `ActionGroupBinding` and the navigation components sort by ascending `order` (default `0`), then by ID. `dividerBefore` asks for a separator before the item; the settings overview draws it, the standard `ActionMenu` does not yet. Both hints belong to the action, so they apply in every group it is in.
+`ActionMenu`, `useActionGroup` and the navigation components sort by ascending `order` (default `0`), then by ID. `dividerBefore` asks for a separator before the item; the settings overview draws it, the standard `ActionMenu` does not yet. Both hints belong to the action, so they apply in every group it is in.
 
 ### One group, a different input per place
 
-`ActionGroupBinding` passes its `context` as input to every action of the group. One set of row actions can then serve every row of a table:
+`useActionGroup` passes its `input` to every action of the group. One set of row actions can then serve every row of a table:
 
 ```tsx
-<ActionGroupBinding groups={[rowActions]} context={task} as={RowButtons} />
+function TaskRow({ task }: { task: Task }) {
+  const row = useActionGroup('todos.row', task.id);
+  return (
+    <li>
+      {task.title}
+      {row.items.map((item) => (
+        <button key={item.id} {...item.props()}>
+          {item.title}
+        </button>
+      ))}
+    </li>
+  );
+}
 ```
 
-Each row passes its own task, so `resolve` and `execute` see that row's value. See the [row example](/docs/concepts/actions#actiongroupbinding) in the Actions guide.
+Each row passes its own task ID, so the function-valued properties and `execute` see that row's value, and `concurrency: 'per-input'` shows pending per row. `<ActionMenu group="todos.row" label="More" input={task.id} />` does the same as a menu.
 
 ### Add an action you do not own
 
-A `setup` file can put an existing action into a group without changing that action. Here the app collects a plugin action in its own group:
+A `setup.ts` file can put an existing action into a group without changing that action. Here the app collects a plugin action in its own group:
 
 ```ts
 // src/setup.ts
-import { defineSetup } from '@bitakit/core';
+import type { Setup } from '@bitakit/core';
 
-export default defineSetup(({ app }) => {
+const setup: Setup = ({ app }) => {
   app.actions.getGroup('app.quick').attach('todos.add'); // undone when the app stops
-});
+};
+export default setup;
 ```
 
 ### Add a new action straight into a group
@@ -198,11 +189,12 @@ export default defineSetup(({ app }) => {
 
 ```ts
 // src/plugins/help/setup.ts
-import { defineSetup } from '@bitakit/core';
+import type { Setup } from '@bitakit/core';
 
-export default defineSetup(({ app }) => {
+const setup: Setup = ({ app }) => {
   app.actions.getGroup('navigation').add({ id: 'help.open', title: 'Help', href: '/help' });
-});
+};
+export default setup;
 ```
 
 `add` takes the low-level action format: `id` and `title` are required. The action is removed when the plugin stops.
@@ -212,7 +204,6 @@ export default defineSetup(({ app }) => {
 A group is plain data on each action, so code can read it without any component:
 
 ```ts
-// src/plugins/todos/actions-in-group.ts
 import type { ActionList } from '@bitakit/core';
 
 /** IDs of the public actions in a group. */
@@ -223,4 +214,4 @@ export function actionsInGroup(actions: ActionList, group: string) {
 }
 ```
 
-`actionsInGroup(runtime.actions, 'todos.bulk')` returns `['todos.clear', 'todos.export']`. The action list comes from `runtime.actions`, from `useActionList()` in React, or from `mountPlugin(...).actions` in tests (0.2).
+`actionsInGroup(runtime.actions, 'todos.bulk')` returns `['todos.clear', 'todos.export']`. The action list comes from `runtime.actions`, from `useActionList()` in React, or from `mountPlugin(...).actions` in tests.

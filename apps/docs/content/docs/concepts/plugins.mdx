@@ -1,42 +1,41 @@
 ---
 title: Plugins and lifecycle
-description: Compose a feature through the existing runtime.
+description: One feature in one folder, connected by the runtime.
 ---
 
-**Owner:** `@bitakit/core`. Plugins are trusted application code. They group services, actions and other contributions; Core does not render their UI.
+**Owner:** `@bitakit/core`. Plugins are trusted application code. They group services, actions, events and UI; Core does not render their UI.
 
 ## Start with two files
 
-In a host with Foundation discovery configured, a plugin starts as a folder. Add a service and an action; their paths supply their names automatically.
+In an app with BitaKit discovery configured, a plugin is a folder under `src/plugins`. Add a service and an action; their paths supply their names.
 
 ```text
 src/plugins/todos/
-  services/todos.ts
+  services/tasks.ts
   actions/add.ts
 ```
 
 ### The service owns the tasks
 
 ```ts
-// src/plugins/todos/services/todos.ts
+// src/plugins/todos/services/tasks.ts
 import { defineService } from '@bitakit/core';
 
-export default defineService({
-  create() {
-    const items: { id: number; title: string }[] = [];
-    return {
-      add(title: string) {
-        const task = { id: items.length + 1, title };
-        items.push(task);
-        return task;
-      },
-      list: () => [...items],
-    };
-  },
+export type Task = { id: number; title: string };
+
+export default defineService(({ store }) => {
+  const state = store<{ items: Task[] }>({ items: [] });
+  return {
+    state,
+    list: () => state.get().items,
+    add(title: string) {
+      state.set((s) => ({ items: [...s.items, { id: Date.now(), title }] }));
+    },
+  };
 });
 ```
 
-The `id` on a task is application data, not a service registration ID. This in-memory example only adds and lists tasks; it does not persist them.
+The `id` on a task is application data, not a service registration ID. `store()` keeps the tasks in memory; this example does not persist them.
 
 ### The action calls the service
 
@@ -46,9 +45,7 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction<string>({
   title: 'Add task',
-  execute({ app, input }) {
-    app.services.todos.add(input);
-  },
+  execute: ({ services, input }) => services.todos.tasks.add(input),
 });
 ```
 
@@ -56,15 +53,13 @@ export default defineAction<string>({
 
 ### The paths supply the identities
 
-| Source                           | Automatically derived identity |
-| -------------------------------- | ------------------------------ |
-| Plugin folder `todos/`           | Plugin `todos`                 |
-| Service file `services/todos.ts` | Public service `todos`         |
-| Action file `actions/add.ts`     | Action `todos.add`             |
+| Source                           | Automatically derived identity                           |
+| -------------------------------- | -------------------------------------------------------- |
+| Plugin folder `todos/`           | Plugin `todos`                                           |
+| Service file `services/tasks.ts` | Service `todos.tasks`, reached as `services.todos.tasks` |
+| Action file `actions/add.ts`     | Action `todos.add`                                       |
 
-Neither contribution needs an explicit registration `id`. Discovery generates the imports, registration and types. The action calls its plugin's own service through `app.services.todos` without declaring it: a plugin's services always exist when its actions run, and TypeScript checks the name.
-
-No `plugin.config.ts` or manual contribution list is needed for this example. Add explicit IDs only when a custom identity is required or must stay stable after moving a file. See [discovery](/docs/concepts/discovery) for flat filenames and [overrides](/docs/concepts/overrides) for intentional replacement.
+Neither contribution needs an explicit ID. Discovery generates the imports, registration and types into `src/bitakit.gen.tsx`, and TypeScript checks the service name and the input. `npx bitakit add plugin todos` creates a complete plugin with these conventions.
 
 ## Use it
 
@@ -73,55 +68,98 @@ Bind the action to a button on any page of your app, for example `src/app/page.t
 ```tsx
 'use client';
 
-import { ActionButton } from '@bitakit/ui';
+import { Action, useServiceState } from '@bitakit/ui';
 
 export default function Page() {
+  const tasks = useServiceState('todos.tasks', (state) => state.items, []);
   return (
-    <ActionButton action="todos.add" input="Buy milk">
-      Add task
-    </ActionButton>
+    <>
+      <Action id="todos.add" input="Buy milk">
+        <button />
+      </Action>
+      <ul>
+        {tasks.map((task) => (
+          <li key={task.id}>{task.title}</li>
+        ))}
+      </ul>
+    </>
   );
 }
 ```
 
-You see an **Add task** button. Each click runs `todos.add` with the input `Buy milk`; the button is disabled while the action runs, and you wrote no click handler. To show the tasks as they change, let the service emit an event and read the list with `useWatchEvent` — see [Events](/docs/concepts/events).
+You see an **Add task** button. Each click runs `todos.add` with the input `Buy milk`; the button is disabled while the action runs, and the list re-renders because `useServiceState` follows the store. You wrote no click handler and no subscription.
+
+## The whole folder
+
+A plugin grows into this shape; every part is optional:
+
+```text
+src/plugins/todos/
+├── services/items.ts         defineService   → services.todos.items
+├── actions/add.ts            defineAction    → todos.add
+├── events.ts                 defineEvents    → todos.changed
+├── configs/limits.ts         defineConfig    → app.config.todos.limits
+├── interceptors/audit.ts     defineInterceptor
+├── setup.ts                  plugin setup (optional)
+├── plugin.config.ts          dependencies and metadata (optional)
+├── locales/en.json           { "todos": { ... } }
+└── ui/
+    ├── pages/index.tsx       /todos          (file path = URL)
+    ├── pages/tasks/[id].tsx  /todos/tasks/:id
+    ├── slots/app-bar.end.tsx component placed in slot "app-bar.end"
+    ├── dialogs/rename.tsx    a component an action opens with `dialog`
+    └── providers/query.tsx   React provider wrapped around the app
+```
+
+Everything under `ui/` is React; nothing outside it may import React. `server/` is reserved and never bundled for the client.
 
 ## Add a page
 
-A plugin can bring its own screens. A file in `pages/` exports a component and the exact path it serves:
+A file under `ui/pages` exports a component; its path is the URL below `/<plugin>`:
 
 ```tsx
-// src/plugins/todos/pages/tasks.tsx
-import { definePage } from '@bitakit/core';
-import { TaskList } from '../components/task-list';
+// src/plugins/todos/ui/pages/index.tsx  → /todos
+'use client';
 
-export default definePage({ path: '/todos/tasks', component: TaskList });
+import { PageHeader } from '@bitakit/ui/components';
+
+export default function TodosPage() {
+  return <PageHeader title="Tasks" />;
+}
 ```
 
-The app renders plugin pages from one catch-all route. Apps created with `@bitakit/create-app` 0.2 include it; otherwise add it once:
+`ui/pages/tasks/[id].tsx` serves `/todos/tasks/:id` and receives `params.id`. The app renders plugin pages from one catch-all route; apps created with `@bitakit/create-app` include it:
 
 ```tsx
 // src/app/[...path]/page.tsx
 'use client';
 
-import { usePathname } from 'next/navigation';
 import { PluginPage } from '@bitakit/ui';
 
 export default function Page() {
-  return <PluginPage pathname={usePathname()} fallback={<p>Page not found.</p>} />;
+  return <PluginPage fallback={<p>Page not found.</p>} />;
 }
 ```
 
-Paths are exact: letters, digits, `-` and `_`, nested with `/`. Dynamic segments are not supported, and invalid or duplicate paths fail at startup. Routes of the app itself take precedence, and a navigation action only creates a link, never a page.
+Routes of the app itself take precedence, and a navigation action (`defineAction({ title: 'Tasks', href: '/todos', groups: ['navigation'] })`) only creates a link, never a page. Duplicate or invalid paths fail at startup.
 
-To place a smaller component inside a screen the app owns, export a view from `views/` instead, for example `defineView({ slot: 'dashboard.content', component: TaskSummary })`, and render `<PluginSlot name="dashboard.content" />` once where it belongs. Views appear when the plugin starts and disappear with it.
+To place a smaller component inside a screen the app owns, export it from `ui/slots/<slot>.tsx` instead and render `<PluginSlot name="dashboard.content" />` once where it belongs. Slot components appear when the plugin starts and disappear with it.
+
+## Dependencies and setup
+
+`plugin.config.ts` is optional and declares what discovery cannot derive:
+
+```ts
+// src/plugins/todos/plugin.config.ts
+export default { dependencies: ['shell'], metadata: { name: 'Todos' } };
+```
+
+Dependencies order startup; a missing or cyclic dependency is a startup error naming both plugins. `setup.ts` default-exports a function that runs once after the plugin's actions are registered, with `{ app, services }`, and may return a cleanup. Use it to attach actions to groups the plugin does not own; put async work in a service `onStart` instead.
 
 ## What happens automatically
 
-The configured host discovers the files. Core creates the service, registers the action and releases their owned resources when the application provider unmounts. You do not create an ActionList, mount a runtime or write a stop function for each feature.
+The configured host discovers the files. Core creates the services in dependency order, registers the actions, installs interceptors and UI, runs `setup` and releases everything when the provider unmounts. You do not create an ActionList, mount a runtime or write a stop function for each feature.
 
-An action uses its own plugin's services directly. When it needs a service from another plugin, list it in `requires` so a missing plugin is reported at startup instead of on the first click; see [Services](/docs/concepts/services#use-a-service-from-another-plugin).
+In development, a plugin that fails to start is turned off together with the plugins that depend on it, and a startup report names the plugin, the cause and the file. The rest of the app keeps running, and a page that still needs one of its services explains that instead of crashing. Production builds fail fast.
 
-In development (0.2), a plugin that fails to start is turned off together with the plugins that depend on it, and a startup report names the plugin, the cause and the file. The rest of the app keeps running, and a page that still needs one of its services explains that instead of crashing. Production builds fail fast.
-
-Next, read [Services](/docs/concepts/services) and [Actions](/docs/concepts/actions). Manual runtime ownership is covered separately in [Advanced — manual composition](/docs/concepts/manual-composition).
+Next, read [Services](/docs/concepts/services) and [Actions](/docs/concepts/actions). Manual runtime ownership is covered in [Advanced — manual composition](/docs/concepts/manual-composition).

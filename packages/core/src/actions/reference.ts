@@ -11,10 +11,14 @@ export interface ActionReference<Id extends string = string> {
 const owners = new WeakMap<object, { list: ActionList; id: string }>();
 
 /** UI bindings reuse the current list and reject references from another app instance. */
-export function resolveActionId<Id extends string>(target: Id | ActionReference<Id>, list: ActionList): Id {
+export function resolveActionId<Id extends string>(
+  target: Id | ActionReference<Id>,
+  list: ActionList,
+): Id {
   if (typeof target === 'string') return target;
   const owner = owners.get(target);
-  if (!owner || owner.list !== list) throw new Error('The Action reference belongs to a different Foundation instance.');
+  if (!owner || owner.list !== list)
+    throw new Error('The Action reference belongs to a different Foundation instance.');
   return owner.id as Id;
 }
 
@@ -27,10 +31,14 @@ export function createActionReference(
   const target = Object.create(null);
   Object.defineProperties(target, {
     id: { value: id, configurable: true },
-    execute: { configurable: true, value: (input?: unknown) => {
-      if (list.get(id)?.internal) throw new Error(`Internal Action "${id}" is not publicly accessible.`);
-      return list.execute(id, input);
-    } },
+    execute: {
+      configurable: true,
+      value: (input?: unknown) => {
+        if (list.get(id)?.internal)
+          throw new Error(`Internal Action "${id}" is not publicly accessible.`);
+        return list.execute(id, input);
+      },
+    },
   });
   const reference = new Proxy(target, {
     get(target, name, receiver) {
@@ -39,8 +47,11 @@ export function createActionReference(
       return children.get(name);
     },
     ownKeys: children.keys,
-    getOwnPropertyDescriptor: (target, name) => Reflect.getOwnPropertyDescriptor(target, name)
-      ?? (typeof name === 'string' && children.keys().includes(name) ? { enumerable: true, configurable: true } : undefined),
+    getOwnPropertyDescriptor: (target, name) =>
+      Reflect.getOwnPropertyDescriptor(target, name) ??
+      (typeof name === 'string' && children.keys().includes(name)
+        ? { enumerable: true, configurable: true }
+        : undefined),
     set: () => false,
     defineProperty: () => false,
     deleteProperty: () => false,

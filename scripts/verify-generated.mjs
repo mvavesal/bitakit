@@ -23,6 +23,8 @@ const addItem = async (page) => {
   await page.getByRole('button', { name: 'Add item' }).click();
   await page.getByText('Verify the generator').waitFor();
   await page.getByRole('button', { name: 'Clear all' }).click();
+  // The sample's clear action asks for confirmation first.
+  await page.getByRole('button', { name: 'Confirm' }).click();
   await page.getByText('Verify the generator').waitFor({ state: 'detached' });
 };
 const app = (framework, sample) => ({

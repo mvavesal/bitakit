@@ -25,7 +25,9 @@ async function walk(directory) {
 }
 
 const toPattern = (parts, catchAll) =>
-  new RegExp(`^${parts.length ? parts.map((part) => `/${part}`).join('') : catchAll ? '' : '/'}${catchAll ? '(?:/.*)?' : '/?'}$`);
+  new RegExp(
+    `^${parts.length ? parts.map((part) => `/${part}`).join('') : catchAll ? '' : '/'}${catchAll ? '(?:/.*)?' : '/?'}$`,
+  );
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 async function nextRoutes(root) {
@@ -35,7 +37,10 @@ async function nextRoutes(root) {
   const routes = [];
   for (const file of await walk(appDirectory)) {
     if (!/^(page|route)\.(tsx|ts|jsx|js|mdx)$/.test(path.basename(file))) continue;
-    const segments = path.relative(appDirectory, path.dirname(file)).split(path.sep).filter(Boolean);
+    const segments = path
+      .relative(appDirectory, path.dirname(file))
+      .split(path.sep)
+      .filter(Boolean);
     // Parallel slots and intercepting routes mirror other routes.
     if (segments.some((segment) => segment.startsWith('@') || /^\(\.+\)/.test(segment))) continue;
     const parts = [];

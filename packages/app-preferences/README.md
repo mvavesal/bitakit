@@ -12,7 +12,7 @@ integration is optional and lives in `@bitakit/app-preferences/foundation`.
 | `@bitakit/app-preferences/core` | Definitions, builders, sections, `AppPreferences`, storage adapters. No React runtime import. | – |
 | `@bitakit/app-preferences` | Everything in `core` plus React provider, hooks, renderer registry, default controls and views. | React |
 | `@bitakit/app-preferences/foundation` | `appPreferencesPlugin`, typed services, installers, discovery normalizers, SSR bridge. | Core, UI (optional peers) |
-| `@bitakit/app-preferences/discovery` | `settingsDiscovery()` kinds for `foundation.config.ts` (Node, no module execution). | – |
+| `@bitakit/app-preferences/discovery` | `settingsDiscovery()` kinds for `bitakit.config.ts` (Node, no module execution). | – |
 | `@bitakit/app-preferences/actions` | Optional Core Actions adapter (`bindSettings`). | Core |
 
 ## Default workflow with Foundation
@@ -50,10 +50,10 @@ identity. Removed definitions cannot be read or written through a retained refer
 The following optional configuration is only needed to customize discovery:
 
 ```ts
-// foundation.config.ts
-import { defineFoundation } from '@bitakit/core/discovery';
+// bitakit.config.ts
+import { defineBitaKit } from '@bitakit/core/discovery';
 import { settingsDiscovery } from '@bitakit/app-preferences/discovery';
-export default defineFoundation({ kinds: settingsDiscovery() });
+export default defineBitaKit({ kinds: settingsDiscovery() });
 ```
 
 ```text
@@ -233,9 +233,13 @@ Section renderers receive pre-bound items: `label`, `description`, `control`, `f
 Imperative registration from `setup` goes through the same service and is scoped:
 
 ```ts
-export default defineSetup(({ app, services }) => {
+// setup.ts
+import type { Setup } from '@bitakit/core';
+
+const setup: Setup = ({ app, services }) => {
   getService(services, settingsRendererService).scoped(app).registerType('boolean', { component: MyCheckbox });
-});
+};
+export default setup;
 ```
 
 The layer and owner come from the runtime-issued scope (`scopeModule`), so a plugin cannot register
@@ -284,7 +288,7 @@ The action mirrors the confirmed value and writability; writes use `AppPreferenc
 | `services/renderers.ts` | Shared service keys and scoped renderer registration |
 | `providers/foundation.tsx` | Initial snapshot and runtime provider bridge |
 | `foundation/` | Optional entry, ownership normalization and discovery normalizers |
-| `discovery.mjs` | Discovery kinds for `foundation.config.ts` |
+| `discovery.mjs` | Discovery kinds for `bitakit.config.ts` |
 
 Run `npm test` for definitions, ownership, queue semantics, storage adapters, renderer precedence,
 views, SSR equivalence and Foundation integration.

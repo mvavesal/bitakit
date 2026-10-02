@@ -1,55 +1,30 @@
 import { preserveContributionPath } from './contribution-origin.js';
-import { Action, isBrandedClass } from '@bitakit/core/actions';
-import type { Contribution, ResolvedContribution } from './definitions.js';
+import { isActionSpec, type Contribution, type ResolvedContribution } from './definitions.js';
 
-/** Build adapters supply a path-derived ID; explicit consumers supply their own ID. */
-export function resolveContribution<T extends Contribution>(
-  entry: T,
+export const actionIdPattern = /^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$/;
+
+/** Discovery supplies a path-derived ID; manual composition supplies `id` or a record key. */
+export function resolveContribution(
+  entry: Contribution,
   inferredId?: string,
-  useConventions = true,
 ): ResolvedContribution {
-  const definition =
-    typeof entry === 'function'
-      ? {
-          kind: 'native' as const,
-          fromExport: true,
-          load: (context: import('./definitions.js').ActionEnvironment) =>
-            isBrandedClass(entry, 'action')
-              ? new (entry as new (
-                  context: import('./definitions.js').ActionEnvironment,
-                ) => Action<any, any>)(context)
-              : (
-                  entry as (
-                    context: import('./definitions.js').ActionEnvironment,
-                  ) => Action<any, any>
-                )(context),
-        }
-      : entry;
-  const normalized = definition as Exclude<Contribution, import('./definitions.js').ActionExport>;
-  if (!normalized || !['action', 'form', 'dialog', 'native'].includes(normalized.kind))
+  if (!isActionSpec(entry))
     throw new Error(
-      `Invalid action export in "${inferredId ?? 'manual registration'}". Export an Action class, function or action definition.`,
+      `Invalid action export in "${inferredId ?? 'manual registration'}". Export defineAction({ ... }).`,
     );
-  const automatic = normalized.conventions ?? useConventions;
-  if (normalized.replaces && normalized.id && normalized.id !== normalized.replaces)
-    throw new Error('A replacement must retain the target action ID.');
-  const id = normalized.replaces ?? normalized.id ?? (automatic ? inferredId : undefined);
-  if (!id && normalized.kind === 'native' && normalized.fromExport)
-    return { ...normalized, id: '', conventions: automatic };
+  const id = entry.id ?? inferredId;
   if (!id)
     throw new Error(
-      'Action needs an explicit ID when path conventions are unavailable or disabled.',
+      'An action needs an ID: use a record key or pass { id } for manual composition.',
     );
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$/.test(id)) throw new Error(`Invalid action ID: ${id}`);
-  if (!automatic && normalized.title === undefined)
-    throw new Error(`Action "${id}" needs an explicit title.`);
-  return preserveContributionPath(entry, {
-    ...normalized,
-    id,
-    conventions: automatic,
-  }) as ResolvedContribution;
+  if (!actionIdPattern.test(id))
+    throw new Error(
+      `Invalid action ID "${id}". Use letters, digits, dots, underscores, colons, slashes or hyphens.`,
+    );
+  return preserveContributionPath(entry, { ...entry, id }) as ResolvedContribution;
 }
-export function fallbackTitle(definition: ResolvedContribution) {
+/** `todos.clear-all` → `Clear all`. */
+export function fallbackTitle(definition: { id: string }) {
   const name = definition.id.split(/[./:]/).at(-1)!.replace(/[-_]/g, ' ');
   return name.charAt(0).toUpperCase() + name.slice(1);
 }

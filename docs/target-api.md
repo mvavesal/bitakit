@@ -46,18 +46,25 @@ Anything under `server/` is reserved and never bundled for the client.
 ```ts
 import { defineService } from '@bitakit/core';
 
-export default defineService(({ services, config, events, store, onStart, onStop }) => {
-  const state = store<{ items: Item[] }>({ items: [] });          // observable, typed once
-  onStart(async ({ signal }) => { /* awaited before app.ready */ });
-  onStop(() => { /* cleanup */ });
-  return {
-    state,
-    add(title: string) {
-      state.set((s) => ({ items: [...s.items, { id: Date.now(), title }] }));
-      events.emit('todos.changed', { kind: 'added' });            // typed, owner-only
-    },
-  };
-}, { requires: ['billing.invoices'], provides: authContract, exposeAs: 'items' });
+export default defineService(
+  ({ services, config, events, store, onStart, onStop }) => {
+    const state = store<{ items: Item[] }>({ items: [] }); // observable, typed once
+    onStart(async ({ signal }) => {
+      /* awaited before app.ready */
+    });
+    onStop(() => {
+      /* cleanup */
+    });
+    return {
+      state,
+      add(title: string) {
+        state.set((s) => ({ items: [...s.items, { id: Date.now(), title }] }));
+        events.emit('todos.changed', { kind: 'added' }); // typed, owner-only
+      },
+    };
+  },
+  { requires: ['billing.invoices'], provides: authContract, exposeAs: 'items' },
+);
 ```
 
 - The factory receives one context object. Options are optional.
@@ -74,26 +81,27 @@ import { defineAction } from '@bitakit/core';
 import { z } from 'zod';
 
 export default defineAction({
-  title: 'Add item',                 // literal or translation key; `<id>.title` key wins when present
-  input: z.string().min(1),          // optional schema: validates and types `input`
-  enabled: ({ input }) => input.trim().length > 0,   // value or function; functions re-run on service changes
+  title: 'Add item', // literal or translation key; `<id>.title` key wins when present
+  input: z.string().min(1), // optional schema: validates and types `input`
+  enabled: ({ input }) => input.trim().length > 0, // value or function; functions re-run on service changes
   visible: ({ services }) => services.todos.items.state.get().items.length < 100,
   groups: ['todos.toolbar'],
   shortcut: { keys: 'Mod+Enter' },
-  concurrency: 'per-input',          // 'exclusive' (default) | 'per-input' | 'latest'
+  concurrency: 'per-input', // 'exclusive' (default) | 'per-input' | 'latest'
   confirm: ({ input }) => ({ title: 'Add this item?' }),
   execute: ({ services, input, signal }) => services.todos.items.add(input),
-  success: ({ result }) => 'Item added',   // string | key | function | false; `<id>.success` key by convention
-  failure: ({ error }) => undefined,       // undefined falls back to the default toast
+  success: ({ result }) => 'Item added', // string | key | function | false; `<id>.success` key by convention
+  failure: ({ error }) => undefined, // undefined falls back to the default toast
 });
 ```
 
 - Navigation: `defineAction({ title: 'Todos', href: '/todos', groups: ['navigation'] })`.
 - Dialog: `defineAction({ title: 'Rename', dialog: RenameDialog, dialogSize: 'wide' })`; the
   component receives `{ input, close, services }`.
-- Presentation fields that accept a function: `title`, `description`, `tooltip`, `icon`,
-  `enabled`, `visible`, `checked`, `value`, `variant`, `href`. The function context is
-  `{ input, services, config, app }`.
+- Presentation fields that accept a function: `title`, `description`, `tooltip`, `enabled`,
+  `visible`, `checked`, `value`, `variant`, `href`. The function context is
+  `{ input, services, config, app }`. `icon` is static, because a component cannot be told
+  apart from a presentation function.
 - `execute` context: `{ input, services, config, app, events, signal, id, get, update }`.
   Sync or async. Pending is set only when a promise is returned.
 - Without a schema, type the input explicitly: `defineAction<string>({ ... })` (result is
@@ -106,10 +114,12 @@ export default defineAction({
 
 ```ts
 // events.ts
-export default defineEvents<{
-  changed: { kind: 'added' | 'removed' };
-  deleting: { id: number };
-}>({ deleting: { cancelable: true } });
+import { defineEvents, event } from '@bitakit/core';
+
+export default defineEvents({
+  changed: event<{ kind: 'added' | 'removed' }>(),
+  deleting: event<{ id: number }>({ cancelable: true }),
+});
 
 events.emit('todos.changed', { kind: 'added' });            // void
 const allowed = await events.emit('todos.deleting', { id });  // Promise<boolean>
@@ -123,11 +133,14 @@ synchronous, async handlers are awaited only for error reporting, errors are att
 ## Config
 
 ```ts
-export default defineConfig({ schema: z.object({ maxItems: z.number() }), defaults: { maxItems: 100 } });
+export default defineConfig({
+  schema: z.object({ maxItems: z.number() }),
+  defaults: { maxItems: 100 },
+});
 
-app.config.todos.limits.maxItems               // typed
-config.plugin.get('limits.maxItems', 100)      // in contexts, typed by the fallback
-config.action.get('defaultTitle', 'Untitled')  // configs/actions/<action>.ts
+app.config.todos.limits.maxItems; // typed
+config.plugin.get('limits.maxItems', 100); // in contexts, typed by the fallback
+config.action.get('defaultTitle', 'Untitled'); // configs/actions/<action>.ts
 ```
 
 Overrides: `bitakit.config.ts` → `configOverrides: { todos: { limits: { maxItems: 50 } } }`.
@@ -136,9 +149,9 @@ Overrides: `bitakit.config.ts` → `configOverrides: { todos: { limits: { maxIte
 
 ```ts
 export default defineInterceptor({
-  action: 'todos.*',                     // or ['todos.add'], '*' with scope: 'global'
+  action: 'todos.*', // or ['todos.add'], '*' with scope: 'global'
   order: 10,
-  before: ({ id, input, services }) => false,   // false cancels
+  before: ({ id, input, services }) => false, // false cancels
   after: ({ id, result }) => {},
   onError: ({ id, error }) => {},
 });
@@ -158,7 +171,7 @@ export default definePlugin({
   services: { items: itemsService },             // records keyed by name; IDs become todos.items
   actions: { add: addAction },
   events: todosEvents,
-  config: limits,
+  config: { limits },                            // a record: the schema lands at app.config.todos.limits
   interceptors: [audit],
   setup: ({ app, services }) => () => {},
   ui: { pages: [...], slots: [...], providers: [...] },

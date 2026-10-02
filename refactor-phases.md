@@ -23,12 +23,12 @@ though `server/` stays empty until Phase 7.
 
 ## Phase 0: Freeze and decide (S)
 
-- [ ] Commit the open files on `feat/dx-overhaul` or stash what is unfinished. Everything
+- [x] Commit the open files on `feat/dx-overhaul` or stash what is unfinished. Everything
       below starts from a clean tree.
-- [ ] Decide names once: BitaKit everywhere, `bitakit.config.ts`, `src/bitakit.gen.ts`, no
+- [x] Decide names once: BitaKit everywhere, `bitakit.config.ts`, `src/bitakit.gen.ts`, no
       "Foundation" in generated output. Keep the npm package names; `@bitakit/ui` becomes
       React-only.
-- [ ] Write the target API as a two-page spec and draft the generated AGENTS.md from it. The
+- [x] Write the target API as a two-page spec and draft the generated AGENTS.md from it. The
       AGENTS.md is the acceptance test: a convention that does not fit on that page is too
       complicated.
 
@@ -36,37 +36,37 @@ though `server/` stays empty until Phase 7.
 
 Changes
 
-- [ ] `defineAction` is the single action shape. `href` and `dialog` are options. Presentation
+- [x] `defineAction` is the single action shape. `href` and `dialog` are options. Presentation
       fields (`title`, `enabled`, `visible`, `icon`, ...) accept a value or a function that is
       re-evaluated when a service it reads changes.
-- [ ] `defineService` factory receives `store`. Services are namespaced `<plugin>.<file>` by
+- [x] `defineService` factory receives `store`. Services are namespaced `<plugin>.<file>` by
       default; `exposeAs` only flattens deliberately. `provideService` folds into
       `provides: contract`. Optional `start`/`stop`; `mount()` returns a `ready` promise.
-- [ ] `defineEvents` per plugin: auto-prefixed names, owner-only emit, optional `cancelable`
+- [x] `defineEvents` per plugin: auto-prefixed names, owner-only emit, optional `cancelable`
       events whose `emit` returns `Promise<boolean>`.
-- [ ] `defineInterceptor` with an `action` or `service` target (mutually exclusive, glob
+- [x] `defineInterceptor` with an `action` or `service` target (mutually exclusive, glob
       matching, plugin-local by default), `before`/`after`/`onError`, `order`, `scope`.
-- [ ] `defineConfig({ schema, defaults })` as the one form. `config.plugin.get` and
+- [x] `defineConfig({ schema, defaults })` as the one form. `config.plugin.get` and
       `config.action.get` are typed from the generated map.
-- [ ] Every startup error is a `FoundationStartupError` with plugin ID, file and the offending
+- [x] Every startup error is a `FoundationStartupError` with plugin ID, file and the offending
       identifier in the message (duplicate IDs, cycles, duplicate pages, invalid hrefs).
-- [ ] Feedback defaults: silent success, one failure toast, `<id>.success` / `<id>.failure`
+- [x] Feedback defaults: silent success, one failure toast, `<id>.success` / `<id>.failure`
       locale keys picked up automatically, `success: false` for silence, `confirm` option
       routed through the host confirmation.
-- [ ] Pending is set only when `execute` returns a promise. `concurrency: 'exclusive' |
-      'per-input' | 'latest'` with an abort `signal` in the handler context.
+- [x] Pending is set only when `execute` returns a promise. `concurrency: 'exclusive' |
+    'per-input' | 'latest'` with an abort `signal` in the handler context.
 
 Removes
 
-- [ ] Curried `defineAction<Input>()` builder, class and factory action discovery,
+- [x] Curried `defineAction<Input>()` builder, class and factory action discovery,
       `defineURLAction`, `defineDialogAction`, `defineFormAction` (form fields and
       `validateFields` leave Core).
-- [ ] `resolve`, `watch`, `events` + `onEvent`, `setup`, `initialState`, `state`, `dependsOn`,
+- [x] `resolve`, `watch`, `events` + `onEvent`, `setup`, `initialState`, `state`, `dependsOn`,
       `conventions`, `configPath`, `unavailable`, `replaces` (overrides move to
       `bitakit.config.ts`).
-- [ ] `defineActionInterceptor`, `defineServiceInterceptor`, the legacy `defineInterceptor`
+- [x] `defineActionInterceptor`, `defineServiceInterceptor`, the legacy `defineInterceptor`
       branch.
-- [ ] `publicServices`, `discoverPublicServices`, the raw-key entries in `ServiceMap`.
+- [x] `publicServices`, `discoverPublicServices`, the raw-key entries in `ServiceMap`.
 
 Done when
 
@@ -77,22 +77,23 @@ Done when
 
 Changes
 
-- [ ] One filename convention: folders only (`actions/add.ts`). `bitakit migrate` rewrites
+- [x] One filename convention: folders only (`actions/add.ts`). `bitakit migrate` rewrites
       the suffix and dotted forms. The repo apps are migrated with it.
-- [ ] `ui/` folder for `pages/`, `slots/`, `dialogs/`, `providers/`. Slot and page identity
+- [x] `ui/` folder for `pages/`, `slots/`, `dialogs/`, `providers/`. Slot and page identity
       come from the filename; no `definePage` / `defineView`. `server/` is reserved and skipped.
-- [ ] Real generated files instead of a bundler alias: `src/bitakit.gen.ts` and
+- [x] Real generated files instead of a bundler alias: `src/bitakit.gen.ts` and
       `src/bitakit.gen.d.ts` with `ActionMap`, `ServiceMap`, `EventMap`, `ConfigMap`,
       `SlotMap`. Strict action IDs on by default in generated apps.
-- [ ] `bitakit.config.ts` replaces `foundation.config.ts`. `plugin.config.ts` only for
-      `dependencies` and metadata. Plugin dependencies are derived from service and event
-      usage where the build can see them.
-- [ ] Warnings for skipped files (no default export, `-` prefix). Integration kinds move
+- [x] `bitakit.config.ts` replaces `foundation.config.ts`. `plugin.config.ts` only for
+      `dependencies` and metadata. _Deferred to Phase 5: deriving plugin dependencies from
+      service and event usage._
+- [x] Warnings for skipped files (no default export, `-` prefix). Integration kinds move
       under `contributions/<kind>/` so `settings/`, `sections/`, `renderers/`, `providers/`
       are no longer reserved at the app root.
-- [ ] Watcher: ignore `.tanstack`, `.output`, `coverage`; platform-independent ignore
+- [x] Watcher: ignore `.tanstack`, `.output`, `coverage`; platform-independent ignore
       pattern; single generation at dev start.
-- [ ] `bitakit info --graph` (plugins, services, events, who uses what).
+- [ ] `bitakit info --graph` (plugins, services, events, who uses what). _Deferred; `info --json`
+      exists._
 
 Done when
 
@@ -103,24 +104,25 @@ Done when
 
 Changes
 
-- [ ] `useAction(id, input)` returns state plus prop getters: `props()`, `linkProps()`,
+- [x] `useAction(id, input)` returns state plus prop getters: `props()`, `linkProps()`,
       `checkedProps()`, `valueProps()`, `menuItemProps()`. Getters merge user props.
-- [ ] `<Action id input kind>` merges into its child (Slot pattern); render-prop form kept
+- [x] `<Action id input kind>` merges into its child (Slot pattern); render-prop form kept
       for full control. `ActionButton` stays as sugar on top of `<Action>`.
-- [ ] `useActionGroup(group)` for menus and navigation. Provider-level `controls` adapters
+- [x] `useActionGroup(group)` for menus and navigation. Provider-level `controls` adapters
       map state to library-specific prop names.
-- [ ] `useService`, `useServiceState(name, selector?)`, `useEvent`. Readiness is handled inside
+- [x] `useService`, `useServiceState(name, selector?)`, `useEvent`. Readiness is handled inside
       the hooks; `app.optional.services` disappears.
-- [ ] Pending passed as a prop (`pending`), never a swapped label. Per-input pending reaches
+- [x] Pending passed as a prop (`pending`), never a swapped label. Per-input pending reaches
       `useAction(...).pending`.
-- [ ] One `FoundationProvider` with defaults. Plugins merge by ID; replacement only when
+- [x] One `FoundationProvider` with defaults. Plugins merge by ID; replacement only when
       explicit. Required `ui`/`labels` props removed.
 
 Removes
 
-- [ ] `ActionLink`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`, `ActionBinding`,
-      `ActionGroupBinding`, `ActionMenuView`, `useWatchEvent` (renamed `useEvent`),
-      `useFoundationReady` (internal), the `[key: string]: unknown` index signature.
+- [x] `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`, `ActionBinding`,
+      `ActionGroupBinding`, `ActionMenuView`, `useRegisterAction(s)`, the `[key: string]: unknown`
+      index signature. _Kept as sugar or deprecated aliases: `ActionLink`, `useWatchEvent`,
+      `useFoundationReady`._
 
 Done when
 
@@ -132,7 +134,7 @@ Done when
 Changes
 
 - [ ] `defineSettings` per plugin: `schema`, `default`, `scope: 'user' | 'organization' |
-      'device'`, optional `label` and `render`. Keys are `<plugin>.<name>`.
+    'device'`, optional `label` and `render`. Keys are `<plugin>.<name>`.
 - [ ] One read/write API: `settings.<plugin>.<key>.get() / set() / subscribe()` and
       `useSetting(key)`. Generated settings sections from the definitions;
       `ui/settings/page.tsx` replaces a plugin's section.

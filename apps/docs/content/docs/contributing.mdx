@@ -84,8 +84,9 @@ node packages/create-app/src/cli.mjs ../my-foundation-app \
   --yes
 ```
 
-The generator installs dependencies and creates native routes and Foundation configuration.
-It does not copy plugin implementations or create a backend.
+The generator installs dependencies and creates native routes, `next.config.ts` with
+`withBitaKit` and the root layout with `BitaKitProvider`. It does not copy plugin
+implementations or create a backend.
 
 ### 4. Run it
 
@@ -95,10 +96,9 @@ npm run dev
 ```
 
 Open the local URL printed by Next.js. You should see the generated welcome page.
-The generated Foundation provider connects to Next's router internally; no per-page router
-adapter is required.
+The generated `BitaKitProvider` connects to Next's router internally; no per-page router
+adapter is required. `npx bitakit doctor` checks the wiring.
 
 For the full check, run `npm run verify:generated`. It packs the packages itself, generates every
 supported project shape, and type-checks, builds and smoke-tests each one in a browser. It needs
 internet access and Playwright's Chromium.
-

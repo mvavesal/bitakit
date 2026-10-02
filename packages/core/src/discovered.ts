@@ -1,14 +1,23 @@
 import { setContributionPath, setContributionSource } from './contribution-origin.js';
 import {
   defineAction,
+  defineService,
+  isActionSpec,
+  isServiceDefinition,
+  type ActionSpec,
   type Contribution,
   type ServiceDefinition,
-  type InterceptorEntry,
   type ActionEntry,
+  type LegacyServiceDefinition,
 } from './definitions.js';
 import { resolveContribution } from './conventions.js';
-import { serviceKey } from './service-key.js';
-import type { PublicServiceKeys } from './app/types.js';
+import { defineInterceptor, type InterceptorSpec } from './interceptors/define.js';
+import {
+  isEventsDefinition,
+  type CancelableOf,
+  type EventsDefinition,
+  type EventsOf,
+} from './events/define.js';
 import {
   isConfigDefinition,
   isConfigObject,
@@ -45,82 +54,90 @@ function expand(files: readonly DiscoveredFile[], leaf: (value: any) => boolean,
       value.forEach((entry, index) => visit(entry, [...segments, String(index)], source));
       return;
     }
-    if (!isConfigObject(value)) throw new Error(`Invalid contribution in ${source}`);
+    if (!isConfigObject(value))
+      throw new Error(
+        `Invalid contribution in ${source}: ${typeof value === 'function' ? 'class and factory exports are no longer discovered; export defineAction({ ... }) or defineService((context) => ...)' : 'expected a define* result or a record of them'}.`,
+      );
     for (const [key, entry] of Object.entries(value))
       visit(entry, [...segments, ...key.split('.')], source);
   }
   for (const file of files) visit(file.value, file.path ? file.path.split('.') : [], file.source);
   return results;
 }
-export function discoverActions(
+const isActionLike = (value: unknown): value is ActionSpec =>
+  isActionSpec(value) ||
+  (!!value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    ('execute' in value || 'href' in value || 'dialog' in value) &&
+    !('create' in value) &&
+    !('kind' in value));
+
+export function discoverActions(files: readonly DiscoveredFile[], moduleId = ''): Contribution[] {
+  return expand(files, isActionLike).map(({ value, path, source }) => {
+    const spec = isActionSpec(value) ? value : defineAction(value as never);
+    const resolved = resolveContribution(spec, [moduleId, ...path].filter(Boolean).join('.'));
+    setContributionPath(resolved, path, source);
+    return resolved;
+  });
+}
+const isServiceLike = (value: unknown) =>
+  isServiceDefinition(value) ||
+  typeof value === 'function' ||
+  (!!value && typeof value === 'object' && typeof (value as any).create === 'function');
+export function discoverServices(
   files: readonly DiscoveredFile[],
   moduleId = '',
-  conventions = true,
-): Contribution[] {
+): ServiceDefinition[] {
+  return expand(files, isServiceLike).map(({ value, path, source }) => {
+    const service: ServiceDefinition = isServiceDefinition(value)
+      ? value
+      : typeof value === 'function'
+        ? defineService(value as never)
+        : defineService(value as LegacyServiceDefinition);
+    const definition = {
+      ...service,
+      id: service.id ?? [moduleId, ...path].filter(Boolean).join('.'),
+    };
+    setContributionSource(definition, source);
+    return definition;
+  });
+}
+export function discoverInterceptors(files: readonly DiscoveredFile[]): InterceptorSpec[] {
   return expand(
     files,
     (value) =>
       typeof value === 'function' ||
       (!!value &&
         typeof value === 'object' &&
-        ('kind' in value || typeof value.execute === 'function')),
-  ).map(({ value, path, source }) => {
-    const definition = typeof value === 'object' && !value.kind ? defineAction(value) : value;
-    const resolved = resolveContribution(
-      definition,
-      [moduleId, ...path].filter(Boolean).join('.'),
-      conventions,
-    );
-    setContributionPath(resolved, path, source);
-    return resolved;
+        !Array.isArray(value) &&
+        ((value as any).kind === 'interceptor' ||
+          typeof (value as any).before === 'function' ||
+          typeof (value as any).after === 'function' ||
+          typeof (value as any).onError === 'function')),
+    true,
+  ).map(({ value, source }) => {
+    const spec: InterceptorSpec =
+      typeof value === 'function'
+        ? defineInterceptor({ before: value })
+        : (value as any).kind === 'interceptor'
+          ? { ...(value as InterceptorSpec) }
+          : defineInterceptor(value as never);
+    setContributionSource(spec, source);
+    return spec;
   });
 }
-export function discoverServices(
-  files: readonly DiscoveredFile[],
-  moduleId = '',
-): ServiceDefinition[] {
-  return expand(files, (value) => !!value && typeof value.create === 'function').map(
-    ({ value, path, source }) => {
-      const definition = {
-        ...value,
-        id: value.id ?? [moduleId, ...path].filter(Boolean).join('.'),
-        exposeAs: value.exposeAs ?? value.id ?? path.join('.'),
-      };
-      setContributionSource(definition, source);
-      return definition;
-    },
-  );
-}
-/** Compatibility projection. New generated hosts carry names directly on discovered services. */
-export function discoverPublicServices(
-  files: readonly DiscoveredFile[],
-  moduleId = '',
-): PublicServiceKeys {
-  const aliases: Record<string, ReturnType<typeof serviceKey<any>>> = Object.create(null);
-  const sources = new Map<string, string>();
-  for (const { value, path, source } of expand(
-    files,
-    (value) => !!value && typeof value.create === 'function',
-  )) {
-    const name = value.exposeAs ?? value.id ?? path.join('.');
-    if (sources.has(name))
-      throw new Error(`Duplicate public service "${name}": ${sources.get(name)} and ${source}`);
-    sources.set(name, source);
-    aliases[name] = serviceKey(value.id ?? [moduleId, ...path].filter(Boolean).join('.'));
-  }
-  return aliases;
-}
-export function discoverInterceptors(files: readonly DiscoveredFile[]): InterceptorEntry[] {
-  return expand(
-    files,
-    (value) =>
-      typeof value === 'function' ||
-      (!!value &&
-        (value.kind === 'service' ||
-          typeof value.create === 'function' ||
-          typeof value.before === 'function')),
-    true,
-  ).map(({ value }) => (typeof value === 'function' ? { before: value } : value));
+/** The one `events.ts` of a module. */
+export function discoverEvents(files: readonly DiscoveredFile[]): EventsDefinition | undefined {
+  if (!files.length) return undefined;
+  if (files.length > 1)
+    throw new Error(
+      `A module declares its events in one file: ${files.map((file) => file.source).join(', ')}`,
+    );
+  const [file] = files;
+  if (!isEventsDefinition(file.value))
+    throw new Error(`${file.source} must default-export defineEvents({ ... }).`);
+  return file.value;
 }
 /** File assembly rejects overlapping leaves; intentional overrides happen later in ConfigService. */
 export function discoverConfig(files: readonly DiscoveredFile[]): ConfigValues | ConfigDefinition {
@@ -172,46 +189,60 @@ export function discoverConfig(files: readonly DiscoveredFile[]): ConfigValues |
   for (const file of files) insert(file.value, file.path ? file.path.split('.') : [], file.source);
   return root;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Types for generated declarations
+// ---------------------------------------------------------------------------------------------
 type Join<A extends string, B extends string> = A extends '' ? B : B extends '' ? A : `${A}.${B}`;
 type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (
   value: infer I,
 ) => void
   ? I
   : never;
-type ActionTree<T, P extends string> = T extends (...args: any[]) => any
-  ? {}
-  : T extends abstract new (...args: any[]) => any
-    ? {}
-    : T extends { kind: string }
-      ? ActionEntry<T, P>
-      : T extends { execute: (...args: any[]) => any }
-        ? ActionEntry<T & { kind: 'action' }, P>
-        : T extends object
-          ? UnionToIntersection<
-              { [K in keyof T & string]: ActionTree<T[K], Join<P, K>> }[keyof T & string]
-            >
-          : {};
+
+type ActionTree<T, P extends string> = T extends { kind: 'action' }
+  ? ActionEntry<T, P>
+  : T extends { execute: (...args: any[]) => any }
+    ? ActionEntry<T & { kind: 'action' }, P>
+    : T extends { href: string } | { dialog: unknown }
+      ? ActionEntry<T & { kind: 'action' }, P>
+      : T extends object
+        ? UnionToIntersection<
+            { [K in keyof T & string]: ActionTree<T[K], Join<P, K>> }[keyof T & string]
+          >
+        : {};
 export type DiscoveredActionEntry<
   F,
   Module extends string = '',
-  Conventions extends boolean = true,
-> =
-  F extends DiscoveredFile<infer T, infer P>
-    ? ActionTree<T, Conventions extends false ? never : Join<Module, P>>
-    : {};
-type ServiceTree<T, P extends string, Public extends boolean = false> = T extends { create: (...args: any[]) => infer R }
-  ? { [K in Public extends true
-      ? T extends { exposeAs: infer Name extends string } ? Name : T extends { id: infer ID extends string } ? ID : P
-      : T extends { id: infer ID extends string } ? ID : P]: R }
-  : T extends object
+  _Conventions extends boolean = true,
+> = F extends DiscoveredFile<infer T, infer P> ? ActionTree<T, Join<Module, P>> : {};
+
+type ServiceInstance<T> = T extends { create: (...args: any[]) => infer R }
+  ? R
+  : T extends (...args: any[]) => infer R
+    ? R
+    : never;
+type ServiceId<T, P extends string> = T extends { id: infer Id extends string } ? Id : P;
+type ServiceAlias<T, R> = T extends { exposeAs: infer A extends string }
+  ? { readonly [K in A]: R }
+  : {};
+type ServiceTree<T, P extends string> = [ServiceInstance<T>] extends [never]
+  ? T extends object
     ? UnionToIntersection<
-        { [K in keyof T & string]: ServiceTree<T[K], Join<P, K>, Public> }[keyof T & string]
+        { [K in keyof T & string]: ServiceTree<T[K], Join<P, K>> }[keyof T & string]
       >
-    : {};
+    : {}
+  : { readonly [K in ServiceId<T, P>]: ServiceInstance<T> } & ServiceAlias<T, ServiceInstance<T>>;
 export type DiscoveredServiceEntry<F, Module extends string = ''> =
   F extends DiscoveredFile<infer T, infer P> ? ServiceTree<T, Join<Module, P>> : {};
+/** @deprecated Aliases are part of DiscoveredServiceEntry. */
 export type DiscoveredPublicServiceEntry<F> =
-  F extends DiscoveredFile<infer T, infer P> ? ServiceTree<T, P, true> : {};
+  F extends DiscoveredFile<infer T, any> ? ServiceAlias<T, ServiceInstance<T>> : {};
+
+export type DiscoveredEventsEntry<F, Module extends string> =
+  F extends DiscoveredFile<infer T, any> ? EventsOf<T, Module> : {};
+export type DiscoveredCancelableEntry<F, Module extends string> =
+  F extends DiscoveredFile<infer T, any> ? CancelableOf<T, Module> : {};
 
 type ConfigOutput<T> =
   T extends ConfigDefinition<infer V>

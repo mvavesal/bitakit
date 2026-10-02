@@ -1,7 +1,10 @@
 import type { FoundationConfig } from '@bitakit/core';
 
-/** Replaced by foundation in Vite builds; an explicit config also works outside the bundler. */
+/** @deprecated The configuration is generated into `src/bitakit.gen.tsx`; import it from there. */
 export const foundationConfig: FoundationConfig = {};
+/** @deprecated Import `createBitaKitConfig` from `src/bitakit.gen`. */
 export function createFoundationConfig(): FoundationConfig {
-  return foundationConfig;
+  throw new Error(
+    '@bitakit/tanstack/generated is no longer written by discovery. Import { BitaKitProvider, createBitaKitConfig } from \'./bitakit.gen\' (run "bitakit migrate").',
+  );
 }

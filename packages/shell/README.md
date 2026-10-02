@@ -12,9 +12,9 @@ the plugin ships no theme of its own.
 
 ## Automatic setup
 
-With `withFoundation`, install Shell and App Preferences as direct app dependencies. Their opt-in
+With discovery (`withBitaKit` or the `bitakit()` Vite plugin), install Shell and App Preferences as direct app dependencies. Their opt-in
 metadata discovers both plugins; no manual Shell plugin/provider registration is needed. Keep
-`FoundationProvider` at the root and place the visual shell in the native workspace layout:
+the generated `BitaKitProvider` at the root and place the visual shell in the native workspace layout:
 
 ```tsx
 <AppShell>{children}</AppShell>
@@ -185,7 +185,7 @@ app.services.notifications.dismiss(id);
 
 Commands can use the same `app.services.notifications` from their execution context. Plugins use
 `notificationService` with `getService` and declare the existing service requirement. Before mount
-or when disabled, check `app.optional.services.notifications`. No global service object is created.
+or when disabled, check `app.has('notifications')`. No global service object is created.
 
 `show` accepts `type` (`info`, `success`, `warning`, `error`), optional plain-text `description` and
 `duration` in milliseconds (zero stays open). It returns the native notification ID. Callers never

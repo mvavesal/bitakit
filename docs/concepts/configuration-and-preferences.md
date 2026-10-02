@@ -6,14 +6,16 @@ Application configuration and user preferences answer different questions.
 | --------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
 | Who chooses it? | The developer or deployment.                          | The user, within options the app exposes.                     |
 | Example         | Plugin defaults and selected capabilities.            | Theme or language.                                            |
-| Owner           | Core configuration contracts and host composition.    | The separate App Preferences package.                         |
+| Owner           | `defineConfig` files and `bitakit.config.ts`.         | The separate App Preferences package.                         |
 | UI              | No settings screen is created by configuration alone. | Catalog sections and controls can expose registered settings. |
 
 ## Application configuration
 
-Core provides configuration definitions, defaults, scopes, and host overrides. A
-plugin reads its resolved configuration instead of inventing a second configuration
-store. Optional schemas can validate configuration through their declared contract.
+A plugin defines defaults in `configs/<name>.ts` with `defineConfig({ defaults, schema })`
+and reads them as `config.plugin.get(path, fallback)` or `app.config.<plugin>.<name>`. The
+host overrides them in `bitakit.config.ts` under `configOverrides`. The result is an
+immutable snapshot resolved before services start; optional schemas validate it. A plugin
+reads its resolved configuration instead of inventing a second configuration store.
 
 Configuration is not a place to expose server secrets to client code. Provider
 credentials stay in the server's configuration and its appropriate integration.
@@ -25,7 +27,7 @@ Its settings catalog describes sections and fields. Optional feature plugins can
 contribute settings to that catalog rather than each building an unrelated settings
 system. Core itself does not implement a settings UI.
 
-“Out of the box” depends on what the application installs and configures. The selected
+"Out of the box" depends on what the application installs and configures. The selected
 framework provider and optional visual packages compose supported defaults; installing
 Core alone does not create settings pages, a database, or persistent user accounts.
 Server-backed persistence requires server-side registration and access controls as well

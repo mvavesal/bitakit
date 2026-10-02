@@ -19,11 +19,11 @@ export async function createPluginPackage(plan, { run, createApp, packagesDir })
     type: 'module',
     exports: {
       './package.json': './package.json',
-      './foundation': { types: './dist/foundation.d.ts', default: './dist/foundation.js' },
+      './plugin': { types: './dist/plugin.d.ts', default: './dist/plugin.js' },
     },
     files: ['dist'],
     // Apps that install this package discover the plugin through this entry.
-    foundation: { plugin: './foundation', id },
+    bitakit: { plugin: './plugin', id },
     workspaces: ['playground'],
     scripts: {
       dev: 'npm run dev --workspace playground',
@@ -32,7 +32,11 @@ export async function createPluginPackage(plan, { run, createApp, packagesDir })
       test: 'node --test tests/*.test.ts',
       prepublishOnly: 'bitakit build',
     },
-    peerDependencies: { '@bitakit/core': bitakitRange, '@bitakit/ui': bitakitRange, react: '^19.0.0' },
+    peerDependencies: {
+      '@bitakit/core': bitakitRange,
+      '@bitakit/ui': bitakitRange,
+      react: '^19.0.0',
+    },
     // React is added below with the playground's exact version, so both share one copy.
     devDependencies: {
       '@bitakit/cli': bitakitRange,
@@ -45,28 +49,29 @@ export async function createPluginPackage(plan, { run, createApp, packagesDir })
   };
   await writeProjectFiles(plan.target, {
     'package.json': JSON.stringify(manifest, null, 2) + '\n',
-    'tsconfig.json': JSON.stringify(
-      {
-        compilerOptions: {
-          target: 'ES2022',
-          lib: ['ES2022', 'DOM', 'DOM.Iterable'],
-          module: 'ESNext',
-          moduleResolution: 'Bundler',
-          jsx: 'react-jsx',
-          strict: true,
-          skipLibCheck: true,
-          declaration: true,
-          verbatimModuleSyntax: true,
-          rootDir: 'src',
-          outDir: 'dist',
+    'tsconfig.json':
+      JSON.stringify(
+        {
+          compilerOptions: {
+            target: 'ES2022',
+            lib: ['ES2022', 'DOM', 'DOM.Iterable'],
+            module: 'ESNext',
+            moduleResolution: 'Bundler',
+            jsx: 'react-jsx',
+            strict: true,
+            skipLibCheck: true,
+            declaration: true,
+            verbatimModuleSyntax: true,
+            rootDir: 'src',
+            outDir: 'dist',
+          },
+          // .bitakit/plugin.d.ts types services, actions and events; bitakit build generates it.
+          include: ['src', '.bitakit/plugin.d.ts'],
         },
-        // .foundation/plugin.d.ts types services and actions; bitakit build generates it.
-        include: ['src', '.foundation/plugin.d.ts'],
-      },
-      null,
-      2,
-    ) + '\n',
-    '.gitignore': 'node_modules/\ndist/\n.foundation/\nfoundation-env.d.ts\n.next/\n*.tgz\n',
+        null,
+        2,
+      ) + '\n',
+    '.gitignore': 'node_modules/\ndist/\n.bitakit/\n.next/\n*.tgz\n',
     'README.md': pluginReadme(plan, id, title),
     'AGENTS.md': pluginAgentRules(id),
     'CLAUDE.md': '@AGENTS.md\n',
@@ -74,16 +79,15 @@ export async function createPluginPackage(plan, { run, createApp, packagesDir })
 import assert from 'node:assert/strict';
 import { mountPlugin } from '@bitakit/core/testing';
 
-// Runs the plugin headlessly in Node: services and actions, without a browser.
-test('adding an item updates the list and enables Clear all', async () => {
+// Runs the plugin headlessly in Node: services, events and actions, without a browser.
+test('adding an item updates the store, emits an event and enables Clear all', async () => {
   const plugin = await mountPlugin('src');
   try {
     assert.equal(plugin.actions.get('${id}.clear')?.enabled, false);
     await plugin.execute('add', 'First item');
-    assert.deepEqual(
-      plugin.services[${JSON.stringify(id)}].list().map((item: { title: string }) => item.title),
-      ['First item'],
-    );
+    const items = (plugin.services as any)[${JSON.stringify(id)}].items.state.get().items;
+    assert.deepEqual(items.map((item: { title: string }) => item.title), ['First item']);
+    assert.ok(plugin.events.recorded.some((event) => event.type === '${id}.changed'));
     assert.equal(plugin.actions.get('${id}.clear')?.enabled, true);
   } finally {
     plugin.stop();
@@ -101,7 +105,9 @@ test('adding an item updates the list and enables Clear all', async () => {
   // One React for the plugin source and the playground: develop against the playground's version.
   const rootFile = path.join(plan.target, 'package.json');
   const root = JSON.parse(await readFile(rootFile, 'utf8'));
-  const { dependencies = {} } = JSON.parse(await readFile(path.join(playground, 'package.json'), 'utf8'));
+  const { dependencies = {} } = JSON.parse(
+    await readFile(path.join(playground, 'package.json'), 'utf8'),
+  );
   for (const name of ['react', 'react-dom'])
     if (dependencies[name]) root.devDependencies[name] = dependencies[name];
   await writeFile(rootFile, JSON.stringify(root, null, 2) + '\n');
@@ -127,10 +133,10 @@ async function configurePlayground(plan, playground, id) {
   const inspector = `import { Inspector } from '@bitakit/devtools';`;
   await writeProjectFiles(playground, {
     'package.json': JSON.stringify(manifest, null, 2) + '\n',
-    'foundation.config.ts': `import { defineFoundation } from '@bitakit/core/discovery';
+    'bitakit.config.ts': `import { defineBitaKit } from '@bitakit/core/discovery';
 
 // Discover the plugin straight from ../src, so edits reload instantly.
-export default defineFoundation({ plugins: { include: { ${JSON.stringify(id)}: '../src' } } });
+export default defineBitaKit({ plugins: { include: { ${JSON.stringify(id)}: '../src' } } });
 `,
     ...(plan.framework === 'tanstack'
       ? {
@@ -170,8 +176,9 @@ npm run build      # build dist/ for npm
 | Folder | What goes there |
 | --- | --- |
 | \`src/services\` | Data and behavior (\`defineService\`) |
-| \`src/actions\` | Operations for buttons and menus (\`defineAction\`, \`defineURLAction\`) |
-| \`src/pages\` | Plugin pages (\`definePage\`) |
+| \`src/actions\` | Operations for buttons, menus and links (\`defineAction\`) |
+| \`src/events.ts\` | Typed events (\`defineEvents\`) |
+| \`src/ui/pages\` | Plugin pages; the file path is the URL |
 | \`tests\` | Headless tests with \`mountPlugin\` from \`@bitakit/core/testing\` |
 | \`playground\` | A ${plan.framework === 'tanstack' ? 'TanStack Start' : 'Next.js'} app to try the plugin in |
 
@@ -196,19 +203,18 @@ function pluginAgentRules(id) {
 # BitaKit plugin package
 
 This package is one BitaKit plugin with the ID "${id}". Apps that install it discover it
-through \`foundation.plugin\` in package.json; nothing needs registering.
+through \`bitakit.plugin\` in package.json; nothing needs registering.
 
-- \`src/services/<name>.ts\` (\`defineService\`), \`src/actions/<name>.ts\` (\`defineAction\`, ID
-  \`${id}.<name>\`) and \`src/pages/<name>.tsx\` (\`definePage\`): the same conventions as plugins in
-  an app. Inside the plugin, services are \`services.<name>\`; list only services from other
-  plugins in \`requires\`.
-- Add files with \`npx bitakit add action|service|page <name>\`.
+- \`src/services/<name>.ts\` (\`defineService\`, reached as \`services.${id}.<name>\`), \`src/actions/<name>.ts\`
+  (\`defineAction\`, ID \`${id}.<name>\`), \`src/events.ts\` (\`defineEvents\`) and \`src/ui/pages/<path>.tsx\`
+  (the file path is the URL): the same conventions as plugins in an app.
+- Add files with \`npx bitakit add action|service|page|interceptor|config|events <name>\`.
 - \`npm run dev\` starts the playground (\`playground/\`) with the Inspector; it discovers \`src/\`
   directly. \`npm test\` runs \`tests/*.test.ts\` headlessly with \`mountPlugin\`, including
   \`src/setup.ts\`; keep services, actions and setup free of JSX and guard browser-only APIs. \`npm run typecheck\` and \`npm run build\` (dist/ for npm) use \`bitakit build\`.
 - Keep \`@bitakit/core\`, \`@bitakit/ui\` and \`react\` in peerDependencies so apps load one copy.
 - Use components from \`@bitakit/ui/components\` and the host theme; do not restyle them.
-- Never edit generated files: \`.foundation/\` and \`dist/\`.
+- Never edit generated files: \`.bitakit/\` and \`dist/\`.
 
 <!-- END:bitakit-agent-rules -->
 `;

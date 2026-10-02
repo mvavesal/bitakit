@@ -1,175 +1,208 @@
-# Dateibasierte Beiträge und Config
+# File contributions and config
 
-## Verbindlicher Stand
+Discovery turns a plugin folder into a plugin definition. It runs in Node at build time,
+parses files to find default exports without executing them, and writes static imports and
+types. Manifests (`plugin.config.ts`) and `bitakit.config.ts` are loaded and must be trusted
+code.
 
-Core erkennt Actions, Services, Interceptors und Config über dieselbe Dateipfad-Normalisierung. Die Node-Discovery generiert statische Imports; sie führt Beitragscode nicht aus. App-/Plugin-Manifeste und die Build-Konfiguration werden dagegen geladen und müssen vertrauenswürdig sein.
+## The plugin folder
 
 ```text
-actions.refresh.ts             = actions/refresh.ts
-services.logging.ts            = services/logging.ts
-interceptors.log.ts            = interceptors/log.ts
-configs.actions.refresh.ts     = configs/actions/refresh.ts
-actions.documents.publish.ts   = actions/documents/publish.ts
-                               = actions/documents.publish.ts
+src/plugins/todos/
+├── services/items.ts         defineService   → services.todos.items
+├── actions/add.ts            defineAction    → todos.add
+├── events.ts                 defineEvents    → todos.changed
+├── configs/limits.ts         defineConfig    → app.config.todos.limits
+├── interceptors/audit.ts     defineInterceptor
+├── setup.ts                  plugin setup (optional)
+├── plugin.config.ts          dependencies and metadata (optional)
+├── locales/en.json           { "todos": { ... } }
+└── ui/
+    ├── pages/index.tsx       /todos          (file path = URL)
+    ├── pages/tasks/[id].tsx  /todos/tasks/:id
+    ├── slots/app-bar.end.tsx component placed in slot "app-bar.end"
+    ├── dialogs/rename.tsx    a component an action opens with `dialog`
+    └── providers/query.tsx   React provider wrapped around the app
 ```
 
-Der erste Abschnitt bezeichnet die Beitragsart. Weitere Punkte und Ordner sind gleichwertige Pfadsegmente. `index.ts` bezeichnet die Sammlung am Elternpfad, etwa `actions/index.ts` = `actions.ts`. Bestehende Suffixe wie `refresh.action.ts`, `invite.form-action.ts` und `logging.service.ts` bleiben Migrationsaliase; `index.action.ts` bleibt ausdrücklich eine Action namens `index`.
+Every immediate folder under `src/plugins` is a plugin; the folder name is its ID (lowercase
+letters, digits and hyphens). Folders are the one convention: `actions/add.ts` registers
+`todos.add`; nested folders add segments (`actions/tasks/clear.ts` → `todos.tasks.clear`).
+The legacy spellings `actions.add.ts` and `add.action.ts` (also `form-action`, `dialog-action`,
+`service`, `interceptor`, `page`, `view`, `provider` suffixes) and the old `pages/`, `views/` and
+`providers/` folders are still read with a warning; `bitakit migrate` rewrites them.
 
-Nur TypeScript-/TSX-Dateien mit Default-Export werden importiert. Der TypeScript-Parser erkennt diese Exporte, ohne die Module auszuführen. Hilfsdateien ohne Default-Export sowie Pfadsegmente mit führendem `-` werden nicht registriert. `.d.ts` und `server`-Pfadsegmente sind ausgeschlossen. Diese Erkennung ersetzt keine Prüfung transitiver Imports durch das jeweilige Framework: Ein Client-Beitrag darf weiterhin keinen Server-Code importieren. Es gibt noch keine generische Server-Discovery.
+A file participates when it is TypeScript or TSX and has a default export; the parser detects
+the export without running the module. Files without a default export are reported and
+skipped; prefix helper files with `-` to silence that. `.d.ts` files and anything under
+`server/` are never discovered (`server/` is reserved and never reaches the client bundle).
+`index.ts` names the parent path (`actions/index.ts` is a collection at the plugin root).
+Everything under `ui/` that is not in `pages/`, `slots/` or `providers/` is an ordinary
+component, never a contribution; everything under `ui/` is React, and nothing outside it may
+import React.
 
-Each immediate folder under `src/plugins` defines a local plugin; `plugin.config.ts` is optional and overrides the inferred folder ID. Explicit nested plugin manifests retain their own boundaries. Symlinks are rejected. `foundation.config.ts` can customize the plugin root and explicit directories. Public service names use the relative service path or explicit ID, while internal service keys retain their module namespace.
+A default export may also be a record of definitions. `actions/index.ts` exporting
+`{ add: defineAction(...), clear: defineAction(...) }` equals the two files `actions/add.ts`
+and `actions/clear.ts`; nested records nest paths. Interceptor files may export arrays. The
+same logical path from two sources is an error that names both files. Class and factory
+action exports are no longer discovered.
 
-## Modul und IDs
+## The application module
+
+The app itself is a module with the same folders directly under `src/` (change it with
+`directory` in `bitakit.config.ts`): `src/actions`, `src/services`, `src/events.ts`,
+`src/configs`, `src/interceptors`, `src/setup.ts`, `src/ui/pages`, `src/ui/slots`,
+`src/ui/providers`. Its module ID is `app`, its action and service IDs carry no prefix
+(`src/actions/reset.ts` → `reset`), and its pages map to the root (`src/ui/pages/about.tsx`
+→ `/about`). An optional `src/plugin.config.ts` sets `id`, `dependencies` and `metadata`;
+with `{ id: 'app' }` the IDs become `app.reset`.
+
+App-owned routes stay native framework routes (`src/app/**/page.tsx` in Next.js); plugin pages
+are rendered by the catch-all route the generator creates. The old `providers/` folder of the
+app still needs `providers.enabled` in `bitakit.config.ts`; `src/ui/providers` is included
+automatically.
+
+## `plugin.config.ts`
 
 ```ts
-// src/plugins/content/plugin.config.ts
-export default { id: 'content' };
-```
-
-`actions.refresh.ts` erzeugt `content.refresh`; `services.logging.ts` erzeugt `content.logging`. Explizite Action-/Service-IDs bleiben vorrangig, insbesondere geteilte `serviceKey`-Verträge. Bei Services ohne explizite ID kann `defineService({ create })` verwendet werden. Manuelle Plugin-Registrierung benötigt weiterhin vollständige Service-Definitionen mit ID.
-
-Auch die App verwendet dieselben Beiträge unter `src` (änderbar mit `directory`). Mit `src/plugin.config.ts` und `{ id: 'app' }` entstehen IDs wie `app.refresh`. Ohne App-Manifest bleiben bestehende App-IDs ohne Präfix erhalten; ihr Config-Modul heißt intern `@foundation/app`. Das optionale App-Manifest legt derzeit die Modul-ID fest; Host-Auswahl und Verzeichnisse werden weiterhin in `foundation.config.ts` konfiguriert.
-
-Eine explizite Action-ID verändert nicht den entdeckten Config-Pfad. Bei manueller Registrierung ohne Discovery kann `configPath: ['refresh']` den lokalen Pfad vorgeben; andernfalls werden die Segmente der expliziten ID verwendet. Eine registrierte globale ID wird niemals zur nachträglichen Ermittlung eines Plugin-Präfixes zerlegt.
-
-## Sammlung oder Einzeldateien
-
-```ts
-// actions.ts
+// src/plugins/todos/plugin.config.ts
 export default {
-  refresh: defineAction({ execute: () => 'refreshed' }),
-  publish: defineAction({ execute: () => 'published' }),
+  id: 'todos', // overrides the folder name
+  dependencies: ['shell'], // ordered before this plugin; its failure disables this one
+  metadata: { name: 'Todos', icon }, // display information; package.json fields are read too
+  entries: { actions: './commands', setup: false }, // relocate or disable a kind
 };
 ```
 
-Dies entspricht zwei Dateien `actions.refresh.ts` und `actions.publish.ts`. Verschachtelte Sammlungen sind erlaubt. Services verwenden Definitionen mit `create`, Interceptors `before` oder `create`. Ein direkt exportierter Interceptor-Handler wird als `before` normalisiert. Eine Action-Funktion bleibt entsprechend der bestehenden API eine Factory, die eine `Action`-Instanz zurückgibt; sie wird nicht als Execute-Handler interpretiert. Klassen bleiben `Action`-Unterklassen.
+Everything is optional. `entries` points a kind at another folder or file inside the plugin
+(`false` disables it); it must stay inside the plugin folder, and symlinks are rejected.
 
-Die Define-Helfer bleiben sinnvoll für Callback-Typen und besondere Action-Funktionen. Ein einfaches Action-Objekt mit `execute` wird auch ohne Helper normalisiert. Nicht jede Beitragsart unterstützt jede Exportform; reine Config-Klassen und Decorators sind noch nicht implementiert.
+## UI files
 
-Sammlungen und Einzeldateien dürfen unterschiedliche Einträge liefern. Doppelte logische Einträge sind Fehler, auch wenn die Schreibweisen verschieden sind. Fehler nennen die Quellen. Config-Teilbäume werden zusammengefügt; derselbe Blattwert oder ein Skalar anstelle eines Teilbaums darf nicht zweimal definiert werden. Absichtliche Overrides sind ein eigener Schritt.
+- **Pages** export a component; the file path is the URL below `/<plugin>` (`ui/pages/index.tsx`
+  → `/todos`, `ui/pages/tasks/[id].tsx` → `/todos/tasks/[id]`). `[param]` segments reach the
+  component as `params`. `export const layout = 'blank'` chooses the layout (`app` by
+  default). Duplicate or invalid paths fail at startup; the app's own routes win over the
+  catch-all.
+- **Slots** export a component placed in the slot named by the file (`ui/slots/app-bar.end.tsx`
+  → `app-bar.end`); `export const order = 10` sorts within the slot. Layouts render a slot with
+  `<PluginSlot name="app-bar.end" />`. Slot names a shell or `bitakit.config.ts` (`slots`)
+  declares are typed through `SlotMap`.
+- **Providers** export a React provider component wrapped around the app, ID
+  `<plugin>.<file>`; `export const requires = ['other.query']` orders it after another one.
+- **Dialogs** are plain components an action references: `defineAction({ title: 'Rename', dialog: RenameDialog })`.
+  The component receives `{ input, close, services }`.
 
-## Konfiguration und Nutzung
+## Locales
+
+`locales/<lang>.json` holds the plugin's messages under its own namespace:
+`{ "todos": { "add": { "title": "Add item" } } }`. Discovery merges every plugin's catalog
+into `src/bitakit.gen.messages.json`, which the host passes to its translation provider.
+Keys outside the plugin namespace are rejected.
+
+## Config
+
+Each file under `configs/` is the subtree named by its path:
 
 ```ts
-// configs.ts
-export default {
-  pageSize: 20,
-  actions: {
-    refresh: { pageSize: 50 },
-    publish: { pageSize: 5 },
-  },
-};
+// configs/limits.ts  →  app.config.todos.limits, config.plugin.get('limits.maxItems')
+export default defineConfig({ defaults: { maxItems: 100 } });
+
+// configs/actions/add.ts  →  config.action.get('defaultTitle') inside todos.add
+export default defineConfig({ defaults: { defaultTitle: 'Untitled' } });
 ```
 
-Alternativ enthalten `configs.actions.refresh.ts` und `configs.actions.publish.ts` die jeweiligen `{ pageSize }`-Objekte. `configs.ts` enthält dann nur den allgemeinen Wert. `configs.refresh.ts` ist ausdrücklich ein anderer Pfad: `refresh`, nicht `actions.refresh`.
+A plain object export is accepted as well. `configs/index.ts` (or `configs.ts`) is the root;
+when it carries a schema it must own the complete config and no other config file may exist.
+Duplicate leaves from two files are an error, never an override. Overrides live in
+`bitakit.config.ts`:
 
 ```ts
-// actions.refresh.ts
-import { defineAction } from '@bitakit/core';
-export default defineAction({
-  execute({ config }) {
-    return {
-      shared: config.plugin.get('pageSize', 20),
-      own: config.action.get('pageSize', 50),
-    };
-  },
-});
+import { defineBitaKit } from '@bitakit/core/discovery';
 
-// services.logging.ts
-import { defineService } from '@bitakit/core';
-export default defineService({
-  create({ config }) {
-    const pageSize = config.plugin.get('pageSize', 20);
-    return { pageSize };
-  },
-});
-```
-
-Der Plugin-Scope zeigt auf die aufgelöste Modul-Konfiguration. Der Action-Scope zeigt auf `actions.<lokaler Action-Pfad>` desselben Baums. Es gibt keinen impliziten Fallback zum allgemeinen Plugin-Wert und keinen globalen „current action“-Zustand. Beide Scopes werden auch an Action-Factories und Klassen-Konstruktoren über `ActionEnvironment` übergeben. Dienste erhalten den Plugin-Scope bei `create`. Config wird vor dem Erzeugen der Services aufgelöst.
-
-`get('actions.refresh')` kann einen kompletten Teilbaum liefern. Ein Segmentarray adressiert literal benannte Schlüssel. Standardmäßig ist ein unbekannter Zugriff `unknown`; ein Fallback liefert einen nutzbaren Typ, stellt aber keine Laufzeitvalidierung dar. Für eine ausdrücklich typisierte Sicht gibt es `ConfigScope<T>` beziehungsweise `runtime.configuration.plugin<T>(id)`.
-
-Discovery erzeugt `ConfigMap`, `ServiceMap` und `ActionMap` auch für Sammlungen. `runtime.configuration.plugin('content')` erhält dadurch den entdeckten Config-Typ. Die automatische Runtime-Zuordnung typisiert jedoch nicht magisch den Parameter einer frei exportierten Funktion. Hier weiterhin Helfer oder Annotationen verwenden. Klassen-/Factory-Action-IDs werden wie bisher nicht automatisch in die `ActionMap` aufgenommen.
-
-## Overrides und optionale Schemas
-
-```ts
-// foundation.config.ts (Build-Komposition)
-export default {
-  configOverrides: {
-    content: { actions: { refresh: { pageSize: 100 } } },
-  },
-};
-```
-
-Dasselbe Feld ist bei manueller `FoundationConfig` verfügbar. Objekte werden rekursiv überschrieben, Arrays ersetzt und `undefined` übernimmt den Default. `null` ist ein ausdrücklicher Wert. Nur Config-Overrides, nicht doppelte Quelldefinitionen, verwenden diese Regel. Unbekannte Modulnamen in Overrides werden abgewiesen. Discovery und `resolveFoundationConfig` entfernen Overrides bekannter deaktivierter beziehungsweise abgewählter Plugins zusammen mit deren Beiträgen.
-
-```ts
-// configs.actions.refresh.ts
-import { defineConfig } from '@bitakit/core';
-import { z } from 'zod';
-
-export default defineConfig({
-  schema: z.object({ pageSize: z.number().int().positive().default(50) }),
+export default defineBitaKit({
+  configOverrides: { todos: { limits: { maxItems: 50 } } },
 });
 ```
 
-Schema-Bibliotheken bleiben optional beim Verbraucher. Core akzeptiert einen synchronen `parse(unknown)`-Vertrag und ruft ihn auf den zusammengeführten Werten auf. Eine Root-Schema-Definition muss die vollständige Config besitzen; sie wird nicht zusätzlich mit Config-Dateien zusammengesetzt. Alternativ können einzelne Teilbäume eigene Schemas tragen. Ein Validierungsfehler verhindert Service-Erstellung und Action-Registrierung.
-
-Config ist ein eingefrorener Snapshot pro Runtime, für Plain Objects, Arrays und primitive Werte. Keine Laufzeit-Schreib-API, keine automatische Service-Neuerstellung. Der React-Hook `usePluginConfig(moduleId, path[, fallback])` liest denselben Snapshot und erhält bei Austausch der Provider-Komposition einen neuen Stand; er verspricht keine Updates durch Mutation. Implizites `useConfig` ohne Modul-Kontext wird noch nicht angeboten. Bestätigte Benutzerpräferenzen gehören weiter zu `AppPreferences`.
+Objects merge recursively, arrays replace, `undefined` keeps the default and `null` is an
+explicit value. Unknown plugin IDs are rejected. The resolved config is a frozen snapshot per
+runtime, read as `app.config.<plugin>...` or through the `config` context of services and
+actions; `usePluginConfig(moduleId, path, fallback)` reads the same snapshot in React.
 
 ## Interceptors
 
-Plugin-Interceptors gelten standardmäßig nur für registrierte Actions ihres Plugins, einschließlich interner Formular-Submits. `scope: 'global'` erweitert dies ausdrücklich. Host-Interceptors bleiben aus Kompatibilitätsgründen standardmäßig global; `scope: 'plugin'` begrenzt sie auf das App-Modul. `before` bekommt den Config-Scope der ausgeführten Action. Factory-`create` bekommt den Scope des besitzenden Moduls.
+Plugin interceptors match only the actions of their own plugin unless `scope: 'global'`.
+App interceptors are global unless `scope: 'plugin'`. `order` sorts ascending with stable
+ties. Without `interceptors.enabled` in `bitakit.config.ts`, every discovered app interceptor
+is active; a list selects them by path, `[]` disables them.
 
-`order` sortiert aufsteigend; Gleichstände behalten die Registrierungsreihenfolge. Fachlich notwendige Reihenfolgen ausdrücklich angeben. App-Discovery aktiviert ohne `interceptors.enabled` alle erkannten Interceptors; ein angegebenes Array wählt sie ausdrücklich aus, `[]` deaktiviert sie. Vorhandene Listen bleiben erhalten. React-Provider werden weiterhin über eine explizite `enabled`-Liste ausgewählt.
+## Generated files
 
-## Interne Erweiterungspunkte
+Discovery writes three files into the app directory; add `src/bitakit.gen.*` to `.gitignore`:
 
-- `discovery/entries.mjs`: eine Dateierfassung, ein Pfad-Normalisierer, Default-Export-Erkennung für alle Arten.
-- `discovery/generate.mjs`: Komposition der Module und statische Imports/Typen.
-- `src/discovered.ts`: Sammlungen auflösen und in vorhandene Verträge normalisieren.
-- `src/config-service.ts`: Auflösung, optionale Schemas und unveränderliche Scopes.
-- `src/contributions`: bestehende Action-Adapter; sie erhalten den zugeordneten Config-Kontext ausdrücklich.
-- `src/runtime.ts`: Lebenszyklus und Integration, kein Dateiscanner.
+| File                            | Contents                                                                                                                                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/bitakit.gen.tsx`           | `createBitaKitConfig()`, `BitaKitProvider` and the `ServiceMap`, `ActionMap`, `EventMap`, `CancelableEventMap`, `ConfigMap`, `SlotMap` augmentations (`.ts` without a framework provider) |
+| `src/bitakit.gen.css`           | `@import`s of installed package styles, dependencies first and theme last                                                                                                                 |
+| `src/bitakit.gen.messages.json` | Plugin locale catalogs, written only when a plugin has `locales/`                                                                                                                         |
 
-Für weitere Arten den Kind-Katalog, Normalisierung und Generierung erweitern, nicht erneut Dateien durchsuchen. Ein öffentliches dynamisches Adapter-Plugin-API ist noch nicht implementiert. Pages und Views verwenden dieselbe Pfaderkennung, behalten aber ihre bisherigen Einzeldefinitionen; Sammeldateien sind dafür noch nicht vorgesehen.
+The Next adapter (`withBitaKit` in `next.config.ts`) and the TanStack Vite plugin
+(`bitakit()`) run the generator before the build and keep regenerating while files change,
+including new folders and renames. `bitakit generate [--watch]` runs it by hand. Strict action
+IDs are on unless `strict: false`.
 
-Zurückgestellt: Decorators, YAML, Remote-Konfiguration, reaktive Config-Updates und automatische UI-Bindungen, Server-Discovery, sowie Co-Location wie `actions/publish/action.ts` plus `config.ts`. Unter der aktuellen Grammatik hätten diese Dateien gewöhnliche zusätzliche Pfadsegmente; sie sind keine Spezialkonvention.
+## `bitakit.config.ts`
 
-## Prüfung und Migration
+```ts
+import { defineBitaKit } from '@bitakit/core/discovery';
 
-`npm test --workspace @bitakit/core` prüft Runtime, Typverträge, Isolation, Config und die gemeinsame Discovery. Die Tests im Next-Paket prüfen weiterhin Generator- und Watcher-Integration. Vor der Migration vorhandene Hilfsdateien mit Default-Export aus Beitragsordnern verschieben oder mit `-` ausschließen. Alte Suffix-Dateien und neue äquivalente Pfade dürfen nicht gleichzeitig denselben Beitrag definieren. Automatisch erzeugte IDs ändern sich nur bei einer Änderung des logischen Pfads.
+export default defineBitaKit({
+  directory: './src', // app module root; generated files are written here
+  plugins: {
+    directory: './src/plugins',
+    include: { notes: '../notes/src' }, // plugins outside the project, by ID
+    autoEnable: true,
+    overrides: { demo: { enabled: false } },
+  },
+  packages: { '@bitakit/quick-search': false }, // or false to disable package discovery
+  configOverrides: { todos: { limits: { maxItems: 50 } } },
+  actions: { overrides: { 'todos.add': { enabled: false } } },
+  interceptors: { enabled: ['audit'] },
+  providers: { enabled: ['query'] }, // only for the legacy providers/ folder
+  groups: ['navigation'],
+  slots: ['dashboard.content'],
+  strict: true,
+  framework: 'next', // detected from package.json by default
+  kinds: [], // integration contribution kinds
+});
+```
 
-## Root application lifecycle
+A disabled plugin contributes nothing: no services, actions, pages, slots or settings.
+`actions.overrides` caps an action's `enabled` or `visible`: `false` wins over any reactive
+result, `true` never bypasses the action's own guards. Integration kinds (`kinds`, or the
+`bitakit.discovery` export of a package) name a folder under `contributions/` of every module
+and the normalizer that turns its files into `contributions: { [kind]: values }`.
 
-The root application may declare dependencies and metadata in src/plugin.config.ts. Its discovered pages and views are rendered alongside plugin contributions. Root setup.ts participates in dependency ordering and reverse cleanup. The app is not listed as a removable plugin and does not require a nested plugins directory. Root page/view support is an optional runtime capability, not a recommendation to replace host routing. In Next.js, app-owned pages and layouts use src/app/**/page.tsx and layout.tsx. Only independent plugin pages use Discovery through the host catch-all; do not create root pages.*.tsx files for app routes.
+## Migration
 
-## Direct configuration access
+`bitakit migrate --dry-run` lists, and `bitakit migrate` applies: `foundation.config.ts` →
+`bitakit.config.ts` with `defineBitaKit`; dotted and suffixed file names → folders; `pages/`,
+`views/`, `providers/` → `ui/`; imports of `.foundation/*` and `@bitakit/next/generated` →
+`./bitakit.gen`; `defineURLAction` → `defineAction`, `useWatchEvent` → `useEvent`;
+`foundation-generate` and `--webpack` out of `package.json` scripts; `.gitignore` entries; and
+the old `.foundation/` output is deleted. Review the diff, then run `bitakit generate` and
+`bitakit doctor`.
 
-`app.config.documents.editor.pageSize` reads the existing immutable module snapshot.
-A config file may export `defineConfig({ defaults: { pageSize: 20 } })` without a schema.
-Schemas remain optional. Scoped callback access and runtime.configuration are unchanged.
+## Source responsibilities
 
-## Mixed interceptor collections
+- `discovery/entries.mjs`: one file traversal, path normalizer and default-export detection for every kind.
+- `discovery/generate.mjs`: module composition, static imports, types and the generated files.
+- `discovery/migrate.mjs`: the 0.1 → 0.2 rewrite.
+- `src/discovered.ts`: resolves records and files into the runtime contracts.
+- `src/config-service.ts`: resolution, optional schemas and immutable scopes.
+- `src/pages.ts`: page, slot and provider normalization and path matching.
+- `src/runtime.ts`: lifecycle and integration, no file scanning.
 
-`interceptors/` accepts Action and Service definitions in one default export, including named
-object collections and arrays. `interceptors/actions/save.ts` and
-`interceptors/actions.save.ts` have the same organizational path; it does not determine the kind.
-Use defineActionInterceptor or defineServiceInterceptor to set that discriminator automatically.
-The legacy defineInterceptor remains an Action definition. Service observers can select one method
-or all methods; see the Core README for lifecycle and observation boundaries.
-
-## Inline service names
-
-`defineService({ exposeAs: 'clock', create: ... })` and
-`provideService(clockKey, { exposeAs: 'clock', create: ... })` expose the same container
-instance through `app.services.clock`. Omit `exposeAs` in ordinary discovered files:
-Core uses the explicit service ID or relative file path. An explicit name does not rename
-the container key; from 0.2, `requires`, factory contexts and `runtime.services` accept the
-public name or the full ID.
-
-Generated hosts carry this name on each service definition instead of emitting a separate
-`publicServices` map. Runtime name resolution and collision checks are shared with manual
-composition. Existing public mappings and `discoverPublicServices` remain compatible.
-Generated and manual plugin types infer inline names, including dotted namespaces.
+Add a new contribution kind by extending the kind catalog, normalization and generation, not
+by scanning files again.

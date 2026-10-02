@@ -7,8 +7,8 @@ Build a small Next.js application with BitaKit already connected.
 You need **Node.js 24**, **npm 10 or newer**, and an internet connection.
 
 <Callout title="Ready to build">
-  The generator installs BitaKit from npm and connects the pieces for you.
-  No repository checkout or manual package build is needed.
+  The generator installs BitaKit from npm and connects the pieces for you. No repository checkout or
+  manual package build is needed.
 </Callout>
 
 ## 1. Create your app
@@ -21,8 +21,8 @@ This creates a minimal Next.js app in `my-app`, the shortest path to a first fea
 Choose a new directory name: the generator does not overwrite an existing project.
 
 To pick a framework and extras interactively — an application shell with settings pages,
-⌘K quick search — run `npx @bitakit/create-app my-app` instead. The generator adds the
-dependencies each choice needs.
+⌘K quick search, a sample Todos plugin — run `npx @bitakit/create-app my-app` instead. The
+generator adds the dependencies each choice needs.
 
 ## 2. Start developing
 
@@ -33,9 +33,23 @@ npm run dev
 
 Open the address printed in your terminal (usually http://localhost:3000). You see
 **Welcome**. Edit `src/app/page.tsx` and the page updates. The generator has already
-connected BitaKit to your application's router; you did not write any setup code.
+connected BitaKit to your application's router: `next.config.ts` runs discovery with
+`withBitaKit`, and the root layout renders `<BitaKitProvider>` from the generated
+`src/bitakit.gen.tsx`. You did not write any setup code.
 
-## 3. Make it yours
+## 3. Add a feature
+
+```sh
+npx bitakit add plugin notes
+```
+
+This creates `src/plugins/notes/` with a service, typed events, actions, a navigation link
+and a page at `/notes`. The dev server picks it up; there is no registry to edit. Open
+`src/plugins/notes/ui/pages/index.tsx` to see how a page binds actions with `<Action>` and
+reads the service with `useServiceState`. Check the project at any time with
+`npx bitakit doctor`.
+
+## 4. Make it yours
 
 Edit your app's native routes and components. Keep product behavior in your application;
 use BitaKit packages for shared capabilities.
@@ -58,9 +72,8 @@ npx @bitakit/create-app my-app --framework next --features shell,quick-search
 ```
 
 Shell includes App Preferences as a prerequisite. Your home page then lives in a route
-group: `src/app/(workspace)/page.tsx` (0.1) or `src/app/(app)/page.tsx` (0.2).
-Authentication, a database and email are separate integrations; the generator does not
-create a backend.
+group: `src/app/(app)/page.tsx`. Authentication, a database and email are separate
+integrations; the generator does not create a backend.
 
 ## Where next?
 
@@ -84,5 +97,6 @@ create a backend.
 
 ### Framework support
 
-Next.js projects currently use Webpack. TanStack Start is available as an experimental
-generator option; broader compatibility is still being verified.
+Next.js projects run with the default bundler; discovery writes real files, so Turbopack
+and Webpack behave the same. TanStack Start is available as an experimental generator
+option; broader compatibility is still being verified.

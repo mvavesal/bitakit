@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createJiti } from 'jiti';
-import { generateFoundation } from '../discovery/generate.mjs';
+import { generateFoundation, describeFoundation } from '../discovery/index.mjs';
 import { contributionKindSpecs } from '../discovery/entries.mjs';
 import {
   FoundationRuntime,
@@ -12,12 +12,14 @@ import {
   scopeModule,
   scopePlugins,
   createActionList,
-  Action,
+  defineAction,
   ActionGroup,
 } from '../dist/core.js';
 
+const coreRuntime = new URL('../dist/core.js', import.meta.url).pathname;
+
 async function fixture(run) {
-  const root = await mkdtemp(path.join(tmpdir(), 'foundation-kinds-'));
+  const root = await realpath(await mkdtemp(path.join(tmpdir(), 'bitakit-kinds-')));
   const put = async (file, source) => {
     const target = path.join(root, file);
     await mkdir(path.dirname(target), { recursive: true });
@@ -37,14 +39,11 @@ test('contributions install per module in dependency order before actions and se
     events.push(`install ${module} ${app} ${values.join(',')} ${typeof services}`);
     return () => events.push(`cleanup ${module}`);
   };
-  class Probe extends Action {
-    connect() {
-      events.push('action connect');
-      return () => {};
-    }
-    execute() {}
-  }
   const list = createActionList();
+  const unsubscribe = list.subscribe(() => {
+    if (list.get('content.probe') && !events.includes('action registered'))
+      events.push('action registered');
+  });
   const runtime = new FoundationRuntime(list, {
     appId: 'app',
     dependencies: ['content'],
@@ -55,7 +54,7 @@ test('contributions install per module in dependency order before actions and se
         id: 'content',
         dependencies: ['widgets'],
         contributions: { widgets: ['a', 'b'] },
-        actions: [{ kind: 'native', id: 'probe', load: () => new Probe({ title: 'Probe' }) }],
+        actions: { probe: defineAction({ title: 'Probe', execute() {} }) },
         setup: () => void events.push('content setup'),
       },
       { id: 'widgets', installs: { widgets } },
@@ -71,12 +70,13 @@ test('contributions install per module in dependency order before actions and se
   assert.equal(events.length, 0, 'contributionsOf is pure and does not install');
   const unmount = list.mount();
   const stop = runtime.mount();
-  assert.deepEqual(events.slice(0, 2), [
+  assert.deepEqual(events, [
     'install content false a,b object',
     'install app true app-widget object',
+    'action registered',
+    'content setup',
+    'app setup',
   ]);
-  assert.ok(events.indexOf('action connect') > 1);
-  assert.ok(events.indexOf('content setup') > events.indexOf('action connect'));
   events.length = 0;
   stop();
   assert.deepEqual(
@@ -84,6 +84,7 @@ test('contributions install per module in dependency order before actions and se
     ['cleanup app', 'cleanup content'],
   );
   unmount();
+  unsubscribe();
 });
 
 test('a kind without installer or with two installers is an actionable mount error', () => {
@@ -131,8 +132,12 @@ test('runtime-issued scopes list the composed plugins by ID and metadata, withou
     appId: 'app',
     setup: ({ app }) => void seen.push(scopePlugins(app)),
     plugins: [
-      { id: 'notes', metadata: { name: 'Notes' }, services: [] },
-      { id: 'reports', dependencies: ['notes'], setup: ({ app }) => void seen.push(scopePlugins(app)) },
+      { id: 'notes', metadata: { name: 'Notes' }, services: {} },
+      {
+        id: 'reports',
+        dependencies: ['notes'],
+        setup: ({ app }) => void seen.push(scopePlugins(app)),
+      },
     ],
   });
   runtime.mount()();
@@ -142,92 +147,254 @@ test('runtime-issued scopes list the composed plugins by ID and metadata, withou
   ]);
   assert.equal(seen[1], seen[0], 'every scope of one runtime shares the same frozen list');
   assert.ok(Object.isFrozen(seen[0]) && Object.isFrozen(seen[0][0]));
-  assert.throws(() => scopePlugins(new PluginScope(createActionList(), new Map())), /Unknown plugin scope/);
+  assert.throws(
+    () => scopePlugins(new PluginScope(createActionList(), new Map())),
+    /Unknown plugin scope/,
+  );
 });
 
-test('integration kinds are validated and cannot collide with built-in or other folders', () => {
-  const kind = { name: 'widgets', directory: 'widgets', from: 'x', normalize: 'discoverWidgets' };
-  assert.equal(contributionKindSpecs([kind])[0].directory, 'widgets');
+test('integration kinds are validated: names are unique and not built in, folders are relative and unique', () => {
+  const kind = {
+    name: 'widgets',
+    directory: './widgets/',
+    from: 'x',
+    normalize: 'discoverWidgets',
+  };
+  const [spec] = contributionKindSpecs([kind]);
+  assert.deepEqual(spec, {
+    name: 'widgets',
+    directory: 'widgets',
+    from: 'x',
+    normalize: 'discoverWidgets',
+    types: undefined,
+  });
+  assert.ok(Object.isFrozen(spec));
+  assert.equal(
+    contributionKindSpecs([
+      { ...kind, name: 'settings.sections', directory: 'settings/sections' },
+    ])[0].directory,
+    'settings/sections',
+  );
+  assert.deepEqual(contributionKindSpecs(), []);
+  assert.throws(() => contributionKindSpecs({}), /must be an array/);
   assert.throws(
-    () => contributionKindSpecs([{ ...kind, directory: 'actions' }]),
-    /already used by built-in kind "actions"/,
+    () => contributionKindSpecs([{ ...kind, name: 'actions' }]),
+    /Contribution kind "actions" is built in/,
+  );
+  assert.throws(
+    () => contributionKindSpecs([{ ...kind, name: 'Widgets' }]),
+    /Invalid contribution kind name/,
   );
   assert.throws(
     () => contributionKindSpecs([kind, { ...kind, name: 'other' }]),
-    /already used by kind "widgets"/,
+    /uses folder "widgets", already used by kind "widgets"/,
   );
   assert.throws(() => contributionKindSpecs([kind, kind]), /Duplicate contribution kind/);
   assert.throws(() => contributionKindSpecs([{ ...kind, directory: '../x' }]), /relative folder/);
+  assert.throws(() => contributionKindSpecs([{ ...kind, directory: '' }]), /relative folder/);
+  assert.throws(
+    () => contributionKindSpecs([{ ...kind, from: ' ' }]),
+    /module that exports its normalizer/,
+  );
   assert.throws(
     () => contributionKindSpecs([{ ...kind, normalize: 'not valid' }]),
     /normalizer export/,
   );
 });
 
-test('discovery emits imports for integration kinds per module without executing them', async () =>
+test('discovery emits imports for integration kinds per module under contributions/<directory> without executing them', async () =>
   fixture(async (root, put) => {
-    const normalizer = await put(
-      'normalizers.mjs',
-      'export const discoverWidgets = (files, moduleId) => files.map((file) => ({ moduleId, source: file.source, path: file.path, value: file.value }));',
+    // One kind comes from an installed package's discovery export, the other from bitakit.config.ts.
+    await put('package.json', JSON.stringify({ dependencies: { '@acme/widgets': '1.0.0' } }));
+    await put(
+      'node_modules/@acme/widgets/package.json',
+      JSON.stringify({ name: '@acme/widgets', bitakit: { discovery: './discovery.mjs' } }),
     );
     await put(
-      'foundation.config.ts',
-      `export default { kinds: [{ name: 'widgets', directory: 'ui/widgets', from: ${JSON.stringify(normalizer)}, normalize: 'discoverWidgets' }], plugins: { directory: './src/plugins', overrides: { off: { enabled: false } } } }`,
+      'node_modules/@acme/widgets/discovery.mjs',
+      `export default () => [{
+      name: 'widgets', directory: 'widgets', from: '@acme/widgets/normalizers.mjs', normalize: 'discoverWidgets',
+      types: { entry: 'DiscoveredWidgetEntry', map: 'WidgetMap' },
+    }];`,
     );
-    await put('src/plugin.config.ts', 'export default { id: "app" }');
-    await put('src/ui/widgets/first.ts', 'export default "first"');
-    await put('src/ui/widgets/-draft.ts', 'export default "draft"');
-    await put('src/ui/widgets/server/secret.ts', 'export default "secret"');
-    await put('src/ui/widgets/helper.ts', 'export const helper = 1');
-    await put('src/widgets/elsewhere.ts', 'export default "wrong folder"');
-    await put('src/plugins/content/plugin.config.ts', 'export default { id: "content" }');
-    await put('src/plugins/content/ui/widgets/second.tsx', 'export default "second"');
+    await put(
+      'node_modules/@acme/widgets/normalizers.mjs',
+      `
+      export const discoverWidgets = (files, moduleId) => files.map((file) => ({ moduleId, source: file.source, path: file.path, value: file.value }));
+      export const discoverSections = (files, moduleId) => files.map((file) => \`\${moduleId}:\${file.value}\`);
+    `,
+    );
+    await put(
+      'bitakit.config.ts',
+      `export default {
+      kinds: [{ name: 'settings.sections', directory: 'sections', from: '@acme/widgets/normalizers.mjs', normalize: 'discoverSections' }],
+      plugins: { overrides: { off: { enabled: false } } },
+    };`,
+    );
+    await put('src/contributions/widgets/first.ts', 'export default "first"');
+    await put('src/contributions/widgets/-draft.ts', 'export default "draft"');
+    await put('src/contributions/widgets/helper.ts', 'export const helper = 1');
+    await put('src/contributions/sections/general.ts', 'export default "general"');
+    await put('src/widgets/elsewhere.ts', 'export default "legacy root folder"');
+    await put('src/server/widgets/secret.ts', 'export default "secret"');
+    await put('src/plugins/content/contributions/widgets/second.tsx', 'export default "second"');
+    await put(
+      'src/plugins/content/contributions/widgets/nested/third.ts',
+      'export default "third"',
+    );
     await put(
       'src/plugins/custom/plugin.config.ts',
-      'export default { id: "custom", entries: { widgets: "components/widgets" } }',
+      'export default { entries: { widgets: "components/widgets" } }',
     );
-    await put('src/plugins/custom/components/widgets/third.ts', 'export default "third"');
-    await put('src/plugins/off/plugin.config.ts', 'export default { id: "off" }');
-    await put('src/plugins/off/ui/widgets/disabled.ts', 'export default "disabled"');
+    await put('src/plugins/custom/components/widgets/fourth.ts', 'export default "fourth"');
+    await put(
+      'src/plugins/custom/contributions/widgets/ignored.ts',
+      'export default "ignored by the explicit entry"',
+    );
+    await put('src/plugins/off/contributions/widgets/disabled.ts', 'export default "disabled"');
     const never = await put(
-      'src/plugins/content/ui/widgets/never.ts',
+      'src/plugins/content/contributions/widgets/never.ts',
       'throw new Error("must not execute during discovery"); export default "never"',
     );
-    await generateFoundation(root);
-    await rm(never);
-    await generateFoundation(root);
-    const output = path.join(root, '.foundation/plugins.ts');
-    const source = await readFile(output, 'utf8');
-    assert.doesNotMatch(source, /draft|secret|helper|elsewhere|disabled/);
-    const jiti = createJiti(import.meta.url, {
-      moduleCache: false,
-      alias: { '@bitakit/core': new URL('../dist/core.js', import.meta.url).pathname },
-    });
-    const { foundationConfig } = await jiti.import(output);
-    assert.deepEqual(foundationConfig.contributions.widgets, [
-      { moduleId: 'app', source: 'src/ui/widgets/first.ts', path: 'first', value: 'first' },
+    const first = await generateFoundation(root, { quiet: true });
+    assert.deepEqual(first.warnings, [
+      'src/contributions/widgets/helper.ts is in a widgets folder but has no default export, so it is ignored. Export the contribution as default, or prefix the file name with "-" for helpers.',
+      'src/widgets/elsewhere.ts: move it under contributions/widgets/; the old location is deprecated (run "bitakit migrate").',
     ]);
-    const byId = Object.fromEntries(foundationConfig.plugins.map((plugin) => [plugin.id, plugin]));
-    assert.equal(byId.content.contributions.widgets[0].value, 'second');
-    assert.equal(byId.custom.contributions.widgets[0].value, 'third');
+    await rm(never);
+    const { generated } = await generateFoundation(root, { quiet: true });
+    const source = await readFile(generated, 'utf8');
+    assert.doesNotMatch(source, /draft|secret|helper|disabled|ignored|never/);
+    assert.match(
+      source,
+      /import \{ discoverWidgets as normalize0 \} from '@acme\/widgets\/normalizers\.mjs';/,
+    );
+    assert.match(
+      source,
+      /import \{ discoverSections as normalize1 \} from '@acme\/widgets\/normalizers\.mjs';/,
+    );
+    assert.match(
+      source,
+      /import type \{ DiscoveredWidgetEntry as KindEntry0 \} from '@acme\/widgets\/normalizers\.mjs';/,
+    );
+    assert.match(
+      source,
+      /type KindMap0 = KindEntry0<typeof file\d+, "app"> & KindEntry0<typeof file\d+, "app"> & KindEntry0<typeof file\d+, "content"> & KindEntry0<typeof file\d+, "content"> & KindEntry0<typeof file\d+, "custom">;/,
+    );
+    assert.match(
+      source,
+      /declare module '@acme\/widgets\/normalizers\.mjs' \{ interface WidgetMap extends KindMap0 \{\} \}/,
+    );
+    assert.match(
+      source,
+      /contributions: \{ "widgets": normalize0\(\[file\d+, file\d+\], "app"\), "settings\.sections": normalize1\(\[file\d+\], "app"\) \}/,
+    );
+    const { createBitaKitConfig } = await createJiti(import.meta.url, {
+      moduleCache: false,
+      alias: { '@bitakit/core': coreRuntime },
+    }).import(generated);
+    const config = createBitaKitConfig();
+    assert.deepEqual(config.contributions.widgets, [
+      {
+        moduleId: 'app',
+        source: 'src/contributions/widgets/first.ts',
+        path: 'first',
+        value: 'first',
+      },
+      {
+        moduleId: 'app',
+        source: 'src/widgets/elsewhere.ts',
+        path: 'elsewhere',
+        value: 'legacy root folder',
+      },
+    ]);
+    assert.deepEqual(config.contributions['settings.sections'], ['app:general']);
+    const byId = Object.fromEntries(config.plugins.map((plugin) => [plugin.id, plugin]));
+    assert.deepEqual(
+      byId.content.contributions.widgets.map((widget) => [widget.path, widget.value]),
+      [
+        ['nested.third', 'third'],
+        ['second', 'second'],
+      ],
+    );
+    assert.deepEqual(
+      byId.custom.contributions.widgets.map((widget) => widget.value),
+      ['fourth'],
+    );
+    assert.deepEqual(byId.custom.contributions['settings.sections'], undefined);
     assert.equal(byId.off, undefined);
     const installed = [];
     const runtime = new FoundationRuntime(createActionList(), {
-      ...foundationConfig,
+      ...config,
       plugins: [
-        ...foundationConfig.plugins,
+        ...config.plugins,
         {
           id: 'widget-host',
           installs: {
-            widgets: (values, { module }) => void installed.push([module, values.length]),
+            widgets: (values, { module }) =>
+              void installed.push(['widgets', module, values.length]),
+            'settings.sections': (values, { module }) =>
+              void installed.push(['sections', module, values]),
           },
         },
       ],
     });
     runtime.mount()();
     assert.deepEqual(installed.sort(), [
-      ['app', 1],
-      ['content', 1],
-      ['custom', 1],
+      ['sections', 'app', ['app:general']],
+      ['widgets', 'app', 2],
+      ['widgets', 'content', 2],
+      ['widgets', 'custom', 1],
     ]);
+    assert.deepEqual((await describeFoundation(root)).installedPackages, ['@acme/widgets']);
+
+    await put(
+      'src/plugins/custom/plugin.config.ts',
+      'export default { entries: { widgets: "../outside" } }',
+    );
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /Entry "widgets" of plugin "custom" points outside the plugin/,
+    );
+    await put(
+      'src/plugins/custom/plugin.config.ts',
+      'export default { entries: { widgets: "missing/folder" } }',
+    );
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /Plugin "custom" names a missing entry for "widgets"/,
+    );
+    await put(
+      'src/plugins/custom/plugin.config.ts',
+      'export default { entries: { widgets: false } }',
+    );
+    const without = await createJiti(import.meta.url, {
+      moduleCache: false,
+      alias: { '@bitakit/core': coreRuntime },
+    }).import((await generateFoundation(root, { quiet: true })).generated);
+    assert.deepEqual(
+      without.createBitaKitConfig().plugins.find((plugin) => plugin.id === 'custom').contributions,
+      {},
+    );
+    // bitakit.config.ts may redefine a package kind by name, for example to move its folder.
+    await put(
+      'bitakit.config.ts',
+      `export default { kinds: [{ name: 'widgets', directory: 'other', from: 'app-normalizers', normalize: 'discoverWidgets' }] };`,
+    );
+    await put('src/contributions/other/alpha.ts', 'export default "alpha"');
+    const redefined = await readFile(
+      (await generateFoundation(root, { quiet: true })).generated,
+      'utf8',
+    );
+    assert.match(redefined, /import \{ discoverWidgets as normalize0 \} from 'app-normalizers';/);
+    assert.match(redefined, /contributions: \{ "widgets": normalize0\(\[file\d+\], "app"\) \}/);
+    assert.doesNotMatch(redefined, /@acme\/widgets|contributions\/widgets\/first/);
+    await put(
+      'bitakit.config.ts',
+      `export default { kinds: [{ name: 'widgets', directory: 'a', from: 'x', normalize: 'discoverWidgets' }, { name: 'widgets', directory: 'b', from: 'x', normalize: 'discoverWidgets' }] };`,
+    );
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /Duplicate contribution kind "widgets"/,
+    );
   }));

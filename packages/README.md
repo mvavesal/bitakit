@@ -61,9 +61,9 @@ historical domain examples are not a requirement for applications built with Bit
 See the [repository README](../README.md) and
 [package structure standard](../docs/architecture/package-structure-standard.md).
 
-Core provides runtime-local events (since Core 0.1.1) backed by mitt. Action setup and
-service creation receive automatically scoped event subscriptions; React's `useWatchEvent`
-binding belongs to UI. See [the event guide](core/docs/events.md).
+Core provides runtime-local events, declared once per plugin in `events.ts`. Services and
+actions receive automatically scoped subscriptions; React's `useEvent` binding belongs to UI.
+See [the event guide](core/docs/events.md).
 
 ## Client authentication and page states
 

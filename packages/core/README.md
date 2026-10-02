@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/assets/bitakit-banner.png" alt="BitaKit — Your app. Your building blocks. An AI-friendly composition layer for modern applications." width="1024">
+  <img src="https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/assets/bitakit-banner.png" alt="BitaKit — Your app. Your building blocks. An AI-friendly composition layer for modern applications." width="1024">
 </p>
 
 # BitaKit Core
@@ -7,7 +7,7 @@
 **Build bigger apps from smaller, pluggable features — together with your team and AI.**
 
 BitaKit gives **developers and AI coding assistants a shared structure** for building
-applications. Organize a feature into a plugin, put reusable behavior in services,
+applications. Organize a feature into a plugin, put behavior and state in services,
 and expose operations through actions. Each piece has a clear home, a clear role,
 and typed connections to the rest of your app.
 
@@ -22,7 +22,7 @@ routes, UI, business rules, and data.
 - [How the pieces fit](#how-the-pieces-fit)
 - [Try a To-do plugin](#try-a-to-do-plugin)
 - [Type safety that follows your feature](#type-safety-that-follows-your-feature)
-- [React to events](#react-to-events)
+- [State and events](#state-and-events)
 - [What belongs outside Core?](#what-belongs-outside-core)
 - [Go deeper](#go-deeper)
 - [License](#license)
@@ -51,18 +51,18 @@ Your framework handles pages and rendering. As an app grows, you also need a cle
 way to organize features, share behavior, connect dependencies, and clean up resources.
 BitaKit gives those pieces a common structure.
 
-- **Smaller pieces. Clearer ownership.** Keep a feature's services and actions together
-  in a plugin. Teams can work on focused parts of the app with explicit connections
-  between them.
+- **Smaller pieces. Clearer ownership.** Keep a feature's services, actions and events
+  together in a plugin. Teams can work on focused parts of the app with explicit
+  connections between them.
 - **A shared language for humans and AI.** Predictable files and typed contracts make
   it easier to describe a change, give an AI assistant focused context, and review
   its work. The same conventions guide both developers and coding assistants.
 - **Pluggable features.** Compose the capabilities your app needs. Add a plugin,
-  configure its defaults, or replace supported contributions through the same APIs.
+  configure its defaults, or cap its actions through the same APIs.
 - **Less repeated wiring.** With discovery configured, file paths supply names and
   generated types. Core handles startup, dependencies, registration, and cleanup.
-- **Type-safe connections.** Service methods, action inputs and results, and known
-  event payloads carry their types to callers. Your editor helps you connect the pieces.
+- **Type-safe connections.** Service methods, action inputs and results, event payloads
+  and configuration carry their types to callers. Your editor helps you connect the pieces.
 - **Your stack stays yours.** Start with headless Core. Add React bindings, settings,
   an app shell, or provider integrations when they help your product.
 
@@ -81,7 +81,8 @@ Application — chooses which plugins to use
 BitaKit Core — starts plugins and checks their dependencies
     │
     └── To-do plugin — groups one feature's contributions
-          ├── Service: holds tasks and provides add/list operations
+          ├── Service: holds tasks in a store and provides create/list/delete
+          ├── Events: announces "todos.changed" to other plugins
           └── Action: calls the service to add a task
 
 Button or server code
@@ -94,127 +95,129 @@ Application UI displays the result; Core does not render it.
 
 | Concept          | What it does                                                        | In this example                                   |
 | ---------------- | ------------------------------------------------------------------- | ------------------------------------------------- |
-| **Plugin**       | Bundles the parts of a feature.                                     | The To-do feature.                                |
-| **Service**      | Owns reusable behavior and, when needed, state or resources.        | Stores tasks and exposes `create()` and `list()`. |
+| **Plugin**       | Bundles the parts of a feature. The folder name is its ID.          | The To-do feature, `todos`.                       |
+| **Service**      | Owns behavior and observable state (`store()`).                     | Stores tasks and exposes `create()` and `list()`. |
 | **Action**       | Provides a named operation that application code or UI can execute. | `todos.create` adds a task through the service.   |
-| **Core runtime** | Coordinates dependencies, registrations, startup, and cleanup.      | Creates the service and registers the action.     |
+| **Events**       | Typed notifications a plugin declares once and emits itself.        | `todos.changed` after every mutation.             |
+| **Core runtime** | Coordinates dependencies, registrations, startup, and cleanup.      | Creates the service and registers the actions.    |
 
-Core manages the lifecycle of plugin-created services. A service that acquires
-resources can supply disposal logic. Core does not automatically save data to a
-database or subscribe your UI to service changes.
+Core manages the lifecycle of plugin-created services. A service registers `onStart` and
+`onStop` hooks when it acquires resources. Core does not save data to a database for
+you; `store()` is in-memory state that actions and UI follow automatically.
 
 ## Try a To-do plugin
 
-Follow the [To-do tutorial](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/todo-tutorial.md) to run three actions: create a
+Follow the [To-do tutorial](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/docs/todo-tutorial.md) to run three actions: create a
 task, list tasks, and delete a task. Each action lives in its own file:
 
 ```text
 examples/
 ├── todos.mjs                  # Starts the runtime and executes the actions
 └── todos/
-    ├── plugin.mjs             # Groups the service and actions
+    ├── plugin.mjs             # Groups the service, the events and the actions
+    ├── events.mjs             # todos.changed
     ├── services/
-    │   └── tasks.mjs          # In-memory task operations
+    │   └── tasks.mjs          # In-memory task store and operations
     └── actions/
         ├── create.mjs         # todos.create
         ├── list.mjs           # todos.list
-        └── delete.mjs         # todos.delete
+        └── delete.mjs         # todos.delete — disabled while the list is empty
 ```
 
 The plugin uses explicit imports, so no framework or discovery setup is required.
-The script creates three tasks, lists them, deletes the second, and lists the two
-remaining tasks. Stopping the runtime releases its registrations. Data stays in
-memory and is lost on restart.
+The script creates two tasks, shows that the delete action became enabled, lists them,
+deletes the second, and lists the remaining task. Stopping the runtime releases its
+registrations. Data stays in memory and is lost on restart.
 
-With a configured framework adapter, contribution files can instead live under
-`src/plugins/todos/services` and `src/plugins/todos/actions`. Its build integration
-generates registration and types. Installing Core alone does not scan folders.
-See [file contributions](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/file-contributions.md) for the exact conventions.
+With a configured framework adapter, the same files live under
+`src/plugins/todos/services`, `src/plugins/todos/actions` and `src/plugins/todos/events.ts`,
+and the build generates registration and types. Installing Core alone does not scan
+folders. See [file contributions](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/docs/file-contributions.md) for the exact conventions.
 
 ## Type safety that follows your feature
 
-Define a service once, then use its method types wherever you call it. Discovery
-connects supported files to typed service access, action IDs, and configuration.
-Shared service keys let separate packages agree on the same contract.
-
-Use `exposeAs` when you want a custom public service name; otherwise discovery uses
-the file path. Known event names and payloads are connected through `EventMap`.
-
-Unknown action IDs remain allowed unless strict mode is enabled. TypeScript checks
-code; validate external data and authorize requests at your application boundaries.
-See the [Core reference](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/reference.md)
-for examples.
-
-## React to events
-
-Available since Core 0.1.1, each runtime owns one event service. Services emit
-notifications after updating their data; actions declare `events` and `onEvent`.
-
-With file discovery configured, IDs can be omitted:
+Define a service once, then use its method types wherever you call it as
+`services.<plugin>.<file>`. Discovery connects supported files to typed service access,
+action IDs, event names and configuration. Shared contracts (`defineContract`) let
+separate packages agree on the same service type.
 
 ```ts
-// src/services/todos.ts
+// src/plugins/todos/actions/create.ts
+import { defineAction } from '@bitakit/core';
+import { z } from 'zod';
+
+export default defineAction({
+  title: 'Add a task',
+  input: z.string().min(1), // validates and types the input; disabled while invalid
+  execute: ({ services, input }) => services.todos.tasks.create(input),
+});
+```
+
+Without a schema, name the input type: `defineAction<string>({ ... })`. Event names and
+payloads come from each plugin's `events.ts`, config types from `configs/`. Unknown
+action IDs are rejected at compile time in generated apps. TypeScript checks code;
+validate external data and authorize requests at your application boundaries.
+See the [Core reference](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/docs/reference.md)
+for examples.
+
+## State and events
+
+A service keeps its state in a `store()`. Actions that read it in a function-valued
+field such as `enabled` are re-evaluated when it changes, and React pages follow it with
+`useServiceState`. Events announce a change to other plugins.
+
+```ts
+// src/plugins/todos/services/tasks.ts
 import { defineService } from '@bitakit/core';
 
-export default defineService({
-  create({ events }) {
-    let items: { id: number; title: string }[] = [];
-    let nextId = 1;
-    return {
-      list: () => [...items],
-      add(title: string) {
-        const todo = { id: nextId++, title };
-        items.push(todo);
-        events.emit('todos.changed', { kind: 'added', id: todo.id });
-      },
-      remove(id: number) {
-        items = items.filter((todo) => todo.id !== id);
-        events.emit('todos.changed', { kind: 'removed', id });
-      },
-    };
-  },
+export default defineService(({ store, events }) => {
+  const state = store<{ items: { id: number; title: string }[] }>({ items: [] });
+  return {
+    state,
+    list: () => [...state.get().items],
+    add(title: string) {
+      const todo = { id: Date.now(), title };
+      state.set((s) => ({ items: [...s.items, todo] }));
+      events.emit('todos.changed', { kind: 'added', id: todo.id });
+    },
+    remove(id: number) {
+      state.set((s) => ({ items: s.items.filter((todo) => todo.id !== id) }));
+      events.emit('todos.changed', { kind: 'removed', id });
+    },
+  };
 });
 ```
 
 ```ts
-// src/actions/todos/delete.ts
+// src/plugins/todos/events.ts
+import { defineEvents, event } from '@bitakit/core';
+
+// Emitted and observed as "todos.changed". Only the todos plugin may emit it.
+export default defineEvents({
+  changed: event<{ kind: 'added' | 'removed'; id: number }>(),
+});
+```
+
+```ts
+// src/plugins/todos/actions/delete.ts
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<number>({
-  // Initial state: the list starts empty, so deleting is disabled.
-  enabled: false,
-
-  // Events this action reacts to.
-  events: ['todos.changed'],
-
-  // Runs each time one of those events is emitted. Core owns the subscription.
-  onEvent(_event, { services, action }) {
-    action.enabled = services.todos.list().length > 0;
-  },
-
+  title: 'Delete',
+  // Re-evaluated whenever the tasks store changes: disabled while the list is empty.
+  enabled: ({ services }) => services.todos.tasks.state.get().items.length > 0,
   // Runs when a bound control or your code executes the action.
-  execute: ({ services, input }) => services.todos.remove(input),
+  execute: ({ services, input }) => services.todos.tasks.remove(input),
 });
 ```
 
-Here discovery supplies `todos` and `todos.delete` from the paths (with no explicit
-app namespace). Plugin contributions also receive their plugin namespace. Provide
-an explicit `id` when you need a custom identity. Direct imports without discovery,
-including the Node tutorial above, still need explicit IDs.
+Discovery supplies `todos.tasks` and `todos.delete` from the paths. Other plugins react
+with `events.on('todos.changed', ({ data }) => ...)` inside a service, and React
+components use `useEvent` from `@bitakit/ui`. Core owns every subscription and releases it
+with the service, the component or the runtime.
 
-Reacting to events needs no `setup` method. Declaring events does not send an
-initial event, so state that is known up front, such as `enabled: false` for an
-empty list, belongs in the definition. Add `setup` only when the initial state must
-be read from existing data; it runs once when the action registers.
-
-`events: ['todos.loaded', 'todos.changed']` calls `onEvent` for
-**each** matching event. Handlers receive `{ type, data }` and can be synchronous or
-asynchronous. Core owns the `onEvent` subscription and those created in action `setup`
-and service `create`, including cleanup after failed setup. No manual unsubscribe is needed.
-For dynamic subscriptions, `setup` still offers `events.watch`. React components use `useWatchEvent` from `@bitakit/ui`.
-
-See [events and action setup](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/events.md) for payload typing, errors, async
-cancellation, and the distinction from observable-service `watch`.
+See [events](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/docs/events.md) for
+payload typing, cancelable events, errors and async handlers.
 
 ## What belongs outside Core?
 
@@ -227,12 +230,12 @@ Plugins are trusted application code. Core is not a sandbox or a remote plugin m
 
 ## Go deeper
 
-- [Runnable To-do example](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/examples/todos.mjs)
-- [Core reference](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/reference.md): configuration, typed services, actions, lifecycle, and advanced integration.
-- [File contributions and configuration](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/file-contributions.md): discovery and folder conventions.
-- [Client authentication](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/auth.md): the shared provider contract, externally configured login/logout paths, UI bindings and an adapter template.
+- [Runnable To-do example](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/examples/todos.mjs)
+- [Core reference](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/docs/reference.md): the define helpers, runtime, feedback, typed access, testing and advanced integration.
+- [File contributions and configuration](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/docs/file-contributions.md): discovery and folder conventions.
+- [Client authentication](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/docs/auth.md): the shared provider contract, externally configured login/logout paths, UI bindings and an adapter template.
 - [npm package](https://www.npmjs.com/package/@bitakit/core)
 
 ## License
 
-[MIT](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/LICENSE). Third-party dependencies retain their own licenses.
+[MIT](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/LICENSE). Third-party dependencies retain their own licenses.

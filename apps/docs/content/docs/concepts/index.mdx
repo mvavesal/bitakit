@@ -6,51 +6,54 @@ description: Create a feature, define its behavior and use it in your app.
 Start with three ideas:
 
 - A **plugin** groups a feature's files.
-- A **service** provides reusable functions and data.
-- An **action** exposes an operation that calls those functions.
+- A **service** provides behavior and observable state.
+- An **action** exposes an operation that calls the service.
 
-In a configured app, add the files and write your feature's behavior. Foundation discovers the definitions and manages their lifecycle. Follow [your first plugin](/docs/concepts/plugins) to see this in two files.
+In a configured app, add the files and write your feature's behavior. BitaKit discovers the definitions and manages their lifecycle. Follow [your first plugin](/docs/concepts/plugins) to see this in two files.
 
 ## Available APIs
 
-These guides use Core 0.1.1 or newer; features marked **0.2** ship with the next release. The generator and optional packages are available on npm. Start with the quickstart; add capabilities as your app grows.
+These guides describe BitaKit 0.2, the next release in this repository. Start with the quickstart; add capabilities as your app grows.
 
 | Concept                     | Owner                                  | Purpose                                                       |
 | --------------------------- | -------------------------------------- | ------------------------------------------------------------- |
 | Plugin                      | `@bitakit/core`                        | Groups contributions and declares dependencies                |
-| Service                     | `@bitakit/core`                        | Shares behavior, state or resources within a runtime          |
+| Service                     | `@bitakit/core`                        | Shares behavior and state within a runtime                    |
 | Action                      | `@bitakit/core`                        | Names an operation and centralizes execution and availability |
-| Events                      | `@bitakit/core`                        | Notifies interested consumers within one runtime              |
-| React bindings              | `@bitakit/ui`                          | Observes the runtime and binds existing controls              |
-| Routing and build discovery | `@bitakit/next` or `@bitakit/tanstack` | Connects the host framework                                   |
-| Preferences                 | `@bitakit/app-preferences`             | Owns confirmed settings and persistence                       |
+| Events                      | `@bitakit/core`                        | Notifies other plugins within one runtime                     |
+| Config                      | `@bitakit/core`                        | Immutable developer defaults with host overrides              |
+| Interceptors                | `@bitakit/core`                        | Observe or gate actions and observe service calls             |
+| React bindings              | `@bitakit/ui`                          | Bind controls to actions and pages to service state           |
+| Routing and build discovery | `@bitakit/next` or `@bitakit/tanstack` | Connects the host framework and generates `src/bitakit.gen.*` |
+| Preferences                 | `@bitakit/app-preferences`             | Owns confirmed user settings and persistence                  |
 
 A plugin is a runtime definition, not necessarily an npm package. One package can supply several plugins or just shared contracts. See the [package and plugin guides](/docs/packages).
 
 ```text
 Host application
-  → Foundation runtime
+  → BitaKit runtime
     → Plugin
-      → Service: reusable operations and data
+      → Service: behavior and a store
       → Action: invokes those operations
         ← React binding or headless caller
 ```
 
-Start with [plugins](/docs/concepts/plugins), then [services](/docs/concepts/services) and [actions](/docs/concepts/actions). Use [events](/docs/concepts/events) when one feature needs to react to changes owned elsewhere. [Discovery](/docs/concepts/discovery) removes manual contribution imports in configured hosts.
+Start with [plugins](/docs/concepts/plugins), then [services](/docs/concepts/services) and [actions](/docs/concepts/actions). Use [events](/docs/concepts/events) when another plugin needs to react to a change. [Discovery](/docs/concepts/discovery) removes manual contribution imports in configured hosts.
 
 ## Choose the right concept
 
-| If you need to…                                          | Read                                          |
-| -------------------------------------------------------- | --------------------------------------------- |
-| Group a feature and own its cleanup                      | [Plugins](/docs/concepts/plugins)             |
-| Share data access or reusable operations                 | [Services](/docs/concepts/services)           |
-| Expose an operation to callers and UI                    | [Actions](/docs/concepts/actions)             |
-| Group related actions for menus, navigation and search   | [Action groups](/docs/concepts/action-groups) |
-| React after another feature changes                      | [Events](/docs/concepts/events)               |
-| Supply stable defaults and host options                  | [Configuration](/docs/concepts/configuration) |
-| Register flat or nested contribution files automatically | [Discovery](/docs/concepts/discovery)         |
-| Customize selected defaults or behavior                  | [Overrides](/docs/concepts/overrides)         |
-| Understand inferred inputs, results and payloads         | [Type safety](/docs/concepts/type-safety)     |
-| Observe execution across a feature                       | [Interceptors](/docs/concepts/interceptors)   |
+| If you need to…                                        | Read                                                    |
+| ------------------------------------------------------ | ------------------------------------------------------- |
+| Group a feature and own its cleanup                    | [Plugins](/docs/concepts/plugins)                       |
+| Share data access or reusable operations               | [Services](/docs/concepts/services)                     |
+| Expose an operation to callers and UI                  | [Actions](/docs/concepts/actions)                       |
+| Group related actions for menus, navigation and search | [Action groups](/docs/concepts/action-groups)           |
+| Tell other plugins that something changed              | [Events](/docs/concepts/events)                         |
+| Supply stable defaults and host options                | [Configuration](/docs/concepts/configuration)           |
+| Understand the folder conventions and generated files  | [Discovery](/docs/concepts/discovery)                   |
+| Customize selected defaults or behavior                | [Overrides](/docs/concepts/overrides)                   |
+| Understand inferred inputs, results and payloads       | [Type safety](/docs/concepts/type-safety)               |
+| Observe execution across a feature                     | [Interceptors](/docs/concepts/interceptors)             |
+| Compose without discovery                              | [Manual composition](/docs/concepts/manual-composition) |
 
 For standalone Node usage without automatic discovery, the [advanced To-do walkthrough](/docs/concepts/tutorial) shows explicit composition. AppShell and authentication guides are later steps; no UI integration is needed to understand or run Core.

@@ -74,34 +74,64 @@ export function createActionList(
         return false;
       }
     };
+    // Unbound snapshots evaluate function-valued presentation without input; bound reads refine it.
+    const unbound = (action: ActionSnapshot) => {
+      try {
+        return action.resolve?.(undefined) ?? {};
+      } catch {
+        return {};
+      }
+    };
     for (const action of Object.values(definitions)) {
-      next[action.id] =
-        !affected.has(action.id) && previous[action.id]
-          ? previous[action.id]
-          : Object.freeze({
-              ...action,
-              ...options.project?.(action),
-              enabled:
-                action.enabled &&
-                (action.dependsOn ?? []).every((id) =>
-                  dependencyEnabled(
-                    id,
-                    definitions,
-                    prerequisiteEnabled,
-                    new Set([action.id]),
-                    cache,
-                  ),
-                ),
-            });
+      if (!affected.has(action.id) && previous[action.id]) {
+        next[action.id] = previous[action.id];
+        continue;
+      }
+      const presentation = unbound(action);
+      const merged = {
+        ...action,
+        ...presentation,
+        id: action.id,
+        groups: action.groups,
+        resolve: action.resolve,
+        execute: action.execute,
+      };
+      next[action.id] = Object.freeze({
+        ...merged,
+        ...options.project?.(merged),
+        enabled:
+          action.enabled &&
+          (presentation.enabled ?? true) &&
+          (action.dependsOn ?? []).every((id) =>
+            dependencyEnabled(id, definitions, prerequisiteEnabled, new Set([action.id]), cache),
+          ),
+        visible: action.visible && (presentation.visible ?? true),
+      });
     }
     store.setState({ actions: next });
   }
-  function setPending(id: string, pending: boolean, status?: ActionStatus, error?: unknown) {
+  const running = new Map<string, Map<string, AbortController>>();
+  function setPending(
+    id: string,
+    key: string,
+    pending: boolean,
+    status?: ActionStatus,
+    error?: unknown,
+  ) {
     const action = source(id);
     if (!action) return;
+    const pendingKeys = pending
+      ? [...new Set([...action.pendingKeys, key])]
+      : action.pendingKeys.filter((item) => item !== key);
     definitions = {
       ...definitions,
-      [id]: Object.freeze({ ...action, pending, status: status ?? action.status, error }),
+      [id]: Object.freeze({
+        ...action,
+        pending: pendingKeys.length > 0,
+        pendingKeys: Object.freeze(pendingKeys),
+        status: status ?? action.status,
+        error,
+      }),
     };
     publish(id);
   }
@@ -121,6 +151,7 @@ export function createActionList(
       id: action.id,
       groups: action.groups,
       pending: action.pending,
+      pendingKeys: action.pendingKeys,
       execute: action.execute,
       resolve: action.resolve,
       enabled: dependencyEnabled(
@@ -146,6 +177,7 @@ export function createActionList(
       ...patch,
       id,
       pending: current.pending,
+      pendingKeys: current.pendingKeys,
       status: current.status,
       error: current.error,
       groups: freezeGroups(patch.groups ?? current.groups),
@@ -156,7 +188,7 @@ export function createActionList(
       visible: patch.visible ?? current.visible,
     });
     if (next.href !== undefined && !safeHref(next.href))
-      throw new Error('Invalid navigation target.');
+      throw new Error(`Action "${id}" has an invalid navigation target: ${String(next.href)}`);
     options.validate?.(next, store.getState().actions);
     bindings.apply(id, patch);
     definitions = { ...definitions, [id]: next };
@@ -175,7 +207,7 @@ export function createActionList(
     if (disposed) throw new Error('Action list has been disposed.');
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$/.test(definition.id)) {
       throw new Error(
-        'Action IDs must be nonempty and contain letters, numbers, dots, underscores, colons, slashes or hyphens.',
+        `Invalid action ID "${definition.id}". Use letters, numbers, dots, underscores, colons, slashes or hyphens.`,
       );
     }
     const { id } = definition;
@@ -189,6 +221,7 @@ export function createActionList(
       enabled: definition.enabled ?? true,
       visible: definition.visible ?? true,
       pending: false,
+      pendingKeys: Object.freeze([] as string[]),
       status: ActionStatus.Idle,
       state:
         definition.initialState === undefined
@@ -197,7 +230,7 @@ export function createActionList(
       error: undefined,
     });
     if (action.href !== undefined && !safeHref(action.href))
-      throw new Error('Invalid navigation target.');
+      throw new Error(`Action "${id}" has an invalid navigation target: ${String(action.href)}`);
     options.validate?.(action, store.getState().actions);
     owners.set(id, owner);
     definitions = { ...definitions, [id]: action };
@@ -222,6 +255,8 @@ export function createActionList(
         const next = { ...definitions };
         delete next[id];
         definitions = next;
+        for (const controller of running.get(id)?.values() ?? []) controller.abort();
+        running.delete(id);
         try {
           release(owner);
         } finally {
@@ -251,7 +286,16 @@ export function createActionList(
     };
   }
 
-  const execute = createExecutor(setPending, owners, environment, get, resolve, update, lifecycle);
+  const execute = createExecutor(
+    setPending,
+    owners,
+    environment,
+    get,
+    resolve,
+    update,
+    lifecycle,
+    running,
+  );
 
   function dispose() {
     if (disposed) return;
@@ -269,6 +313,8 @@ export function createActionList(
         errors.push(error);
       }
     }
+    for (const runs of running.values()) for (const controller of runs.values()) controller.abort();
+    running.clear();
     lifecycle.clear();
     owners.clear();
     placements.clear();

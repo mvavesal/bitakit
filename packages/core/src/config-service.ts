@@ -1,23 +1,43 @@
-/** Immutable configuration. User preferences continue to belong to AppPreferences. */
+/** Immutable configuration. User preferences belong to settings, not here. */
 export interface ConfigMap {}
 export type ConfigValues = Readonly<Record<string, unknown>>;
-const configDefinition = Symbol('foundation.config');
-export type ConfigSchema<T> = { parse(input: unknown): T };
+const configDefinition = Symbol.for('bitakit.core.config');
+
+/** zod, valibot and friends: `parse`, or the Standard Schema `~standard.validate` (sync). */
+export type ConfigSchema<T> =
+  | { parse(input: unknown): T }
+  | {
+      '~standard': {
+        validate(input: unknown): { value: T } | { issues: readonly { message: string }[] };
+      };
+    };
 export type ConfigDefinition<T = ConfigValues> = {
   readonly [configDefinition]: true;
   readonly defaults?: Partial<T>;
   readonly schema?: ConfigSchema<T>;
 };
-export function defineConfig<T extends ConfigValues>(value: { defaults: T }): ConfigDefinition<T>;
-export function defineConfig<T>(value: {
-  schema: ConfigSchema<T>;
-  defaults?: Partial<T>;
+type SchemaOutput<S> = S extends { parse(input: unknown): infer T }
+  ? T
+  : S extends { '~standard': { validate(input: unknown): infer R } }
+    ? Extract<Awaited<R>, { value: unknown }>['value']
+    : never;
+
+/** `defineConfig({ defaults })`, `defineConfig({ schema })` or both. Files may also export a plain object. */
+export function defineConfig<T extends ConfigValues>(value: {
+  defaults: T;
+  schema?: undefined;
 }): ConfigDefinition<T>;
-export function defineConfig<T extends ConfigValues>(value: T): T;
-export function defineConfig(value: any): any {
-  return 'defaults' in value || (value.schema && typeof value.schema.parse === 'function')
-    ? { ...value, [configDefinition]: true }
-    : value;
+export function defineConfig<S extends ConfigSchema<any>>(value: {
+  schema: S;
+  defaults?: Partial<SchemaOutput<S>>;
+}): ConfigDefinition<SchemaOutput<S>>;
+export function defineConfig(value: {
+  defaults?: unknown;
+  schema?: unknown;
+}): ConfigDefinition<any> {
+  if (!value || typeof value !== 'object' || (!('defaults' in value) && !('schema' in value)))
+    throw new Error('defineConfig expects { defaults } and/or { schema }.');
+  return { ...(value as object), [configDefinition]: true } as ConfigDefinition<any>;
 }
 export function isConfigDefinition(value: unknown): value is ConfigDefinition {
   return !!value && typeof value === 'object' && configDefinition in value;
@@ -30,6 +50,15 @@ export function isConfigObject(value: unknown): value is Record<string, unknown>
     (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
   );
 }
+function parseWith<T>(schema: ConfigSchema<T>, input: unknown): T {
+  if ('parse' in schema) return schema.parse(input);
+  const result = schema['~standard'].validate(input);
+  if (result && typeof (result as unknown as Promise<unknown>).then === 'function')
+    throw new TypeError('Config schemas must validate synchronously.');
+  if ('issues' in result)
+    throw new Error(`Invalid config: ${result.issues.map((issue) => issue.message).join('; ')}`);
+  return result.value;
+}
 function immutable(value: unknown): any {
   if (Array.isArray(value)) return Object.freeze(value.map(immutable));
   if (isConfigObject(value))
@@ -41,12 +70,10 @@ function immutable(value: unknown): any {
   return value;
 }
 function resolve(defaults: unknown, override: unknown): unknown {
-  if (isConfigDefinition(defaults))
-    return immutable(
-      defaults.schema
-        ? defaults.schema.parse(resolve(defaults.defaults ?? {}, override))
-        : resolve(defaults.defaults ?? {}, override),
-    );
+  if (isConfigDefinition(defaults)) {
+    const merged = resolve(defaults.defaults ?? {}, override);
+    return immutable(defaults.schema ? parseWith(defaults.schema, merged) : merged);
+  }
   if (isConfigObject(defaults) && (override === undefined || isConfigObject(override))) {
     const extra = (override ?? {}) as Record<string, unknown>;
     return Object.freeze(
@@ -92,6 +119,7 @@ export class ConfigScope<T = ConfigValues> {
     return this.value;
   }
 }
+/** `plugin`: the module's whole tree. `action`: positioned at `actions.<action path>`. */
 export type ConfigContext = { plugin: ConfigScope; action: ConfigScope };
 export class ConfigService {
   private readonly modules = new Map<string, ConfigScope>();
@@ -107,7 +135,10 @@ export class ConfigService {
       );
     }
     for (const id of Object.keys(overrides))
-      if (!this.modules.has(id)) throw new Error(`Unknown config module "${id}".`);
+      if (!this.modules.has(id))
+        throw new Error(
+          `configOverrides names "${id}", but no plugin with that ID is enabled. Known: ${[...this.modules.keys()].join(', ')}.`,
+        );
   }
   plugin<K extends keyof ConfigMap & string>(id: K): ConfigScope<ConfigMap[K]>;
   plugin<T = ConfigValues>(id: string): ConfigScope<T>;

@@ -1,17 +1,19 @@
-import { useMemo } from 'react';
 import { NuqsAdapter } from 'nuqs/adapters/tanstack-router';
 import {
   StandardFoundationProvider,
   type StandardFoundationProviderProps,
 } from '@bitakit/ui/components';
-import { createFoundationConfig } from '@bitakit/tanstack/generated';
 import { useActionNavigation } from '../routing/navigation.js';
 
 export type TanStackFoundationProviderProps = StandardFoundationProviderProps & {
   queryState?: boolean;
 };
 
-/** Mount inside TanStack's router context; Core lifecycle remains owned by the shared provider. */
+/**
+ * Mount inside TanStack's router context. The generated `BitaKitProvider` in
+ * `src/bitakit.gen.tsx` passes the discovered configuration; use this directly only with an
+ * explicit `config`.
+ */
 export function FoundationProvider({
   config,
   actionOptions,
@@ -19,14 +21,14 @@ export function FoundationProvider({
   ...props
 }: TanStackFoundationProviderProps) {
   const navigation = useActionNavigation();
-  const selectedConfig = useMemo(
-    () => config ?? createFoundationConfig(),
-    [config, createFoundationConfig],
-  );
+  if (!config)
+    throw new Error(
+      "FoundationProvider needs a configuration. Use <BitaKitProvider> from './bitakit.gen', or pass config={createBitaKitConfig()}.",
+    );
   const content = (
     <StandardFoundationProvider
       {...props}
-      config={selectedConfig}
+      config={config}
       actionOptions={{ ...navigation, ...actionOptions }}
     />
   );

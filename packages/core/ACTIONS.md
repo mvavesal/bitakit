@@ -2,50 +2,53 @@
 
 Define an action, register it, bind a control. State and execution are shared by every binding.
 
-## Shared text and optional dependencies
-
-Actions define `title` and `description` once. The host may supply `createActionList([], { project })` to project these texts for display without mutating their original values. The app uses `t.has(value) ? t(value) : value`: known translation keys are translated, other strings remain literal. `list.refresh()` updates subscribers after a locale change. Contextual presentation is projected too; the core has no locale-library dependency.
-
-```ts
-list.register({
-  id: 'users.invite',
-  title: 'users.invite.title',
-  description: 'Invite someone to the team.',
-  dependsOn: ['users.manage'], // optional: IDs in this same ActionList
-  execute: inviteUser,
-});
-```
-
-All prerequisites must exist and be effectively enabled. Missing actions, self-dependencies and cycles disable the dependent action until resolved. Transitive dependencies are supported. Dependencies never execute another action or overwrite its own `enabled` setting. Updates, registration and removal reactively invalidate dependent bindings; unrelated snapshots retain their identity.
-
-`resolve(id, input)` checks prerequisites with the same invocation input and is checked again immediately before execution, including after asynchronous interceptors. Unbound snapshots evaluate prerequisite conditions without input. Contextual bindings use `resolve` through the existing hooks and group bindings. Visibility and pending are separate states and do not by themselves disable prerequisites. Guards must be pure; use `refresh()` if their external context changes independently. Without dependencies, behavior is unchanged.
+This guide covers the low-level action primitives in `@bitakit/core/actions` and their React
+bindings in `@bitakit/ui`. In an app, discovery and the runtime do the registration for you:
+write `defineAction({ ... })` in `actions/<name>.ts` and bind it. Read on when you compose
+an ActionList yourself or build a renderer.
 
 ## 1. Define behavior
 
-```tsx
-import { Action } from '@bitakit/ui/actions';
+```ts
+import { defineAction } from '@bitakit/core';
 
-class ShowMessage extends Action<string> {
-  execute(message: string) {
-    window.alert(message);
-  }
-}
+export default defineAction<string>({
+  title: 'Say hello',
+  description: 'Shows a greeting.',
+  enabled: ({ input }) => typeof input === 'string' && input.length > 0,
+  execute: ({ input }) => window.alert(input),
+});
 ```
 
-Title, description, icon, enabled, visible, checked and value are inherited. Assigning them updates subscribed controls. An async execute method automatically shares pending state. The method receives your input directly, plus the invocation context as an optional second argument (`execute(input, context)`): `context.update()` patches only this registration, `context.get()` reads the current snapshot. Whatever `execute` returns becomes `value` of the completed execution result.
+`title`, `description`, `tooltip`, `icon`, `variant`, `href`, `enabled`, `visible`, `checked`
+and `value` accept a value or a function of `{ input, services, config, app }`. The runtime
+evaluates functions per binding input and re-evaluates them when a store they read changes.
+Whatever `execute` returns becomes `value` of the completed execution result. An async
+`execute` shares its pending state with every binding.
 
-Class actions registered through the foundation runtime may declare `success` and `failure` fields with the same feedback options as declarative definitions. Both are opt-in: without them the caller receives the raw error and no success message is shown.
+Pass an `input` schema (zod, valibot or any Standard Schema) instead of a type argument to
+validate the input and disable the action while the current input is invalid. `href` makes a
+navigation action, `dialog` opens a component in the host dialog, `confirm` asks first,
+`concurrency` chooses `exclusive` (default), `per-input` or `latest`, and `success`/`failure`
+describe the feedback. The [Core reference](docs/reference.md) lists every field.
 
 ## 2. Register and provide
 
+The runtime registers discovered actions and `FoundationProvider` owns the root
+`ActionProvider`. Standalone React code or a test can own a list directly:
+
 ```tsx
 import { useState } from 'react';
-import { createActionList, ActionProvider, URLAction } from '@bitakit/ui/actions';
+import { ActionProvider, createActionList } from '@bitakit/ui/actions';
 
 function createAppActions() {
   const actions = createActionList();
-  actions.add('message', new ShowMessage({ title: 'Say hello' }));
-  actions.add('settings', new URLAction('/settings', { title: 'Settings' }));
+  actions.register({
+    id: 'message',
+    title: 'Say hello',
+    execute: ({ input }) => window.alert(String(input)),
+  });
+  actions.register({ id: 'settings', title: 'Settings', href: '/settings' });
   return actions;
 }
 
@@ -59,154 +62,142 @@ function Root() {
 }
 ```
 
-For Next.js, import **ActionProvider from `@bitakit/next/actions`** instead. It supplies router navigation and Next links once. Other frameworks can supply the provider's `navigate` and `Link` props. The default uses browser navigation. No router logic belongs in an application action or bootstrap effect.
+`register` takes the low-level `ActionDefinition` (`id` and `title` are required) and returns
+a handle with `get`, `update`, `onDispose` and `unregister`. Unregistration is
+ownership-safe, including late async completion. Lists are independent; no global state.
+
+`ActionProvider` supplies browser navigation by default. Framework adapters pass `navigate`,
+`Link` and `pathname` from the app's router; `controls` maps control state to the prop names
+of your component library (`{ button: (state) => ({ isDisabled: state.disabled }) }`). No
+router logic belongs in an action or a bootstrap effect.
 
 ## 3. Bind UI
 
 ```tsx
-import { ActionButton, ActionLink } from '@bitakit/ui/actions';
+import { Action, ActionButton, ActionLink } from '@bitakit/ui';
 
-<ActionButton action="message" input="Hello!" />
+<Action id="message" input="Hello!"><Button /></Action>
+<Action id="message" input="Hello!"><MyButton variant="outline">Greet</MyButton></Action>
 <ActionButton action="message" input="Hello!" as={MyButton} />
 <ActionLink action="settings" />
 ```
 
-Custom buttons forward ordinary button props, including onClick, disabled, aria attributes, children and refs. No action code is required inside them. The package uses native elements by default and has no styling or icon-library dependency.
+`<Action>` merges the control props into its child: handlers are chained, class names
+joined and `disabled` combined. An empty child receives the action's icon and title. The
+`kind` prop selects the prop set (`button`, `link`, `toggle`, `choice`, `menuItem`); the
+default is `link` for actions with an `href`, otherwise `button`. A render function gives
+full control: `<Action id="message">{(control) => ...}</Action>`. `ActionButton` and
+`ActionLink` are sugar on top of `<Action>`.
 
-### Checkboxes, radio groups and cards
+Custom components forward ordinary props, including `onClick`, `disabled`, aria attributes,
+children and refs. The package uses native elements by default and has no styling or
+icon-library dependency.
+
+### Toggles, choices and your own control
 
 ```tsx
-class Preview extends Action<boolean> {
-  execute(checked: boolean) { this.checked = checked; }
-}
-class SelectTheme extends Action<string> {
-  async execute(value: string) {
-    await saveTheme(value);
-    this.value = value;
-  }
-}
+const preview = useAction('preview');       // checked / onCheckedChange
+const theme = useAction('theme');           // value / onValueChange
 
-<ActionCheckbox action="preview" as={MyCheckbox} />
-<ActionRadioGroup action="theme" as={ThemeCards} options={[
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-]} />
+<Switch {...preview?.checkedProps()} />
+<RadioGroup {...theme?.valueProps()}>…</RadioGroup>
 ```
 
-Checkbox components accept checked/onCheckedChange/disabled. Radio-group components accept value/onValueChange/disabled/options. Application components retain their own keyboard, focus and ARIA semantics.
-
-For other prop names, map once using the shared binding:
-
-```tsx
-<ActionBinding action="theme" kind="choice" input="dark">
-  {({ selected, disabled, pending, execute }) => (
-    <MyCard selected={selected} disabled={disabled} busy={pending} onSelect={() => execute()}>
-      Dark
-    </MyCard>
-  )}
-</ActionBinding>
-```
-
-Binding manages visibility, execution guards, pending state and a default native title tooltip from description. The action owns its confirmed value; failed execution does not automatically change selection. A custom component must honor the props it receives.
-
-### Your own control: one hook
+`useAction(id, input)` returns the resolved control state for `input` (`title`, `enabled`,
+`visible`, `pending`, `disabled`, `checked`, `value`, `href`, `icon`, `status`, `error`, …), a
+guarded `execute(input?)` and prop getters: `props()` for buttons, `linkProps()` for anchors,
+`checkedProps()` for checkboxes and switches, `valueProps()` for selects and radio groups and
+`menuItemProps()` for menu items. Getters accept `{ onError, onExecuted }`. It returns
+`undefined` while the action is not registered.
 
 ```tsx
-const action = useAction('message');
+const action = useAction('message', 'Hello');
 if (!action?.visible) return null;
-return (
-  <button
-    disabled={!action.enabled || action.pending}
-    onClick={() => action.execute('Hello').catch(showError)}
-  >
-    {action.title}
-  </button>
-);
+return <button {...action.props()}>{action.title}</button>;
 ```
 
-The hook's execute method always uses the list's guards and pending/error lifecycle. Missing IDs return undefined. Do not call an instance's execute method directly from UI: that intentionally represents behavior alone, without list orchestration.
+The hook's `execute` always uses the list's guards and pending/error lifecycle. Execution
+resolves to `{ status: 'completed', value }` or `{ status: 'skipped', reason }`; rejections
+carry the handler error. `pending` is per input for `per-input` actions.
 
-Execution resolves to `{ status: 'completed', value }` or `{ status: 'skipped', reason }`. Rejections carry the handler error. Action IDs autocomplete from `ActionMap`, and known IDs type both `input` and `value`; see below.
-
-### Lifecycle and advanced integrations
-
-`add(id, action)` returns a registration handle with update and unregister. Unregistration is ownership-safe, including late async completion. Lists are independent. Optional `useRegisterActions` handles page-owned definitions with cleanup; ordinary root actions need no registration hook.
-
-An action may implement `connect()` to subscribe to an external application service and return cleanup. The provider owns this lifecycle, including Strict Mode replay. This is optional business-state integration, not a required step for normal actions.
-
-Errors reject imperative execution; controls use their onError prop or the provider's onError. Defaults log to the console; applications can supply a toast or error display. Disabled, hidden, pending and missing actions are skipped. UI state is not server authorization.
-
-Settings use the independent Settings catalog. Action groups describe presentation locations, while application components choose their layout. The existing plain-definition register/update interface remains available for integrations; the class API above is the primary entry point.
-
-### Source map
-
-- `action.ts`: inherited observable properties and behavior contract.
-- `action-list.ts`: registration, updates and ownership.
-- `execution.ts`: invocation guards and pending lifecycle.
-- `types.ts`: shared contracts; `core.ts`: non-React exports.
-- `base/`: reusable action specializations.
-- `react/`: provider and shared hooks.
-- `components/`: reusable UI bindings.
-- `groups.ts` and `components/action-group-binding.tsx`: typed placement groups and reactive views.
-- `interceptors.ts`: cancellable pre-execution checks and outcome subscriptions.
-- `next.tsx`: optional Next.js adapter.
-
-## Groups and contextual menus
+## 4. Groups and menus
 
 ```tsx
-const memberMenu = new ActionGroup<MemberContext>('organization.member.menu');
-class PromoteMember extends Action<MemberContext> {
-  isVisible({ member }: MemberContext) { return member.role === 'member'; }
-  isEnabled({ canManage }: MemberContext) { return canManage; }
-  async execute({ member }: MemberContext) { await promote(member.id); }
+import { ActionMenu, useActionGroup } from '@bitakit/ui';
+
+<ActionMenu group="organization.member.menu" label="More" input={member} />;
+
+function Toolbar() {
+  const bulk = useActionGroup('todos.bulk');
+  return bulk.items.map((item) => (
+    <button key={item.id} {...item.props()}>
+      {item.title}
+    </button>
+  ));
 }
-const registration = actions.register(
-  new PromoteMember({ id: 'member.promote', title: 'Promote to admin' }),
-  { groups: [memberMenu], order: 10 },
-);
-// A renderer supplies a view, which receives live groups of BoundAction items.
-<ActionGroupBinding groups={[memberMenu]} context={rowContext} as={MemberMenuView} />
-// Within the view:
-<ActionMenuItem binding={item} as={DropdownMenuItem} />
-// Remove every placement owned by this contribution:
-registration.unregister();
 ```
 
-A contribution is registered once with all its groups. Group IDs are stable extension points, not namespaces for Action IDs. Hidden items and empty groups disappear. The view's group order is explicit; entries use `order` then their unique ID. Context is passed per rendering/invocation, never assigned to the shared action instance. Updating an Action updates all mounted views. Resolving a row never changes another row's enabled state.
+`groups: ['todos.bulk']` on a definition puts an action in a group; `useActionGroup(group,
+input?)` returns the current visible members as controls bound to `input`, ordered by
+`order` then ID, and `useActionGroups([...])` several groups at once. Hidden items and empty
+groups disappear. Group IDs are presentation grouping, not namespaces for action IDs.
+Updating an action updates every mounted view; resolving one row never changes another.
 
-## Interception and logging integrations
+## 5. Interception and logging
 
 ```ts
 const stopCheck = actions.use({
   async before(context) {
-    return await confirmIfNeeded(context);
+    return await confirmIfNeeded(context); // false cancels
   },
 });
 const stopObserving = actions.subscribeExecution((event) => {
   // started / completed / skipped / failed; do not log private input by default.
   recordOutcome({ action: event.id, phase: event.phase, time: event.timestamp });
 });
-// Retain cleanup handles for plugin-owned extensions.
 stopCheck();
 stopObserving();
 ```
 
-A false interceptor result cancels execution. Guards and registration ownership are checked again after awaiting interceptors. Observer errors cannot turn a completed mutation into a failure. The stream is an application integration point, not a durable or trusted server audit trail. Audit identity and authorization must come from verified server sessions. Native navigation links retain browser behavior and do not execute a second command pipeline.
+Guards and registration ownership are checked again after awaiting interceptors. Observer
+errors cannot turn a completed mutation into a failure. The stream is an application
+integration point, not a durable or trusted server audit trail. In apps, write
+`defineInterceptor({ action: 'todos.*', before, after, onError })` in `interceptors/` instead.
 
-## Typed action IDs
+## 6. Typed action IDs
 
-`ActionMap` is an augmentable interface keyed by action ID with `{ input, result }` per entry. The Next discovery adapter generates it from discovered definitions; explicit hosts and packages augment it themselves:
+`ActionMap` is an augmentable interface keyed by action ID with `{ input, result }` per entry.
+Discovery generates it from the discovered definitions; explicit hosts and packages augment
+it themselves:
 
 ```ts
 declare module '@bitakit/core' {
   interface ActionMap {
     'members.promote': { input: MemberContext; result: void };
   }
+  interface ActionMapOptions {
+    strict: true;
+  } // reject unknown IDs at compile time
 }
 useAction('members.promote')?.execute({ memberId }); // input and result are typed
-list.execute('members.promote', { memberId }); // same for imperative execution
+list.execute('members.promote', { memberId });
 ```
 
-`useAction`, `list.execute`, `ActionButton`, `ActionBinding` and the other bindings accept known IDs with autocompletion. Unknown strings stay allowed and untyped, so page-owned or dynamic registrations keep working. Augment `ActionMapOptions` with `{ strict: true }` to reject unknown IDs at compile time. Types never replace runtime validation of input that arrives from JavaScript or the network.
+Generated apps turn strict IDs on by default (`strict: false` in `bitakit.config.ts` turns
+them off). Types never replace runtime validation of input that arrives from the network.
 
-Registrations marked `internal: true` remain executable and subscribable by ID but are hidden from `useActions()` and group views. Form actions use this for their `<id>.submit` registration; pass `useActions({ internal: true })` to enumerate everything.
+Registrations marked `internal: true` remain executable and subscribable by ID but are
+hidden from `useActions()`, groups, shortcuts and typed references; pass
+`useActions({ internal: true })` to enumerate everything.
+
+### Source map
+
+- `action-list.ts`: registration, updates and ownership.
+- `execution.ts`: invocation guards, concurrency and the pending lifecycle.
+- `interceptors.ts`: cancellable pre-execution checks and outcome subscriptions.
+- `groups.ts`: typed placement groups.
+- `navigation.ts`: safe hrefs and the navigation host.
+- `action.ts`, `base/url-action.ts`: the `Action` class, a library primitive for integrations.
+- `feedback.ts`: `ActionFailure` and feedback evaluation.
+- `types.ts`: shared contracts; `core.ts`: non-React exports.
+- `@bitakit/ui`: `hooks/use-action.ts`, `hooks/use-action-group.ts`, `components/action.tsx`, `providers/action-provider.tsx`.

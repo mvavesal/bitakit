@@ -1,26 +1,55 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  writeFile,
+  readFile,
+  rm,
+  readdir,
+  realpath,
+  access,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createJiti } from 'jiti';
 import ts from 'typescript';
-import { generateFoundation } from '../discovery/generate.mjs';
+import {
+  generateFoundation,
+  describeFoundation,
+  describeModule,
+  detectFramework,
+  loadDiscoveryConfig,
+  defineBitaKit,
+  watchFoundation,
+  migrateProject,
+} from '../discovery/index.mjs';
 import { discoverEntries } from '../discovery/entries.mjs';
 import {
   discoverActions,
   discoverServices,
   discoverConfig,
   discoveredFile,
+  defineAction,
+  defineService,
+  defineInterceptor,
   defineConfig,
   FoundationRuntime,
-  ConfigService,
-  Action,
+  FoundationServiceError,
+  createRuntime,
   createActionList,
+  ConfigService,
+  findPluginPage,
+  resolveFoundationConfig,
 } from '../dist/core.js';
 
+const coreRuntime = new URL('../dist/core.js', import.meta.url).pathname;
+const coreTypes = new URL('../dist/core.d.ts', import.meta.url).pathname;
+const actionTypes = new URL('../dist/actions/core.d.ts', import.meta.url).pathname;
+
+/** A temporary project. The root is resolved so it matches the paths discovery reports. */
 async function fixture(run) {
-  const root = await mkdtemp(path.join(tmpdir(), 'foundation-unified-'));
+  const root = await realpath(await mkdtemp(path.join(tmpdir(), 'bitakit-discovery-')));
   const put = async (file, source) => {
     const target = path.join(root, file);
     await mkdir(path.dirname(target), { recursive: true });
@@ -34,218 +63,575 @@ async function fixture(run) {
   }
 }
 const file = (value, localPath, source = localPath) => discoveredFile(value, localPath, source);
+const exists = (target) =>
+  access(target).then(
+    () => true,
+    () => false,
+  );
 /** Strict TypeScript errors for generated output and consumers, against this build of Core. */
 const typeErrors = (files, root) =>
   ts
     .getPreEmitDiagnostics(
       ts.createProgram(files, {
-        noEmit: true, strict: true, skipLibCheck: true,
-        target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
-        moduleResolution: ts.ModuleResolutionKind.Bundler, baseUrl: root,
-        paths: {
-          '@bitakit/core': [new URL('../dist/core.d.ts', import.meta.url).pathname],
-          '@bitakit/core/actions': [new URL('../dist/actions/core.d.ts', import.meta.url).pathname],
-        },
+        noEmit: true,
+        strict: true,
+        skipLibCheck: true,
+        jsx: ts.JsxEmit.Preserve,
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.ESNext,
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
+        baseUrl: root,
+        paths: { '@bitakit/core': [coreTypes], '@bitakit/core/actions': [actionTypes] },
       }),
     )
     .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+/** Loads a generated file the way a bundler would, with `@bitakit/core` pointing at this build. */
+const loadGenerated = (generated) =>
+  createJiti(import.meta.url, {
+    moduleCache: false,
+    alias: { '@bitakit/core': coreRuntime },
+  }).import(generated);
+/** Asserts that every pattern matches exactly one warning and that no other warnings exist. */
+function expectWarnings(warnings, patterns) {
+  for (const pattern of patterns) {
+    const matching = warnings.filter((warning) => pattern.test(warning));
+    assert.equal(
+      matching.length,
+      1,
+      `Expected one warning matching ${pattern}, got ${JSON.stringify(warnings, null, 2)}`,
+    );
+  }
+  assert.equal(warnings.length, patterns.length, JSON.stringify(warnings, null, 2));
+}
+async function until(predicate, timeout = 8000) {
+  const started = Date.now();
+  while (!(await predicate())) {
+    if (Date.now() - started > timeout) throw new Error('Timed out waiting for the watcher.');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
 
-test('folder-only plugins provide inferred service methods, Action references and owned setup', async () =>
+test('the generated file wires app and plugins: nested services, typed events, config and derived UI', async () =>
   fixture(async (root, put) => {
-    await put('src/plugins/documents/services/documents.ts', `
-      import { defineService } from '@bitakit/core';
-      export default defineService({ create: () => ({
-        events: [] as string[],
-        createDraft: (title: string) => ({ title, status: 'draft' as const }),
-        loadCount: async (folder: string) => folder.length,
-      }) });
-    `);
-    await put('src/plugins/documents/services/clock.ts', `
-      import { defineService } from '@bitakit/core';
-      export default defineService({ exposeAs: 'tools.clock', create: () => ({ now: () => new Date() }) });
-    `);
-    await put('src/plugins/documents/actions/create.ts', `
+    await put('package.json', JSON.stringify({ name: 'demo' }));
+    await put(
+      'bitakit.config.ts',
+      `export default { slots: ['sidebar.top'], configOverrides: { todos: { limits: { maxItems: 5 } } } };`,
+    );
+    await put(
+      'src/actions/refresh.ts',
+      `
       import { defineAction } from '@bitakit/core';
-      export default defineAction({ execute: ({ app }) => app.services.documents.createDraft('New draft') });
-    `);
-    await put('src/plugins/documents/actions/draft.ts', `
+      export default defineAction({ execute: ({ config }) => config.plugin.get('shell.title', '') });
+    `,
+    );
+    await put('src/configs/shell.ts', `export default { title: 'Demo' };`);
+    await put(
+      'src/plugins/todos/plugin.config.ts',
+      `export default { metadata: { name: 'Todos' } };`,
+    );
+    await put(
+      'src/plugins/todos/services/items.ts',
+      `
+      import { defineService } from '@bitakit/core';
+      export default defineService(({ store, events }) => {
+        const state = store({ items: [] as string[] });
+        const audit: string[] = [];
+        return {
+          state,
+          audit,
+          add(title: string) {
+            state.set((current) => ({ items: [...current.items, title] }));
+            events.emit('todos.changed', { kind: 'added' });
+            return title;
+          },
+          count: () => state.get().items.length,
+        };
+      });
+    `,
+    );
+    await put(
+      'src/plugins/todos/services/clock.ts',
+      `
+      import { defineService } from '@bitakit/core';
+      export default defineService(() => ({ now: () => new Date() }), { exposeAs: 'clock' });
+    `,
+    );
+    await put(
+      'src/plugins/todos/actions/add.ts',
+      `
+      import { defineAction } from '@bitakit/core';
+      export default defineAction<string, string>({ execute: ({ services, input }) => services.todos.items.add(input) });
+    `,
+    );
+    await put(
+      'src/plugins/todos/actions/clear.ts',
+      `
       import { defineAction } from '@bitakit/core';
       export default defineAction({
-        requires: ['documents'],
-        execute: ({ services }) => services.documents.createDraft('From services'),
+        enabled: ({ services }) => services.todos.items.count() > 0,
+        execute: ({ services }) => services.todos.items.count(),
       });
-    `);
-    await put('src/plugins/documents/actions/save.ts', `
-      import { defineAction } from '@bitakit/core';
-      export default defineAction<{title: string}>()({
-        initialState: {count: 0},
-        execute(input) {
-          const draft = this.app.services.documents.createDraft(input.title);
-          this.state.update(current => ({count: current.count + 1}));
-          return draft;
-        },
+    `,
+    );
+    await put(
+      'src/plugins/todos/events.ts',
+      `
+      import { defineEvents, event } from '@bitakit/core';
+      export default defineEvents({
+        changed: event<{ kind: 'added' | 'removed' }>(),
+        deleting: event<{ id: number }>({ cancelable: true }),
       });
-    `);
-    await put('src/plugins/documents/interceptors/logging.ts', `
-      import { defineActionInterceptor, defineServiceInterceptor } from '@bitakit/core';
-      export default [
-        defineActionInterceptor({ before() {} }),
-        defineServiceInterceptor({service: 'documents', method: 'createDraft',
-          before({args}) { const title: string = args[0]; },
-          after({result}) { const title: string = result.title; },
-        }),
-      ];
-      defineServiceInterceptor({service: 'documents',
-        // @ts-expect-error Unknown method of a known service.
-        method: 'unknownMethod',
-      });
-      defineServiceInterceptor({service: 'documents', method: 'loadCount', after({result}) {
-        const count: number = result;
-        // @ts-expect-error Awaited result remains a number.
-        const invalid: string = result;
-      }});
-    `);
-    await put('src/plugins/documents/setup.ts', `
+    `,
+    );
+    await put(
+      'src/plugins/todos/configs/limits.ts',
+      `
+      import { defineConfig } from '@bitakit/core';
+      export default defineConfig({ defaults: { maxItems: 100 } });
+    `,
+    );
+    await put(
+      'src/plugins/todos/interceptors/audit.ts',
+      `
+      import { defineInterceptor } from '@bitakit/core';
+      export default defineInterceptor({ action: 'todos.*', before: ({ id, services }) => { services.todos.items.audit.push(id); } });
+    `,
+    );
+    await put('src/plugins/todos/ui/pages/index.tsx', 'export default () => null;');
+    await put(
+      'src/plugins/todos/ui/pages/tasks/[id].tsx',
+      "export default () => null;\nexport const layout = 'blank';",
+    );
+    await put(
+      'src/plugins/todos/ui/slots/sidebar.top.tsx',
+      'export default () => null;\nexport const order = 5;',
+    );
+    await put(
+      'src/plugins/todos/ui/providers/query.tsx',
+      "export default () => null;\nexport const requires = ['theme'];",
+    );
+    await put('src/plugins/todos/ui/components/button.tsx', 'export default () => null;');
+    await put(
+      'src/plugins/todos/setup.ts',
+      `
       import type { Setup } from '@bitakit/core';
       const setup: Setup = ({ services }) => {
-        services['documents.documents'].events.push('setup');
-        return () => { services['documents.documents'].events.push('cleanup'); };
+        services.todos.items.audit.push('setup');
+        return () => { services.todos.items.audit.push('cleanup'); };
       };
       export default setup;
-    `);
-    await generateFoundation(root);
-    const output = path.join(root, '.foundation/plugins.ts');
-    const generated = await readFile(output, 'utf8');
-    assert.doesNotMatch(generated, /discoverPublicServices|publicServices:/);
-    const consumer = await put('consumer.ts', `
+    `,
+    );
+    await put(
+      'src/plugins/todos/locales/en.json',
+      JSON.stringify({ todos: { add: { title: 'Add item' } } }),
+    );
+
+    const result = await generateFoundation(root, { quiet: true });
+    assert.deepEqual(result, {
+      included: [],
+      warnings: [],
+      generated: path.join(root, 'src/bitakit.gen.ts'),
+      framework: 'none',
+    });
+    const source = await readFile(result.generated, 'utf8');
+    assert.match(source, /^\/\/ Generated by BitaKit\. Do not edit\./);
+    assert.match(source, /export function createBitaKitConfig\(\)/);
+    assert.match(source, /export type BitaKitConfig = ReturnType<typeof createBitaKitConfig>/);
+    assert.match(source, /export const createFoundationConfig = createBitaKitConfig/);
+    assert.match(source, /\} satisfies FoundationConfig;/);
+    assert.match(source, /declare module '@bitakit\/core' \{/);
+    for (const declaration of [
+      /interface ServiceMap extends DiscoveredServices, InstalledServices \{\}/,
+      /interface PublicServiceMap extends InstalledServices \{\}/,
+      /interface ActionMap extends DiscoveredActions \{\}/,
+      /interface EventMap extends DiscoveredEvents \{\}/,
+      /interface CancelableEventMap extends DiscoveredCancelable \{\}/,
+      /interface ConfigMap \{\s+"app": DiscoveredConfigEntry<typeof file\d+>;\s+"todos": DiscoveredConfigEntry<typeof file\d+>;\s+\}/,
+      /interface SlotMap \{ "sidebar\.top": true; \}/,
+      /interface ActionMapOptions \{ strict: true \}/,
+    ])
+      assert.match(source, declaration);
+    assert.match(source, /type DiscoveredEvents = DiscoveredEventsEntry<typeof file\d+, "todos">/);
+    assert.match(
+      source,
+      /type DiscoveredCancelable = DiscoveredCancelableEntry<typeof file\d+, "todos">/,
+    );
+    assert.match(
+      source,
+      /type DiscoveredServices = DiscoveredServiceEntry<typeof file\d+, "todos"> & DiscoveredServiceEntry<typeof file\d+, "todos">/,
+    );
+    assert.match(
+      source,
+      /DiscoveredActionEntry<typeof file\d+, "">/,
+      'app actions have no module prefix',
+    );
+    assert.match(
+      source,
+      /import \* as module\d+ from '\.\/plugins\/todos\/ui\/pages\/tasks\/\[id\]';/,
+    );
+    assert.match(
+      source,
+      /pluginPage\(module\d+, "\/todos"\), pluginPage\(module\d+, "\/todos\/tasks\/\[id\]"\)/,
+    );
+    assert.match(source, /pluginSlot\(module\d+, "sidebar\.top"\)/);
+    assert.match(source, /pluginProvider\(module\d+, "todos\.query"\)/);
+    assert.match(source, /events: discoverEvents\(\[file\d+\]\)/);
+    assert.match(source, /discoveredFile\(entry\d+, "", "src\/plugins\/todos\/events\.ts"\)/);
+    assert.match(source, /id: "todos", metadata: \{"name":"Todos"\}, dependencies: \[\]/);
+    assert.match(source, /const configOverrides = \{"todos":\{"limits":\{"maxItems":5\}\}\};/);
+    assert.doesNotMatch(
+      source,
+      /components\/button|\.foundation|publicServices|discoverPublicServices/,
+    );
+
+    const consumer = await put(
+      'consumer.ts',
+      `
+      import type { FoundationRuntime, Services, Events } from '@bitakit/core';
+      import type { BitaKitConfig } from './src/bitakit.gen';
+      declare const runtime: FoundationRuntime;
+      declare const services: Services;
+      declare const events: Events;
+      declare const config: BitaKitConfig;
+      const app = runtime.app;
+      const count: number = app.services.todos.items.count();
+      const added: string = services.todos.items.add('x');
+      const now: Date = app.services.clock.now();
+      const same: Date = services.todos.clock.now();
+      const max: number = app.config.todos.limits.maxItems;
+      const title: string = app.config.app.shell.title;
+      app.actions.todos.add.execute('title').then((outcome) => {
+        if (outcome.status === 'completed') { const value: string = outcome.value; void value; }
+      });
+      // @ts-expect-error Action inputs stay typed after discovery.
+      app.actions.todos.add.execute(42);
+      runtime.actions.execute('todos.clear');
+      runtime.actions.execute('refresh');
+      // @ts-expect-error Strict action IDs reject unknown actions.
+      runtime.actions.execute('todos.unknown');
+      events.emit('todos.changed', { kind: 'added' });
+      // @ts-expect-error Payloads follow events.ts.
+      events.emit('todos.changed', { kind: 'other' });
+      const allowed: Promise<boolean> = events.emit('todos.deleting', { id: 1 });
+      // @ts-expect-error Only cancelable events return a promise.
+      const wrong: Promise<boolean> = events.emit('todos.changed', { kind: 'added' });
+      events.on('todos.*', (event) => { const type: 'todos.changed' | 'todos.deleting' = event.type; void type; });
+      // @ts-expect-error Services form a tree, never flat keys.
+      services['todos.items'];
+      // @ts-expect-error app.optional is gone; read services after ready.
+      app.optional;
+      // @ts-expect-error Unknown services are not part of completion.
+      app.services.documents;
+      const ids: string[] = config.plugins.map((plugin) => plugin.id);
+      void [count, added, now, same, max, title, allowed, wrong, ids];
+    `,
+    );
+    assert.deepEqual(typeErrors([result.generated, consumer], root), []);
+
+    const { createBitaKitConfig, createFoundationConfig } = await loadGenerated(result.generated);
+    assert.equal(createFoundationConfig, createBitaKitConfig);
+    const config = createBitaKitConfig();
+    assert.equal(config.appId, 'app');
+    assert.deepEqual(
+      config.plugins.map((plugin) => plugin.id),
+      ['todos'],
+    );
+    const [todos] = config.plugins;
+    assert.deepEqual(todos.metadata, { name: 'Todos' });
+    assert.deepEqual(
+      todos.ui.pages.map(({ path: pagePath, layout }) => ({ path: pagePath, layout })),
+      [
+        { path: '/todos', layout: undefined },
+        { path: '/todos/tasks/[id]', layout: 'blank' },
+      ],
+    );
+    assert.deepEqual(
+      todos.ui.slots.map(({ slot, order }) => ({ slot, order })),
+      [{ slot: 'sidebar.top', order: 5 }],
+    );
+    assert.deepEqual(
+      todos.ui.providers.map(({ id, requires }) => ({ id, requires })),
+      [{ id: 'todos.query', requires: ['theme'] }],
+    );
+    assert.equal(typeof todos.ui.pages[0].component, 'function');
+
+    const runtime = createRuntime(config);
+    const stop = runtime.mount();
+    await runtime.ready;
+    const items = runtime.services.todos.items;
+    try {
+      assert.deepEqual(Object.keys(runtime.services.todos).sort(), ['clock', 'items']);
+      assert.equal(
+        runtime.services.clock,
+        runtime.services.todos.clock,
+        'exposeAs adds an alias onto the same instance',
+      );
+      assert.ok(runtime.app.services.clock.now() instanceof Date);
+      assert.throws(
+        () => runtime.services['todos.items'],
+        FoundationServiceError,
+        'services are a tree, never flat keys',
+      );
+      assert.equal(runtime.actions.get('todos.clear').enabled, false);
+      const changes = [];
+      runtime.events.on('todos.changed', (event) => changes.push(event.data));
+      assert.deepEqual(await runtime.actions.execute('todos.add', 'Write tests'), {
+        status: 'completed',
+        value: 'Write tests',
+      });
+      assert.deepEqual(changes, [{ kind: 'added' }]);
+      assert.equal(
+        runtime.actions.get('todos.clear').enabled,
+        true,
+        'function-valued enabled follows the store',
+      );
+      assert.equal(runtime.app.services.todos.items.count(), 1);
+      runtime.events.on('todos.deleting', (event) => event.cancel());
+      assert.equal(
+        await runtime.events.emit('todos.deleting', { id: 1 }),
+        false,
+        'cancelable events report cancellation',
+      );
+      assert.equal(
+        runtime.app.config.todos.limits.maxItems,
+        5,
+        'bitakit.config.ts overrides apply',
+      );
+      assert.deepEqual(runtime.app.config.app, { shell: { title: 'Demo' } });
+      assert.equal((await runtime.actions.execute('refresh')).value, 'Demo');
+      assert.deepEqual(
+        items.audit,
+        ['setup', 'todos.add'],
+        'plugin interceptors see their own actions only',
+      );
+      const page = findPluginPage(runtime.modules, '/todos/tasks/42');
+      assert.equal(page.plugin, 'todos');
+      assert.deepEqual(page.params, { id: '42' });
+      assert.equal(page.layout, 'blank');
+      assert.equal(findPluginPage(runtime.modules, '/todos').path, '/todos');
+      assert.equal(findPluginPage(runtime.modules, '/missing'), undefined);
+    } finally {
+      stop();
+    }
+    assert.deepEqual(items.audit.at(-1), 'cleanup');
+    assert.deepEqual(
+      JSON.parse(await readFile(path.join(root, 'src/bitakit.gen.messages.json'), 'utf8')),
+      {
+        en: { todos: { add: { title: 'Add item' } } },
+      },
+    );
+    const css = await readFile(path.join(root, 'src/bitakit.gen.css'), 'utf8');
+    assert.match(css, /Generated by BitaKit/);
+    assert.doesNotMatch(css, /@import/);
+  }));
+
+test('framework detection chooses the provider import and the file extension; a stale file is removed', async () =>
+  fixture(async (root, put) => {
+    assert.equal(detectFramework({ dependencies: { next: '15.0.0' } }), 'next');
+    assert.equal(
+      detectFramework({ devDependencies: { '@tanstack/react-router': '1.0.0' } }),
+      'tanstack',
+    );
+    assert.equal(
+      detectFramework({ dependencies: { '@tanstack/react-start': '1.0.0' } }),
+      'tanstack',
+    );
+    assert.equal(detectFramework({}), 'none');
+    await put('src/actions/ping.ts', 'export default { execute: () => "pong" }');
+    const files = async () =>
+      (await readdir(path.join(root, 'src')))
+        .filter((name) => name.startsWith('bitakit.gen.'))
+        .sort();
+
+    await put(
+      'package.json',
+      JSON.stringify({ dependencies: { next: '15.0.0', react: '19.0.0' } }),
+    );
+    const next = await generateFoundation(root, { quiet: true });
+    assert.equal(next.framework, 'next');
+    assert.equal(next.generated, path.join(root, 'src/bitakit.gen.tsx'));
+    const nextSource = await readFile(next.generated, 'utf8');
+    assert.match(nextSource, /^\/\/ Generated by BitaKit\. Do not edit\.\n'use client';\n/);
+    assert.match(nextSource, /import \{ FoundationProvider \} from '@bitakit\/next';/);
+    assert.match(nextSource, /import \{ useState, type ComponentProps \} from 'react';/);
+    assert.match(
+      nextSource,
+      /export function BitaKitProvider\(props: Omit<ComponentProps<typeof FoundationProvider>, 'config'>\)/,
+    );
+    assert.match(nextSource, /<FoundationProvider \{\.\.\.props\} config=\{config\} \/>/);
+    assert.deepEqual(await files(), ['bitakit.gen.css', 'bitakit.gen.tsx']);
+
+    await put(
+      'package.json',
+      JSON.stringify({ dependencies: { '@tanstack/react-start': '1.0.0' } }),
+    );
+    const tanstack = await generateFoundation(root, { quiet: true });
+    assert.equal(tanstack.framework, 'tanstack');
+    assert.match(
+      await readFile(tanstack.generated, 'utf8'),
+      /import \{ FoundationProvider \} from '@bitakit\/tanstack';/,
+    );
+
+    await put('package.json', JSON.stringify({ dependencies: {} }));
+    const plain = await generateFoundation(root, { quiet: true });
+    assert.equal(plain.framework, 'none');
+    assert.equal(plain.generated, path.join(root, 'src/bitakit.gen.ts'));
+    assert.deepEqual(
+      await files(),
+      ['bitakit.gen.css', 'bitakit.gen.ts'],
+      'the .tsx variant is removed',
+    );
+    const plainSource = await readFile(plain.generated, 'utf8');
+    assert.doesNotMatch(plainSource, /use client|BitaKitProvider|react/);
+    assert.deepEqual(
+      typeErrors([plain.generated], root),
+      [],
+      'an app without plugins still type-checks',
+    );
+
+    await put('package.json', JSON.stringify({ dependencies: { next: '15.0.0' } }));
+    await put('bitakit.config.ts', `export default { framework: 'none' };`);
+    const forced = await generateFoundation(root, { quiet: true });
+    assert.equal(forced.framework, 'none');
+    assert.deepEqual(
+      await files(),
+      ['bitakit.gen.css', 'bitakit.gen.ts'],
+      'an explicit framework wins over detection',
+    );
+  }));
+
+test('bitakit.config.ts configures discovery; foundation.config.ts still loads with a deprecation warning', async () =>
+  fixture(async (root, put) => {
+    const config = { strict: false };
+    assert.equal(defineBitaKit(config), config);
+    assert.deepEqual(await loadDiscoveryConfig(root), {
+      config: {},
+      file: undefined,
+      legacy: false,
+    });
+    await put('src/actions/ping.ts', 'export default { execute: () => "pong" }');
+    assert.deepEqual((await generateFoundation(root, { quiet: true })).warnings, []);
+
+    await put(
+      'foundation.config.ts',
+      `export default { plugins: { directory: './src/extensions' } };`,
+    );
+    const legacy = await loadDiscoveryConfig(root);
+    assert.equal(legacy.legacy, true);
+    assert.equal(legacy.file, path.join(root, 'foundation.config.ts'));
+    assert.deepEqual(legacy.config, { plugins: { directory: './src/extensions' } });
+    expectWarnings((await generateFoundation(root, { quiet: true })).warnings, [
+      /^foundation\.config\.ts is deprecated: rename it to bitakit\.config\.ts/,
+    ]);
+    expectWarnings((await describeFoundation(root)).warnings, [
+      /^foundation\.config\.ts is deprecated/,
+    ]);
+    assert.equal(
+      (await describeFoundation(root)).pluginsDirectory,
+      'src/extensions',
+      'the legacy file still configures discovery',
+    );
+
+    await put('bitakit.config.ts', `export default { plugins: { directory: './src/modules' } };`);
+    const current = await loadDiscoveryConfig(root);
+    assert.equal(current.legacy, false);
+    assert.equal(current.file, path.join(root, 'bitakit.config.ts'));
+    assert.deepEqual(current.config, { plugins: { directory: './src/modules' } });
+    assert.deepEqual(
+      (await generateFoundation(root, { quiet: true })).warnings,
+      [],
+      'bitakit.config.ts wins over the legacy file',
+    );
+    assert.equal((await describeFoundation(root)).pluginsDirectory, 'src/modules');
+  }));
+
+test('configuration options shape the generated declarations and output location', async () =>
+  fixture(async (root, put) => {
+    await put(
+      'bitakit.config.ts',
+      `export default { directory: './app', strict: false, slots: ['sidebar.top', 'sidebar.top', 'app-bar.end'], groups: ['navigation'] };`,
+    );
+    await put('app/actions/ping.ts', 'export default { execute: () => "pong" }');
+    const result = await generateFoundation(root, { quiet: true });
+    assert.equal(result.generated, path.join(root, 'app/bitakit.gen.ts'));
+    assert.ok(await exists(path.join(root, 'app/bitakit.gen.css')));
+    assert.equal(await exists(path.join(root, 'src')), false);
+    const source = await readFile(result.generated, 'utf8');
+    assert.doesNotMatch(
+      source,
+      /ActionMapOptions/,
+      'strict: false keeps unknown action IDs allowed',
+    );
+    assert.match(
+      source,
+      /interface SlotMap \{ "sidebar\.top": true; "app-bar\.end": true; \}/,
+      'slot names are deduplicated',
+    );
+    assert.match(source, /groups: \["navigation"\]/);
+    const consumer = await put(
+      'consumer.ts',
+      `
       import type { FoundationRuntime } from '@bitakit/core';
       declare const runtime: FoundationRuntime;
-      const app = runtime.app;
-      const date: Date = app.services.tools.clock.now();
-      // @ts-expect-error exposeAs replaces the public file-derived name.
-      app.services.clock;
-      const title: string = app.services.documents.createDraft('Typed').title;
-      app.actions.documents.save.execute({title: 'Saved'}).then(result => {
-        if (result.status === 'completed') { const title: string = result.value.title; }
-      });
-      // @ts-expect-error Stateful Action inputs remain typed after discovery.
-      app.actions.documents.save.execute({title: 42});
-      const count: Promise<number> = app.services.documents.loadCount('folder');
-      app.actions.documents.create.execute().then(result => {
-        if (result.status === 'completed') { const title: string = result.value.title; }
-      });
-      // @ts-expect-error Method inputs are inferred from the service implementation.
-      app.services.documents.createDraft(42);
-      // @ts-expect-error Promise output remains typed.
-      const wrong: Promise<string> = app.services.documents.loadCount('folder');
-      app.actions.documents.draft.execute().then(result => {
-        if (result.status === 'completed') { const status: 'draft' = result.value.status; }
-      });
-      // @ts-expect-error Services have one namespace, not root aliases.
-      app.documents;
-      // @ts-expect-error Unknown Actions are not part of completion.
-      app.actions.documents.unknown;
-    `);
-    assert.deepEqual(typeErrors([output, consumer], root), []);
-    const jiti = createJiti(import.meta.url, { moduleCache: false,
-      alias: { '@bitakit/core': new URL('../dist/core.js', import.meta.url).pathname } });
-    const { foundationConfig } = await jiti.import(output);
-    const runtime = new FoundationRuntime(createActionList(), foundationConfig);
-    assert.deepEqual(foundationConfig.plugins.map(plugin => plugin.id), ['documents']);
-    const action = runtime.app.actions.documents.create;
-    const stop = runtime.mount();
-    assert.ok(runtime.app.services.tools.clock.now() instanceof Date);
-    const service = runtime.app.services.documents;
-    assert.equal(service, runtime.services['documents.documents']);
-    assert.equal(action, runtime.app.actions.documents.create);
-    assert.deepEqual((await action.execute()).value, { title: 'New draft', status: 'draft' });
-    assert.deepEqual((await runtime.app.actions.documents.draft.execute()).value, {
-      title: 'From services',
-      status: 'draft',
-    });
-    await runtime.app.actions.documents.save.execute({title: 'Saved'});
-    assert.deepEqual(runtime.actions.get('documents.save').state, {count: 1});
-    assert.deepEqual(service.events, ['setup']);
-    stop();
-    assert.deepEqual(service.events, ['setup', 'cleanup']);
-    assert.equal(runtime.app.optional.services.documents, undefined);
-    assert.deepEqual(await action.execute(), { status: 'skipped', reason: 'missing' });
+      runtime.actions.execute('anything.goes');
+    `,
+    );
+    assert.deepEqual(typeErrors([result.generated, consumer], root), []);
   }));
 
-test('local plugin path, plugin ID and explicit service/Action IDs remain overridable', async () =>
+test('legacy folders and suffixes are discovered with migration warnings; helpers without a default export are skipped', async () =>
   fixture(async (root, put) => {
-    await put('foundation.config.ts', 'export default {plugins:{directory:"src/extensions"}}');
-    await put('src/extensions/documents/plugin.config.ts', 'export default {id:"library"}');
-    await put('src/extensions/documents/services/documents.ts', 'export default {id:"archive",create:()=>({read:()=>42})}');
-    await put('src/extensions/documents/actions/create.ts', 'export default {id:"archive.open",execute:({app})=>app.services.archive.read()}');
-    await generateFoundation(root);
-    const jiti = createJiti(import.meta.url, { moduleCache: false,
-      alias: { '@bitakit/core': new URL('../dist/core.js', import.meta.url).pathname } });
-    const { foundationConfig } = await jiti.import(path.join(root, '.foundation/plugins.ts'));
-    const runtime = new FoundationRuntime(createActionList(), foundationConfig);
+    await put('src/providers/legacy.tsx', 'export default () => null;');
+    await put('src/plugins/todos/pages/legacy.tsx', 'export default () => null;');
+    await put('src/plugins/todos/views/panel.view.tsx', 'export default () => null;');
+    await put(
+      'src/plugins/todos/actions/clear.action.ts',
+      'export default { execute: () => "cleared" }',
+    );
+    await put(
+      'src/plugins/todos/services/log.service.ts',
+      'export default { create: () => ({ write: () => "logged" }) }',
+    );
+    await put('src/plugins/todos/actions/util.ts', 'export const helper = 1;');
+    await put('src/plugins/todos/actions/-draft.ts', 'export default { execute: () => "draft" }');
+    await put(
+      'src/plugins/todos/server/secret.ts',
+      'throw new Error("server code"); export default { execute: () => "secret" }',
+    );
+    await put('src/plugins/todos/ui/components/button.tsx', 'export default () => null;');
+    const result = await generateFoundation(root, { quiet: true });
+    expectWarnings(result.warnings, [
+      /^src\/providers\/legacy\.tsx: move it under ui\/providers\/; the old location is deprecated \(run "bitakit migrate"\)\.$/,
+      /^src\/plugins\/todos\/pages\/legacy\.tsx: move it under ui\/pages\/; the old location is deprecated/,
+      /^src\/plugins\/todos\/views\/panel\.view\.tsx: move it under ui\/slots\/; the old location is deprecated/,
+      /^src\/plugins\/todos\/views\/panel\.view\.tsx: drop the "\.view" suffix; folders are the one convention \(run "bitakit migrate"\)\.$/,
+      /^src\/plugins\/todos\/actions\/clear\.action\.ts: drop the "\.action" suffix; folders are the one convention/,
+      /^src\/plugins\/todos\/services\/log\.service\.ts: drop the "\.service" suffix; folders are the one convention/,
+      /^src\/plugins\/todos\/actions\/util\.ts is in a actions folder but has no default export, so it is ignored\. Export the contribution as default, or prefix the file name with "-" for helpers\.$/,
+    ]);
+    const source = await readFile(result.generated, 'utf8');
+    assert.doesNotMatch(source, /util|draft|secret|components\/button/);
+    assert.match(source, /pluginPage\(module\d+, "\/todos\/legacy"\)/);
+    assert.match(source, /pluginSlot\(module\d+, "panel"\)/);
+    assert.match(
+      source,
+      /ui: \{ pages: \[\], slots: \[\], providers: \[\] \}/,
+      'the legacy app providers folder needs providers.enabled',
+    );
+    const { createBitaKitConfig } = await loadGenerated(result.generated);
+    const runtime = createRuntime(createBitaKitConfig());
     const stop = runtime.mount();
     try {
-      assert.equal(foundationConfig.plugins[0].id, 'library');
-      assert.equal((await runtime.app.actions.archive.open.execute()).value, 42);
-      assert.equal(runtime.app.services.archive.read(), 42);
-    } finally { stop(); }
+      assert.equal((await runtime.actions.execute('todos.clear')).value, 'cleared');
+      assert.equal(runtime.services.todos.log.write(), 'logged');
+    } finally {
+      stop();
+    }
   }));
 
-test('a service name means the same service in every plugin, so generated types match the runtime', async () =>
-  fixture(async (root, put) => {
-    // notes publishes "store"; todos owns todos.store and publishes it as "todoStore".
-    await put('src/plugins/notes/services/store.ts', `
-      import { defineService } from '@bitakit/core';
-      export default defineService({ create: () => ({ read: () => 'notes' }) });
-    `);
-    await put('src/plugins/todos/services/store.ts', `
-      import { defineService } from '@bitakit/core';
-      export default defineService({
-        exposeAs: 'todoStore',
-        create: () => ({ add: (title: string) => \`todos:\${title}\` }),
-      });
-    `);
-    await put('src/plugins/todos/actions/inspect.ts', `
-      import { defineAction } from '@bitakit/core';
-      export default defineAction({
-        requires: ['store', 'todoStore', 'todos.store'],
-        execute: ({ services }) => [
-          services.store.read(),
-          services.todoStore.add('alias'),
-          services['todos.store'].add('key'),
-        ],
-      });
-    `);
-    await generateFoundation(root);
-    const output = path.join(root, '.foundation/plugins.ts');
-    const consumer = await put('consumer.ts', `
-      import type { Services } from '@bitakit/core';
-      // The type every contribution receives as services, including those of the todos plugin.
-      declare const services: Services;
-      const notes: string = services.store.read();
-      const todo: string = services.todoStore.add('alias');
-      // @ts-expect-error "store" is the notes service everywhere; todos reaches its own as todoStore.
-      services.store.add('x');
-      // @ts-expect-error The todos service does not gain the methods of the notes service.
-      services.todoStore.read();
-      void [notes, todo];
-    `);
-    assert.deepEqual(typeErrors([output, consumer], root), []);
-    const jiti = createJiti(import.meta.url, { moduleCache: false,
-      alias: { '@bitakit/core': new URL('../dist/core.js', import.meta.url).pathname } });
-    const { foundationConfig } = await jiti.import(output);
-    const runtime = new FoundationRuntime(createActionList(), foundationConfig);
-    const stop = runtime.mount();
-    try {
-      const outcome = await runtime.app.actions.todos.inspect.execute();
-      assert.equal(outcome.status, 'completed');
-      assert.deepEqual(outcome.value, ['notes', 'todos:alias', 'todos:key']);
-      assert.equal(runtime.app.services.store.read(), 'notes');
-      assert.equal(runtime.app.services.todoStore.add('app'), 'todos:app');
-    } finally { stop(); }
-  }));
-
-test('every contribution kind shares flat, directory and mixed path normalization', async () =>
+test('discoverEntries treats folders, dots and index files alike, reports legacy spellings and rejects duplicates', async () =>
   fixture(async (root, put) => {
     for (const kind of ['actions', 'services', 'interceptors', 'configs']) {
       for (const name of [
@@ -254,33 +640,703 @@ test('every contribution kind shares flat, directory and mixed path normalizatio
         `${kind}/team.refresh.ts`,
       ]) {
         const source = await put(name, 'export default {}');
-        assert.deepEqual((await discoverEntries(root, [source], kind))[0].path, [
-          'team',
-          'refresh',
-        ]);
+        const { entries, warnings } = await discoverEntries(root, [source], kind);
+        assert.deepEqual(
+          entries.map((entry) => entry.path),
+          [['team', 'refresh']],
+        );
+        assert.deepEqual(warnings, []);
       }
-      const first = path.join(root, `${kind}.team.refresh.ts`);
-      const second = path.join(root, `${kind}/team/refresh.ts`);
-      await assert.rejects(discoverEntries(root, [first, second], kind), /Duplicate.*team.refresh/);
+      await assert.rejects(
+        discoverEntries(
+          root,
+          [path.join(root, `${kind}.team.refresh.ts`), path.join(root, `${kind}/team/refresh.ts`)],
+          kind,
+        ),
+        /Duplicate.*team\.refresh/,
+      );
     }
+    const collection = await put('actions/index.ts', 'export default {}');
+    const nested = await put('actions/team/index.ts', 'export default {}');
+    const legacyIndex = await put('actions/index.action.ts', 'export default {}');
+    const page = await put('ui/pages/tasks/[id].tsx', 'export default () => null');
+    const legacyPage = await put('pages/home.page.tsx', 'export default () => null');
+    const helper = await put('actions/-helper.ts', 'export default {}');
+    const named = await put(
+      'actions/named.ts',
+      'export const action = {}; export { action as default };',
+    );
+    const skipped = await put('actions/skipped.ts', 'export const nothing = 1;');
+    const typed = await put('actions/types.d.ts', 'export default {}');
+    const server = await put('server/handler.ts', 'export default {}');
+    const actions = await discoverEntries(
+      root,
+      [collection, nested, legacyIndex, helper, named, skipped, typed, server],
+      'actions',
+    );
+    assert.deepEqual(
+      actions.entries.map((entry) => entry.path),
+      [[], ['team'], ['index'], ['named']],
+    );
+    assert.deepEqual(
+      actions.entries.map((entry) => entry.source),
+      ['actions/index.ts', 'actions/team/index.ts', 'actions/index.action.ts', 'actions/named.ts'],
+    );
+    expectWarnings(actions.warnings, [
+      /^actions\/index\.action\.ts: drop the "\.action" suffix/,
+      /^actions\/skipped\.ts is in a actions folder but has no default export/,
+    ]);
+    const pages = await discoverEntries(root, [page, legacyPage], 'pages');
+    assert.deepEqual(
+      pages.entries.map((entry) => entry.path),
+      [['tasks', '[id]'], ['home']],
+    );
+    expectWarnings(pages.warnings, [
+      /^pages\/home\.page\.tsx: move it under ui\/pages\//,
+      /^pages\/home\.page\.tsx: drop the "\.page" suffix/,
+    ]);
+    const shown = await discoverEntries(root, [skipped], 'actions', {
+      relativeTo: path.dirname(root),
+    });
+    assert.match(shown.warnings[0], new RegExp(`^${path.basename(root)}/actions/skipped\\.ts`));
+    await assert.rejects(
+      discoverEntries(root, [collection], 'widgets'),
+      /Unknown contribution kind/,
+    );
+  }));
+
+test('plugin roots, IDs, inclusion and overrides follow bitakit.config.ts', async () =>
+  fixture(async (root, put) => {
+    await put(
+      'bitakit.config.ts',
+      `export default {
+      plugins: { directory: 'src/extensions', include: { notes: './shared/notes' }, overrides: { off: { enabled: false } } },
+      configOverrides: { off: { size: 1 }, library: { size: 2 } },
+    };`,
+    );
+    await put('src/extensions/documents/plugin.config.ts', `export default { id: 'library' };`);
+    await put(
+      'src/extensions/documents/services/documents.ts',
+      `
+      import { defineService } from '@bitakit/core';
+      export default defineService(() => ({ read: () => 42 }), { id: 'archive' });
+    `,
+    );
+    await put(
+      'src/extensions/documents/actions/create.ts',
+      `
+      import { defineAction } from '@bitakit/core';
+      export default defineAction({ id: 'archive.open', execute: ({ services, config }) => services.archive.read() + config.plugin.get('size', 0) });
+    `,
+    );
+    await put('src/extensions/off/actions/never.ts', 'export default { execute: () => "off" }');
+    await put('shared/notes/actions/list.ts', 'export default { execute: () => "notes" }');
+    await put(
+      'shared/notes/package.json',
+      JSON.stringify({ name: '@acme/notes', version: '1.2.3', description: 'Shared notes' }),
+    );
+    const result = await generateFoundation(root, { quiet: true });
+    assert.deepEqual(result.included, [path.join(root, 'shared/notes')]);
+    const { createBitaKitConfig } = await loadGenerated(result.generated);
+    const config = createBitaKitConfig();
+    assert.deepEqual(
+      config.plugins.map((plugin) => plugin.id),
+      ['library', 'notes'],
+    );
+    assert.deepEqual(config.plugins[1].metadata, {
+      name: '@acme/notes',
+      version: '1.2.3',
+      description: 'Shared notes',
+    });
+    assert.deepEqual(
+      config.configOverrides,
+      { library: { size: 2 } },
+      'overrides of disabled plugins are dropped',
+    );
+    const runtime = createRuntime(config);
+    const stop = runtime.mount();
+    try {
+      assert.equal((await runtime.actions.execute('archive.open')).value, 44);
+      assert.equal(runtime.services.archive.read(), 42);
+      assert.equal((await runtime.actions.execute('notes.list')).value, 'notes');
+      assert.equal(runtime.actions.get('off.never'), undefined);
+    } finally {
+      stop();
+    }
+
+    await put(
+      'bitakit.config.ts',
+      `export default { plugins: { directory: 'src/extensions', autoEnable: false, overrides: { library: { enabled: true } } } };`,
+    );
+    const selected = createRuntime(
+      (
+        await loadGenerated((await generateFoundation(root, { quiet: true })).generated)
+      ).createBitaKitConfig(),
+    );
+    assert.deepEqual(
+      selected.config.plugins.map((plugin) => plugin.id),
+      ['library'],
+      'autoEnable: false enables plugins one by one',
+    );
+
+    await put(
+      'bitakit.config.ts',
+      `export default { plugins: { directory: 'src/extensions', include: { 'Bad Id': './shared/notes' } } };`,
+    );
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /Invalid included plugin ID "Bad Id"/,
+    );
+    await put('bitakit.config.ts', `export default { plugins: { directory: 'src/extensions' } };`);
+    await put('src/extensions/Todos/actions/add.ts', 'export default { execute: () => 1 }');
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /Invalid plugin ID "Todos" \(src\/extensions\/Todos\)/,
+    );
+    await rm(path.join(root, 'src/extensions/Todos'), { recursive: true });
+    await put('src/extensions/off/plugin.config.ts', `export default { id: 'library' };`);
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /Plugin ID "library" is used twice \(src\/extensions\/off\)/,
+    );
+  }));
+
+test('the app module namespaces its contributions, declares events and selects interceptors and providers', async () =>
+  fixture(async (root, put) => {
+    await put(
+      'bitakit.config.ts',
+      `export default { interceptors: { enabled: ['organization', 'logger'] }, providers: { enabled: ['theme', 'query'] } };`,
+    );
+    await put(
+      'src/plugin.config.ts',
+      `export default { id: 'app', dependencies: ['shell'], metadata: { name: 'Demo app' } };`,
+    );
+    await put(
+      'src/actions/refresh.ts',
+      'export default { execute: ({ config }) => config.action.get("size") }',
+    );
+    await put(
+      'src/actions/start.ts',
+      'export default { execute: ({ events }) => { events.emit("app.started"); return "started"; } }',
+    );
+    await put('src/configs/actions/refresh.ts', 'export default { size: 3 }');
+    await put(
+      'src/services/logging.ts',
+      'export default { create: () => ({ marks: [] as string[], log: () => 1 }) }',
+    );
+    await put(
+      'src/events.ts',
+      `
+      import { defineEvents, event } from '@bitakit/core';
+      export default defineEvents({ started: event() });
+    `,
+    );
+    await put(
+      'src/setup.ts',
+      'export default ({ services }) => { services.app.logging.marks.push("setup"); }',
+    );
+    for (const name of ['logger', 'organization', 'unused'])
+      await put(
+        `src/interceptors/${name}.ts`,
+        `export default { before: ({ services }) => { services.app.logging.marks.push(${JSON.stringify(name)}); } }`,
+      );
+    await put('src/providers/legacy.tsx', 'export default () => null;');
+    await put('src/providers/theme.tsx', 'export default () => null;');
+    await put('src/ui/providers/query.tsx', 'export default () => null;');
+    await put('src/plugins/shell/setup.ts', 'export default () => {};');
+    const result = await generateFoundation(root, { quiet: true });
+    expectWarnings(result.warnings, [
+      /^src\/providers\/legacy\.tsx: move it under ui\/providers\//,
+      /^src\/providers\/theme\.tsx: move it under ui\/providers\//,
+    ]);
+    const source = await readFile(result.generated, 'utf8');
+    assert.match(
+      source,
+      /appId: "app",\s+metadata: \{"name":"Demo app"\},\s+dependencies: \["shell"\],/,
+    );
+    assert.match(
+      source,
+      /events: discoverEvents\(\[file\d+\]\),\s+services: discoverServices\(\[file\d+\], "app"\),\s+actions: discoverActions\(\[file\d+, file\d+\], "app"\)/,
+    );
+    assert.match(source, /type DiscoveredEvents = DiscoveredEventsEntry<typeof file\d+, "app">/);
+    assert.match(
+      source,
+      /providers: \[pluginProvider\(module\d+, "theme"\), pluginProvider\(module\d+, "query"\)\]/,
+    );
+    assert.doesNotMatch(source, /unused|legacy/);
+    const { createBitaKitConfig } = await loadGenerated(result.generated);
+    const runtime = createRuntime(createBitaKitConfig());
+    const stop = runtime.mount();
+    try {
+      const started = [];
+      runtime.events.on('app.started', (event) => started.push(event.type));
+      assert.equal((await runtime.actions.execute('app.refresh')).value, 3);
+      assert.equal((await runtime.actions.execute('app.start')).value, 'started');
+      assert.deepEqual(started, ['app.started']);
+      assert.equal(runtime.services.app.logging.log(), 1);
+      assert.deepEqual(
+        runtime.services.app.logging.marks,
+        ['setup', 'organization', 'logger', 'organization', 'logger'],
+        'interceptors.enabled selects and orders',
+      );
+      assert.deepEqual(runtime.app.config.app, { actions: { refresh: { size: 3 } } });
+    } finally {
+      stop();
+    }
+    await put('bitakit.config.ts', `export default { interceptors: { enabled: ['nope'] } };`);
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /interceptors\.enabled names "nope", but no interceptor file with that name exists/,
+    );
+    await put(
+      'bitakit.config.ts',
+      `export default { providers: { enabled: ['theme', 'theme'] } };`,
+    );
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /listed twice in providers\.enabled/,
+    );
+  }));
+
+test('generation never executes contributions, removes the previous generated layout and validates locales', async () =>
+  fixture(async (root, put) => {
+    await put(
+      'src/plugins/content/actions/never.ts',
+      'throw new Error("must not execute during discovery"); export default { execute: () => 1 }',
+    );
+    await put(
+      'src/plugins/content/locales/de.json',
+      JSON.stringify({ content: { never: { title: 'Nie' } } }),
+    );
+    await put('.foundation/plugins.ts', '// Generated by Foundation\nexport const plugins = [];');
+    await put('.foundation/app.ts', '// Generated by Foundation\nexport const app = {};');
+    await put('.foundation/styles.css', '/* Generated by Foundation */');
+    await put('.foundation/messages.json', '{}');
+    await put('foundation-env.d.ts', '// Generated by Foundation');
+    const result = await generateFoundation(root, { quiet: true });
+    assert.deepEqual(result.warnings, []);
+    assert.equal(
+      await exists(path.join(root, '.foundation')),
+      false,
+      'the empty legacy folder is removed',
+    );
+    assert.equal(await exists(path.join(root, 'foundation-env.d.ts')), false);
+    assert.deepEqual(
+      JSON.parse(await readFile(path.join(root, 'src/bitakit.gen.messages.json'), 'utf8')),
+      { de: { content: { never: { title: 'Nie' } } } },
+    );
+
+    await put('.foundation/plugins.ts', '// Generated by Foundation');
+    await put('.foundation/custom.ts', 'export const handWritten = true;');
+    await rm(path.join(root, 'src/plugins/content/locales'), { recursive: true });
+    await generateFoundation(root, { quiet: true });
+    assert.deepEqual(
+      await readdir(path.join(root, '.foundation')),
+      ['custom.ts'],
+      'only generated files are deleted',
+    );
+    assert.equal(
+      await exists(path.join(root, 'src/bitakit.gen.messages.json')),
+      false,
+      'the messages file disappears with the last locale',
+    );
+
+    await put(
+      'src/plugins/content/locales/en.json',
+      JSON.stringify({ other: { title: 'Wrong namespace' } }),
+    );
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /src\/plugins\/content\/locales\/en\.json: locale keys must sit under the plugin namespace "content"/,
+    );
+  }));
+
+test('services are nested per plugin, so equal file names never collide; exposeAs adds a deliberate alias', async () =>
+  fixture(async (root, put) => {
+    await put(
+      'src/plugins/notes/services/store.ts',
+      `
+      import { defineService } from '@bitakit/core';
+      export default defineService(() => ({ read: () => 'notes' }));
+    `,
+    );
+    await put(
+      'src/plugins/todos/services/store.ts',
+      `
+      import { defineService } from '@bitakit/core';
+      export default defineService(() => ({ add: (title: string) => \`todos:\${title}\` }), { exposeAs: 'todoStore' });
+    `,
+    );
+    await put(
+      'src/plugins/todos/actions/inspect.ts',
+      `
+      import { defineAction } from '@bitakit/core';
+      export default defineAction({
+        requires: ['notes.store', 'todoStore'],
+        execute: ({ services }) => [services.notes.store.read(), services.todos.store.add('tree'), services.todoStore.add('alias')],
+      });
+    `,
+    );
+    const result = await generateFoundation(root, { quiet: true });
+    const consumer = await put(
+      'consumer.ts',
+      `
+      import type { Services } from '@bitakit/core';
+      declare const services: Services;
+      const notes: string = services.notes.store.read();
+      const todo: string = services.todos.store.add('typed');
+      // @ts-expect-error The notes store does not gain the methods of the todos store.
+      services.notes.store.add('x');
+      // @ts-expect-error The todos store does not gain the methods of the notes store.
+      services.todos.store.read();
+      void [notes, todo];
+    `,
+    );
+    assert.deepEqual(typeErrors([result.generated, consumer], root), []);
+    const runtime = createRuntime((await loadGenerated(result.generated)).createBitaKitConfig());
+    const stop = runtime.mount();
+    try {
+      assert.deepEqual((await runtime.actions.execute('todos.inspect')).value, [
+        'notes',
+        'todos:tree',
+        'todos:alias',
+      ]);
+      assert.equal(runtime.services.todoStore, runtime.services.todos.store);
+    } finally {
+      stop();
+    }
+    await put(
+      'src/plugins/notes/services/alias.ts',
+      `
+      import { defineService } from '@bitakit/core';
+      export default defineService(() => ({}), { exposeAs: 'todoStore' });
+    `,
+    );
+    const clashing = (
+      await loadGenerated((await generateFoundation(root, { quiet: true })).generated)
+    ).createBitaKitConfig();
+    assert.throws(
+      () => createRuntime(clashing),
+      /Two services are named "todoStore" \(notes\.alias and todos\.store\)/,
+    );
+  }));
+
+test('describeFoundation and describeModule summarize modules, packages and warnings without executing anything', async () =>
+  fixture(async (root, put) => {
+    await put('package.json', JSON.stringify({ dependencies: { '@acme/shell': '1.0.0' } }));
+    await put(
+      'node_modules/@acme/shell/package.json',
+      JSON.stringify({
+        name: '@acme/shell',
+        exports: {
+          './package.json': './package.json',
+          './plugin': './plugin.js',
+          './styles.css': './styles.css',
+        },
+        bitakit: { plugin: './plugin', styles: './styles.css' },
+      }),
+    );
+    await put(
+      'bitakit.config.ts',
+      `export default { plugins: { overrides: { todos: { enabled: false } } } };`,
+    );
+    await put('src/actions/refresh.ts', 'export default { execute: () => 1 }');
+    await put('src/services/logging.ts', 'export default { create: () => ({}) }');
+    await put('src/events.ts', 'export default {}');
+    await put('src/configs/shell.ts', 'export default {}');
+    await put('src/interceptors/log.ts', 'export default { before: () => {} }');
+    await put('src/ui/pages/index.tsx', 'export default () => null;');
+    await put('src/ui/slots/sidebar.top.tsx', 'export default () => null;');
+    await put('src/ui/providers/query.tsx', 'export default () => null;');
+    await put('src/plugins/todos/plugin.config.ts', `export default { dependencies: ['shell'] };`);
+    await put(
+      'src/plugins/todos/actions/add.ts',
+      'throw new Error("never executed"); export default { execute: () => 1 }',
+    );
+    await put('src/plugins/todos/actions/clear.action.ts', 'export default { execute: () => 1 }');
+    await put('src/plugins/todos/ui/pages/tasks/[id].tsx', 'export default () => null;');
+    await put('src/plugins/todos/setup.ts', 'export default () => {}');
+    await put('src/plugins/todos/locales/en.json', '{}');
+    const description = await describeFoundation(root);
+    assert.deepEqual(Object.keys(description), [
+      'root',
+      'framework',
+      'pluginsDirectory',
+      'appDirectory',
+      'app',
+      'plugins',
+      'packages',
+      'installedPackages',
+      'styles',
+      'warnings',
+    ]);
+    assert.equal(description.root, root);
+    assert.equal(description.framework, 'none');
+    assert.equal(description.pluginsDirectory, 'src/plugins');
+    assert.equal(description.appDirectory, 'src');
+    assert.deepEqual(description.app, {
+      id: 'app',
+      directory: 'src',
+      actions: [{ path: 'refresh', file: 'src/actions/refresh.ts' }],
+      services: [{ path: 'logging', file: 'src/services/logging.ts' }],
+      pages: [{ path: '', file: 'src/ui/pages/index.tsx' }],
+      slots: [{ path: 'sidebar.top', file: 'src/ui/slots/sidebar.top.tsx' }],
+      providers: [{ path: 'query', file: 'src/ui/providers/query.tsx' }],
+      configs: [{ path: 'shell', file: 'src/configs/shell.ts' }],
+      interceptors: [{ path: 'log', file: 'src/interceptors/log.ts' }],
+      events: [{ path: '', file: 'src/events.ts' }],
+    });
+    assert.deepEqual(description.plugins, [
+      {
+        id: 'todos',
+        directory: 'src/plugins/todos',
+        dependencies: ['shell'],
+        enabled: false,
+        actions: [
+          { path: 'add', file: 'src/plugins/todos/actions/add.ts' },
+          { path: 'clear', file: 'src/plugins/todos/actions/clear.action.ts' },
+        ],
+        services: [],
+        pages: [{ path: 'tasks.[id]', file: 'src/plugins/todos/ui/pages/tasks/[id].tsx' }],
+        slots: [],
+        providers: [],
+        configs: [],
+        interceptors: [],
+        events: [],
+      },
+    ]);
+    assert.deepEqual(description.packages, ['@acme/shell/plugin']);
+    assert.deepEqual(description.installedPackages, ['@acme/shell']);
+    assert.deepEqual(description.styles, ['@acme/shell/styles.css']);
+    expectWarnings(description.warnings, [
+      /^src\/plugins\/todos\/actions\/clear\.action\.ts: drop the "\.action" suffix/,
+    ]);
+
+    const module = await describeModule(path.join(root, 'src/plugins/todos'));
+    assert.deepEqual(Object.keys(module).sort(), [
+      'actions',
+      'configs',
+      'directory',
+      'events',
+      'interceptors',
+      'locales',
+      'pages',
+      'providers',
+      'services',
+      'setup',
+      'slots',
+      'warnings',
+    ]);
+    assert.equal(module.directory, path.join(root, 'src/plugins/todos'));
+    assert.deepEqual(
+      module.actions.map((entry) => entry.path),
+      ['add', 'clear'],
+    );
+    assert.equal(module.actions[0].file, path.join(root, 'src/plugins/todos/actions/add.ts'));
+    assert.equal(module.setup, path.join(root, 'src/plugins/todos/setup.ts'));
+    assert.deepEqual(module.locales, [path.join(root, 'src/plugins/todos/locales/en.json')]);
+    expectWarnings(module.warnings, [/^actions\/clear\.action\.ts: drop the "\.action" suffix/]);
+    assert.equal((await describeModule(path.join(root, 'src'))).setup, undefined);
+  }));
+
+test('migrateProject rewrites the 0.1 layout; a dry run only reports the same changes', async () =>
+  fixture(async (root, put) => {
+    await put(
+      'package.json',
+      JSON.stringify(
+        { name: 'legacy', scripts: { dev: 'foundation-generate && next dev --webpack' } },
+        null,
+        2,
+      ),
+    );
+    // The rewritten config imports @bitakit/core/discovery; a stub stands in for the installed package.
+    await put(
+      'node_modules/@bitakit/core/package.json',
+      JSON.stringify({ name: '@bitakit/core', exports: { './discovery': './discovery.mjs' } }),
+    );
+    await put(
+      'node_modules/@bitakit/core/discovery.mjs',
+      'export const defineBitaKit = (config) => config;',
+    );
+    await put('.gitignore', 'node_modules/\n.foundation/\nfoundation-env.d.ts\n');
+    await put(
+      'foundation.config.ts',
+      "import { defineFoundation } from '@bitakit/next/config';\nexport default defineFoundation({});\n",
+    );
+    await put('src/actions.refresh.ts', 'export default { execute: () => 1 }');
+    await put('src/actions/save.action.ts', 'export default { execute: () => 1 }');
+    await put('src/services.logging.ts', 'export default { create: () => ({}) }');
+    await put('src/configs.actions.refresh.ts', 'export default { pageSize: 7 }');
+    await put('src/pages/home.page.tsx', 'export default () => null');
+    await put('src/views/workspace.view.tsx', 'export default () => null');
+    await put(
+      'src/app/layout.tsx',
+      "import '../../.foundation/styles.css';\nimport { foundationConfig } from '../../.foundation/plugins';\nimport { defineURLAction } from '@bitakit/core';\n",
+    );
+    await put('src/plugins/todos/actions/add.action.ts', 'export default { execute: () => 1 }');
+    await put('src/plugins/todos/pages/index.tsx', 'export default () => null');
+    await put('src/plugins/todos/views/app-bar.end.view.tsx', 'export default () => null');
+    await put('.foundation/plugins.ts', '// Generated by Foundation');
+    await put('foundation-env.d.ts', '// Generated by Foundation');
+    const snapshot = async () => {
+      const list = async (directory) =>
+        (
+          await Promise.all(
+            (await readdir(directory, { withFileTypes: true })).map(async (entry) => {
+              const target = path.join(directory, entry.name);
+              if (entry.name === 'node_modules') return [];
+              return entry.isDirectory()
+                ? list(target)
+                : [[path.relative(root, target), await readFile(target, 'utf8')]];
+            }),
+          )
+        ).flat();
+      return Object.fromEntries((await list(root)).sort(([a], [b]) => a.localeCompare(b)));
+    };
+    const before = await snapshot();
+    const { changes: planned } = await migrateProject(root, { dryRun: true });
+    assert.deepEqual(await snapshot(), before, 'a dry run changes nothing');
+    const { changes } = await migrateProject(root);
+    assert.deepEqual(planned, changes, 'the dry run reports exactly what the migration does');
+    const byKind = (kind) =>
+      changes.filter((change) => change.kind === kind).map(({ kind: _kind, ...rest }) => rest);
+    const byFrom = (list) => [...list].sort((a, b) => (a.from < b.from ? -1 : 1));
+    assert.deepEqual(
+      byFrom(byKind('rename')),
+      byFrom([
+        {
+          from: 'foundation.config.ts',
+          to: 'bitakit.config.ts',
+          detail: 'defineFoundation → defineBitaKit',
+        },
+        { from: 'src/actions/save.action.ts', to: 'src/actions/save.ts' },
+        { from: 'src/actions.refresh.ts', to: 'src/actions/refresh.ts' },
+        { from: 'src/configs.actions.refresh.ts', to: 'src/configs/actions/refresh.ts' },
+        { from: 'src/services.logging.ts', to: 'src/services/logging.ts' },
+        { from: 'src/ui/pages/home.page.tsx', to: 'src/ui/pages/home.tsx' },
+        { from: 'src/ui/slots/workspace.view.tsx', to: 'src/ui/slots/workspace.tsx' },
+        { from: 'src/plugins/todos/actions/add.action.ts', to: 'src/plugins/todos/actions/add.ts' },
+        {
+          from: 'src/plugins/todos/ui/slots/app-bar.end.view.tsx',
+          to: 'src/plugins/todos/ui/slots/app-bar.end.tsx',
+        },
+      ]),
+    );
+    assert.deepEqual(byKind('move'), [
+      { from: 'src/pages', to: 'src/ui/pages' },
+      { from: 'src/views', to: 'src/ui/slots' },
+      { from: 'src/plugins/todos/pages', to: 'src/plugins/todos/ui/pages' },
+      { from: 'src/plugins/todos/views', to: 'src/plugins/todos/ui/slots' },
+    ]);
+    assert.deepEqual(
+      byKind('rewrite').map((change) => change.from),
+      ['src/app/layout.tsx', 'package.json', '.gitignore'],
+    );
+    assert.deepEqual(
+      byKind('delete').map((change) => change.from),
+      ['.foundation', 'foundation-env.d.ts'],
+    );
+    const after = await snapshot();
+    assert.deepEqual(Object.keys(after), [
+      '.gitignore',
+      'bitakit.config.ts',
+      'package.json',
+      'src/actions/refresh.ts',
+      'src/actions/save.ts',
+      'src/app/layout.tsx',
+      'src/configs/actions/refresh.ts',
+      'src/plugins/todos/actions/add.ts',
+      'src/plugins/todos/ui/pages/index.tsx',
+      'src/plugins/todos/ui/slots/app-bar.end.tsx',
+      'src/services/logging.ts',
+      'src/ui/pages/home.tsx',
+      'src/ui/slots/workspace.tsx',
+    ]);
+    assert.equal(
+      after['bitakit.config.ts'],
+      "import { defineBitaKit } from '@bitakit/core/discovery';\nexport default defineBitaKit({});\n",
+    );
+    assert.equal(
+      after['src/app/layout.tsx'],
+      "import '../bitakit.gen.css';\nimport { foundationConfig } from '../bitakit.gen';\nimport { defineAction } from '@bitakit/core';\n",
+    );
+    assert.equal(
+      after['.gitignore'],
+      'node_modules/\n\n# Generated by BitaKit discovery\nsrc/bitakit.gen.*\n',
+    );
+    assert.equal(JSON.parse(after['package.json']).scripts.dev, 'bitakit generate && next dev');
+    assert.deepEqual((await migrateProject(root)).changes, [], 'the migration is idempotent');
+    const generated = await generateFoundation(root, { quiet: true });
+    assert.deepEqual(generated.warnings, [], 'a migrated project is free of legacy warnings');
+    const config = (await loadGenerated(generated.generated)).createBitaKitConfig();
+    assert.deepEqual(
+      config.ui.pages.map((page) => page.path),
+      ['/home'],
+    );
+    assert.deepEqual(
+      config.plugins[0].ui.pages.map((page) => page.path),
+      ['/todos'],
+    );
+    assert.deepEqual(
+      config.plugins[0].ui.slots.map((view) => view.slot),
+      ['app-bar.end'],
+    );
+    assert.deepEqual(
+      JSON.parse(JSON.stringify(config.config)),
+      { actions: { refresh: { pageSize: 7 } } },
+      'the dotted config file is discovered at its folder path',
+    );
+  }));
+
+test('watchFoundation generates once at start and again after a source change', async () =>
+  fixture(async (root, put) => {
+    await put('src/plugins/todos/actions/add.ts', 'export default { execute: () => 1 }');
+    const generated = path.join(root, 'src/bitakit.gen.ts');
+    const errors = [];
+    const stop = watchFoundation(root, (error) => errors.push(error));
+    try {
+      await until(() => exists(generated));
+      assert.match(await readFile(generated, 'utf8'), /plugins\/todos\/actions\/add/);
+      await put('src/plugins/todos/actions/remove.ts', 'export default { execute: () => 2 }');
+      await until(async () =>
+        (await readFile(generated, 'utf8')).includes('plugins/todos/actions/remove'),
+      );
+    } finally {
+      stop();
+    }
+    assert.deepEqual(errors, []);
   }));
 
 test('collection exports and individual files register identical actions and services', () => {
-  const refresh = { execute: () => 42 };
-  const collection = discoverActions([file({ refresh }, '', 'actions.ts')], 'content');
-  const separate = discoverActions([file(refresh, 'refresh', 'actions.refresh.ts')], 'content');
+  const refresh = defineAction({ execute: () => 42 });
+  const collection = discoverActions([file({ refresh }, '', 'actions/index.ts')], 'content');
+  const separate = discoverActions([file(refresh, 'refresh', 'actions/refresh.ts')], 'content');
   assert.equal(collection[0].id, separate[0].id);
   assert.equal(collection[0].id, 'content.refresh');
-  const logging = { create: () => ({ log: () => 'logged' }) };
+  assert.equal(
+    discoverActions([file({ execute: () => 1 }, 'plain')], 'content')[0].kind,
+    'action',
+    'plain objects are normalized',
+  );
+  const logging = defineService(() => ({ log: () => 'logged' }));
   assert.equal(discoverServices([file({ logging }, '')], 'content')[0].id, 'content.logging');
   assert.equal(discoverServices([file(logging, 'logging')], 'content')[0].id, 'content.logging');
+  assert.equal(
+    discoverServices([file({ create: () => ({}) }, 'legacy')], 'content')[0].id,
+    'content.legacy',
+    'the legacy object form is accepted',
+  );
   assert.throws(
     () =>
       discoverActions([
-        file({ refresh }, '', 'actions.ts'),
-        file(refresh, 'refresh', 'actions.refresh.ts'),
+        file({ refresh }, '', 'actions/index.ts'),
+        file(refresh, 'refresh', 'actions/refresh.ts'),
       ]),
-    /actions.ts.*actions.refresh.ts/,
+    /actions\/index\.ts.*actions\/refresh\.ts/,
+  );
+  assert.throws(
+    () => discoverActions([file(() => refresh, 'factory', 'actions/factory.ts')]),
+    /class and factory exports are no longer discovered/,
   );
 });
 
@@ -299,10 +1355,10 @@ test('config assembly is order independent, rejects conflicts and reads own keys
   assert.throws(
     () =>
       discoverConfig([
-        file({ pageSize: 1 }, '', 'configs.ts'),
-        file(2, 'pageSize', 'configs.pageSize.ts'),
+        file({ pageSize: 1 }, '', 'configs/index.ts'),
+        file(2, 'pageSize', 'configs/pageSize.ts'),
       ]),
-    /configs.ts.*configs.pageSize.ts/,
+    /configs\/index\.ts.*configs\/pageSize\.ts/,
   );
   assert.throws(
     () => discoverConfig([file(1, 'actions'), file(2, 'actions.refresh')]),
@@ -317,37 +1373,19 @@ test('config assembly is order independent, rejects conflicts and reads own keys
   }, TypeError);
 });
 
-test('runtime supplies isolated config to two actions, service constructors and native factories', async () => {
+test('runtime supplies isolated config to two actions and to service factories', async () => {
   const actionFiles = [
-    file({ execute: ({ config }) => config.action.get('pageSize') }, 'refresh'),
-    file({ execute: ({ config }) => config.action.get('pageSize') }, 'publish'),
+    file(defineAction({ execute: ({ config }) => config.action.get('pageSize') }), 'refresh'),
+    file(defineAction({ execute: ({ config }) => config.action.get('pageSize') }), 'publish'),
   ];
   const config = discoverConfig([
-    file(
-      {
-        pageSize: 20,
-        actions: {
-          refresh: { pageSize: 50 },
-          publish: { pageSize: 5 },
-          native: { title: 'Native' },
-        },
-      },
-      '',
-    ),
+    file({ pageSize: 20, actions: { refresh: { pageSize: 50 }, publish: { pageSize: 5 } } }, ''),
   ]);
-  const service = discoverServices(
-    [file({ create: ({ config }) => ({ pageSize: config.plugin.get('pageSize') }) }, 'logging')],
-    'content',
-  );
-  const native = discoverActions(
+  const services = discoverServices(
     [
       file(
-        ({ config }) =>
-          new Action({
-            title: config.action.get('title'),
-            execute: () => config.plugin.get('pageSize'),
-          }),
-        'native',
+        defineService(({ config: own }) => ({ pageSize: own.plugin.get('pageSize') })),
+        'logging',
       ),
     ],
     'content',
@@ -355,54 +1393,54 @@ test('runtime supplies isolated config to two actions, service constructors and 
   const plugin = {
     id: 'content',
     config,
-    services: service,
-    actions: [...discoverActions(actionFiles, 'content'), ...native],
+    services,
+    actions: discoverActions(actionFiles, 'content'),
   };
-  const firstList = createActionList();
-  const secondList = createActionList();
-  const first = new FoundationRuntime(firstList, { plugins: [plugin] });
-  const second = new FoundationRuntime(secondList, {
+  const first = createRuntime({ plugins: [plugin] });
+  const second = createRuntime({
     plugins: [plugin],
     configOverrides: { content: { actions: { refresh: { pageSize: 99 } } } },
   });
   const stopFirst = first.mount();
   const stopSecond = second.mount();
-  assert.equal((await firstList.execute('content.refresh')).value, 50);
-  assert.equal((await firstList.execute('content.publish')).value, 5);
-  assert.equal((await secondList.execute('content.refresh')).value, 99);
-  assert.equal((await firstList.execute('content.native')).value, 20);
-  assert.equal(firstList.get('content.native').title, 'Native');
-  assert.equal(first.services['content.logging'].pageSize, 20);
-  stopFirst();
-  stopSecond();
+  try {
+    assert.equal((await first.actions.execute('content.refresh')).value, 50);
+    assert.equal((await first.actions.execute('content.publish')).value, 5);
+    assert.equal((await second.actions.execute('content.refresh')).value, 99);
+    assert.equal(first.services.content.logging.pageSize, 20);
+  } finally {
+    stopFirst();
+    stopSecond();
+  }
 });
 
 test('plugin interceptors affect their own actions only and receive target config', async () => {
   const seen = [];
-  const list = createActionList();
-  const runtime = new FoundationRuntime(list, {
+  const runtime = createRuntime({
     plugins: [
       {
         id: 'one',
         config: { actions: { run: { count: 1 } } },
-        actions: discoverActions([file({ execute: () => {} }, 'run')], 'one'),
+        actions: discoverActions([file(defineAction({ execute: () => {} }), 'run')], 'one'),
         interceptors: [
-          {
-            before: ({ config }) => {
-              seen.push(config.action.get('count'));
-            },
-          },
+          defineInterceptor({ before: ({ config }) => void seen.push(config.action.get('count')) }),
         ],
       },
-      { id: 'two', actions: discoverActions([file({ execute: () => {} }, 'run')], 'two') },
+      {
+        id: 'two',
+        actions: discoverActions([file(defineAction({ execute: () => {} }), 'run')], 'two'),
+      },
     ],
   });
   const stop = runtime.mount();
-  await list.execute('two.run');
-  assert.deepEqual(seen, []);
-  await list.execute('one.run');
-  assert.deepEqual(seen, [1]);
-  stop();
+  try {
+    await runtime.actions.execute('two.run');
+    assert.deepEqual(seen, []);
+    await runtime.actions.execute('one.run');
+    assert.deepEqual(seen, [1]);
+  } finally {
+    stop();
+  }
 });
 
 test('schema receives resolved overrides before services are created', () => {
@@ -416,121 +1454,51 @@ test('schema receives resolved overrides before services are created', () => {
   const plugin = {
     id: 'content',
     config: { refresh: defineConfig({ schema, defaults: { limit: 10 } }) },
-    services: [
-      {
-        id: 'service',
-        create() {
-          created = true;
-        },
-      },
-    ],
+    services: { service: defineService(() => void (created = true)) },
   };
   assert.throws(
     () =>
-      new FoundationRuntime(createActionList(), {
-        plugins: [plugin],
-        configOverrides: { content: { refresh: { limit: 0 } } },
-      }),
+      createRuntime({ plugins: [plugin], configOverrides: { content: { refresh: { limit: 0 } } } }),
     /positive limit/,
   );
   assert.equal(created, false);
 });
 
-test('generation does not execute contributions and produces a working app/plugin runtime', async () =>
-  fixture(async (root, put) => {
-    await put('foundation.config.ts', 'export default {}');
-    await put(
-      'src/actions.refresh.ts',
-      'export default {execute: ({config}) => config.action.get("pageSize")}',
-    );
-    await put('src/configs.actions.refresh.ts', 'export default {pageSize: 7}');
-    await put('src/services.logging.ts', 'export default {create: () => ({log: () => 1})}');
-    await put('src/plugins/content/plugin.config.ts', 'export default {id: "content"}');
-    await put(
-      'src/plugins/content/actions/publish.ts',
-      'export default {execute: ({config}) => config.action.get("pageSize")}',
-    );
-    await put('src/plugins/content/configs.actions.publish.ts', 'export default {pageSize: 5}');
-    await put('src/plugins/content/interceptors.log.ts', 'export default {before: () => {}}');
-    await put('src/actions/helpers.ts', 'export const helper = 1');
-    await put('src/configs.server.ts', 'throw new Error("server secret")');
-    await generateFoundation(root);
-    const output = path.join(root, '.foundation/plugins.ts');
-    const source = await readFile(output, 'utf8');
-    assert.doesNotMatch(source, /helpers|configs.server/);
-    const jiti = createJiti(import.meta.url, {
-      moduleCache: false,
-      alias: { '@bitakit/core': new URL('../dist/core.js', import.meta.url).pathname },
-    });
-    const { foundationConfig } = await jiti.import(output);
-    const list = createActionList();
-    const runtime = new FoundationRuntime(list, foundationConfig);
-    const stop = runtime.mount();
-    assert.equal((await list.execute('refresh')).value, 7);
-    assert.equal((await list.execute('content.publish')).value, 5);
-    assert.equal(runtime.services.logging.log(), 1);
-    stop();
-    await put(
-      'src/actions.never.ts',
-      'throw new Error("must not execute during discovery"); export default {}',
-    );
-    await generateFoundation(root);
-  }));
-
-test('explicit IDs do not change discovered config paths; replacements retain target scope', async () => {
-  const original = discoverActions(
-    [file({ id: 'custom.id', execute: () => 0 }, 'refresh')],
+test('an explicit action ID does not change the discovered config path', async () => {
+  const actions = discoverActions(
+    [
+      file(
+        defineAction({ id: 'custom.id', execute: ({ config }) => config.action.get('size') }),
+        'refresh',
+      ),
+    ],
     'content',
   );
-  const list = createActionList();
-  const runtime = new FoundationRuntime(list, {
-    plugins: [{ id: 'content', config: { actions: { refresh: { size: 23 } } }, actions: original }],
-    actions: [
-      { kind: 'action', replaces: 'custom.id', execute: ({ config }) => config.action.get('size') },
-    ],
+  const runtime = createRuntime({
+    plugins: [{ id: 'content', config: { actions: { refresh: { size: 23 } } }, actions }],
   });
   const stop = runtime.mount();
-  assert.equal((await list.execute('custom.id')).value, 23);
-  stop();
-});
-
-test('app manifest namespaces app contributions using the same module grammar', async () =>
-  fixture(async (root, put) => {
-    await put('foundation.config.ts', 'export default {}');
-    await put('src/plugin.config.ts', 'export default {id:"app"}');
-    await put(
-      'src/actions.ts',
-      'export default {refresh: {execute: ({config}) => config.action.get("size")}}',
-    );
-    await put('src/configs.actions.refresh.ts', 'export default {size:3}');
-    await put('src/services.logging.ts', 'export default {create: () => ({log: () => 1})}');
-    await generateFoundation(root);
-    const jiti = createJiti(import.meta.url, {
-      moduleCache: false,
-      alias: { '@bitakit/core': new URL('../dist/core.js', import.meta.url).pathname },
-    });
-    const { foundationConfig } = await jiti.import(path.join(root, '.foundation/plugins.ts'));
-    const list = createActionList();
-    const runtime = new FoundationRuntime(list, foundationConfig);
-    const stop = runtime.mount();
-    assert.equal((await list.execute('app.refresh')).value, 3);
-    assert.equal(runtime.services['app.logging'].log(), 1);
+  try {
+    assert.equal(runtime.actions.get('content.refresh'), undefined);
+    assert.equal((await runtime.actions.execute('custom.id')).value, 23);
+  } finally {
     stop();
-  }));
+  }
+});
 
 test('root schema, array replacement and snapshot copying respect the configuration contract', () => {
   const root = defineConfig({
     schema: { parse: (value) => ({ ...value, parsed: true }) },
     defaults: { values: [1, 2] },
   });
-  const tree = discoverConfig([file(root, '', 'configs.ts')]);
+  const tree = discoverConfig([file(root, '', 'configs/index.ts')]);
   const override = { values: [3] };
   const service = new ConfigService([{ id: 'one', config: tree }], { one: override });
   override.values.push(4);
   assert.deepEqual(service.plugin('one').get('values'), [3]);
   assert.equal(service.plugin('one').get('parsed'), true);
   assert.throws(
-    () => discoverConfig([file(root, '', 'configs.ts'), file(1, 'size')]),
+    () => discoverConfig([file(root, '', 'configs/index.ts'), file(1, 'size')]),
     /Root config schema/,
   );
   assert.throws(
@@ -539,26 +1507,18 @@ test('root schema, array replacement and snapshot copying respect the configurat
   );
 });
 
-test('explicit composition removes plugin interceptors and config overrides with their owners', async () => {
-  const { resolveFoundationConfig } = await import('../dist/core.js');
+test('explicit composition removes plugin interceptors and config overrides with their owners', () => {
   const discovered = {
     configOverrides: { content: { count: 5 } },
     plugins: [
       {
         id: 'content',
-        interceptors: [
-          {
-            before() {
-              assert.fail('Excluded interceptor');
-            },
-          },
-        ],
+        interceptors: [defineInterceptor({ before: () => assert.fail('Excluded interceptor') })],
       },
     ],
   };
   const selected = resolveFoundationConfig(discovered, { plugins: [] });
-  const runtime = new FoundationRuntime(createActionList(), selected);
-  runtime.mount()();
+  new FoundationRuntime(createActionList(), selected).mount()();
   assert.deepEqual(selected.configOverrides, {});
   assert.deepEqual(
     resolveFoundationConfig(discovered, { interceptors: [] }).plugins[0].interceptors,
@@ -567,30 +1527,25 @@ test('explicit composition removes plugin interceptors and config overrides with
   assert.equal(discovered.plugins[0].interceptors.length, 1);
 });
 
-test('root app discovers pages and views without a nested plugin', async () =>
-  fixture(async (root, put) => {
-    await put('foundation.config.ts', 'export default {}');
-    await put('src/plugin.config.ts', "export default { id: 'content', dependencies: ['shell'] }");
-    await put('src/pages/home.ts', "export default { path: '/', component: () => null }");
-    await put('src/views/workspace.ts', "export default { slot: 'main', component: () => null }");
-    await put('src/setup.ts', 'export default () => {}');
-    await generateFoundation(root);
-    const generated = await readFile(path.join(root, '.foundation/plugins.ts'), 'utf8');
-    assert.match(generated, /pages: \[entry\d+\]/);
-    assert.match(generated, /views: \[entry\d+\]/);
-    assert.match(generated, /setup: entry\d+/);
-    assert.match(generated, /dependencies: \["shell"\]/);
-    assert.match(generated, /plugins: \[\]/);
-  }));
-
 test('root app setup follows dependencies and cleans up before them', () => {
   const events = [];
-  const runtime = new FoundationRuntime(createActionList(), {
+  const runtime = createRuntime({
     appId: 'content',
     dependencies: ['shell'],
-    pages: [{ path: '/contents', component: () => null }],
-    setup: () => { events.push('app'); return () => events.push('app cleanup'); },
-    plugins: [{ id: 'shell', setup: () => { events.push('shell'); return () => events.push('shell cleanup'); } }],
+    ui: { pages: [{ path: '/contents', component: () => null }] },
+    setup: () => {
+      events.push('app');
+      return () => events.push('app cleanup');
+    },
+    plugins: [
+      {
+        id: 'shell',
+        setup: () => {
+          events.push('shell');
+          return () => events.push('shell cleanup');
+        },
+      },
+    ],
   });
   assert.equal(runtime.modules[0].pages[0].path, '/contents');
   const dispose = runtime.mount();
