@@ -13,7 +13,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
-
 /** Map the design system once; feature plugins contain no dialog/menu plumbing. */
 export const foundationUI: FoundationUI = {
   Button,

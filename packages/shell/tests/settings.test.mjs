@@ -110,7 +110,10 @@ test('the initial snapshot resolves the Shell card renderers before mount', () =
   );
   assert.deepEqual(
     initial.state.sections.map((section) => [section.id, section.pluginId]),
-    [['shell-theme', 'shell'], ['appearance', 'shell']],
+    [
+      ['shell-theme', 'shell'],
+      ['appearance', 'shell'],
+    ],
   );
   assert.equal(settings.getSections().length, 0, 'the snapshot is pure');
 });
@@ -170,8 +173,11 @@ test('Settings navigation includes field-only Shell pages from the shared catalo
   const stop = runtime(settings, { appearance: true }).mount();
   try {
     const html = renderToStaticMarkup(
-      createElement(SettingsProvider, { settings },
-        createElement(SettingsNavigation, { pathname: '/settings/theme' })),
+      createElement(
+        SettingsProvider,
+        { settings },
+        createElement(SettingsNavigation, { pathname: '/settings/theme' }),
+      ),
     );
     assert.match(html, /href="\/settings\/theme"/);
     assert.match(html, /href="\/settings\/appearance"/);

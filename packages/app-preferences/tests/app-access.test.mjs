@@ -148,7 +148,7 @@ test('discovery generates typed Config and Settings paths without explicit colle
     `,
     );
     await generateFoundation(root);
-    const generated = path.join(root, '.foundation/plugins.ts');
+    const generated = path.join(root, 'src/bitakit.gen.ts');
     const program = ts.createProgram([generated, consumer], {
       noEmit: true,
       strict: true,
@@ -164,11 +164,16 @@ test('discovery generates typed Config and Settings paths without explicit colle
       [],
     );
     const jiti = createJiti(import.meta.url, { moduleCache: false });
-    const { foundationConfig } = await jiti.import(generated);
+    const { createBitaKitConfig } = await jiti.import(generated);
+    const foundationConfig = createBitaKitConfig();
     const preferences = createAppPreferences({ storage: createMemoryStorage() });
     const runtime = new FoundationRuntime(createActionList(), {
       ...foundationConfig,
-      plugins: [appPreferencesPlugin({ settings: preferences }), ...foundationConfig.plugins],
+      // The generated config already includes the installed package; the configured instance replaces it.
+      plugins: [
+        appPreferencesPlugin({ settings: preferences }),
+        ...foundationConfig.plugins.filter((plugin) => plugin.id !== 'app-preferences'),
+      ],
     });
     const stop = runtime.mount();
     await preferences.activate({});
@@ -184,19 +189,39 @@ test('discovery generates typed Config and Settings paths without explicit colle
 test('default preferences plugin persists to browser storage without host configuration', async () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
   const values = new Map();
-  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
-    getItem: key => values.get(key) ?? null,
-    setItem: (key, value) => values.set(key, value),
-    removeItem: key => values.delete(key),
-  } });
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key),
+    },
+  });
   let stop;
   try {
-    const definitions = discoverSettings([discoveredFile(defineSettings({fields: {
-      autosave: booleanField({defaultValue: true}),
-    }}), 'editor', 'settings/editor.ts')], 'documents');
-    const runtime = new FoundationRuntime(createActionList(), { plugins: [appPreferencesPlugin(), {
-      id: 'documents', contributions: { settings: definitions },
-    }] });
+    const definitions = discoverSettings(
+      [
+        discoveredFile(
+          defineSettings({
+            fields: {
+              autosave: booleanField({ defaultValue: true }),
+            },
+          }),
+          'editor',
+          'settings/editor.ts',
+        ),
+      ],
+      'documents',
+    );
+    const runtime = new FoundationRuntime(createActionList(), {
+      plugins: [
+        appPreferencesPlugin(),
+        {
+          id: 'documents',
+          contributions: { settings: definitions },
+        },
+      ],
+    });
     stop = runtime.mount();
     await runtime.app.services.preferences.activate({});
     await runtime.app.settings.documents.editor.autosave.set(false);

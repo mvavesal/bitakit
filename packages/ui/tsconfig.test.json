@@ -4,8 +4,5 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": [
-    "src",
-    "tests/action-types.ts"
-  ]
+  "include": ["src", "tests/action-types.ts"]
 }

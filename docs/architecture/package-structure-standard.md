@@ -48,19 +48,19 @@ This tree lists responsibilities, not mandatory directories. Create a path only 
 
 ## Package boundaries
 
-| Package | Responsibility |
-| --- | --- |
-| core | Runtime, Discovery, Actions, and Config; independent of Auth providers |
-| app-preferences | Mutable user preferences, rendering and persistence |
-| ui | Generic React bindings; no visual component library |
-| next | Next.js integration |
-| next-intl | Translation integration |
-| email | Email service contract |
-| nodemailer | Server-side email delivery implementation |
-| better-auth | Headless authentication, organization, and email adapters |
-| better-auth-ui | Better Auth UI integration, including organization UI and related settings |
-| organizations | Headless contracts and services used independently today; reassess each responsibility |
-| shell | Shared application shell, navigation, and settings integration |
+| Package         | Responsibility                                                                         |
+| --------------- | -------------------------------------------------------------------------------------- |
+| core            | Runtime, Discovery, Actions, and Config; independent of Auth providers                 |
+| app-preferences | Mutable user preferences, rendering and persistence                                    |
+| ui              | Generic React bindings; no visual component library                                    |
+| next            | Next.js integration                                                                    |
+| next-intl       | Translation integration                                                                |
+| email           | Email service contract                                                                 |
+| nodemailer      | Server-side email delivery implementation                                              |
+| better-auth     | Headless authentication, organization, and email adapters                              |
+| better-auth-ui  | Better Auth UI integration, including organization UI and related settings             |
+| organizations   | Headless contracts and services used independently today; reassess each responsibility |
+| shell           | Shared application shell, navigation, and settings integration                         |
 
 All packages had consumers in the current audit. A small file count does not establish that a package is redundant.
 
@@ -145,7 +145,7 @@ This structure does not automatically load published npm packages. Core currentl
 
 ## Next.js host exception
 
-Application pages use native Next.js App Router files under `src/app`: page.tsx for routes and layout.tsx for shared shells. Do not create root pages.*.tsx contributions or route app pages through PluginPage. Independent plugins may contribute discovered pages through a host catch-all. Sharing contribution conventions does not mean replacing the host framework router.
+Application pages use native Next.js App Router files under `src/app`: page.tsx for routes and layout.tsx for shared shells. Do not create root pages.\*.tsx contributions or route app pages through PluginPage. Independent plugins may contribute discovered pages through a host catch-all. Sharing contribution conventions does not mean replacing the host framework router.
 
 Custom component ownership is recorded in [the component inventory](../../packages/better-auth-ui/CUSTOM_COMPONENTS.md). Existing custom/demo functionality remains explicitly separate from unchanged upstream exports.
 

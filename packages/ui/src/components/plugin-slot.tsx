@@ -11,7 +11,7 @@ export function PluginSlot({ name }: { name: string }) {
   const { runtime } = useFoundation();
   const ready = useFoundationReady();
   if (!ready) return null;
-  return (runtime.modules)
+  return runtime.modules
     .flatMap((plugin) =>
       (plugin.views ?? []).map((view, index) => ({ ...view, key: `${plugin.id}:${index}` })),
     )

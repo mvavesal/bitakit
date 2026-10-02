@@ -1,5 +1,7 @@
 {
   "Foundation": {
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
     "submit": "Absenden",
     "pending": "Wird gesendet …",
     "invalid": "Bitte überprüfen Sie Ihre Eingaben.",
@@ -18,7 +20,6 @@
   "Nav": {
     "workspace": "Arbeitsbereich",
     "dashboard": "Übersicht",
-    "actions": "Action-Demo",
     "settings": "Einstellungen",
     "preferences": "Präferenzen",
     "account": "Konto",
@@ -269,30 +270,6 @@
     "loadError": "Die Organisation konnte nicht geladen werden.",
     "retry": "Erneut versuchen",
     "readOnly": "Nur Eigentümer und Administratoren können diese Angaben bearbeiten."
-  },
-  "ControlPreview": {
-    "title": "Theme-Vorschau",
-    "description": "Teste die Bedienelemente und eine Primärfarbe. Änderungen gelten nur für diese Vorschau.",
-    "primaryColor": "Primärfarbe",
-    "themeDefault": "Theme-Standard",
-    "violet": "Violett",
-    "blue": "Blau",
-    "green": "Grün",
-    "rose": "Rosa",
-    "reset": "Zurücksetzen",
-    "checkboxes": "Kontrollkästchen",
-    "disabled": "Deaktiviert",
-    "radios": "Optionsfelder",
-    "firstOption": "Erste Option",
-    "secondOption": "Zweite Option",
-    "switches": "Schalter",
-    "primary": "Primärer Button",
-    "secondary": "Sekundärer Button",
-    "outline": "Umrandeter Button",
-    "emailUpdates": "E-Mail-Updates",
-    "productUpdates": "Produkt-Updates",
-    "notifications": "Benachrichtigungen",
-    "autoSave": "Automatisch speichern"
   },
   "PluginsSettings": {
     "title": "Plugins",

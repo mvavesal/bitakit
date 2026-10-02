@@ -1,33 +1,22 @@
 'use client';
 import { useTranslation } from '@bitakit/ui';
 import { MemberRoleIcon, MemberStatusIcon } from './people-icons.js';
-import {  Alert, AlertDescription  } from '../ui/index.js';
-import {  PageHeader  } from '../ui/index.js';
-import {
-  type AppPreferences,
-} from '@bitakit/app-preferences/core';
+import { Alert, AlertDescription } from '../ui/index.js';
+import { PageHeader } from '../ui/index.js';
+import { type AppPreferences } from '@bitakit/app-preferences/core';
 import { IncomingInvitations } from './incoming-invitations.js';
 import { usePeopleFilters, PeopleFilters, PeoplePagination } from './people-filters.js';
-import {  Tabs, TabsList, TabsTrigger  } from '../ui/index.js';
+import { Tabs, TabsList, TabsTrigger } from '../ui/index.js';
 import { useSyncExternalStore } from 'react';
 import { getService } from '@bitakit/core';
 import { useFoundation } from '@bitakit/ui';
-import {  Avatar, AvatarImage, AvatarFallback  } from '../ui/index.js';
-import {  Badge  } from '../ui/index.js';
-import { 
-  Table,
-  TableHeader,
-  TableHead,
-  TableRow,
-  TableBody,
-  TableCell,
- } from '../ui/index.js';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/index.js';
+import { Badge } from '../ui/index.js';
+import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from '../ui/index.js';
 import { organizationService } from '@bitakit/organizations';
 import { organizationGroups } from '@bitakit/organizations';
 import { GroupActions } from './group-actions.js';
 import type { Member, Invitation } from '@bitakit/organizations';
-
-
 
 function MemberActions({ member, organizationId }: { member: Member; organizationId: string }) {
   return (
@@ -58,7 +47,11 @@ export function OrganizationsPage({
   view,
 }: { demo?: boolean; settings?: AppPreferences; view?: 'current' | 'pending' } = {}) {
   const translateUI = useTranslation();
-  const roleLabel = (role: string) => role.split(',').map(value => translateUI(`foundationUI.roles.${value}`, undefined, value)).join(', ');
+  const roleLabel = (role: string) =>
+    role
+      .split(',')
+      .map((value) => translateUI(`foundationUI.roles.${value}`, undefined, value))
+      .join(', ');
   const service = getService(useFoundation().runtime.services, organizationService);
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
   const active = state.organizations.find((item) => item.id === state.activeId);
@@ -87,8 +80,16 @@ export function OrganizationsPage({
       aria-busy={state.pending}
     >
       <PageHeader
-        title={view === 'pending' ? translateUI("foundationUI.pages.invitations", undefined, "Invitations") : translateUI("foundationUI.pages.members", undefined, "Members")}
-        subtitle={translateUI("foundationUI.pages.membersAndInvitationsInTheActiveWorkspace", undefined, "Members and invitations in the active workspace.")}
+        title={
+          view === 'pending'
+            ? translateUI('foundationUI.pages.invitations', undefined, 'Invitations')
+            : translateUI('foundationUI.pages.members', undefined, 'Members')
+        }
+        subtitle={translateUI(
+          'foundationUI.pages.membersAndInvitationsInTheActiveWorkspace',
+          undefined,
+          'Members and invitations in the active workspace.',
+        )}
         trailing={
           <>
             <GroupActions
@@ -110,7 +111,12 @@ export function OrganizationsPage({
       {demo && (
         <Alert role="note">
           <AlertDescription>
-            {translateUI("foundationUI.pages.pluginTestWithSampleDataNoRealSigninOrEmailDeliveryChanges", undefined, "Plugin test with sample data. No real sign-in or email delivery; changes last until reload.")}</AlertDescription>
+            {translateUI(
+              'foundationUI.pages.pluginTestWithSampleDataNoRealSigninOrEmailDeliveryChanges',
+              undefined,
+              'Plugin test with sample data. No real sign-in or email delivery; changes last until reload.',
+            )}
+          </AlertDescription>
         </Alert>
       )}
       {state.error && (
@@ -118,7 +124,15 @@ export function OrganizationsPage({
           {state.error}
         </p>
       )}
-      {!state.loaded && state.pending && <p role="status">{translateUI("foundationUI.pages.loadingOrganizations", undefined, "Loading organizations…")}</p>}
+      {!state.loaded && state.pending && (
+        <p role="status">
+          {translateUI(
+            'foundationUI.pages.loadingOrganizations',
+            undefined,
+            'Loading organizations…',
+          )}
+        </p>
+      )}
       {active && (
         <>
           <div className="flex min-w-0 flex-col gap-4">
@@ -133,12 +147,20 @@ export function OrganizationsPage({
                   })
                 }
               >
-                <TabsList variant="line" aria-label={translateUI("foundationUI.pages.people", undefined, "People")}>
+                <TabsList
+                  variant="line"
+                  aria-label={translateUI('foundationUI.pages.people', undefined, 'People')}
+                >
                   <TabsTrigger value="current">
-                    {translateUI("foundationUI.pages.members", undefined, "Members")}<Badge variant="secondary">{state.members.length}</Badge>
+                    {translateUI('foundationUI.pages.members', undefined, 'Members')}
+                    <Badge variant="secondary">{state.members.length}</Badge>
                   </TabsTrigger>
                   <TabsTrigger value="pending">
-                    {translateUI("foundationUI.pages.pendingInvitations", undefined, "Pending invitations")}{' '}
+                    {translateUI(
+                      'foundationUI.pages.pendingInvitations',
+                      undefined,
+                      'Pending invitations',
+                    )}{' '}
                     <Badge variant="secondary">
                       {state.invitations.filter((item) => item.status === 'pending').length}
                     </Badge>
@@ -150,16 +172,32 @@ export function OrganizationsPage({
           </div>
           {filters.tab === 'current' && (
             <div className="min-w-0">
-              {!members.length && <p>{translateUI("foundationUI.pages.noMatchingMembers", undefined, "No matching members.")}</p>}
+              {!members.length && (
+                <p>
+                  {translateUI(
+                    'foundationUI.pages.noMatchingMembers',
+                    undefined,
+                    'No matching members.',
+                  )}
+                </p>
+              )}
               <div className="min-w-0">
                 <Table className="min-w-2xl table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{translateUI("foundationUI.pages.member", undefined, "Member")}</TableHead>
-                      <TableHead>{translateUI("foundationUI.pages.status", undefined, "Status")}</TableHead>
-                      <TableHead className="w-1/5">{translateUI("foundationUI.pages.role", undefined, "Role")}</TableHead>
                       <TableHead>
-                        <span className="sr-only">{translateUI("foundationUI.pages.actions", undefined, "Actions")}</span>
+                        {translateUI('foundationUI.pages.member', undefined, 'Member')}
+                      </TableHead>
+                      <TableHead>
+                        {translateUI('foundationUI.pages.status', undefined, 'Status')}
+                      </TableHead>
+                      <TableHead className="w-1/5">
+                        {translateUI('foundationUI.pages.role', undefined, 'Role')}
+                      </TableHead>
+                      <TableHead>
+                        <span className="sr-only">
+                          {translateUI('foundationUI.pages.actions', undefined, 'Actions')}
+                        </span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -188,7 +226,9 @@ export function OrganizationsPage({
                         <TableCell>
                           <Badge variant={member.disabled ? 'error' : 'success'}>
                             <MemberStatusIcon status={member.disabled ? 'disabled' : 'active'} />
-                            {member.disabled ? translateUI("foundationUI.pages.suspended", undefined, "Suspended") : translateUI("foundationUI.pages.active", undefined, "Active")}
+                            {member.disabled
+                              ? translateUI('foundationUI.pages.suspended', undefined, 'Suspended')
+                              : translateUI('foundationUI.pages.active', undefined, 'Active')}
                           </Badge>
                         </TableCell>
                         <TableCell className="whitespace-normal">
@@ -210,18 +250,32 @@ export function OrganizationsPage({
           {filters.tab === 'pending' && (
             <div className="min-w-0">
               {!invitations.length ? (
-                <p className="text-sm text-muted-foreground">{translateUI("foundationUI.pages.noPendingInvitations", undefined, "No pending invitations.")}</p>
+                <p className="text-sm text-muted-foreground">
+                  {translateUI(
+                    'foundationUI.pages.noPendingInvitations',
+                    undefined,
+                    'No pending invitations.',
+                  )}
+                </p>
               ) : (
                 <>
                   <div className="min-w-0">
                     <Table className="min-w-2xl table-fixed">
                       <TableHeader>
                         <TableRow>
-                          <TableHead>{translateUI("foundationUI.pages.email", undefined, "Email")}</TableHead>
-                          <TableHead>{translateUI("foundationUI.pages.status", undefined, "Status")}</TableHead>
-                          <TableHead className="w-1/5">{translateUI("foundationUI.pages.role", undefined, "Role")}</TableHead>
                           <TableHead>
-                            <span className="sr-only">{translateUI("foundationUI.pages.actions", undefined, "Actions")}</span>
+                            {translateUI('foundationUI.pages.email', undefined, 'Email')}
+                          </TableHead>
+                          <TableHead>
+                            {translateUI('foundationUI.pages.status', undefined, 'Status')}
+                          </TableHead>
+                          <TableHead className="w-1/5">
+                            {translateUI('foundationUI.pages.role', undefined, 'Role')}
+                          </TableHead>
+                          <TableHead>
+                            <span className="sr-only">
+                              {translateUI('foundationUI.pages.actions', undefined, 'Actions')}
+                            </span>
                           </TableHead>
                         </TableRow>
                       </TableHeader>
@@ -234,7 +288,8 @@ export function OrganizationsPage({
                             <TableCell>
                               <Badge variant="warning">
                                 <MemberStatusIcon status="pending" />
-                                {translateUI("foundationUI.pages.pending", undefined, "Pending")}</Badge>
+                                {translateUI('foundationUI.pages.pending', undefined, 'Pending')}
+                              </Badge>
                             </TableCell>
                             <TableCell>
                               <Badge variant="secondary">
@@ -260,4 +315,3 @@ export function OrganizationsPage({
     </section>
   );
 }
-

@@ -3,6 +3,7 @@ import { ConfigService, type ConfigContext } from './config-service.js';
 import {
   contributionPath,
   contributionSource,
+  preserveContributionPath,
   setContributionPath,
 } from './contribution-origin.js';
 import { ServiceNames, type ServiceEntry, type ServiceRequester } from './service-names.js';
@@ -94,11 +95,16 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
   try {
     const services: (ServiceDefinition<any> & { id: string })[] = Array.isArray(module.services)
       ? module.services.map((service) => {
-          if (!service.id)
+          // A contract key doubles as the ID of an array entry, as provideService did before.
+          const serviceId = service.id ?? (service.provides as string | undefined);
+          if (!serviceId)
             throw new Error(
               'A service in an array needs an id. Prefer a record: services: { items: service }.',
             );
-          return service as ServiceDefinition<any> & { id: string };
+          return preserveContributionPath(service, {
+            ...service,
+            id: serviceId,
+          }) as ServiceDefinition<any> & { id: string };
         })
       : Object.entries((module.services ?? {}) as Record<string, ServiceDefinition<any>>).map(
           ([key, service]) => ({
@@ -540,7 +546,8 @@ export class FoundationRuntime implements ContributionHost {
       },
       (definition) => definition.id!,
     );
-    this.view = this.names.tree(this.container.services, () => !this.mounted);
+    // Contexts exist only after the container does; readiness is the public facade's concern.
+    this.view = this.names.tree(this.container.services);
     const moduleEvents = new Map<string, Events>();
     try {
       this.extensionCleanups.push(
@@ -640,7 +647,7 @@ export class FoundationRuntime implements ContributionHost {
       });
   }
   private connectTranslation() {
-    const i18n = this.hasService('i18n') ? this.services.i18n : undefined;
+    const i18n = this.services.i18n;
     if (!i18n) return;
     this.setTranslations(i18n.translate);
     this.extensionCleanups.push(i18n.subscribe(() => this.setTranslations(i18n.translate)));

@@ -1,13 +1,15 @@
 'use client';
-import { language } from '../i18n/preferences';
-import { loadLocale, saveLocale, resetLocale } from '../i18n/actions';
-import { useNextIntlPlugin } from '@bitakit/next-intl';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { createContentAuth } from '../auth';
 import { createAppPreferences, createLocalStorage } from '@bitakit/app-preferences';
 import { appPreferencesPlugin } from '@bitakit/app-preferences/foundation';
-import { useState, useMemo, type ReactNode } from 'react';
-import { FoundationProvider } from '@bitakit/next';
+import { useNextIntlPlugin } from '@bitakit/next-intl';
+import { BitaKitProvider } from '../bitakit.gen';
+import { createContentAuth } from '../auth';
+import { loadLocale, resetLocale, saveLocale } from '../i18n/actions';
+import { language } from '../i18n/preferences';
+
+/** The generated configuration plus this host's preferences, language, translation and authentication. */
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
   const translation = useNextIntlPlugin();
@@ -26,6 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
       replace ? router.replace(to) : router.push(to),
     ),
   );
+  // app-preferences replaces the discovered package plugin of the same ID in place.
   const plugins = useMemo(
     () => [
       translation,
@@ -35,5 +38,5 @@ export function Providers({ children }: { children: ReactNode }) {
     ],
     [settings, authentication, translation],
   );
-  return <FoundationProvider additionalPlugins={plugins}>{children}</FoundationProvider>;
+  return <BitaKitProvider additionalPlugins={plugins}>{children}</BitaKitProvider>;
 }

@@ -1,18 +1,16 @@
-# Demo-Plugin ohne Datenbank
+# Demo plugin without a database
 
-Das Plugin bringt seine Komponenten selbst mit. Die App stellt nur den allgemeinen
-Dashboard-Slot und den bestehenden Settings-Rahmen bereit.
+The plugin brings its own components. The app only provides the shared dashboard slot and
+the existing settings frame.
 
-- `views/dashboard.view.tsx`: Beitrag zum Slot `dashboard.content`.
-- `components/`: Dashboard-Karte und eigene Settings-Seite.
-- `setup.ts`: registriert die Seite im Settings-Katalog unter „Plugins“;
-  die Foundation übernimmt das Aufräumen.
-- `actions/`: Begrüßung, lokaler Schalter, Dashboard-Link und Settings-Link im User-Menü.
-- `services/preferences.service.ts`: lokale Einstellung ohne Datenbank; wird beim Neuladen zurückgesetzt.
-- `locales/`: deutsche und englische Texte.
+- `ui/slots/dashboard.content.tsx`: contribution to the `dashboard.content` slot.
+- `ui/components/`: the plugin's own settings page.
+- `setup.ts`: registers that page in the settings catalog under "Plugins"; the plugin scope
+  removes it again.
+- `actions/`: greeting, local toggle, dashboard link and settings link in the user menu.
+- `services/preferences.ts`: local preference without a database; resets on reload.
+- `locales/`: German and English texts.
 
-In `apps/web/foundation.config.ts` aktiviert `plugins.overrides.demo.enabled` das
-Plugin. Mit `false` verschwinden Karte, Settings-Seite und sämtliche Menübeiträge.
-Das Entfernen des Plugin-Ordners entfernt dieselben automatisch erkannten Beiträge.
-Eine explizite Plugin-Liste am FoundationProvider ersetzt weiterhin die Automatik;
-`plugins={[]}` aktiviert keine Plugins.
+`plugins.overrides.demo.enabled` in `apps/web/bitakit.config.ts` activates the plugin. With
+`false` the card, the settings page and every menu entry disappear. Removing the plugin folder
+removes the same discovered contributions.

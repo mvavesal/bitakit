@@ -1,12 +1,8 @@
 import type { ComponentType, ReactNode } from 'react';
-import type { ActionGroupsViewProps } from '@bitakit/ui/actions';
+import type { BoundGroup } from '../hooks/use-action-group.js';
 /** Supply existing design-system primitives once, not wrappers per feature. */
 export type FoundationUI = {
-  Dialog: ComponentType<{
-    open: boolean;
-    onOpenChange(open: boolean): void;
-    children: ReactNode;
-  }>;
+  Dialog: ComponentType<{ open: boolean; onOpenChange(open: boolean): void; children: ReactNode }>;
   DialogContent: ComponentType<any>;
   DialogHeader: ComponentType<any>;
   DialogTitle: ComponentType<any>;
@@ -18,10 +14,12 @@ export type FoundationUI = {
   FieldLabel: ComponentType<any>;
   FieldGroup: ComponentType<any>;
   FieldError: ComponentType<any>;
-  Menu: ComponentType<ActionGroupsViewProps & { label: string }>;
+  /** Shows bound action groups; the standard one is a dropdown menu. */
+  Menu: ComponentType<{ groups: readonly BoundGroup[]; label: string }>;
 };
 export type FoundationLabels = {
   cancel: string;
+  confirm: string;
   submit: string;
   pending: string;
   invalid: string;

@@ -1,12 +1,7 @@
 import { isOrganizationWebsite, organizationWebsiteError } from '@bitakit/organizations';
 export { sessionOrganizationBackend } from './organization-session.js';
 import type { BetterAuthClient } from './index.js';
-import type {
-  OrganizationBackend,
-  Organization,
-  Member,
-  Invitation,
-} from '@bitakit/organizations';
+import type { OrganizationBackend, Organization, Member, Invitation } from '@bitakit/organizations';
 
 type Result<T> = Promise<{ data: T | null; error: unknown }>;
 type AuthMember = {
@@ -27,9 +22,16 @@ export interface BetterAuthOrganizationClient {
     listMembers(input: {
       query: { organizationId: string; limit: number; offset: number };
     }): Result<{ members: AuthMember[]; total: number }>;
-    listInvitations(input: {
-      query: { organizationId: string };
-    }): Result<Array<{ id: string; email: string; role: string | null; status: string; createdAt?: Date | string; expiresAt?: Date | string }>>;
+    listInvitations(input: { query: { organizationId: string } }): Result<
+      Array<{
+        id: string;
+        email: string;
+        role: string | null;
+        status: string;
+        createdAt?: Date | string;
+        expiresAt?: Date | string;
+      }>
+    >;
     listUserInvitations?(): Result<
       Array<{
         id: string;
@@ -103,7 +105,8 @@ export function betterAuthOrganizations(
   extensions: OrganizationExtensions = {},
 ): OrganizationBackend {
   const api = client.organization;
-  const activeOrganization = () => api.getOrganization ? api.getOrganization() : api.getFullOrganization();
+  const activeOrganization = () =>
+    api.getOrganization ? api.getOrganization() : api.getFullOrganization();
 
   return {
     setMemberDisabled: extensions.setMemberDisabled,
@@ -220,8 +223,10 @@ export function betterAuthOrganizations(
               items.map((item) => ({
                 ...item,
                 role: item.role ?? 'member',
-                createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
-                expiresAt: item.expiresAt instanceof Date ? item.expiresAt.toISOString() : item.expiresAt,
+                createdAt:
+                  item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
+                expiresAt:
+                  item.expiresAt instanceof Date ? item.expiresAt.toISOString() : item.expiresAt,
               })),
             )
           : Promise.resolve([] as Invitation[]),
@@ -285,9 +290,7 @@ function metadata(value: unknown): Record<string, unknown> {
     ? (value as Record<string, unknown>)
     : {};
 }
-async function organizationDetails(
-  input: import('@bitakit/organizations').OrganizationInput,
-) {
+async function organizationDetails(input: import('@bitakit/organizations').OrganizationInput) {
   if (!isOrganizationWebsite(input.website ?? '')) throw new Error(organizationWebsiteError);
   let logo: string | undefined;
   if (input.logo) {

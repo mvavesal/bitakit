@@ -7,13 +7,13 @@ integration is optional and lives in `@bitakit/app-preferences/foundation`.
 
 ## Entry points
 
-| Entry | Contents | Depends on |
-| --- | --- | --- |
-| `@bitakit/app-preferences/core` | Definitions, builders, sections, `AppPreferences`, storage adapters. No React runtime import. | – |
-| `@bitakit/app-preferences` | Everything in `core` plus React provider, hooks, renderer registry, default controls and views. | React |
-| `@bitakit/app-preferences/foundation` | `appPreferencesPlugin`, typed services, installers, discovery normalizers, SSR bridge. | Core, UI (optional peers) |
-| `@bitakit/app-preferences/discovery` | `settingsDiscovery()` kinds for `bitakit.config.ts` (Node, no module execution). | – |
-| `@bitakit/app-preferences/actions` | Optional Core Actions adapter (`bindSettings`). | Core |
+| Entry                                 | Contents                                                                                        | Depends on                |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------- |
+| `@bitakit/app-preferences/core`       | Definitions, builders, sections, `AppPreferences`, storage adapters. No React runtime import.   | –                         |
+| `@bitakit/app-preferences`            | Everything in `core` plus React provider, hooks, renderer registry, default controls and views. | React                     |
+| `@bitakit/app-preferences/foundation` | `appPreferencesPlugin`, typed services, installers, discovery normalizers, SSR bridge.          | Core, UI (optional peers) |
+| `@bitakit/app-preferences/discovery`  | `settingsDiscovery()` kinds for `bitakit.config.ts` (Node, no module execution).                | –                         |
+| `@bitakit/app-preferences/actions`    | Optional Core Actions adapter (`bindSettings`).                                                 | Core                      |
 
 ## Default workflow with Foundation
 
@@ -67,13 +67,22 @@ src/                          # the same layout works inside every plugin source
 ```ts
 // src/settings/editor.ts
 import { z } from 'zod';
-import { booleanField, choiceField, defineSettings, numberField } from '@bitakit/app-preferences/core';
+import {
+  booleanField,
+  choiceField,
+  defineSettings,
+  numberField,
+} from '@bitakit/app-preferences/core';
 
 export default defineSettings({
   id: 'editor', // durable; keys are `editor.autosave`, `editor.pageSize`, …
   scope: 'user',
   fields: {
-    autosave: booleanField({ title: 'Auto save', titleKey: 'editor.autosave.title', defaultValue: true }),
+    autosave: booleanField({
+      title: 'Auto save',
+      titleKey: 'editor.autosave.title',
+      defaultValue: true,
+    }),
     pageSize: numberField({ defaultValue: 20, schema: z.number().int().min(5).max(100) }),
     density: choiceField({
       options: ['comfortable', 'compact'],
@@ -91,16 +100,27 @@ export default defineSettingsSection({ id: 'editor', title: 'Editor', settings: 
 // src/renderers/editor.tsx
 export default defineSettingsRenderers({
   fields: [
-    fieldRenderer(editorSettings.fields.pageSize, ({ value, setValue, disabled, id, describedBy }) => (
-      <NumberPicker id={id} aria-describedby={describedBy} value={value} onCommit={setValue} disabled={disabled} />
-    )),
+    fieldRenderer(
+      editorSettings.fields.pageSize,
+      ({ value, setValue, disabled, id, describedBy }) => (
+        <NumberPicker
+          id={id}
+          aria-describedby={describedBy}
+          value={value}
+          onCommit={setValue}
+          disabled={disabled}
+        />
+      ),
+    ),
   ],
 });
 ```
 
 ```tsx
 // Optional custom persistence; replaces the automatically discovered default plugin.
-const [settings] = useState(() => createAppPreferences({ storage: createLocalStorage({ prefix: 'my-app.settings.' }) }));
+const [settings] = useState(() =>
+  createAppPreferences({ storage: createLocalStorage({ prefix: 'my-app.settings.' }) }),
+);
 // Create plugins once per settings instance; a new plugin object remounts its provider.
 const plugins = useMemo(() => [appPreferencesPlugin({ settings })], [settings]);
 // FoundationProvider here is imported from @bitakit/next.
@@ -163,12 +183,12 @@ restores the fallback. Hot registration without a runtime rebuild is not promise
 `set(setting, value)` validates first, then queues. At most one write per key is in flight; a newer
 value replaces the queued one. The returned promise:
 
-| Result | Meaning |
-| --- | --- |
-| `'saved'` | This value was written and is now the confirmed value. |
+| Result         | Meaning                                                                            |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `'saved'`      | This value was written and is now the confirmed value.                             |
 | `'superseded'` | A newer value replaced this one before it was sent; resolves once the key settles. |
-| `'cancelled'` | The context changed or the definition was removed; a late success is not applied. |
-| rejection | Validation failed, the setting is not writable, or this value's own write failed. |
+| `'cancelled'`  | The context changed or the definition was removed; a late success is not applied.  |
+| rejection      | Validation failed, the setting is not writable, or this value's own write failed.  |
 
 Confirmed values change only after a successful write. Failures keep the confirmed value and set
 `state.error`; a queued value still runs afterwards. `activate(context)` starts a new session: queued
@@ -184,7 +204,7 @@ interface SettingsStorage {
   load(key, context): Promise<{ value?: SettingValue; writable: boolean }>;
   save(key, value, context): Promise<void>;
   loadMany?(keys, context): Promise<Record<string, StoredSetting>>; // one request on activation
-  reset?(key, context): Promise<StoredSetting>;                    // remove the override
+  reset?(key, context): Promise<StoredSetting>; // remove the override
 }
 ```
 
@@ -237,7 +257,9 @@ Imperative registration from `setup` goes through the same service and is scoped
 import type { Setup } from '@bitakit/core';
 
 const setup: Setup = ({ app, services }) => {
-  getService(services, settingsRendererService).scoped(app).registerType('boolean', { component: MyCheckbox });
+  getService(services, settingsRendererService)
+    .scoped(app)
+    .registerType('boolean', { component: MyCheckbox });
 };
 export default setup;
 ```
@@ -267,32 +289,33 @@ hydration.
 
 ```ts
 const createSettingAction = bindSettings(settings);
-actions.register(createSettingAction({ id: 'theme.set', title: 'Change theme', setting: themeSetting }));
+actions.register(
+  createSettingAction({ id: 'theme.set', title: 'Change theme', setting: themeSetting }),
+);
 ```
 
 The action mirrors the confirmed value and writability; writes use `AppPreferences.set`.
 
 ## Source layout
 
-| Location | Responsibility |
-| --- | --- |
-| `types.ts`, `schema.ts`, `text.ts` | Shared contracts, Standard Schema types, localized text resolution |
-| `fields/` | `Setting` base and concrete definitions; `builders.ts` for `defineSettings` and field builders |
-| `catalog/` | Sections, catalog registration and navigation projection |
-| `app-preferences.ts` | Confirmed values, ownership, queued writes, sessions and subscriptions |
-| `storage.ts` | Local and memory storage adapters |
-| `renderers/` | Headless registry and resolution, typed builders, prop contracts, built-in set |
-| `react/` | Provider, UI context, messages and the item binding hook |
-| `components/` | Built-in controls, default views and legacy bindings |
-| `plugin.tsx` | Standard plugin composition and contribution installers |
-| `services/renderers.ts` | Shared service keys and scoped renderer registration |
-| `providers/foundation.tsx` | Initial snapshot and runtime provider bridge |
-| `foundation/` | Optional entry, ownership normalization and discovery normalizers |
-| `discovery.mjs` | Discovery kinds for `bitakit.config.ts` |
+| Location                           | Responsibility                                                                                 |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `types.ts`, `schema.ts`, `text.ts` | Shared contracts, Standard Schema types, localized text resolution                             |
+| `fields/`                          | `Setting` base and concrete definitions; `builders.ts` for `defineSettings` and field builders |
+| `catalog/`                         | Sections, catalog registration and navigation projection                                       |
+| `app-preferences.ts`               | Confirmed values, ownership, queued writes, sessions and subscriptions                         |
+| `storage.ts`                       | Local and memory storage adapters                                                              |
+| `renderers/`                       | Headless registry and resolution, typed builders, prop contracts, built-in set                 |
+| `react/`                           | Provider, UI context, messages and the item binding hook                                       |
+| `components/`                      | Built-in controls, default views and legacy bindings                                           |
+| `plugin.tsx`                       | Standard plugin composition and contribution installers                                        |
+| `services/renderers.ts`            | Shared service keys and scoped renderer registration                                           |
+| `providers/foundation.tsx`         | Initial snapshot and runtime provider bridge                                                   |
+| `foundation/`                      | Optional entry, ownership normalization and discovery normalizers                              |
+| `discovery.mjs`                    | Discovery kinds for `bitakit.config.ts`                                                        |
 
 Run `npm test` for definitions, ownership, queue semantics, storage adapters, renderer precedence,
 views, SSR equivalence and Foundation integration.
-
 
 ## App Preferences migration and standard controls
 
@@ -319,7 +342,6 @@ Custom plugin `defaults` seed both the pre-mount snapshot and mounted service id
 Public access responsibilities: `foundation/app-access.ts` projects discovered definitions;
 `fields/reference.ts` delegates reads/writes and preserves UI binding ownership. The Core
 app extension contract contains no Settings implementation or React dependency.
-
 
 ### Individual reset
 

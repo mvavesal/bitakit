@@ -6,7 +6,9 @@ import type { MDXComponents } from 'mdx/types';
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
-    Callout, Card, Cards,
+    Callout,
+    Card,
+    Cards,
     ...components,
   } satisfies MDXComponents;
 }

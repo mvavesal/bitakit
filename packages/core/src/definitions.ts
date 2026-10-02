@@ -150,7 +150,8 @@ export type ActionSpecInput<Input = unknown, Result = unknown> = {
   enabled?: Dynamic<Input, boolean>;
   visible?: Dynamic<Input, boolean>;
   checked?: Dynamic<Input, boolean | undefined>;
-  value?: Dynamic<Input, unknown>;
+  /** `{} | null | undefined` instead of `unknown`, so a function here keeps its contextual types. */
+  value?: Dynamic<Input, {} | null | undefined>;
   groups?: readonly (string | ActionGroup)[];
   order?: number;
   dividerBefore?: boolean;

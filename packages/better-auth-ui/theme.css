@@ -126,7 +126,11 @@
   .button:is(.button--primary, .button--danger) {
     --control-action: var(--primary);
     --control-top: color-mix(in oklab, var(--control-action), white var(--control-primary-lift));
-    --control-bottom: color-mix(in oklab, var(--control-action), black var(--control-primary-shade));
+    --control-bottom: color-mix(
+      in oklab,
+      var(--control-action),
+      black var(--control-primary-shade)
+    );
     --control-idle-border: color-mix(in oklab, var(--control-action), black 16%);
     --control-depth-shadow:
       inset 0 1px 0 var(--control-highlight), inset 0 -1px 0 var(--control-edge),
@@ -140,10 +144,10 @@
     border-color: var(--control-idle-border, var(--input));
   }
   @media (hover: hover) {
-    .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline):is(:hover, [data-hovered='true']):not(
-        :disabled,
-        [aria-disabled='true']
-      ) {
+    .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline):is(
+        :hover,
+        [data-hovered='true']
+      ):not(:disabled, [aria-disabled='true']) {
       background-image: linear-gradient(
         to bottom,
         color-mix(in oklab, var(--control-top), var(--foreground) 3%),
@@ -206,13 +210,21 @@
   --button-bg-hover: var(--muted);
   --button-fg-hover: var(--foreground);
 }
-.input-group :is(.input-group__suffix, .input-group__prefix) > .button--icon-only.button--ghost svg {
+.input-group
+  :is(.input-group__suffix, .input-group__prefix)
+  > .button--icon-only.button--ghost
+  svg {
   @apply size-4;
 }
-.dark .input-group :is(.input-group__suffix, .input-group__prefix) > .button--icon-only.button--ghost {
+.dark
+  .input-group
+  :is(.input-group__suffix, .input-group__prefix)
+  > .button--icon-only.button--ghost {
   --button-bg-hover: color-mix(in oklab, var(--muted), transparent 50%);
 }
-.input-group :is(.input-group__suffix, .input-group__prefix) > .button--icon-only.button--ghost:is(:focus-visible, [data-focus-visible='true']) {
+.input-group
+  :is(.input-group__suffix, .input-group__prefix)
+  > .button--icon-only.button--ghost:is(:focus-visible, [data-focus-visible='true']) {
   @apply border-ring ring-3 ring-ring/50 ring-offset-0;
 }
 
@@ -270,7 +282,6 @@
 .card__content > div:has(> [role='status']) {
   @apply items-stretch;
 }
-
 
 /* Keep the native two-factor control and dialogs; place its header action
    inside the existing card surface using shared layout/spacing tokens. */
@@ -348,11 +359,24 @@
 }
 
 /* Native account/organization menus share the host dropdown interaction palette. */
-.menu-item:not(.menu-item--danger):not([data-disabled='true']):is(:hover, [data-hovered='true'], [data-focused='true'], [data-focus-visible='true'], [data-selected='true']) {
+.menu-item:not(.menu-item--danger):not([data-disabled='true']):is(
+    :hover,
+    [data-hovered='true'],
+    [data-focused='true'],
+    [data-focus-visible='true'],
+    [data-selected='true']
+  ) {
   background-color: var(--accent);
   color: var(--accent-foreground);
 }
-.menu-item:not(.menu-item--danger):not([data-disabled='true']):is(:hover, [data-hovered='true'], [data-focused='true'], [data-focus-visible='true'], [data-selected='true']) :is(.label, .description, .text-muted) {
+.menu-item:not(.menu-item--danger):not([data-disabled='true']):is(
+    :hover,
+    [data-hovered='true'],
+    [data-focused='true'],
+    [data-focus-visible='true'],
+    [data-selected='true']
+  )
+  :is(.label, .description, .text-muted) {
   color: inherit;
 }
 
@@ -368,10 +392,19 @@
     opacity: 0;
     transition: opacity 160ms ease;
   }
-  .auth-identity-trigger:is(:hover, :focus-visible, [data-hovered='true'], [data-focus-visible='true'], [aria-expanded='true']) > svg:last-child {
+  .auth-identity-trigger:is(
+      :hover,
+      :focus-visible,
+      [data-hovered='true'],
+      [data-focus-visible='true'],
+      [aria-expanded='true']
+    )
+    > svg:last-child {
     opacity: 1;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .auth-identity-trigger > svg:last-child { transition: none; }
+  .auth-identity-trigger > svg:last-child {
+    transition: none;
+  }
 }

@@ -26,8 +26,15 @@ export function StartupFailureDialog({
   dependents: readonly string[];
   onDismiss(): void;
 }) {
-  const { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button } =
-    ui;
+  const {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    Button,
+  } = ui;
   const fatal = failures.some((failure) => failure.app);
   const title = fatal
     ? 'The app failed to start'

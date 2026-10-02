@@ -1,5 +1,11 @@
 import { registerHooks } from 'node:module';
-registerHooks({ load(url, context, next) { return url.endsWith('.css') ? { format: 'module', source: '', shortCircuit: true } : next(url, context); } });
+registerHooks({
+  load(url, context, next) {
+    return url.endsWith('.css')
+      ? { format: 'module', source: '', shortCircuit: true }
+      : next(url, context);
+  },
+});
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -45,7 +51,7 @@ const { createRoot } = await import('react-dom/client');
 
 globalThis.KeyboardEvent = window.KeyboardEvent;
 globalThis.HTMLAnchorElement = window.HTMLAnchorElement;
-HTMLElement.prototype.scrollIntoView = function() {};
+HTMLElement.prototype.scrollIntoView = function () {};
 const { FoundationProvider } = await import('@bitakit/ui');
 const { AppBar, standardFoundationUI } = await import('@bitakit/ui/components');
 const { createActionList, ActionGroup } = await import('@bitakit/core');
@@ -54,20 +60,46 @@ const { quickSearchPlugin } = await import('../dist/plugin.js');
 test('automatic AppBar trigger, URL-only search, metadata, native links and live cleanup', async () => {
   const list = createActionList();
   const group = new ActionGroup('workspace', 'Workspace');
-  const remove = list.register({ id: 'reports', title: 'Reports', description: 'Monthly revenue', href: '/reports', groups: [group], shortcut: { keys: 'Mod+R' } });
+  const remove = list.register({
+    id: 'reports',
+    title: 'Reports',
+    description: 'Monthly revenue',
+    href: '/reports',
+    groups: [group],
+    shortcut: { keys: 'Mod+R' },
+  });
   list.register({ id: 'hidden', title: 'Hidden', href: '/hidden', visible: false });
   list.register({ id: 'internal', title: 'Internal', href: '/internal', internal: true });
-  assert.throws(() => list.register({ id: 'unsafe', title: 'Unsafe', href: 'javascript:alert(1)' }));
+  assert.throws(() =>
+    list.register({ id: 'unsafe', title: 'Unsafe', href: 'javascript:alert(1)' }),
+  );
   list.register({ id: 'command', title: 'Command only', execute() {} });
   list.register({ id: 'disabled', title: 'Disabled', href: '/disabled', enabled: false });
-  const container = document.createElement('div'); document.body.append(container);
+  const container = document.createElement('div');
+  document.body.append(container);
   const root = createRoot(container);
   const plugins = [quickSearchPlugin()];
   try {
-    await act(async () => root.render(h(FoundationProvider, {
-      plugins, actionOptions: { list, shortcuts: false }, ui: standardFoundationUI,
-      labels: { cancel: 'Cancel', submit: 'Submit', pending: 'Pending', invalid: 'Invalid', unavailable: 'Unavailable' },
-    }, h(AppBar))));
+    await act(async () =>
+      root.render(
+        h(
+          FoundationProvider,
+          {
+            plugins,
+            actionOptions: { list, shortcuts: false },
+            ui: standardFoundationUI,
+            labels: {
+              cancel: 'Cancel',
+              submit: 'Submit',
+              pending: 'Pending',
+              invalid: 'Invalid',
+              unavailable: 'Unavailable',
+            },
+          },
+          h(AppBar),
+        ),
+      ),
+    );
     const trigger = container.querySelector('button');
     assert.match(trigger.textContent, /Quick search/);
     assert.equal(container.querySelector('input'), null);
@@ -76,35 +108,71 @@ test('automatic AppBar trigger, URL-only search, metadata, native links and live
     assert.equal(document.activeElement.getAttribute('role'), 'combobox');
     assert.match(document.body.textContent, /Monthly revenue/);
     assert.match(document.body.textContent, /Workspace/);
-    assert.equal(document.querySelector('a[href="/reports"]').textContent.includes('Reports'), true);
-    for (const href of ['/hidden', '/internal', 'javascript:alert(1)']) assert.equal(document.querySelector(`a[href="${href}"]`), null);
+    assert.equal(
+      document.querySelector('a[href="/reports"]').textContent.includes('Reports'),
+      true,
+    );
+    for (const href of ['/hidden', '/internal', 'javascript:alert(1)'])
+      assert.equal(document.querySelector(`a[href="${href}"]`), null);
     assert.ok(document.querySelector('[cmdk-item][data-disabled=true]'));
     const input = document.querySelector('[cmdk-input]');
     await act(async () => {
-      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, 'revenue');
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(
+        input,
+        'revenue',
+      );
       input.dispatchEvent(new window.Event('input', { bubbles: true }));
     });
     assert.equal(document.querySelectorAll('[cmdk-item]').length, 1);
     await act(async () => remove.unregister());
     assert.match(document.body.textContent, /No results found/);
-    await act(async () => input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    await act(async () =>
+      input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    );
     assert.equal(document.querySelector('[role=dialog]'), null);
-  } finally { await act(async () => root.unmount()); container.remove(); }
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
 });
 
-const labels = { cancel: 'Cancel', submit: 'Submit', pending: 'Pending', invalid: 'Invalid', unavailable: 'Unavailable' };
+const labels = {
+  cancel: 'Cancel',
+  submit: 'Submit',
+  pending: 'Pending',
+  invalid: 'Invalid',
+  unavailable: 'Unavailable',
+};
 /** Renders an app with quick search, opens it and returns helpers to read and drive the results. */
 async function openSearch({ plugins = [], list = createActionList(), results } = {}) {
-  const container = document.createElement('div'); document.body.append(container);
+  const container = document.createElement('div');
+  document.body.append(container);
   const root = createRoot(container);
-  await act(async () => root.render(h(FoundationProvider, {
-    plugins: [quickSearchPlugin({ results }), ...plugins], actionOptions: { list, shortcuts: false }, ui: standardFoundationUI, labels,
-  }, h(AppBar))));
+  await act(async () =>
+    root.render(
+      h(
+        FoundationProvider,
+        {
+          plugins: [quickSearchPlugin({ results }), ...plugins],
+          actionOptions: { list, shortcuts: false },
+          ui: standardFoundationUI,
+          labels,
+        },
+        h(AppBar),
+      ),
+    ),
+  );
   await act(async () => container.querySelector('button').click());
   return {
     list,
-    ids: () => [...document.querySelectorAll('[cmdk-item]')].map((item) => item.getAttribute('data-value')).sort(),
-    async close() { await act(async () => root.unmount()); container.remove(); },
+    ids: () =>
+      [...document.querySelectorAll('[cmdk-item]')]
+        .map((item) => item.getAttribute('data-value'))
+        .sort(),
+    async close() {
+      await act(async () => root.unmount());
+      container.remove();
+    },
   };
 }
 
@@ -112,9 +180,24 @@ test('results name their type and owning plugin, derived from existing registrat
   const { defineURLAction, destinationMetadata } = await import('@bitakit/core');
   const list = createActionList();
   // What the settings catalog and a plugin overview project; developers never declare these.
-  list.register({ id: 'alerts', title: 'Notifications', href: '/settings/alerts', metadata: destinationMetadata({ kind: 'settings', plugin: 'todos' }) });
-  list.register({ id: 'overview', title: 'Todos', href: '/settings/plugins?plugin=todos', metadata: destinationMetadata({ kind: 'plugin', plugin: 'todos' }) });
-  list.register({ id: 'alerts.shortcut', title: 'Alerts', href: '/settings/alerts', shortcut: { keys: 'Mod+J' } });
+  list.register({
+    id: 'alerts',
+    title: 'Notifications',
+    href: '/settings/alerts',
+    metadata: destinationMetadata({ kind: 'settings', plugin: 'todos' }),
+  });
+  list.register({
+    id: 'overview',
+    title: 'Todos',
+    href: '/settings/plugins?plugin=todos',
+    metadata: destinationMetadata({ kind: 'plugin', plugin: 'todos' }),
+  });
+  list.register({
+    id: 'alerts.shortcut',
+    title: 'Alerts',
+    href: '/settings/alerts',
+    shortcut: { keys: 'Mod+J' },
+  });
   list.register({ id: 'home', title: 'Home', href: '/' });
   list.register({ id: 'docs', title: 'Docs', href: 'https://example.com/docs' });
   const todos = {
@@ -125,7 +208,8 @@ test('results name their type and owning plugin, derived from existing registrat
   };
   const search = await openSearch({ plugins: [todos], list, results: { plugins: true } });
   try {
-    const kind = (href) => document.querySelector(`a[href="${href}"] .quick-search-kind`)?.textContent;
+    const kind = (href) =>
+      document.querySelector(`a[href="${href}"] .quick-search-kind`)?.textContent;
     assert.equal(kind('/todos/tasks'), 'Page · Todos');
     // Duplicate destinations merge: the shortcut Action is shown, the settings type is kept.
     assert.equal(kind('/settings/alerts'), 'Settings · Todos');
@@ -137,15 +221,22 @@ test('results name their type and owning plugin, derived from existing registrat
     assert.equal(kind('https://example.com/docs'), undefined);
     const input = document.querySelector('[cmdk-input]');
     await act(async () => {
-      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, 'todos');
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(
+        input,
+        'todos',
+      );
       input.dispatchEvent(new window.Event('input', { bubbles: true }));
     });
     // Searching for the plugin finds everything it owns, including results whose IDs do not say so.
     assert.deepEqual(
-      [...document.querySelectorAll('[cmdk-item] a')].map((link) => link.getAttribute('href')).sort(),
+      [...document.querySelectorAll('[cmdk-item] a')]
+        .map((link) => link.getAttribute('href'))
+        .sort(),
       ['/settings/alerts', '/settings/plugins?plugin=todos', '/todos/tasks'],
     );
-  } finally { await search.close(); }
+  } finally {
+    await search.close();
+  }
 });
 
 test('each result type has its own switch; turning one off never hides another', async () => {
@@ -162,8 +253,18 @@ test('each result type has its own switch; turning one off never hides another',
   };
   const projected = () => {
     const list = createActionList();
-    list.register({ id: 'alerts', title: 'Notifications', href: '/settings/alerts', metadata: destinationMetadata({ kind: 'settings', plugin: 'todos' }) });
-    list.register({ id: 'overview', title: 'Todos', href: '/settings/plugins?plugin=todos', metadata: destinationMetadata({ kind: 'plugin', plugin: 'todos' }) });
+    list.register({
+      id: 'alerts',
+      title: 'Notifications',
+      href: '/settings/alerts',
+      metadata: destinationMetadata({ kind: 'settings', plugin: 'todos' }),
+    });
+    list.register({
+      id: 'overview',
+      title: 'Todos',
+      href: '/settings/plugins?plugin=todos',
+      metadata: destinationMetadata({ kind: 'plugin', plugin: 'todos' }),
+    });
     return list;
   };
   const cases = [
@@ -180,37 +281,66 @@ test('each result type has its own switch; turning one off never hides another',
     const search = await openSearch({ plugins: [todos], list: projected(), results });
     try {
       assert.deepEqual(search.ids(), expected, JSON.stringify(results));
-    } finally { await search.close(); }
+    } finally {
+      await search.close();
+    }
   }
 });
 
 test('only navigation links are results: Actions without a URL never appear, even those that need input', async () => {
-  const { defineAction, defineDialogAction, defineFormAction } = await import('@bitakit/core');
+  const { defineAction } = await import('@bitakit/core');
   const runs = [];
   const todos = {
     id: 'todos',
     metadata: { name: 'Todos' },
     actions: [
-      defineAction({ id: 'todos.archive', title: 'Archive done', execute: () => void runs.push('archive') }),
+      defineAction({
+        id: 'todos.archive',
+        title: 'Archive done',
+        execute: () => void runs.push('archive'),
+      }),
       // Needs input and does not hide itself without it.
-      defineAction({ id: 'todos.rename', title: 'Rename', execute: ({ input }) => void runs.push(`rename ${input.title}`) }),
-      defineDialogAction({ id: 'todos.details', title: 'Task details', render: () => null }),
-      defineFormAction({ id: 'todos.create', title: 'New task', fields: { title: { type: 'text', required: true } }, submit: () => {} }),
+      defineAction({
+        id: 'todos.rename',
+        title: 'Rename',
+        execute: ({ input }) => void runs.push(`rename ${input.title}`),
+      }),
+      defineAction({ id: 'todos.details', title: 'Task details', dialog: () => null }),
+      defineAction({
+        id: 'todos.create',
+        title: 'New task',
+        input: {
+          parse: (value) => {
+            if (!value?.title) throw new Error('A title is required.');
+            return value;
+          },
+        },
+        execute: () => {},
+      }),
     ],
   };
   const list = createActionList();
   list.register({ id: 'dark', title: 'Dark mode', checked: false, execute: () => {} });
   list.register({ id: 'reports', title: 'Reports', href: '/reports' });
-  const search = await openSearch({ plugins: [todos], list, results: { pages: true, settings: true, plugins: true } });
+  const search = await openSearch({
+    plugins: [todos],
+    list,
+    results: { pages: true, settings: true, plugins: true },
+  });
   try {
     assert.deepEqual(search.ids(), ['reports']);
     const input = document.querySelector('[cmdk-input]');
     await act(async () => {
-      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, 'rename');
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(
+        input,
+        'rename',
+      );
       input.dispatchEvent(new window.Event('input', { bubbles: true }));
     });
     assert.deepEqual(search.ids(), []);
     assert.match(document.body.textContent, /No results found/);
     assert.deepEqual(runs, []);
-  } finally { await search.close(); }
+  } finally {
+    await search.close();
+  }
 });

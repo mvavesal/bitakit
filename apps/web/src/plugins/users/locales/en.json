@@ -3,7 +3,6 @@
     "invite": {
       "title": "Invite user",
       "description": "Local example: no email is sent. Use error@example.com to try the error state.",
-      "submit": "Create demo invitation",
       "success": "Demo invitation created",
       "failure": "The demo invitation failed. Please try again.",
       "fields": {

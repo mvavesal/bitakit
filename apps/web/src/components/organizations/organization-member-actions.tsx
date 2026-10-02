@@ -2,8 +2,8 @@
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import MoreIcon from 'reicon-react/icons/MoreH';
-import { actionGroups } from '@/actions/groups';
-import type { MemberActionContext } from '@/actions/organizations/context';
+import { actionGroups } from '@/lib/action-groups';
+import type { MemberActionContext } from '@/lib/organizations/action-context';
 import { ActionMenu } from '@/components/navigation/action-menu';
 import { Button } from '@/components/ui/button';
 export function OrganizationMemberActions({
@@ -17,7 +17,7 @@ export function OrganizationMemberActions({
   return (
     <ActionMenu
       groups={[actionGroups.member]}
-      context={{ organizationId, member, canManage, refresh: onRefresh ?? router.refresh }}
+      input={{ organizationId, member, canManage, refresh: onRefresh ?? router.refresh }}
       header={member.name}
       trigger={
         <Button

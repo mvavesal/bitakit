@@ -12,7 +12,11 @@ function consumer() {
 }
 void consumer;
 const custom: NotificationService = {
-  show() { return 42; },
-  dismiss(id) { void id; },
+  show() {
+    return 42;
+  },
+  dismiss(id) {
+    void id;
+  },
 };
 shellPlugin({ notifications: { toastProvider: false, service: { create: () => custom } } });

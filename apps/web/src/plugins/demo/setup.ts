@@ -1,10 +1,12 @@
-import { defineSetup } from '@bitakit/core';
+import { getService, type Setup } from '@bitakit/core';
 import { SettingsSection } from '@bitakit/app-preferences';
+import { settingsService } from '@bitakit/app-preferences/foundation';
 import Icon from 'reicon-react/icons/Flask';
-import { DemoSettings } from './components/demo-settings';
+import { DemoSettings } from './ui/components/demo-settings';
 
-export default defineSetup(({ services }) => {
-  const page = services.settings.add(
+/** Registers the plugin's settings page under the host's "Plugins" section; the scope removes it with the plugin. */
+const setup: Setup = ({ app, services }) => {
+  const page = getService(services, settingsService).add(
     new SettingsSection({
       id: 'demo',
       pluginId: 'demo',
@@ -14,5 +16,6 @@ export default defineSetup(({ services }) => {
     }),
     { section: 'plugins' },
   );
-  return page.remove;
-});
+  app.own(page.remove);
+};
+export default setup;

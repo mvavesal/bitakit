@@ -23,7 +23,12 @@ if (versions.size !== 1)
   );
 const [version] = versions;
 for (const { file, manifest } of manifests)
-  for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'])
+  for (const field of [
+    'dependencies',
+    'devDependencies',
+    'peerDependencies',
+    'optionalDependencies',
+  ])
     for (const [name, range] of Object.entries(manifest[field] ?? {}))
       if (name.startsWith('@bitakit/') && range !== `^${version}`)
         problems.push(`${file}: ${field}.${name} is "${range}", expected "^${version}".`);

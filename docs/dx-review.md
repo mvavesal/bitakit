@@ -39,13 +39,13 @@ one documented way, and make services observable with a `useService` hook.
 Core exports 24 definition and factory functions. The `defineAction` input accepts about 35
 properties. Most are unused:
 
-| Property or helper | Usage outside Core |
-| --- | --- |
-| `dependsOn`, `unavailable`, `replaces`, `conventions`, `initialState` | tests only |
-| `configPath` | nowhere |
-| `state` on definitions | dropped at registration |
-| `defineActionInterceptor`, `defineServiceInterceptor` | unused by apps and packages |
-| curried `defineAction<Input>()` builder | changes the `execute` signature, unused in apps |
+| Property or helper                                                    | Usage outside Core                              |
+| --------------------------------------------------------------------- | ----------------------------------------------- |
+| `dependsOn`, `unavailable`, `replaces`, `conventions`, `initialState` | tests only                                      |
+| `configPath`                                                          | nowhere                                         |
+| `state` on definitions                                                | dropped at registration                         |
+| `defineActionInterceptor`, `defineServiceInterceptor`                 | unused by apps and packages                     |
+| curried `defineAction<Input>()` builder                               | changes the `execute` signature, unused in apps |
 
 Parallel paths observed in the repo (the one to keep in bold):
 

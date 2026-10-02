@@ -1,47 +1,44 @@
 'use client';
-import type { ElementType, ComponentPropsWithoutRef } from 'react';
-import { useAction } from '../hooks/use-action.js';
-import { ActionBinding } from './action-binding.js';
-import type { ActionId, ActionInput, ActionReference } from '@bitakit/core';
-export type ActionButtonProps<Id extends ActionId = ActionId> = Omit<
-  ComponentPropsWithoutRef<'button'>,
-  'onClick'
-> & {
+import type { ElementType, ComponentProps, ReactNode } from 'react';
+import type { ActionId, ActionInput, ActionReference, ExecutionResult } from '@bitakit/core';
+import { Action } from './action.js';
+
+export type ActionButtonProps<
+  Id extends ActionId = ActionId,
+  C extends ElementType = 'button',
+> = Omit<ComponentProps<C>, 'onClick' | 'children'> & {
   action: Id | ActionReference<Id>;
   input?: ActionInput<Id>;
-  as?: ElementType;
+  /** The component to render; defaults to a native button. */
+  as?: C;
   onError?: (error: unknown) => void;
-  [key: string]: unknown;
+  onExecuted?: (result: ExecutionResult) => void;
+  pending?: ReactNode;
+  children?: ReactNode;
 };
-export function ActionButton<Id extends ActionId>({
+
+/** Sugar over `<Action>`: a button bound to an action, rendered as `as` or a native button. */
+export function ActionButton<Id extends ActionId, C extends ElementType = 'button'>({
   action,
   input,
-  as: Component = 'button',
+  as,
   onError,
+  onExecuted,
+  pending,
   children,
   ...props
-}: ActionButtonProps<Id>) {
-  // Resolved for this input, so presentation from resolve() applies to this button.
-  const state = useAction(action, input);
-  const Icon = state?.icon;
-  // The tooltip is the hover hint and the description its fallback, as in menu items.
-  const hint = props.title ?? state?.tooltip ?? state?.description;
+}: ActionButtonProps<Id, C>) {
+  const Component = (as ?? 'button') as ElementType;
   return (
-    <ActionBinding action={action} input={input} onError={onError}>
-      {(binding) => (
-        <Component
-          {...props}
-          type="button"
-          disabled={binding.disabled || props.disabled}
-          aria-busy={binding.pending}
-          aria-pressed={state?.checked}
-          title={hint}
-          onClick={() => void binding.execute()}
-        >
-          {Icon && <Icon aria-hidden="true" />}
-          {children ?? (binding.pending ? 'Working…' : binding.title)}
-        </Component>
-      )}
-    </ActionBinding>
+    <Action
+      id={action}
+      input={input}
+      kind="button"
+      onError={onError}
+      onExecuted={onExecuted}
+      pending={pending}
+    >
+      <Component {...props}>{children}</Component>
+    </Action>
   );
 }

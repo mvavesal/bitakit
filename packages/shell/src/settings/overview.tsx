@@ -4,10 +4,10 @@ import { useTranslation } from '@bitakit/ui';
 import type { ElementType } from 'react';
 
 import { Fragment, useContext } from 'react';
-import {  BackLink  } from '../components/ui/index.js';
-import {  PageHeader  } from '../components/ui/index.js';
+import { BackLink } from '../components/ui/index.js';
+import { PageHeader } from '../components/ui/index.js';
 import { SettingsNavigationLink } from './link.js';
-import {  Badge  } from '../components/ui/index.js';
+import { Badge } from '../components/ui/index.js';
 import PuzzleIcon from 'reicon-react/icons/Puzzle';
 import { useFoundation } from '@bitakit/ui';
 import { safeHref } from '@bitakit/core';
@@ -24,11 +24,20 @@ export function PluginSettingsOverview() {
     'plugin',
     parseAsString.withDefault('').withOptions({ history: 'push' }),
   );
-  const plugins = (runtime.config.plugins ?? []).map(plugin => ({ ...plugin, metadata: plugin.metadata ? {
-    ...plugin.metadata,
-    name: t(`plugins.${plugin.id}.name`, undefined, plugin.metadata.name ?? plugin.id),
-    description: t(`plugins.${plugin.id}.description`, undefined, plugin.metadata.description ?? ''),
-  } : undefined }));
+  const plugins = (runtime.config.plugins ?? []).map((plugin) => ({
+    ...plugin,
+    metadata: plugin.metadata
+      ? {
+          ...plugin.metadata,
+          name: t(`plugins.${plugin.id}.name`, undefined, plugin.metadata.name ?? plugin.id),
+          description: t(
+            `plugins.${plugin.id}.description`,
+            undefined,
+            plugin.metadata.description ?? '',
+          ),
+        }
+      : undefined,
+  }));
   const plugin = plugins.find((item) => item.id === selected);
   const listHref = query
     ? `/settings/plugins?${new URLSearchParams({ pluginSearch: query })}`
@@ -36,14 +45,14 @@ export function PluginSettingsOverview() {
   if (selected) {
     const back = (
       <BackLink as={Link} href={listHref}>
-        {t("shell.ui.backPlugins", undefined, "Back to plugins")}
+        {t('shell.ui.backPlugins', undefined, 'Back to plugins')}
       </BackLink>
     );
     if (!plugin)
       return (
         <section className="flex w-full min-w-0 flex-col gap-6">
           {back}
-          <PageHeader title={t("shell.ui.pluginUnavailable", undefined, "Plugin unavailable")} />
+          <PageHeader title={t('shell.ui.pluginUnavailable', undefined, 'Plugin unavailable')} />
         </section>
       );
     const meta = plugin.metadata;
@@ -70,14 +79,29 @@ export function PluginSettingsOverview() {
         </div>
         <div className="grid min-w-0 gap-8 lg:grid-cols-3">
           <div className="flex min-w-0 flex-col gap-8 lg:col-span-2">
-            <section className="flex flex-col gap-3" aria-label={t("shell.ui.description", undefined, "Description")}>
-              <h2 className="text-base font-medium">{t("shell.ui.aboutPlugin", undefined, "About this plugin")}</h2>
+            <section
+              className="flex flex-col gap-3"
+              aria-label={t('shell.ui.description', undefined, 'Description')}
+            >
+              <h2 className="text-base font-medium">
+                {t('shell.ui.aboutPlugin', undefined, 'About this plugin')}
+              </h2>
               <p className="text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
-                {meta?.description ?? t("shell.ui.noDescription", undefined, "No description is available for this plugin.")}
+                {meta?.description ??
+                  t(
+                    'shell.ui.noDescription',
+                    undefined,
+                    'No description is available for this plugin.',
+                  )}
               </p>
             </section>
-            <section className="flex flex-col gap-3" aria-label={t("shell.ui.pluginSettings", undefined, "Plugin settings")}>
-              <h2 className="text-base font-medium">{t("shell.ui.settings", undefined, "Settings")}</h2>
+            <section
+              className="flex flex-col gap-3"
+              aria-label={t('shell.ui.pluginSettings', undefined, 'Plugin settings')}
+            >
+              <h2 className="text-base font-medium">
+                {t('shell.ui.settings', undefined, 'Settings')}
+              </h2>
               {owned.length ? (
                 <ItemGroup>
                   {owned.map((section) => (
@@ -108,49 +132,59 @@ export function PluginSettingsOverview() {
                 </ItemGroup>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {t("shell.ui.noSettings", undefined, "This plugin has no settings.")}
+                  {t('shell.ui.noSettings', undefined, 'This plugin has no settings.')}
                 </p>
               )}
             </section>
           </div>
           <aside
             className="min-w-0 border-t border-border pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
-            aria-label={t("shell.ui.pluginInfo", undefined, "Plugin information")}
+            aria-label={t('shell.ui.pluginInfo', undefined, 'Plugin information')}
           >
-            <h2 className="mb-4 text-base font-medium">{t("shell.ui.info", undefined, "Information")}</h2>
+            <h2 className="mb-4 text-base font-medium">
+              {t('shell.ui.info', undefined, 'Information')}
+            </h2>
             <dl className="flex flex-col gap-5 text-sm [overflow-wrap:anywhere]">
               <div className="flex flex-col gap-1.5">
-                <dt className="text-muted-foreground">{t("shell.ui.version", undefined, "Version")}</dt>
+                <dt className="text-muted-foreground">
+                  {t('shell.ui.version', undefined, 'Version')}
+                </dt>
                 <dd>
                   {meta?.version ? (
                     <Badge variant="secondary">{meta.version}</Badge>
                   ) : (
-                    t("shell.ui.unspecified", undefined, "Not specified")
+                    t('shell.ui.unspecified', undefined, 'Not specified')
                   )}
                 </dd>
               </div>
               {meta?.license && (
                 <div className="flex flex-col gap-1.5">
-                  <dt className="text-muted-foreground">{t("shell.ui.license", undefined, "License")}</dt>
+                  <dt className="text-muted-foreground">
+                    {t('shell.ui.license', undefined, 'License')}
+                  </dt>
                   <dd>{meta.license}</dd>
                 </div>
               )}
               {homepage && (
                 <div className="flex flex-col gap-1.5">
-                  <dt className="text-muted-foreground">{t("shell.ui.website", undefined, "Website")}</dt>
+                  <dt className="text-muted-foreground">
+                    {t('shell.ui.website', undefined, 'Website')}
+                  </dt>
                   <dd>
                     <a href={homepage} className="underline underline-offset-4">
-                      {t("shell.ui.projectWebsite", undefined, "Project website")}
+                      {t('shell.ui.projectWebsite', undefined, 'Project website')}
                     </a>
                   </dd>
                 </div>
               )}
               {support && (
                 <div className="flex flex-col gap-1.5">
-                  <dt className="text-muted-foreground">{t("shell.ui.support", undefined, "Support")}</dt>
+                  <dt className="text-muted-foreground">
+                    {t('shell.ui.support', undefined, 'Support')}
+                  </dt>
                   <dd>
                     <a href={support} className="underline underline-offset-4">
-                      {t("shell.ui.supportLink", undefined, "Get help and report issues")}
+                      {t('shell.ui.supportLink', undefined, 'Get help and report issues')}
                     </a>
                   </dd>
                 </div>
@@ -168,85 +202,99 @@ export function PluginSettingsOverview() {
   );
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PageHeader title={t("shell.ui.plugins", undefined, "Plugins")} subtitle={t("shell.ui.pluginsDescription", undefined, "Active extensions and their settings.")} />
-      <div className="flex min-w-0 flex-col gap-4">
-      <InputGroup className="w-full sm:max-w-xs">
-        <InputGroupAddon>
-          <SearchIcon aria-hidden="true" />
-        </InputGroupAddon>
-        <InputGroupInput
-          type="text"
-          aria-label={t("shell.ui.searchPlugins", undefined, "Search plugins")}
-          placeholder={t("shell.ui.pluginsPlaceholder", undefined, "Search plugins…")}
-          value={query}
-          onChange={(event) => {
-            void setQuery(event.target.value);
-          }}
-        />
-        {query && (
-          <InputGroupAddon align="inline-end">
-            <InputGroupClearButton
-              aria-label={t("shell.ui.clearPlugins", undefined, "Clear plugin search")}
-              onClear={() => {
-                void setQuery(null);
-              }}
-            />
-          </InputGroupAddon>
+      <PageHeader
+        title={t('shell.ui.plugins', undefined, 'Plugins')}
+        subtitle={t(
+          'shell.ui.pluginsDescription',
+          undefined,
+          'Active extensions and their settings.',
         )}
-      </InputGroup>
-      <ul aria-label={t("shell.ui.plugins", undefined, "Plugins")} className="grid w-full list-none grid-cols-1 gap-4 p-0">
-        {entries.map((item) => {
-          const Icon = item.metadata?.icon ?? PuzzleIcon;
-          const name = item.metadata?.name ?? item.id;
-          const cover = safeHref(item.metadata?.coverImage);
-          const author =
-            typeof item.metadata?.author === 'string'
-              ? item.metadata.author
-              : item.metadata?.author?.name;
-          return (
-            <li key={item.id} className="min-w-0">
-              <Item asChild variant="outline" className="h-full">
-                <Link
-                  aria-label={t('shell.ui.openPlugin', { name }, `Open ${name}`)}
-                  href={`/settings/plugins?${new URLSearchParams({ ...(query ? { pluginSearch: query } : {}), plugin: item.id })}`}
-                >
-                  <ItemMedia variant={cover ? 'image' : 'icon'}>
-                    {cover ? (
-                      <img
-                        src={cover}
-                        alt=""
-                        className="object-cover"
-                        onError={(event) => {
-                          event.currentTarget.hidden = true;
-                        }}
-                      />
-                    ) : (
-                      <Icon aria-hidden="true" />
-                    )}
-                  </ItemMedia>
-                  <ItemContent>
-                    <ItemTitle>
-                      {name}
-                      {item.metadata?.version && (
-                        <Badge variant="secondary">{item.metadata.version}</Badge>
+      />
+      <div className="flex min-w-0 flex-col gap-4">
+        <InputGroup className="w-full sm:max-w-xs">
+          <InputGroupAddon>
+            <SearchIcon aria-hidden="true" />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="text"
+            aria-label={t('shell.ui.searchPlugins', undefined, 'Search plugins')}
+            placeholder={t('shell.ui.pluginsPlaceholder', undefined, 'Search plugins…')}
+            value={query}
+            onChange={(event) => {
+              void setQuery(event.target.value);
+            }}
+          />
+          {query && (
+            <InputGroupAddon align="inline-end">
+              <InputGroupClearButton
+                aria-label={t('shell.ui.clearPlugins', undefined, 'Clear plugin search')}
+                onClear={() => {
+                  void setQuery(null);
+                }}
+              />
+            </InputGroupAddon>
+          )}
+        </InputGroup>
+        <ul
+          aria-label={t('shell.ui.plugins', undefined, 'Plugins')}
+          className="grid w-full list-none grid-cols-1 gap-4 p-0"
+        >
+          {entries.map((item) => {
+            const Icon = item.metadata?.icon ?? PuzzleIcon;
+            const name = item.metadata?.name ?? item.id;
+            const cover = safeHref(item.metadata?.coverImage);
+            const author =
+              typeof item.metadata?.author === 'string'
+                ? item.metadata.author
+                : item.metadata?.author?.name;
+            return (
+              <li key={item.id} className="min-w-0">
+                <Item asChild variant="outline" className="h-full">
+                  <Link
+                    aria-label={t('shell.ui.openPlugin', { name }, `Open ${name}`)}
+                    href={`/settings/plugins?${new URLSearchParams({ ...(query ? { pluginSearch: query } : {}), plugin: item.id })}`}
+                  >
+                    <ItemMedia variant={cover ? 'image' : 'icon'}>
+                      {cover ? (
+                        <img
+                          src={cover}
+                          alt=""
+                          className="object-cover"
+                          onError={(event) => {
+                            event.currentTarget.hidden = true;
+                          }}
+                        />
+                      ) : (
+                        <Icon aria-hidden="true" />
                       )}
-                    </ItemTitle>
-                    {item.metadata?.description && (
-                      <ItemDescription>{item.metadata.description}</ItemDescription>
-                    )}
-                    {author && <p className="text-xs text-muted-foreground">Von {author}</p>}
-                  </ItemContent>
-                  <ChevronRightIcon
-                    className="size-4 shrink-0 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                </Link>
-              </Item>
-            </li>
-          );
-        })}
-      </ul>
-      {!entries.length && <p className="text-sm text-muted-foreground">{t('shell.ui.noPlugins', undefined, 'No plugins found.')}</p>}
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>
+                        {name}
+                        {item.metadata?.version && (
+                          <Badge variant="secondary">{item.metadata.version}</Badge>
+                        )}
+                      </ItemTitle>
+                      {item.metadata?.description && (
+                        <ItemDescription>{item.metadata.description}</ItemDescription>
+                      )}
+                      {author && <p className="text-xs text-muted-foreground">Von {author}</p>}
+                    </ItemContent>
+                    <ChevronRightIcon
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </Item>
+              </li>
+            );
+          })}
+        </ul>
+        {!entries.length && (
+          <p className="text-sm text-muted-foreground">
+            {t('shell.ui.noPlugins', undefined, 'No plugins found.')}
+          </p>
+        )}
       </div>
     </section>
   );
@@ -254,34 +302,34 @@ export function PluginSettingsOverview() {
 import { useSettingsSections } from '@bitakit/app-preferences';
 import { projectSettings } from '@bitakit/app-preferences/core';
 
-import {  Separator  } from '../components/ui/index.js';
+import { Separator } from '../components/ui/index.js';
 import { parseAsString, useQueryState } from 'nuqs';
 import ChevronRightIcon from 'reicon-react/icons/ChevronRight';
 import SearchIcon from 'reicon-react/icons/Search';
-import {  Button  } from '../components/ui/index.js';
-import { 
+import { Button } from '../components/ui/index.js';
+import {
   InputGroup,
   InputGroupInput,
   InputGroupAddon,
   InputGroupClearButton,
- } from '../components/ui/index.js';
-import {  Field, FieldLabel  } from '../components/ui/index.js';
-import { 
+} from '../components/ui/index.js';
+import { Field, FieldLabel } from '../components/ui/index.js';
+import {
   Item,
   ItemContent,
   ItemDescription,
   ItemGroup,
   ItemMedia,
   ItemTitle,
- } from '../components/ui/index.js';
-import { 
+} from '../components/ui/index.js';
+import {
   Empty,
   EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
- } from '../components/ui/index.js';
+} from '../components/ui/index.js';
 
 export function SettingsOverview({
   linkComponent,
@@ -303,7 +351,8 @@ export function SettingsOverview({
     clearSearch: 'Reset search',
   };
   const translate = useTranslation();
-  const t = (key: keyof typeof labels) => translate(`shell.overview.${key}`, undefined, labels[key]);
+  const t = (key: keyof typeof labels) =>
+    translate(`shell.overview.${key}`, undefined, labels[key]);
   const [query, setQuery] = useQueryState(
     'q',
     parseAsString.withDefault('').withOptions({ history: 'replace' }),

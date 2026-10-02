@@ -4,6 +4,7 @@ import { createActionList, type ActionList } from '@bitakit/core';
 import type { ActionInterceptor } from '@bitakit/core';
 import { ActionContext, UIContext } from './action-context.js';
 import { bindActionShortcuts, type ActionShortcutOptions } from '../bindings/action-shortcuts.js';
+import type { ControlAdapters } from '../hooks/use-action.js';
 const defaultShortcuts = {};
 const noInterceptors: readonly ActionInterceptor[] = [];
 // Browser fallback belongs to the UI boundary; integrations supply their own router.
@@ -11,6 +12,7 @@ const browserNavigate = (href: string) => window.location.assign(href);
 export type ActionProviderProps = {
   children: ReactNode;
   actions?: ActionList;
+  /** @deprecated Use `actions`. */
   list?: ActionList;
   navigate?: (href: string) => void;
   Link?: ComponentType<any>;
@@ -18,6 +20,7 @@ export type ActionProviderProps = {
   onError?: (error: unknown) => void;
   interceptors?: readonly ActionInterceptor[];
   shortcuts?: false | ActionShortcutOptions;
+  controls?: ControlAdapters;
 };
 export function ActionProvider({
   children,
@@ -29,6 +32,7 @@ export function ActionProvider({
   onError = console.error,
   interceptors = noInterceptors,
   shortcuts = defaultShortcuts,
+  controls,
 }: ActionProviderProps) {
   const [owned] = useState(() => actions ?? list ?? createActionList());
   const current = actions ?? list ?? owned;
@@ -43,7 +47,9 @@ export function ActionProvider({
   );
   return (
     <ActionContext.Provider value={current}>
-      <UIContext.Provider value={{ onError, Link, pathname, navigate }}>{children}</UIContext.Provider>
+      <UIContext.Provider value={{ onError, Link, pathname, navigate, controls }}>
+        {children}
+      </UIContext.Provider>
     </ActionContext.Provider>
   );
 }

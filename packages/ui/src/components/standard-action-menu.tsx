@@ -1,6 +1,5 @@
 'use client';
-import { ActionMenuView } from './action-menu-view.js';
-import type { ActionGroupsViewProps } from './action-group-binding.js';
+import type { BoundGroup } from '../hooks/use-action-group.js';
 import { Button } from './primitives/button.js';
 import {
   DropdownMenu,
@@ -10,18 +9,55 @@ import {
   DropdownMenuItem,
   DropdownMenuShortcut,
 } from './primitives/dropdown-menu.js';
+import { ActionShortcutLabel } from './action-shortcut-label.js';
 
-const components = {
-  Root: DropdownMenu,
-  Trigger: DropdownMenuTrigger,
-  Content: DropdownMenuContent,
-  Group: DropdownMenuGroup,
-  Item: DropdownMenuItem,
-  Button,
-  Shortcut: DropdownMenuShortcut,
-};
-
-/** Standard menu presentation using the shared Foundation action bindings and host theme tokens. */
-export function StandardActionMenu(props: ActionGroupsViewProps & { label: string }) {
-  return <ActionMenuView {...props} components={components} />;
+/** Standard menu presentation of bound action groups, using the host theme tokens. */
+export function StandardActionMenu({
+  groups,
+  label,
+}: {
+  groups: readonly BoundGroup[];
+  label: string;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline">{label}</Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        {groups.map((group) => (
+          <DropdownMenuGroup key={group.id}>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const props = item.href !== undefined ? item.linkProps() : item.menuItemProps();
+              return (
+                <DropdownMenuItem
+                  key={item.id}
+                  asChild={item.href !== undefined}
+                  {...(item.href !== undefined ? { disabled: item.disabled } : props)}
+                >
+                  {item.href !== undefined ? (
+                    <a {...props}>
+                      {Icon && <Icon aria-hidden="true" />}
+                      {item.title}
+                    </a>
+                  ) : (
+                    <>
+                      {Icon && <Icon aria-hidden="true" />}
+                      {item.title}
+                      {item.shortcut && (
+                        <DropdownMenuShortcut>
+                          <ActionShortcutLabel keys={item.shortcut.keys} />
+                        </DropdownMenuShortcut>
+                      )}
+                    </>
+                  )}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuGroup>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }

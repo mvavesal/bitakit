@@ -10,7 +10,24 @@ const root = path.resolve(import.meta.dirname, '..');
 const [target = path.join(root, '.packs'), ...selected] = process.argv.slice(2);
 const destination = path.resolve(target);
 // Dependency order: each package builds after the packages it imports.
-const order = ['core', 'ui', 'app-preferences', 'next', 'tanstack', 'organizations', 'email', 'better-auth', 'next-intl', 'nodemailer', 'shell', 'better-auth-ui', 'quick-search', 'devtools', 'cli', 'create-app'];
+const order = [
+  'core',
+  'ui',
+  'app-preferences',
+  'next',
+  'tanstack',
+  'organizations',
+  'email',
+  'better-auth',
+  'next-intl',
+  'nodemailer',
+  'shell',
+  'better-auth-ui',
+  'quick-search',
+  'devtools',
+  'cli',
+  'create-app',
+];
 const names = selected.length ? order.filter((name) => selected.includes(name)) : order;
 await mkdir(destination, { recursive: true });
 for (const file of await readdir(destination))
@@ -18,7 +35,11 @@ for (const file of await readdir(destination))
 for (const name of names) {
   const directory = path.join(root, 'packages', name);
   const manifest = JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'));
-  if (manifest.scripts?.build) execFileSync('npm', ['run', 'build'], { cwd: directory, stdio: 'ignore' });
-  execFileSync('npm', ['pack', '--pack-destination', destination], { cwd: directory, stdio: 'ignore' });
+  if (manifest.scripts?.build)
+    execFileSync('npm', ['run', 'build'], { cwd: directory, stdio: 'ignore' });
+  execFileSync('npm', ['pack', '--pack-destination', destination], {
+    cwd: directory,
+    stdio: 'ignore',
+  });
   console.log(`packed ${manifest.name}@${manifest.version}`);
 }

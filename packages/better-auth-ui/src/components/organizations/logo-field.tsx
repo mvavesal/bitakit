@@ -3,9 +3,9 @@ import { useTranslation } from '@bitakit/ui';
 
 import { useEffect, useRef, useState } from 'react';
 import BuildingIcon from 'reicon-react/icons/Building';
-import {  Avatar, AvatarImage, AvatarFallback  } from '../ui/index.js';
-import {  Button  } from '../ui/index.js';
-import {  Field, FieldLabel, FieldDescription, FieldError  } from '../ui/index.js';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/index.js';
+import { Button } from '../ui/index.js';
+import { Field, FieldLabel, FieldDescription, FieldError } from '../ui/index.js';
 
 export function OrganizationLogoField({
   disabled,
@@ -16,13 +16,25 @@ export function OrganizationLogoField({
 }) {
   const translateUI = useTranslation();
   const labels = {
-    logo: translateUI("foundationUI.logo_field.logo", undefined, "Logo"),
-    logoPreview: translateUI("foundationUI.logo_field.organizationLogo", undefined, "Organization logo"),
-    changeLogo: translateUI("foundationUI.logo_field.changeLogo", undefined, "Change logo"),
-    chooseLogo: translateUI("foundationUI.logo_field.chooseLogo", undefined, "Choose logo"),
-    removeLogo: translateUI("foundationUI.logo_field.removeLogo", undefined, "Remove logo"),
-    logoHint: translateUI("foundationUI.logo_field.pngJPEGOrWebPUpTo2MB", undefined, "PNG, JPEG or WebP, up to 2 MB."),
-    logoInvalid: translateUI("foundationUI.logo_field.chooseAValidImageUpTo2MB", undefined, "Choose a valid image up to 2 MB."),
+    logo: translateUI('foundationUI.logo_field.logo', undefined, 'Logo'),
+    logoPreview: translateUI(
+      'foundationUI.logo_field.organizationLogo',
+      undefined,
+      'Organization logo',
+    ),
+    changeLogo: translateUI('foundationUI.logo_field.changeLogo', undefined, 'Change logo'),
+    chooseLogo: translateUI('foundationUI.logo_field.chooseLogo', undefined, 'Choose logo'),
+    removeLogo: translateUI('foundationUI.logo_field.removeLogo', undefined, 'Remove logo'),
+    logoHint: translateUI(
+      'foundationUI.logo_field.pngJPEGOrWebPUpTo2MB',
+      undefined,
+      'PNG, JPEG or WebP, up to 2 MB.',
+    ),
+    logoInvalid: translateUI(
+      'foundationUI.logo_field.chooseAValidImageUpTo2MB',
+      undefined,
+      'Choose a valid image up to 2 MB.',
+    ),
   };
   const t = (key: keyof typeof labels) => labels[key];
   const input = useRef<HTMLInputElement>(null);

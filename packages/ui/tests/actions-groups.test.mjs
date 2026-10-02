@@ -1,152 +1,323 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
-import { createRoot } from 'react-dom/client';
-import { JSDOM } from 'jsdom';
+import { installDom, mount, click, testUI } from './support.mjs';
 import {
-  Action,
   ActionGroup,
   createActionList,
   ActionProvider,
-  ActionGroupBinding,
-  ActionMenuItem,
+  useActionGroups,
+  useActionGroup,
 } from '../dist/actions/index.js';
-const dom = new JSDOM('<html><body></body></html>');
-globalThis.window = dom.window;
-globalThis.document = dom.window.document;
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-const deferred = () => {
-  let resolve;
-  const promise = new Promise((r) => (resolve = r));
-  return { promise, resolve };
-};
+import {
+  ActionMenu,
+  FoundationProvider,
+  defineAction,
+  definePlugin,
+  useFoundation,
+} from '../dist/index.js';
 
-function View({ groups }) {
+installDom();
+
+const allowed = { id: 'alice', role: 'member', allowed: true };
+const denied = { id: 'bob', role: 'member', allowed: false };
+const owner = { id: 'carol', role: 'owner', allowed: true };
+
+/** Renders bound groups as sections of buttons so ordering, state and titles are observable. */
+function GroupView({ groups, input, name }) {
+  const bound = useActionGroups(groups, input);
   return h(
     'div',
-    null,
-    groups.map((group) =>
+    { 'data-view': name },
+    bound.map((group) =>
       h(
         'section',
-        { key: group.id, 'data-group': group.id },
-        group.items.map((item) => h(ActionMenuItem, { key: item.id, binding: item })),
+        { key: group.id, 'data-group': group.id, 'aria-label': group.title },
+        group.items.map((item) =>
+          h('button', { key: item.id, 'data-action': item.id, ...item.props() }, item.title),
+        ),
       ),
     ),
   );
 }
 
-test('groups react to plugin lifecycle, ordering and state without leaking row context', async () => {
-  const group = new ActionGroup('members');
-  const alias = new ActionGroup('members'); // Plugins can resolve a published group by its stable ID.
-  const list = createActionList();
+test('groups are ordered, bound to the caller input, titled and free of internal and hidden actions', async () => {
   const received = [];
-  class Promote extends Action {
-    isEnabled(context) {
-      return context.allowed;
-    }
-    isVisible(context) {
-      return context.role === 'member';
-    }
-    execute(context) {
-      received.push(context.id);
-    }
+  const config = {
+    groups: ['members'],
+    plugins: [
+      definePlugin({
+        id: 'team',
+        actions: {
+          promote: defineAction({
+            title: 'Promote',
+            tooltip: 'Admin rights',
+            groups: ['members'],
+            order: 20,
+            enabled: ({ input }) => input?.allowed === true,
+            visible: ({ input }) => input?.role === 'member',
+            execute: ({ input }) => received.push(input.id),
+          }),
+          remove: defineAction({ title: 'Remove', groups: ['members'], order: 10, execute() {} }),
+          helper: defineAction({
+            title: 'Helper',
+            groups: ['members'],
+            internal: true,
+            execute: () => 'ran',
+          }),
+          home: defineAction({ title: 'Home', href: '/', groups: ['navigation'] }),
+          export: defineAction({
+            title: 'Export',
+            groups: [new ActionGroup('team.bulk', 'Bulk actions')],
+            execute() {},
+          }),
+        },
+      }),
+    ],
+  };
+  let runtime;
+  function Capture() {
+    runtime = useFoundation().runtime;
+    return null;
   }
-  const action = new Promote({ id: 'promote', title: 'Promote', tooltip: 'Admin rights' });
-  const host = document.createElement('div');
-  document.body.append(host);
-  const root = createRoot(host);
-  const allowed = { id: 'alice', role: 'member', allowed: true };
-  const denied = { id: 'bob', role: 'member', allowed: false };
-  const render = (first = allowed) =>
+  const single = {};
+  function Single({ group, input }) {
+    single.value = useActionGroup(group, input);
+    return null;
+  }
+  const view = await mount(
+    h(
+      FoundationProvider,
+      { config, ui: testUI },
+      h(Capture),
+      h(GroupView, { name: 'allowed', groups: ['members'], input: allowed }),
+      h(GroupView, { name: 'denied', groups: ['members'], input: denied }),
+      h(GroupView, {
+        name: 'owner',
+        groups: ['members', 'navigation', 'team.bulk', 'empty'],
+        input: owner,
+      }),
+      h(GroupView, {
+        name: 'titled',
+        groups: [new ActionGroup('members', 'Team members')],
+        input: allowed,
+      }),
+      h(Single, { group: 'empty' }),
+    ),
+  );
+  const buttons = (name) => [...view.container.querySelectorAll(`[data-view="${name}"] button`)];
+  const sections = (name) => [...view.container.querySelectorAll(`[data-view="${name}"] section`)];
+  try {
+    assert.deepEqual(
+      buttons('allowed').map((button) => [button.dataset.action, button.disabled, button.title]),
+      [
+        ['team.remove', false, ''],
+        ['team.promote', false, 'Admin rights'],
+      ],
+      'items follow order, internal helpers stay out',
+    );
+    assert.equal(buttons('denied')[1].disabled, true, 'enabled is resolved for the caller input');
+    assert.deepEqual(
+      sections('owner').map((section) => [
+        section.dataset.group,
+        section.getAttribute('aria-label'),
+        section.querySelectorAll('button').length,
+      ]),
+      [
+        ['members', 'members', 1],
+        ['navigation', 'General', 1],
+        ['team.bulk', 'Bulk actions', 1],
+      ],
+      'hidden items are dropped, empty groups disappear, titles come from the group or the default',
+    );
+    assert.equal(
+      sections('titled')[0].getAttribute('aria-label'),
+      'Team members',
+      'a titled group object names the heading',
+    );
+    await click(buttons('allowed')[1]);
+    assert.deepEqual(received, ['alice'], 'items execute with the input they were bound to');
+    assert.deepEqual(await runtime.actions.execute('team.promote', denied), {
+      status: 'skipped',
+      reason: 'disabled',
+    });
+    assert.deepEqual(
+      single.value,
+      { id: 'empty', title: 'empty', items: [] },
+      'an empty group keeps its shape',
+    );
+    await act(async () => {
+      assert.deepEqual(
+        await runtime.actions.execute('team.helper'),
+        { status: 'completed', value: 'ran' },
+        'internal actions still execute by ID',
+      );
+    });
+    await act(async () => {
+      runtime.actions.update('team.promote', { title: 'Make admin' });
+    });
+    assert.equal(buttons('allowed')[1].textContent, 'Make admin');
+    let extra;
+    await act(async () => {
+      extra = runtime.actions.register({
+        id: 'extra',
+        title: 'Extra',
+        order: 15,
+        groups: [new ActionGroup('members')],
+        execute() {},
+      });
+    });
+    assert.deepEqual(
+      buttons('allowed').map((button) => button.dataset.action),
+      ['team.remove', 'extra', 'team.promote'],
+      'registrations join their group in order without remounting',
+    );
+    await act(async () => extra.unregister());
+    assert.deepEqual(
+      buttons('allowed').map((button) => button.dataset.action),
+      ['team.remove', 'team.promote'],
+    );
+  } finally {
+    await view.unmount();
+  }
+});
+
+test('group members react to service state through function-valued presentation', async () => {
+  const { defineService, useServiceState } = await import('../dist/index.js');
+  const config = {
+    plugins: [
+      definePlugin({
+        id: 'todos',
+        services: {
+          items: defineService(({ store }) => {
+            const state = store({ items: [] });
+            return {
+              state,
+              add: (title) => state.set((current) => ({ items: [...current.items, title] })),
+            };
+          }),
+        },
+        actions: {
+          clear: defineAction({
+            title: ({ services }) => `Clear ${services.todos.items.state.get().items.length}`,
+            groups: ['todos.toolbar'],
+            enabled: ({ services }) => services.todos.items.state.get().items.length > 0,
+            execute: ({ services }) => services.todos.items.state.set({ items: [] }),
+          }),
+        },
+      }),
+    ],
+  };
+  let runtime;
+  function Capture() {
+    runtime = useFoundation().runtime;
+    const count = useServiceState('todos.items', (state) => state.items.length, 0);
+    return h('output', null, count);
+  }
+  const view = await mount(
+    h(
+      FoundationProvider,
+      { config, ui: testUI },
+      h(Capture),
+      h(GroupView, { name: 'toolbar', groups: ['todos.toolbar'] }),
+    ),
+  );
+  const button = () => view.container.querySelector('[data-action="todos.clear"]');
+  try {
+    assert.equal(button().disabled, true);
+    assert.equal(button().textContent, 'Clear 0');
+    await act(async () => runtime.services.todos.items.add('Milk'));
+    assert.equal(button().disabled, false);
+    assert.equal(button().textContent, 'Clear 1');
+    assert.equal(view.container.querySelector('output').textContent, '1');
+    await click(button());
+    assert.equal(button().disabled, true);
+    assert.equal(view.container.querySelector('output').textContent, '0');
+  } finally {
+    await view.unmount();
+  }
+});
+
+test('ActionMenu hands bound groups and the label to the host menu component', async () => {
+  const seen = [];
+  const Menu = (props) => {
+    seen.push(props);
+    return testUI.Menu(props);
+  };
+  const executed = [];
+  const config = {
+    groups: ['members'],
+    plugins: [
+      definePlugin({
+        id: 'team',
+        actions: {
+          promote: defineAction({
+            title: 'Promote',
+            groups: ['members'],
+            enabled: ({ input }) => input?.allowed === true,
+            execute: ({ input }) => executed.push(input.id),
+          }),
+          leave: defineAction({ title: 'Leave', groups: ['account'], execute() {} }),
+        },
+      }),
+    ],
+  };
+  const view = await mount(
+    h(
+      FoundationProvider,
+      { config, ui: { ...testUI, Menu } },
+      h(ActionMenu, { group: 'members', label: 'Team', input: allowed }),
+      h(ActionMenu, { group: ['members', 'account'], label: 'More', input: denied }),
+    ),
+  );
+  try {
+    const [team, more] = [...view.container.querySelectorAll('nav')];
+    assert.equal(team.getAttribute('aria-label'), 'Team');
+    // The first render happens before the runtime mounts; the menu receives the bound groups afterwards.
+    const latest = seen.findLast((props) => props.label === 'Team');
+    assert.deepEqual(
+      latest.groups.map((group) => group.id),
+      ['members'],
+    );
+    assert.equal(latest.groups[0].items[0].title, 'Promote');
+    assert.equal(
+      typeof latest.groups[0].items[0].menuItemProps,
+      'function',
+      'items are controls with getters',
+    );
+    assert.deepEqual(
+      [...more.querySelectorAll('section')].map((section) => section.dataset.group),
+      ['members', 'account'],
+    );
+    assert.equal(
+      more.querySelector('[data-group="members"] button').disabled,
+      true,
+      'the menu input binds every item',
+    );
+    await click(team.querySelector('button'));
+    assert.deepEqual(executed, ['alice']);
+  } finally {
+    await view.unmount();
+  }
+});
+
+test('the standard menu renders a trigger with the label and keeps items closed until opened', async () => {
+  const list = createActionList([
+    { id: 'save', title: 'Save', groups: [new ActionGroup('file')], execute() {} },
+  ]);
+  const view = await mount(
     h(
       ActionProvider,
       { actions: list },
-      h(ActionGroupBinding, { groups: [group], context: first, as: View }),
-      h(ActionGroupBinding, { groups: [group], context: denied, as: View }),
-    );
+      h(FoundationProvider, { config: {} }, h(ActionMenu, { group: 'file', label: 'File' })),
+    ),
+  );
   try {
-    await act(async () => root.render(render()));
-    assert.equal(host.querySelectorAll('section').length, 0);
-    let registration;
-    await act(async () => {
-      registration = list.register(action, { groups: [alias] });
-    });
-    const buttons = host.querySelectorAll('button');
-    assert.equal(buttons.length, 2);
-    assert.equal(buttons[0].disabled, false);
-    assert.equal(buttons[1].disabled, true);
-    assert.equal(buttons[0].title, 'Admin rights');
-    await act(async () => buttons[0].click());
-    assert.deepEqual(received, ['alice']);
-    assert.equal((await list.execute('promote', denied)).reason, 'disabled');
-    await act(async () => {
-      action.title = 'New title';
-    });
-    assert.equal(host.querySelector('button').textContent, 'New title');
-    await act(async () => root.render(render({ ...allowed, role: 'owner' })));
-    assert.equal(host.querySelectorAll('button').length, 1);
-    assert.equal(list.get('promote').visible, true);
-    await act(async () => registration.unregister());
-    assert.equal(host.querySelectorAll('section').length, 0);
+    const trigger = view.container.querySelector('button');
+    assert.equal(trigger.textContent, 'File');
+    assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+    assert.equal(view.container.querySelector('[role="menuitem"]'), null);
   } finally {
-    await act(async () => root.unmount());
-    host.remove();
+    await view.unmount();
   }
-});
-
-test('interceptors cancel, recheck permissions and cannot execute removed registrations', async () => {
-  const list = createActionList();
-  const calls = [];
-  let enabled = true;
-  const old = list.register({
-    id: 'run',
-    title: 'Run',
-    resolve: () => ({ enabled }),
-    execute: () => calls.push('old'),
-  });
-  let gate = deferred();
-  const stop = list.use({ before: () => gate.promise });
-  const events = [];
-  list.subscribeExecution((event) => events.push(event.phase));
-  const first = list.execute('run');
-  assert.equal(list.get('run').pending, true);
-  gate.resolve(false);
-  assert.equal((await first).reason, 'intercepted');
-  assert.deepEqual(events, ['started', 'skipped']);
-  gate = deferred();
-  const second = list.execute('run');
-  enabled = false;
-  gate.resolve(true);
-  assert.equal((await second).reason, 'disabled');
-  enabled = true;
-  gate = deferred();
-  const third = list.execute('run');
-  old.unregister();
-  list.register({ id: 'run', title: 'New', execute: () => calls.push('new') });
-  gate.resolve(true);
-  assert.equal((await third).reason, 'replaced');
-  assert.deepEqual(calls, []);
-  stop();
-  await list.execute('run');
-  assert.deepEqual(calls, ['new']);
-});
-
-test('observer failures do not change outcomes; handler failures are observed and pending clears', async () => {
-  const list = createActionList([
-    {
-      id: 'fail',
-      title: 'Fail',
-      execute: () => {
-        throw new Error('expected');
-      },
-    },
-  ]);
-  const events = [];
-  list.subscribeExecution(() => {
-    throw new Error('observer failed');
-  });
-  list.subscribeExecution((event) => events.push(event.phase));
-  await assert.rejects(list.execute('fail'), /expected/);
-  assert.deepEqual(events, ['started', 'failed']);
-  assert.equal(list.get('fail').pending, false);
 });

@@ -1,14 +1,13 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { QueryProvider } from '@bitakit/next/query';
-import { ThemeProvider } from '@/providers/theme-provider';
+import { ThemeProvider } from '@/components/providers/theme-provider';
 import { themeBootstrapScript } from '@/lib/theme/config';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { AppPreferencesProvider } from '@/providers/settings-provider';
+import { AppPreferencesProvider } from '@/components/providers/settings-provider';
 import { OrganizationCreateDialog } from '@/components/organizations/organization-create-dialog';
-import { OrganizationProvider } from '@/providers/organization-provider';
-import { AppActionsProvider } from '@/providers/actions-provider';
+import { OrganizationProvider } from '@/components/providers/organization-provider';
+import { BitaKit } from '@/components/providers/bitakit';
 import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
@@ -26,21 +25,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <NextIntlClientProvider>
-          <QueryProvider>
-            <ThemeProvider>
-              <TooltipProvider>
-                <OrganizationProvider>
-                  <AppPreferencesProvider>
-                    <AppActionsProvider>
-                      {children}
-                      <OrganizationCreateDialog />
-                      <Toaster />
-                    </AppActionsProvider>
-                  </AppPreferencesProvider>
-                </OrganizationProvider>
-              </TooltipProvider>
-            </ThemeProvider>
-          </QueryProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <OrganizationProvider>
+                <AppPreferencesProvider>
+                  <BitaKit>
+                    {children}
+                    <OrganizationCreateDialog />
+                    <Toaster />
+                  </BitaKit>
+                </AppPreferencesProvider>
+              </OrganizationProvider>
+            </TooltipProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

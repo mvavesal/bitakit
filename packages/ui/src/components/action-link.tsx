@@ -1,33 +1,23 @@
 'use client';
-import { useContext, type ElementType, type ComponentPropsWithoutRef } from 'react';
-import { useAction } from '../hooks/use-action.js';
-import { UIContext } from '../providers/action-context.js';
-import { safeHref } from '@bitakit/core';
-import type { ActionId } from '@bitakit/core';
-export function ActionLink({
+import type { ElementType, ComponentProps, ReactNode } from 'react';
+import type { ActionId, ActionReference } from '@bitakit/core';
+import { Action } from './action.js';
+
+/** Sugar over `<Action kind="link">`: an anchor bound to a navigation action. */
+export function ActionLink<Id extends ActionId, C extends ElementType = 'a'>({
   action,
   as,
   children,
   ...props
-}: Omit<ComponentPropsWithoutRef<'a'>, 'href'> & {
-  action: ActionId;
-  as?: ElementType;
-  [key: string]: unknown;
+}: Omit<ComponentProps<C>, 'href' | 'children'> & {
+  action: Id | ActionReference<Id>;
+  as?: C;
+  children?: ReactNode;
 }) {
-  const state = useAction(action);
-  const { Link } = useContext(UIContext);
-  if (!state?.visible) return null;
-  const href = safeHref(state.href);
-  if (!state.enabled || state.pending || !href)
-    return (
-      <a {...props} aria-disabled="true" tabIndex={-1} onClick={(event) => event.preventDefault()}>
-        {children ?? state.title}
-      </a>
-    );
-  const Component = as ?? (!/^https?:/i.test(href) && Link ? Link : 'a');
+  const Component = (as ?? 'a') as ElementType;
   return (
-    <Component {...props} href={href} title={props.title ?? state.tooltip ?? state.description}>
-      {children ?? state.title}
-    </Component>
+    <Action id={action} kind="link">
+      <Component {...props}>{children}</Component>
+    </Action>
   );
 }

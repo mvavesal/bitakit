@@ -107,7 +107,7 @@ export async function discoverEntries(
   base,
   paths,
   kind,
-  { directory, explicitFile, relativeTo = base } = {},
+  { directory, explicitFile, relativeTo = base, legacy = true } = {},
 ) {
   const extension = typeof kind === 'object' && kind !== null;
   const spec = extension ? null : contributionKinds[kind];
@@ -121,7 +121,9 @@ export async function discoverEntries(
       ]
     : [
         { folder: spec.folder.split('/'), legacy: false },
-        ...(spec.legacy ? [{ folder: spec.legacy.split('/'), legacy: `${spec.folder}/` }] : []),
+        ...(spec.legacy && legacy
+          ? [{ folder: spec.legacy.split('/'), legacy: `${spec.folder}/` }]
+          : []),
       ];
   const entries = [];
   const warnings = [];

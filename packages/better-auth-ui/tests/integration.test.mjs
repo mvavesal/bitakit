@@ -158,9 +158,7 @@ test('public UI and plugin exports are the external dependency, without vendored
   const { readFile } = await import('node:fs/promises');
   const entry = await readFile(new URL('../src/upstream/index.ts', import.meta.url), 'utf8');
   assert.match(entry, /export \* from ['"]@better-auth-ui\/heroui\/plugins['"]/);
-
 });
-
 
 test('native two-factor enrollment, login challenge and recovery run without host logic', async () => {
   const database = { user: [], session: [], account: [], verification: [], twoFactor: [] };
@@ -172,24 +170,49 @@ test('native two-factor enrollment, login challenge and recovery run without hos
     plugins: [twoFactor({ issuer: 'SaaS Foundation' })],
   });
   const request = async (path, body, cookie = '') => {
-    const response = await auth.handler(new Request('http://localhost:9999/api/auth' + path, {
-      method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost:9999', cookie },
-      body: JSON.stringify(body),
-    }));
+    const response = await auth.handler(
+      new Request('http://localhost:9999/api/auth' + path, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: 'http://localhost:9999', cookie },
+        body: JSON.stringify(body),
+      }),
+    );
     assert.equal(response.status, 200, path);
-    return { data: await response.json(), cookie: [...new Map([...cookie.split('; ').filter(Boolean), ...response.headers.getSetCookie().map(c => c.split(';')[0])].map(c => [c.slice(0, c.indexOf('=')), c])).values()].join('; ') };
+    return {
+      data: await response.json(),
+      cookie: [
+        ...new Map(
+          [
+            ...cookie.split('; ').filter(Boolean),
+            ...response.headers.getSetCookie().map((c) => c.split(';')[0]),
+          ].map((c) => [c.slice(0, c.indexOf('=')), c]),
+        ).values(),
+      ].join('; '),
+    };
   };
   const credentials = { email: 'two-factor@example.test', password: 'Isolated-test-password123!' };
   const signup = await request('/sign-up/email', { ...credentials, name: 'Two Factor Test' });
-  const enrollment = await request('/two-factor/enable', { password: credentials.password }, signup.cookie);
+  const enrollment = await request(
+    '/two-factor/enable',
+    { password: credentials.password },
+    signup.cookie,
+  );
   assert.equal(database.user[0].twoFactorEnabled, false);
   const secret = new URL(enrollment.data.totpURI).searchParams.get('secret');
-  await request('/two-factor/verify-totp', { code: await createOTP(new TextDecoder().decode(base32.decode(secret))).totp() }, enrollment.cookie);
+  await request(
+    '/two-factor/verify-totp',
+    { code: await createOTP(new TextDecoder().decode(base32.decode(secret))).totp() },
+    enrollment.cookie,
+  );
   assert.equal(database.user[0].twoFactorEnabled, true);
   const login = await request('/sign-in/email', credentials);
   assert.equal(login.data.twoFactorRedirect, true);
   assert.equal(login.data.token, undefined);
-  const verified = await request('/two-factor/verify-backup-code', { code: enrollment.data.backupCodes[0] }, login.cookie);
+  const verified = await request(
+    '/two-factor/verify-backup-code',
+    { code: enrollment.data.backupCodes[0] },
+    login.cookie,
+  );
   assert.ok(verified.data.token);
 });
 
@@ -198,7 +221,11 @@ test('standard composition shares one client between auth service and UI and pre
   const { createBetterAuthClient } = await import('@bitakit/better-auth/client');
   const { authService, getService } = await import('@bitakit/core');
   const client = createBetterAuthClient({ baseURL: 'http://localhost:9999' });
-  const integration = createBetterAuthIntegration({ client, provider: { plugins: [], redirectTo: '/contents' }, organizations: { path: false, groups: [] } });
+  const integration = createBetterAuthIntegration({
+    client,
+    provider: { plugins: [], redirectTo: '/contents' },
+    organizations: { path: false, groups: [] },
+  });
   assert.equal(integration.client, client);
   const runtime = new FoundationRuntime(createActionList(), { plugins: integration.plugins });
   const dispose = runtime.mount();
@@ -209,8 +236,11 @@ test('standard composition shares one client between auth service and UI and pre
   const auth = getService(runtime.services, authService);
   assert.equal(auth.getSnapshot().user, null);
   assert.equal(typeof auth.subscribe, 'function');
-  assert.equal(integration.plugins.flatMap(plugin => plugin.providers ?? []).length, 1);
-  assert.deepEqual(integration.plugins.map(plugin => plugin.id), ['better-auth', 'better-auth-ui', 'organizations', 'organizations-ui']);
+  assert.equal(integration.plugins.flatMap((plugin) => plugin.providers ?? []).length, 1);
+  assert.deepEqual(
+    integration.plugins.map((plugin) => plugin.id),
+    ['better-auth', 'better-auth-ui', 'organizations', 'organizations-ui'],
+  );
   const { organizationService } = await import('@bitakit/organizations');
   assert.ok(getService(runtime.services, organizationService));
   dispose();

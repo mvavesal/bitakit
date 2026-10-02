@@ -1,45 +1,33 @@
-import { watchFoundation } from '@bitakit/core/discovery';
-import { generateFoundation } from './generate.mjs';
-import path from 'node:path';
+import { generateFoundation, watchFoundation } from '@bitakit/core/discovery';
 export { generateFoundation };
-export const defineFoundation = (config) => config;
+/** Typed identity for `bitakit.config.ts`. */
+export const defineBitaKit = (config) => config;
+/** @deprecated Use defineBitaKit. */
+export const defineFoundation = defineBitaKit;
 const watchers = new Map();
-export function withFoundation(config = {}) {
-  return async (phase) => {
+
+/**
+ * Runs discovery before Next reads its configuration and keeps regenerating in development.
+ * The generated file lives in `src/bitakit.gen.tsx`, so no bundler alias is needed and
+ * Turbopack and Webpack behave the same.
+ */
+export function withBitaKit(config = {}) {
+  return async (phase, context) => {
     const root = process.cwd();
+    const base = typeof config === 'function' ? await config(phase, context) : config;
     const { included = [] } = (await generateFoundation(root)) ?? {};
-    const generated = path.join(root, '.foundation/app.ts');
-    if (phase === 'phase-development-server' && !watchers.has(root)) {
+    if (phase === 'phase-development-server' && !watchers.has(root))
       watchers.set(
         root,
-        watchFoundation(root, (error) => console.error('[foundation]', error)),
+        watchFoundation(root, (error) => console.error('[bitakit]', error)),
       );
-    }
     return {
-      ...config,
+      ...base,
       // Plugins included from outside the app (a plugin package's playground) are compiled too.
-      ...(included.length
-        ? { experimental: { ...config.experimental, externalDir: true } }
-        : {}),
-      turbopack: {
-        ...config.turbopack,
-        resolveAlias: {
-          ...config.turbopack?.resolveAlias,
-          '@bitakit/next/generated': generated,
-        },
-      },
-      webpack(webpackConfig, context) {
-        const resolved = config.webpack?.(webpackConfig, context) ?? webpackConfig;
-        resolved.resolve ??= {};
-        resolved.resolve.alias = {
-          ...resolved.resolve.alias,
-          '@bitakit/next/generated$': generated,
-        };
-        return resolved;
-      },
-      transpilePackages: [
-        ...new Set([...(config.transpilePackages ?? []), '@bitakit/core']),
-      ],
+      ...(included.length ? { experimental: { ...base.experimental, externalDir: true } } : {}),
+      transpilePackages: [...new Set([...(base.transpilePackages ?? []), '@bitakit/core'])],
     };
   };
 }
+/** @deprecated Use withBitaKit. */
+export const withFoundation = withBitaKit;

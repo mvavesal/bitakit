@@ -1,5 +1,7 @@
 {
   "Foundation": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
     "submit": "Submit",
     "pending": "Sending …",
     "invalid": "Please check your input.",
@@ -18,7 +20,6 @@
   "Nav": {
     "workspace": "Workspace",
     "dashboard": "Overview",
-    "actions": "Action demo",
     "settings": "Settings",
     "preferences": "Preferences",
     "account": "Account",
@@ -269,30 +270,6 @@
     "loadError": "The organization could not be loaded.",
     "retry": "Try again",
     "readOnly": "Only organization owners and admins can edit these details."
-  },
-  "ControlPreview": {
-    "title": "Theme playground",
-    "description": "Try the controls and a primary color. Changes apply only to this preview.",
-    "primaryColor": "Primary color",
-    "themeDefault": "Theme default",
-    "violet": "Violet",
-    "blue": "Blue",
-    "green": "Green",
-    "rose": "Rose",
-    "reset": "Reset",
-    "checkboxes": "Checkboxes",
-    "disabled": "Disabled",
-    "radios": "Radio buttons",
-    "firstOption": "First option",
-    "secondOption": "Second option",
-    "switches": "Switches",
-    "primary": "Primary button",
-    "secondary": "Secondary button",
-    "outline": "Outline button",
-    "emailUpdates": "Email updates",
-    "productUpdates": "Product updates",
-    "notifications": "Notifications",
-    "autoSave": "Auto-save"
   },
   "PluginsSettings": {
     "title": "Plugins",

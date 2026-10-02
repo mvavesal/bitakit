@@ -53,8 +53,6 @@ test('stale loads and disposed responses cannot restore old organization data', 
   assert.equal(service.getSnapshot().activeId, 'new');
 });
 
-
-
 test('backend context invalidation clears tenant data immediately and unsubscribes on disposal', async () => {
   const backend = createDemoOrganizationBackend();
   let invalidate;
@@ -81,36 +79,65 @@ test('backend context invalidation clears tenant data immediately and unsubscrib
 });
 
 test('suspension protects owners and recipient invitation acceptance changes membership', async () => {
-  const service=createOrganizationService(createDemoOrganizationBackend());
+  const service = createOrganizationService(createDemoOrganizationBackend());
   await service.refresh();
-  assert.throws(()=>service.setDisabled('studio-owner',true),/not available/);
-  await service.setDisabled('studio-member',true);
-  assert.equal(service.getSnapshot().members.find(x=>x.id==='studio-member').disabled,true);
-  await service.setDisabled('studio-member',false);
-  assert.equal(service.getSnapshot().members.find(x=>x.id==='studio-member').disabled,false);
+  assert.throws(() => service.setDisabled('studio-owner', true), /not available/);
+  await service.setDisabled('studio-member', true);
+  assert.equal(service.getSnapshot().members.find((x) => x.id === 'studio-member').disabled, true);
+  await service.setDisabled('studio-member', false);
+  assert.equal(service.getSnapshot().members.find((x) => x.id === 'studio-member').disabled, false);
   await service.accept('demo-incoming');
-  assert.equal(service.getSnapshot().incomingInvitations.length,0);
+  assert.equal(service.getSnapshot().incomingInvitations.length, 0);
   await service.setActive('partner');
-  assert.equal(service.getSnapshot().canManage,false);
-  assert.throws(()=>service.invite('a@example.test'),/not available/);
+  assert.equal(service.getSnapshot().canManage, false);
+  assert.throws(() => service.invite('a@example.test'), /not available/);
   service.dispose();
 });
 
-
 test('website validation blocks invalid create and update before backend writes', async () => {
   const { isOrganizationWebsite } = await import('../dist/index.js');
-  const invalid = ['garbage', 'https://', 'https:///example.com', 'https://bad', 'https://www.mva', 'https://www', 'https://com', 'https://bad..example', 'https://-bad.example', 'https://example.com/a b', 'https://user:secret@example.com', 'javascript:alert(1)', 'https://example.com:99999', 'https://example.com\\bad'];
+  const invalid = [
+    'garbage',
+    'https://',
+    'https:///example.com',
+    'https://bad',
+    'https://www.mva',
+    'https://www',
+    'https://com',
+    'https://bad..example',
+    'https://-bad.example',
+    'https://example.com/a b',
+    'https://user:secret@example.com',
+    'javascript:alert(1)',
+    'https://example.com:99999',
+    'https://example.com\\bad',
+  ];
   const service = createOrganizationService(createDemoOrganizationBackend());
   await service.refresh();
   for (const website of invalid) {
     assert.equal(isOrganizationWebsite(website), false, website);
-    assert.throws(() => service.create({name:'Invalid',slug:'invalid',website}), /Invalid URL/);
-    assert.throws(() => service.update({name:'Invalid',slug:'invalid',website}), /Invalid URL/);
+    assert.throws(
+      () => service.create({ name: 'Invalid', slug: 'invalid', website }),
+      /Invalid URL/,
+    );
+    assert.throws(
+      () => service.update({ name: 'Invalid', slug: 'invalid', website }),
+      /Invalid URL/,
+    );
   }
-  for (const website of ['', 'https://example.com/path?q=1#section', 'http://localhost:3102', 'https://bücher.de', 'https://127.0.0.1', 'https://[::1]']) assert.equal(isOrganizationWebsite(website), true, website);
-  await service.create({name:'Valid',slug:'valid',website:' https://example.com '});
-  assert.equal(service.getSnapshot().organizations.find(org => org.slug === 'valid').website, 'https://example.com');
+  for (const website of [
+    '',
+    'https://example.com/path?q=1#section',
+    'http://localhost:3102',
+    'https://bücher.de',
+    'https://127.0.0.1',
+    'https://[::1]',
+  ])
+    assert.equal(isOrganizationWebsite(website), true, website);
+  await service.create({ name: 'Valid', slug: 'valid', website: ' https://example.com ' });
+  assert.equal(
+    service.getSnapshot().organizations.find((org) => org.slug === 'valid').website,
+    'https://example.com',
+  );
   service.dispose();
 });
-
-

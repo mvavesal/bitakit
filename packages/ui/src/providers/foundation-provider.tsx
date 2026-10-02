@@ -1,41 +1,85 @@
 'use client';
-import { Component, createElement, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useActionList } from '@bitakit/ui/actions';
-import type { FoundationConfig } from '@bitakit/core';
+import {
+  Component,
+  createElement,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import {
+  ConfirmationController,
+  FoundationRuntime,
+  isFoundationStartupError,
+  resolveFoundationConfig,
+  type Confirmation,
+  type FoundationConfig,
+  type Plugin,
+} from '@bitakit/core';
 import type { FoundationProviderProps } from '../types/provider.js';
 import { ActionContext } from './action-context.js';
 import { ActionProvider } from './action-provider.js';
-import { FoundationRuntime, isFoundationStartupError, type Plugin } from '@bitakit/core';
+import { useActionList } from '../hooks/use-action.js';
 import { FoundationContext, type SignOutIntent } from './foundation-context.js';
 import { DialogHost } from '../components/dialog-host.js';
+import { ConfirmDialog } from '../components/confirm-dialog.js';
 import { StartupFailureDialog, type StartupFailure } from '../components/startup-failure-dialog.js';
-import { resolveFoundationConfig } from '@bitakit/core';
+import { standardFoundationUI } from '../components/standard-foundation-ui.js';
+import { defaultLabels } from '../components/foundation-labels.js';
+
 const ignore = () => {};
 const noServices = {};
 const emptyConfig: FoundationConfig = {};
+
 /** Owns the root ActionProvider, or reuses an existing host provider during migration. */
-export function FoundationProvider({ actionOptions, ...props }: FoundationProviderProps) {
+export function FoundationProvider({ actionOptions, controls, ...props }: FoundationProviderProps) {
   const actions = useContext(ActionContext);
   const content = <FoundationRuntimeProvider {...props} />;
-  return actions ? content : <ActionProvider {...actionOptions}>{content}</ActionProvider>;
+  return actions ? (
+    content
+  ) : (
+    <ActionProvider {...actionOptions} controls={controls ?? actionOptions?.controls}>
+      {content}
+    </ActionProvider>
+  );
+}
+
+/** Adds configured plugins to the discovered ones; an entry with an existing ID replaces it in place. */
+function withAdditional(
+  base: readonly Plugin[] | undefined,
+  additional: readonly Plugin[] | undefined,
+) {
+  if (!additional) return base;
+  const current = base ?? [];
+  return [
+    ...current.map((plugin) => additional.find((override) => override.id === plugin.id) ?? plugin),
+    ...additional.filter((plugin) => !current.some((existing) => existing.id === plugin.id)),
+  ];
 }
 
 /** Mounts one runtime against the selected ActionList; configuration is immutable. */
 function FoundationRuntimeProvider({
   config = emptyConfig,
   actions: explicitActions,
-  plugins,
+  plugins: explicitPlugins,
+  additionalPlugins,
   interceptors,
   providers,
-  ui,
+  ui = standardFoundationUI,
   translate,
-  labels,
+  labels: labelOverrides,
   notify,
   services = noServices,
   isolateFailures = developing(),
   children,
-}: FoundationProviderProps) {
+}: Omit<FoundationProviderProps, 'actionOptions' | 'controls'>) {
   const actions = useActionList();
+  const labels = useMemo(() => ({ ...defaultLabels, ...labelOverrides }), [labelOverrides]);
+  const plugins = useMemo(
+    () => withAdditional(explicitPlugins ?? config.plugins, additionalPlugins) ?? explicitPlugins,
+    [explicitPlugins, config, additionalPlugins],
+  );
   const [signOutIntent, setSignOutIntent] = useState<SignOutIntent>(null);
   // Failures found after mount; they apply only to the composition that produced them.
   const [isolation, setIsolation] = useState<Isolation | null>(null);
@@ -54,7 +98,12 @@ function FoundationRuntimeProvider({
           interceptors,
           providers,
         });
-        return { selected, runtime: new FoundationRuntime(actions, selected, services), failed, off };
+        return {
+          selected,
+          runtime: new FoundationRuntime(actions, selected, services),
+          failed,
+          off,
+        };
       } catch (error) {
         if (!isolateFailures) throw error;
         const failure = describeFailure(error);
@@ -64,38 +113,75 @@ function FoundationRuntimeProvider({
         failed.push(failure);
       }
     }
-  }, [config, explicitActions, plugins, interceptors, providers, actions, services, known, isolateFailures]);
+  }, [
+    config,
+    explicitActions,
+    plugins,
+    interceptors,
+    providers,
+    actions,
+    services,
+    known,
+    isolateFailures,
+  ]);
   if (
     translate &&
     (services.i18n ||
-      attempt.selected?.plugins?.some((integration) =>
-        integration.services?.some((service) => service.id === 'i18n'),
+      attempt.selected?.plugins?.some((plugin) =>
+        Object.values(plugin.services ?? {}).some(
+          (service) => service.provides === 'i18n' || service.id === 'i18n',
+        ),
       ))
   )
     throw new Error('Use either a translation plugin or the translate prop, not both.');
-  const [fatal, setFatal] = useState<{ runtime: FoundationRuntime; failure: StartupFailure } | null>(
-    null,
-  );
+  const [fatal, setFatal] = useState<{
+    runtime: FoundationRuntime;
+    failure: StartupFailure;
+  } | null>(null);
   const runtime = attempt.runtime;
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const confirmations = useMemo(() => new ConfirmationController(setConfirmation), []);
   useEffect(() => {
     if (runtime && translate) runtime.setTranslations(translate);
   }, [runtime, translate]);
   useEffect(() => (runtime && notify ? runtime.setNotifier(notify) : undefined), [runtime, notify]);
+  useEffect(
+    () => (runtime ? runtime.setConfirm(confirmations.confirm) : undefined),
+    [runtime, confirmations],
+  );
   useEffect(() => {
     if (!runtime) return;
     let stop: () => void;
-    try {
-      stop = runtime.mount();
-    } catch (error) {
+    let active = true;
+    const report = (error: unknown) => {
+      if (!active) return;
       if (!isolateFailures) throw error;
       const failure = describeFailure(error);
       if (failure.app || attempt.failed.some((item) => item.plugin === failure.plugin))
         setFatal({ runtime, failure });
       else setIsolation({ config, plugins, failures: [...attempt.failed, failure] });
+    };
+    try {
+      stop = runtime.mount();
+    } catch (error) {
+      report(error);
       return;
     }
+    // Asynchronous start hooks may fail after mount; isolate those plugins the same way. Without
+    // isolation the failure is rethrown from the next render, as synchronous startup errors are,
+    // instead of becoming an unhandled rejection.
+    runtime.ready.catch((error) => {
+      if (!active) return;
+      if (isolateFailures) report(error);
+      else
+        setFatal(() => {
+          throw error;
+        });
+    });
     return () => {
+      active = false;
       setSignOutIntent(null);
+      confirmations.dispose();
       stop();
     };
   }, [runtime]);
@@ -108,7 +194,6 @@ function FoundationRuntimeProvider({
   const [dismissed, setDismissed] = useState<string | null>(null);
   const failedIds = new Set(failures.map((failure) => failure.plugin));
   const healthy = runtime && !failures.some((failure) => failure.app);
-  /** The turned-off plugin behind a render error, when a component requires one of its services. */
   const turnedOff = (error: unknown): TurnedOff | undefined => {
     const service = unavailableService(error);
     const plugin =
@@ -129,7 +214,6 @@ function FoundationRuntimeProvider({
               createElement(provider.component, { children: content, key: provider.id }),
             <>
               {isolateFailures ? (
-                // A new composition (for example after a fix) renders the page again.
                 <TurnedOffServiceBoundary key={report} turnedOff={turnedOff}>
                   {children}
                 </TurnedOffServiceBoundary>
@@ -137,6 +221,7 @@ function FoundationRuntimeProvider({
                 children
               )}
               <DialogHost />
+              <ConfirmDialog request={confirmation} onAnswer={confirmations.answer} />
             </>,
           )}
         </FoundationContext.Provider>
@@ -155,12 +240,11 @@ function FoundationRuntimeProvider({
 
 type Isolation = {
   config: FoundationConfig;
-  plugins: FoundationProviderProps['plugins'];
+  plugins: readonly Plugin[] | undefined;
   failures: readonly StartupFailure[];
 };
 const noFailures: readonly StartupFailure[] = [];
 declare const process: { env: Record<string, string | undefined> };
-/** Development builds keep the app running when a plugin fails to start; production fails fast. */
 function developing() {
   try {
     return process.env.NODE_ENV !== 'production';
@@ -171,15 +255,16 @@ function developing() {
 function describeFailure(error: unknown): StartupFailure {
   if (isFoundationStartupError(error))
     return { plugin: error.plugin, app: error.app, message: error.message, source: error.source };
-  return { plugin: '@foundation/app', app: true, message: error instanceof Error ? error.message : String(error) };
+  return {
+    plugin: 'app',
+    app: true,
+    message: error instanceof Error ? error.message : String(error),
+  };
 }
 type TurnedOff = { service: string; plugin: string; failed: boolean };
 const explain = ({ service, plugin, failed }: TurnedOff) =>
   `A component on this page requires the service "${service}" from plugin "${plugin}", which was turned off because ${failed ? 'it failed to start' : 'it depends on a plugin that failed to start'}.`;
-/**
- * Development only: a page that still requires a service of a turned-off plugin shows what
- * happened instead of failing with an unhandled render error. Other errors pass through unchanged.
- */
+/** Development only: a page that still requires a service of a turned-off plugin shows what happened. */
 class TurnedOffServiceBoundary extends Component<
   { turnedOff(error: unknown): TurnedOff | undefined; children: ReactNode },
   { caught: boolean; error?: unknown }
@@ -199,26 +284,34 @@ class TurnedOffServiceBoundary extends Component<
     return (
       <div role="alert" className="wrap-anywhere">
         <p>{explain(missing)}</p>
-        <p>
-          Fix the plugin error, or read the service with app.optional.services.{missing.service}{' '}
-          and handle its absence.
-        </p>
+        <p>Fix the plugin error, or check app.has({`'${missing.service}'`}) before reading it.</p>
       </div>
     );
   }
 }
-/** The name in a required-access error from app.services, recognized by shape across copies. */
 function unavailableService(error: unknown) {
   if (!(error instanceof Error) || error.name !== 'FoundationServiceError') return undefined;
   const { service } = error as Error & { service?: unknown };
   return typeof service === 'string' ? service : undefined;
 }
-/** Whether `plugin` exposes `name` in app.services, as a service or as the namespace above one. */
+/** Whether `plugin` exposes `name`, as a service ID or alias, or as the namespace above one. */
 function exposes(plugin: Plugin, name: string) {
-  return [
+  const services = Array.isArray(plugin.services)
+    ? plugin.services
+    : Object.values(plugin.services ?? {});
+  const names = [
     ...Object.keys(plugin.publicServices ?? {}),
-    ...(plugin.services ?? []).flatMap((service) => (service.exposeAs ? [service.exposeAs] : [])),
-  ].some((exposed) => exposed === name || exposed.startsWith(`${name}.`));
+    ...services.flatMap((service) =>
+      [service.id, service.exposeAs, service.provides as string | undefined].filter(
+        (item): item is string => !!item,
+      ),
+    ),
+    plugin.id,
+  ];
+  return names.some(
+    (exposed) =>
+      exposed === name || name.startsWith(`${exposed}.`) || exposed.startsWith(`${name}.`),
+  );
 }
 /** Removes failed plugins and, transitively, the plugins that depend on them. */
 function withoutFailed(plugins: readonly Plugin[], failed: readonly StartupFailure[]) {

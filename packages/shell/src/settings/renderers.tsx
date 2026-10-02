@@ -53,13 +53,20 @@ function choiceCards(icons: Readonly<Record<string, ChoiceIcon>>) {
 }
 export const ThemeCards = choiceCards({ light: SunIcon, dark: MoonIcon, system: MonitorIcon });
 export const NotificationCards = choiceCards({
-  bottom: ArrowDownIcon, 'bottom start': ArrowDownLeftIcon, 'bottom end': ArrowDownRightIcon,
-  top: ArrowUpIcon, 'top start': ArrowUpLeftIcon, 'top end': ArrowUpRightIcon,
+  bottom: ArrowDownIcon,
+  'bottom start': ArrowDownLeftIcon,
+  'bottom end': ArrowDownRightIcon,
+  top: ArrowUpIcon,
+  'top start': ArrowUpLeftIcon,
+  'top end': ArrowUpRightIcon,
 });
 export const LayoutCards = choiceCards({ sidebar: SidebarIcon, navbar: NavbarIcon });
 
 /** One card per field; the ids keep each card title connected to its control. */
-export function AppearanceSection({ items, footer }: SettingsSectionRendererProps & { footer?: ReactNode }) {
+export function AppearanceSection({
+  items,
+  footer,
+}: SettingsSectionRendererProps & { footer?: ReactNode }) {
   return (
     <div className="flex flex-col gap-7">
       {items.map((item) => (
@@ -85,20 +92,38 @@ export function AppearanceSection({ items, footer }: SettingsSectionRendererProp
 function NotificationSection(props: SettingsSectionRendererProps) {
   const t = useTranslation();
   const app = useFoundationApp<readonly [ReturnType<typeof shellPlugin>]>();
-  const notifications = app.optional.services.notifications;
+  const notifications = app.has('notifications')
+    ? (
+        app.services as unknown as {
+          notifications: { show(message: string, options?: Record<string, unknown>): unknown };
+        }
+      ).notifications
+    : undefined;
   return (
-    <AppearanceSection {...props} footer={
-      <div className="flex w-full flex-col items-start gap-4">
-      <Separator />
-      <CardDescription>{t("shell.ui.testHint", undefined, "Preview a notification at the selected position.")}</CardDescription>
-      <Button type="button" variant="secondary" disabled={!notifications || props.items.some(item => item.state?.pending)}
-        onClick={() => notifications?.show('shell.ui.testTitle', {
-          type: 'info', description: 'shell.ui.testDescription',
-        })}>
-        {t("shell.ui.testButton", undefined, "Show test notification")}
-      </Button>
-      </div>
-    } />
+    <AppearanceSection
+      {...props}
+      footer={
+        <div className="flex w-full flex-col items-start gap-4">
+          <Separator />
+          <CardDescription>
+            {t('shell.ui.testHint', undefined, 'Preview a notification at the selected position.')}
+          </CardDescription>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!notifications || props.items.some((item) => item.state?.pending)}
+            onClick={() =>
+              notifications?.show('shell.ui.testTitle', {
+                type: 'info',
+                description: 'shell.ui.testDescription',
+              })
+            }
+          >
+            {t('shell.ui.testButton', undefined, 'Show test notification')}
+          </Button>
+        </div>
+      }
+    />
   );
 }
 
@@ -127,10 +152,12 @@ export function shellRenderers({
     ],
     sections: [
       ...(notifications ? [sectionRenderer('shell-notifications', NotificationSection)] : []),
-      ...(appearance ? [
-        sectionRenderer('appearance', AppearanceSection),
-        sectionRenderer('shell-theme', AppearanceSection),
-      ] : []),
+      ...(appearance
+        ? [
+            sectionRenderer('appearance', AppearanceSection),
+            sectionRenderer('shell-theme', AppearanceSection),
+          ]
+        : []),
     ],
   });
 }

@@ -2,7 +2,7 @@
 import { useTranslations } from 'next-intl';
 import { useQueryState } from 'nuqs';
 import BuildingIcon from 'reicon-react/icons/Building';
-import { useActiveOrganization } from '@/providers/organization-provider';
+import { useActiveOrganization } from '@/components/providers/organization-provider';
 import { organizationDialogParser } from './organization-create-dialog';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';

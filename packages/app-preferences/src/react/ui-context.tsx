@@ -88,7 +88,11 @@ export function settingsText(translate: SettingsTranslator | undefined) {
       value: option.value,
       label: resolveLocalized(
         translate,
-        [option.labelKey, `${setting.key}.options.${option.value}.label`, `${setting.key}.options.${option.value}`],
+        [
+          option.labelKey,
+          `${setting.key}.options.${option.value}.label`,
+          `${setting.key}.options.${option.value}`,
+        ],
         option.label,
       ),
       description: optional(
@@ -115,7 +119,10 @@ export function useSettingsText() {
     () => ({
       ...settingsText(translate),
       message: (name: keyof SettingsMessages, values?: Readonly<Record<string, string>>) =>
-        formatMessage(resolveLocalized(translate, [`settings.messages.${name}`], messages[name]), values),
+        formatMessage(
+          resolveLocalized(translate, [`settings.messages.${name}`], messages[name]),
+          values,
+        ),
     }),
     [translate, messages],
   );

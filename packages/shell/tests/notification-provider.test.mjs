@@ -71,7 +71,12 @@ test('one native surface presents Action and native-source toasts at the confirm
       h(
         SettingsProvider,
         { settings },
-        h(createShellProvider(undefined, undefined, { placement: notificationPreferences.fields.placement, layout })),
+        h(
+          createShellProvider(undefined, undefined, {
+            placement: notificationPreferences.fields.placement,
+            layout,
+          }),
+        ),
       ),
     );
   try {
@@ -91,11 +96,18 @@ test('one native surface presents Action and native-source toasts at the confirm
         (item) => item.getAttribute('data-placement') === 'top end',
       ),
     );
-    layout = ({ toast: item }) => h(Toast, { toast: item, 'data-custom-layout': true },
-      h(Toast.Content, null,
-        h(Toast.Title, null, item.content.title),
-        h(Toast.Description, null, 'Shared custom layout')),
-      h(Toast.CloseButton));
+    layout = ({ toast: item }) =>
+      h(
+        Toast,
+        { toast: item, 'data-custom-layout': true },
+        h(
+          Toast.Content,
+          null,
+          h(Toast.Title, null, item.content.title),
+          h(Toast.Description, null, 'Shared custom layout'),
+        ),
+        h(Toast.CloseButton),
+      );
     await act(async () => root.render(render()));
     assert.equal(document.querySelectorAll('[data-custom-layout]').length, 2);
     assert.match(document.body.textContent, /Action saved/);

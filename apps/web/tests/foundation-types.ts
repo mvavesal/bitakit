@@ -1,34 +1,31 @@
-import { getService, authService, translationService } from '@bitakit/core';
+import { getService, authService, translationService, defineAction } from '@bitakit/core';
 import type { Services } from '@bitakit/core';
-import { defineAction, defineFormAction } from '@bitakit/core';
-import {
-  useAction,
-  type ActionId,
-  type ActionInput,
-  type ExecutionResult,
-} from '@bitakit/ui/actions';
+import { useAction, type ActionInput, type ExecutionResult } from '@bitakit/ui/actions';
+import { z } from 'zod';
 
 /** Compile-time contract only; never called or bundled into the application. */
 export async function verifyServiceTypes(services: Services) {
-  const result = await services.users.invite({ email: 'test@example.com' });
+  const result = await services.users.invitations.invite({ email: 'test@example.com' });
   const invitationId: string = result.invitationId;
   // @ts-expect-error Service methods retain their input type.
-  await services.users.invite({ email: 123 });
+  await services.users.invitations.invite({ email: 123 });
   // @ts-expect-error Unknown methods must not become any.
-  services.users.missing();
+  services.users.invitations.missing();
   // @ts-expect-error Return values retain their shape.
   void result.unknownProperty;
-  return invitationId;
+  // App-level services sit directly under services; plugin services under their plugin.
+  const theme: 'light' | 'dark' | 'system' = services.theme.get().value;
+  return [invitationId, theme];
 }
 
-export const typedForm = defineFormAction({
-  fields: { email: { type: 'email', required: true } },
-  submit: (input, { services }) => services.users.invite(input),
+export const typedSchemaAction = defineAction({
+  input: z.object({ email: z.email() }),
+  execute: ({ services, input }) => services.users.invitations.invite(input),
   success: ({ result, input }) => {
     const id: string = result.invitationId;
-    // @ts-expect-error The result is inferred from submit, not widened to any.
+    // @ts-expect-error The result is inferred from execute, not widened to any.
     void result.missing;
-    // @ts-expect-error Form input is inferred from the declared fields.
+    // @ts-expect-error The input is inferred from the schema.
     void input.missing;
     return `${id}: ${input.email}`;
   },
@@ -40,7 +37,7 @@ export const typedForm = defineFormAction({
 });
 
 export const typedCommand = defineAction({
-  execute: ({ services }) => services.users.invite({ email: 'test@example.com' }),
+  execute: ({ services }) => services.users.invitations.invite({ email: 'test@example.com' }),
   success: ({ result }) => {
     // @ts-expect-error Command results retain the service return type too.
     void result.missing;
@@ -59,19 +56,20 @@ export async function verifyIntegrationTypes(services: Services) {
   return title;
 }
 
-/** Discovered definitions type their IDs, inputs and results; class exports are excluded by design. */
+/** Discovered definitions type their IDs, inputs and results; strict mode rejects unknown IDs. */
 export function useVerifyActionTypes() {
   const enabled = useAction('demo.enabled');
   void enabled?.execute(true);
-  // @ts-expect-error A discovered command's input follows its definition.
+  // @ts-expect-error A discovered action's input follows its definition.
   void enabled?.execute('yes');
   const hello = useAction('demo.hello');
   const message: Promise<ExecutionResult<string>> | undefined = hello?.execute();
-  // A form opener receives untyped context; its field values belong to the submission.
-  const invite = useAction('users.invite');
-  void invite?.execute({ organizationId: 'org' });
-  // Unknown IDs stay allowed and untyped unless ActionMapOptions enables strict mode.
-  const dynamic: ActionId = 'not.registered';
-  const untyped: ActionInput<'not.registered'> = { anything: true };
-  return [message, dynamic, untyped];
+  const send = useAction('users.send-invite', { email: 'test@example.com' });
+  void send?.execute({ email: 'test@example.com' });
+  // @ts-expect-error The schema types the input of users.send-invite.
+  void send?.execute({ email: 1 });
+  // @ts-expect-error Strict action IDs reject actions that discovery did not find.
+  useAction('not.registered');
+  const theme: ActionInput<'theme.set'> = 'dark';
+  return [message, theme];
 }

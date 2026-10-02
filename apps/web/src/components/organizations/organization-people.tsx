@@ -1,6 +1,6 @@
 'use client';
 import { ActionMenu } from '@/components/navigation/action-menu';
-import { actionGroups } from '@/actions/groups';
+import { actionGroups } from '@/lib/action-groups';
 import {
   createParser,
   parseAsInteger,
@@ -577,7 +577,7 @@ export function OrganizationPeople({
                     <TableCell className="text-right">
                       <ActionMenu
                         groups={[actionGroups.invitation]}
-                        context={{ organizationId, invitation, canInvite, refresh }}
+                        input={{ organizationId, invitation, canInvite, refresh }}
                         header={invitation.email}
                         trigger={
                           <Button

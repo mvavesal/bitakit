@@ -53,23 +53,22 @@ Shortcut presentation clarification: displaying the shortcut is optional per ren
 - [x] **Replaceable translation contract.** Core owns `translationService` and `createTranslationPlugin`; UI owns reactive React bindings, and the optional Next-intl adapter delegates message evaluation to next-intl. Catalog access and replacement notifications reuse the same service; no second locale store or translation engine. See the completed catalog and language-preference entries below.
 
 - [x] **Wire multilingual support and language preferences.** Content Demo now registers the
-  language setting through App Preferences, uses configured options in a standard dropdown,
-  and persists/reset through the existing locale cookie. Package catalogs stay with their
-  owners; app overrides and new-language fallback are covered. A targeted browser test
-  checks translated UI, persistence, reset and absence of full document navigation.
-  Arbitrary unsaved-form preservation and additional languages remain separate verification.
+      language setting through App Preferences, uses configured options in a standard dropdown,
+      and persists/reset through the existing locale cookie. Package catalogs stay with their
+      owners; app overrides and new-language fallback are covered. A targeted browser test
+      checks translated UI, persistence, reset and absence of full document navigation.
+      Arbitrary unsaved-form preservation and additional languages remain separate verification.
 
 - [ ] **Review an optional landing-page plugin.** Define the scope for public landing pages and their route contributions using existing Foundation plugin integration and native framework routing. Keep public pages separate from authenticated application layouts and guards; clarify ownership of `/` and route collisions. Consider offering the plugin as an optional project-generator selection. Reuse central UI and theme conventions; do not introduce a separate router or page-builder system without an agreed requirement. Discussion and planning only; no implementation yet.
 
 - [x] **Next.js frontend project generator CLI (September 29).** Implemented the private
-  `@bitakit/create-app` package with interactive directory/framework/feature selection
-  and equivalent flags. Initially Next.js only; experimental TanStack Start was added on September 30. Uses the official empty scaffold,
-  existing Foundation packages, native routes and shared theme imports; supports dry-run,
-  no-install and local npm tarballs before publication. Minimal and Shell/Quick Search outputs
-  installed outside the repository, passed typecheck and production build. Targeted browser
-  checks passed for settings, Quick Search, URL search and mobile overflow. The packed CLI
-  also generated a project through npm exec. Public publication remains deferred; see the TanStack integration status below.
-
+      `@bitakit/create-app` package with interactive directory/framework/feature selection
+      and equivalent flags. Initially Next.js only; experimental TanStack Start was added on September 30. Uses the official empty scaffold,
+      existing Foundation packages, native routes and shared theme imports; supports dry-run,
+      no-install and local npm tarballs before publication. Minimal and Shell/Quick Search outputs
+      installed outside the repository, passed typecheck and production build. Targeted browser
+      checks passed for settings, Quick Search, URL search and mobile overflow. The packed CLI
+      also generated a project through npm exec. Public publication remains deferred; see the TanStack integration status below.
 
 - [ ] **September 24, 2026 — Review extensible user and company profiles.** Use the installed Better Auth UI additional-fields mechanisms for simple user and organization profile extensions, including supported controls and custom field rendering where needed. Verify our adapter exposes the required options. Match UI definitions with Better Auth server configuration, database schema/migrations, validation and write permissions; UI registration alone does not provide persistence. Keep complex domain-specific company data in a separate model linked to the organization when appropriate. Agree on actual fields before implementation; preserve native auth/profile components and avoid duplicate forms or storage mechanisms.
 
@@ -94,32 +93,32 @@ Historical planning-only constraint is superseded for the explicitly authorized 
 - [x] **Shared translation access and current Foundation UI catalogs (September 29).** Added the reactive UI hook and optional raw catalog access to the existing translation service. Settings metadata/navigation/messages, Action metadata/feedback and notification titles/descriptions use central paths. Shell, Quick Search and Foundation-owned account/organization UI use DE/EN catalogs. Better Auth receives the shared `betterAuth` locale group through its native provider. Content Demo has standard Next-intl request composition; no upstream source was modified. Language-selection UX is implemented in the entry below; additional locales remain separate work.
 
 - [x] **Package-owned translation catalogs and Content Demo language preferences (September 29).**
-  Shared catalogs now ship from their owning packages; both hosts compose package messages
-  with app overrides winning matching keys. App-only new locales retain per-key fallback.
-  Content Demo exposes a standard language dropdown through App Preferences and persists
-  to its existing locale cookie; the Web language control also uses the standard dropdown.
+      Shared catalogs now ship from their owning packages; both hosts compose package messages
+      with app overrides winning matching keys. App-only new locales retain per-key fallback.
+      Content Demo exposes a standard language dropdown through App Preferences and persists
+      to its existing locale cookie; the Web language control also uses the standard dropdown.
 
 - [x] **Separate framework host integrations (September 30).** Next owns its nuqs boundary;
-  TanStack has an optional package with native routing, the upstream nuqs Router adapter
-  and Vite discovery. UI owns shared visual defaults and ordered plugin overrides. Core
-  retains framework-independent runtime and Node discovery. The generator installs the
-  selected adapter and labels Start experimental. Isolated generated app builds/typechecks
-  and focused settings query/reload checks passed for both; route/back restoration passed
-  on Start. No nuqs replacement, new runtime registry or public publication was introduced.
+      TanStack has an optional package with native routing, the upstream nuqs Router adapter
+      and Vite discovery. UI owns shared visual defaults and ordered plugin overrides. Core
+      retains framework-independent runtime and Node discovery. The generator installs the
+      selected adapter and labels Start experimental. Isolated generated app builds/typechecks
+      and focused settings query/reload checks passed for both; route/back restoration passed
+      on Start. No nuqs replacement, new runtime registry or public publication was introduced.
 
 - [ ] **Broader TanStack Start compatibility before removing experimental status.**
-  Upstream nuqs docs still exclude Start from supported coverage. The tested settings
-  paths are not proof for all parsers, simultaneous query writers, server loaders,
-  authentication, locale persistence or deployment adapters. Audit relevant actual uses
-  before promising parity; preserve URL ownership, hydration and history. Do not replace
-  nuqs or introduce custom query storage without a separate decision. Full Shell output
-  also reports a Vite large-chunk advisory; bundle optimization remains separate work.
+      Upstream nuqs docs still exclude Start from supported coverage. The tested settings
+      paths are not proof for all parsers, simultaneous query writers, server loaders,
+      authentication, locale persistence or deployment adapters. Audit relevant actual uses
+      before promising parity; preserve URL ownership, hydration and history. Do not replace
+      nuqs or introduce custom query storage without a separate decision. Full Shell output
+      also reports a Vite large-chunk advisory; bundle optimization remains separate work.
 
 - [x] **Shared client auth navigation and standalone Shell page states (October 1).**
-  Added external login/completion/logout paths to the existing auth contract and Better
-  Auth adapter, generic useAuth/AuthBoundary bindings, and an adapter template. Shell
-  provides standalone not-found/error/loading/access-denied components using existing
-  primitives and catalogs. Server authorization, native login UI and routes stay external.
+      Added external login/completion/logout paths to the existing auth contract and Better
+      Auth adapter, generic useAuth/AuthBoundary bindings, and an adapter template. Shell
+      provides standalone not-found/error/loading/access-denied components using existing
+      primitives and catalogs. Server authorization, native login UI and routes stay external.
 - [ ] **Additional authentication providers.** Implement and verify optional Auth.js/Clerk
-  adapters when requested. The common contract and template do not constitute working
-  integrations. Action instance/form isolation remains a separate deferred design task.
+      adapters when requested. The common contract and template do not constitute working
+      integrations. Action instance/form isolation remains a separate deferred design task.

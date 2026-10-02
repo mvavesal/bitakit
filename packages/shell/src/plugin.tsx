@@ -5,6 +5,7 @@ import {
   provideService,
   getService,
   type ServiceDefinition,
+  type LegacyServiceDefinition,
 } from '@bitakit/core';
 import {
   AppPreferences,
@@ -29,7 +30,11 @@ import { SettingsPage } from './settings/page.js';
 import { shellRenderers } from './settings/renderers.js';
 import { themePreferences } from './settings/theme.js';
 import { bindThemePreferences } from './theme/projection.js';
-import { notificationService, translatedNotifications, type NotificationService } from './services/notifications.js';
+import {
+  notificationService,
+  translatedNotifications,
+  type NotificationService,
+} from './services/notifications.js';
 import { createNotificationService } from './services/heroui-notifications.js';
 import { notificationPreferences, type NotificationPlacement } from './settings/notifications.js';
 import { shellService } from './services/shell.js';
@@ -47,7 +52,7 @@ export type ShellOptions = {
         /** Native HeroUI renderer for every toast in the shared surface. */
         layout?: NotificationLayout;
         /** Replace the implementation using the normal Foundation service lifecycle. */
-        service?: Omit<ServiceDefinition<NotificationService>, 'id'>;
+        service?: Omit<LegacyServiceDefinition<NotificationService>, 'id'>;
         /** False when an application-owned provider renders a custom service's notifications. */
         toastProvider?: boolean;
       };
@@ -147,9 +152,7 @@ export function shellPlugin(options: ShellOptions = {}) {
       : []),
     ...(options.settingsSection ? [] : [page]),
   ];
-  const Page = () => (
-    <SettingsPage pathname={path} unavailable="This setting is unavailable." />
-  );
+  const Page = () => <SettingsPage pathname={path} unavailable="This setting is unavailable." />;
   return definePlugin({
     id: 'shell',
     metadata: {
@@ -158,7 +161,14 @@ export function shellPlugin(options: ShellOptions = {}) {
       description: 'Application navigation and layout.',
     },
     services: [
-      ...(notifications ? [provideService(notificationService, { ...translatedNotifications(notificationDefinition), exposeAs: 'notifications' })] : []),
+      ...(notifications
+        ? [
+            provideService(notificationService, {
+              ...translatedNotifications(notificationDefinition),
+              exposeAs: 'notifications',
+            }),
+          ]
+        : []),
       provideService(shellService, {
         requires: options.settings ? [] : [settingsService],
         create: ({ services }) => ({
@@ -204,7 +214,14 @@ export function shellPlugin(options: ShellOptions = {}) {
         ...(nativeNotifications ? [notificationPlacement] : []),
       ],
       'settings.sections': sections,
-      'settings.renderers': [shellRenderers({ appearance, theme, layout, notifications: nativeNotifications ? notificationPlacement : undefined })],
+      'settings.renderers': [
+        shellRenderers({
+          appearance,
+          theme,
+          layout,
+          notifications: nativeNotifications ? notificationPlacement : undefined,
+        }),
+      ],
     },
     setup({ app, services }) {
       const settings = options.settings ?? getService(services, settingsService);

@@ -10,7 +10,10 @@ import {
 } from '@bitakit/core';
 
 type SessionState = {
-  data: { user: { id: string; name?: string; email?: string; emailVerified?: boolean }; session?: { id?: string; activeOrganizationId?: string | null } } | null;
+  data: {
+    user: { id: string; name?: string; email?: string; emailVerified?: boolean };
+    session?: { id?: string; activeOrganizationId?: string | null };
+  } | null;
   isPending: boolean;
   error: unknown;
 };

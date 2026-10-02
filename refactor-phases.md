@@ -54,7 +54,7 @@ Changes
       locale keys picked up automatically, `success: false` for silence, `confirm` option
       routed through the host confirmation.
 - [x] Pending is set only when `execute` returns a promise. `concurrency: 'exclusive' |
-    'per-input' | 'latest'` with an abort `signal` in the handler context.
+'per-input' | 'latest'` with an abort `signal` in the handler context.
 
 Removes
 
@@ -72,6 +72,11 @@ Done when
 
 - Core tests pass on the new shape, `examples/todos` runs, `mountPlugin` works, and the public
   export list of `@bitakit/core` is under 15 names.
+- _Status 2026-10-03: 171 Core tests pass; the example and `mountPlugin` work. The developer-facing
+  helpers are 11 (`defineService`, `defineAction`, `definePlugin`, `defineEvents`, `event`,
+  `defineInterceptor`, `defineConfig`, `defineContract`/`serviceKey`, `createStore`,
+  `createRuntime`, `getService`); runtime and integration exports stay on the root entry and
+  move to a subpath in Phase 5._
 
 ## Phase 2: Discovery and generated output (M)
 
@@ -99,6 +104,9 @@ Done when
 
 - The generated sample app type-checks with zero hand edits, and Turbopack works because
   nothing is aliased.
+- _Status 2026-10-03: fresh Next and TanStack samples generate and type-check against the
+  workspace packages, and the generated file has no bundler alias. A browser run under
+  Turbopack has not been performed yet._
 
 ## Phase 3: React bindings (M)
 
@@ -128,13 +136,16 @@ Done when
 
 - The sample Todos page is written with `useServiceState` and `<Action>` only, and the
   startup-isolation tests pass with attributed errors.
+- _Status 2026-10-03: done; 49 UI tests including startup isolation with async `onStart`
+  failures pass. `ActionLink`, `useWatchEvent` and `useFoundationReady` remain as sugar or
+  deprecated aliases._
 
 ## Phase 4: Settings and Shell (L)
 
 Changes
 
 - [ ] `defineSettings` per plugin: `schema`, `default`, `scope: 'user' | 'organization' |
-    'device'`, optional `label` and `render`. Keys are `<plugin>.<name>`.
+'device'`, optional `label` and `render`. Keys are `<plugin>.<name>`.
 - [ ] One read/write API: `settings.<plugin>.<key>.get() / set() / subscribe()` and
       `useSetting(key)`. Generated settings sections from the definitions;
       `ui/settings/page.tsx` replaces a plugin's section.

@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3102",
-    "build": "foundation-generate && next build",
-    "typecheck": "foundation-generate && next typegen && tsc --noEmit",
+    "build": "bitakit generate && next build",
+    "typecheck": "bitakit generate && next typegen && tsc --noEmit",
     "test:e2e": "playwright test"
   },
   "dependencies": {

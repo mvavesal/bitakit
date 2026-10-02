@@ -8,10 +8,20 @@ import { detectFramework, loadDiscoveryConfig } from './generate.mjs';
 
 const kinds = ['actions', 'services', 'pages', 'slots', 'providers', 'configs', 'interceptors'];
 
-async function contributionsOf(base, list, relative, warnings, relativeTo = base) {
+async function contributionsOf(
+  base,
+  list,
+  relative,
+  warnings,
+  relativeTo = base,
+  { app = false } = {},
+) {
   const result = {};
   for (const kind of kinds) {
-    const found = await discoverEntries(base, list, kind, { relativeTo });
+    const found = await discoverEntries(base, list, kind, {
+      relativeTo,
+      legacy: !(app && kind === 'providers'),
+    });
     warnings.push(...found.warnings);
     result[kind] = found.entries.map((entry) => ({
       path: entry.path.join('.'),
@@ -63,7 +73,7 @@ export async function describeFoundation(root) {
   const app = {
     id: appManifest.id ?? 'app',
     directory: relative(appRoot),
-    ...(await contributionsOf(appRoot, appFiles, relative, warnings, root)),
+    ...(await contributionsOf(appRoot, appFiles, relative, warnings, root, { app: true })),
   };
   const plugins = [];
   for (const { manifestFile, id } of manifests) {

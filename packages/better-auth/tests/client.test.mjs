@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FoundationRuntime, Action, createActionList } from '@bitakit/core';
+import { FoundationRuntime, createActionList, defineAction } from '@bitakit/core';
 import { betterAuthPlugin } from '../dist/index.js';
 test('Better Auth integration delegates current session, subscription ownership and sign-out errors', async () => {
   let state = { data: null, isPending: true, error: null },
@@ -26,23 +26,13 @@ test('Better Auth integration delegates current session, subscription ownership 
   };
   const integration = betterAuthPlugin(client);
   const list = createActionList();
-  class Logout extends Action {
-    constructor({ services }) {
-      super({ id: 'logout', title: 'Logout' });
-      this.auth = services.auth;
-    }
-    connect() {
-      const sync = () => {
-        this.visible = !!this.auth.getSnapshot().user;
-      };
-      const stop = this.auth.subscribe(sync);
-      sync();
-      return stop;
-    }
-    execute() {
-      return this.auth.signOut();
-    }
-  }
+  // Visibility follows the auth service: it exposes subscribe(), so the runtime observes it.
+  const Logout = defineAction({
+    id: 'logout',
+    title: 'Logout',
+    visible: ({ services }) => !!services.auth.getSnapshot().user,
+    execute: ({ services }) => services.auth.signOut(),
+  });
   const runtime = new FoundationRuntime(list, { plugins: [integration], actions: [Logout] });
   const stopList = list.mount();
   const stop = runtime.mount();

@@ -24,7 +24,11 @@ export const shellPreferences = defineSettings({
       description: 'Choose the navigation layout. Content stays open.',
       defaultValue: 'sidebar',
       options: [
-        { value: 'sidebar', label: 'Sidebar', description: 'Navigation on the left, content on the right.' },
+        {
+          value: 'sidebar',
+          label: 'Sidebar',
+          description: 'Navigation on the left, content on the right.',
+        },
         {
           value: 'navbar',
           label: 'Horizontal navigation',

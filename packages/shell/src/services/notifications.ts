@@ -1,4 +1,10 @@
-import { serviceKey, resolveText, type Translator, type ServiceDefinition } from '@bitakit/core';
+import {
+  serviceKey,
+  resolveText,
+  type Translator,
+  type ServiceDefinition,
+  type LegacyServiceDefinition,
+} from '@bitakit/core';
 
 export type NotificationId = string | number;
 
@@ -15,12 +21,12 @@ export interface NotificationService {
   show(message: string, options?: NotificationOptions): NotificationId;
   dismiss(id: NotificationId): void;
 }
-export const notificationService = serviceKey<NotificationService>('shell.notifications');
+export const notificationService = serviceKey<NotificationService>('notifications');
 
 /** Translate once at the service boundary, including replacement renderers. */
 export function translatedNotifications(
-  definition: Omit<ServiceDefinition<NotificationService>, 'id'>,
-): Omit<ServiceDefinition<NotificationService>, 'id'> {
+  definition: Omit<LegacyServiceDefinition<NotificationService>, 'id'>,
+): Omit<LegacyServiceDefinition<NotificationService>, 'id'> {
   const originals = new WeakMap<NotificationService, NotificationService>();
   return {
     ...definition,
@@ -29,14 +35,16 @@ export function translatedNotifications(
       const service: NotificationService = {
         show(message, options = {}) {
           const translate = context.services.i18n?.translate;
-          const text = (value: string) => translate
-            ? resolveText(translate, value, value, options.values) : value;
+          const text = (value: string) =>
+            translate ? resolveText(translate, value, value, options.values) : value;
           return original.show(text(message), {
             ...options,
             description: options.description === undefined ? undefined : text(options.description),
           });
         },
-        dismiss(id) { original.dismiss(id); },
+        dismiss(id) {
+          original.dismiss(id);
+        },
       };
       originals.set(service, original);
       return service;

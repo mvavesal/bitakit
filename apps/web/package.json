@@ -14,8 +14,8 @@
     "db:status": "node ../../scripts/database.mjs migrate status",
     "predev": "npm run db:generate",
     "prebuild": "npm run db:generate",
-    "pretypecheck": "npm run db:generate && npm run foundation:generate",
-    "foundation:generate": "foundation-generate"
+    "pretypecheck": "npm run db:generate && npm run generate",
+    "generate": "bitakit generate"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

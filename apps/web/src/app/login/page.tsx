@@ -4,7 +4,11 @@ import { AuthScreen } from '@/components/auth/auth-screen';
 
 export const metadata: Metadata = { title: 'Login · SaaS Foundation' };
 
-export default async function LoginPage({searchParams}:{searchParams:Promise<{returnTo?:string}>}) {
-  const target=authReturnPath((await searchParams).returnTo);
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
+  const target = authReturnPath((await searchParams).returnTo);
   return <AuthScreen mode="login" returnTo={target} />;
 }

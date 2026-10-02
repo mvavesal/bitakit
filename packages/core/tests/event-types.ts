@@ -1,4 +1,11 @@
-import { EventService, defineEvents, defineService, event, type CancelableOf, type EventsOf } from '../src/core.js';
+import {
+  EventService,
+  defineEvents,
+  defineService,
+  event,
+  type CancelableOf,
+  type EventsOf,
+} from '../src/core.js';
 
 // A plugin declares its events once; the generated maps are derived from that declaration.
 const todos = defineEvents({
@@ -9,7 +16,12 @@ const todos = defineEvents({
 });
 type TodoEvents = EventsOf<typeof todos, 'todos'>;
 type TodoCancelable = CancelableOf<typeof todos, 'todos'>;
-const declared: TodoEvents = { 'todos.changed': { id: 1 }, 'todos.loaded': undefined, 'todos.deleting': { id: 2 }, 'todos.tagged': 'x' };
+const declared: TodoEvents = {
+  'todos.changed': { id: 1 },
+  'todos.loaded': undefined,
+  'todos.deleting': { id: 2 },
+  'todos.tagged': 'x',
+};
 const cancelable: TodoCancelable = { 'todos.deleting': true };
 // @ts-expect-error Only cancelable events appear in the cancelable map.
 const notCancelable: TodoCancelable = { 'todos.changed': true };

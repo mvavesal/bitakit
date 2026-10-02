@@ -37,15 +37,25 @@ function AccountContent({
   const auth = getService(useFoundation().runtime.services, authService);
   const session = useSyncExternalStore(auth.subscribe, auth.getSnapshot, auth.getSnapshot);
   const config = useAuth();
-  if (session.pending) return <p role="status">{translateUI("foundationUI.account.checkingSignin", undefined, "Checking sign-in…")}</p>;
+  if (session.pending)
+    return (
+      <p role="status">
+        {translateUI('foundationUI.account.checkingSignin', undefined, 'Checking sign-in…')}
+      </p>
+    );
   if (!session.user)
     return profile && Fallback ? (
       <Fallback />
     ) : (
       <p>
-        {translateUI("foundationUI.account.signInToAccessTheseAccountSettings", undefined, "Sign in to access these account settings.")}{' '}
+        {translateUI(
+          'foundationUI.account.signInToAccessTheseAccountSettings',
+          undefined,
+          'Sign in to access these account settings.',
+        )}{' '}
         <a className="underline" href={`${config.basePaths.auth}/${config.viewPaths.auth.signIn}`}>
-          {translateUI("foundationUI.account.logIn", undefined, "Log in")}</a>
+          {translateUI('foundationUI.account.logIn', undefined, 'Log in')}
+        </a>
       </p>
     );
   if (profile) return <UserProfile />;

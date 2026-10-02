@@ -33,7 +33,11 @@ export function SettingsRoute({
     >
       <SettingsPage
         pathname={resolved}
-        unavailable={t('shell.settingsRoute.unavailable', undefined, 'This setting is unavailable.')}
+        unavailable={t(
+          'shell.settingsRoute.unavailable',
+          undefined,
+          'This setting is unavailable.',
+        )}
       />
     </SettingsShell>
   );

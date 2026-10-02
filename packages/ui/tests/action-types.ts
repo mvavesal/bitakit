@@ -1,167 +1,307 @@
+/** Compile-time contract of the React bindings; checked by `tsc -p tsconfig.test.json`, never executed. */
+import type { ReactNode } from 'react';
 import {
-  Action,
   defineAction,
-  defineDialogAction,
-  defineFormAction,
-  defineURLAction,
+  defineService,
+  definePlugin,
+  defineEvents,
+  event,
   type ActionEntry,
-  type ActionEnvironment,
+  type EventsOf,
+  type FoundationApp,
+  type PublicServicesOf,
+  type Services,
+  type Store,
 } from '@bitakit/core';
-import type {
-  ActionId,
-  ActionInput,
-  ActionResult,
-  ExecutionResult,
-} from '@bitakit/core/actions';
-import { useAction } from '../src/actions/index.js';
+import type { ActionId, ActionInput, ActionResult, ExecutionResult } from '@bitakit/core/actions';
+import {
+  useAction,
+  useActionGroup,
+  useActionGroups,
+  type ActionControl,
+  type BoundGroup,
+  type ControlAdapters,
+  type ControlProps,
+} from '../src/actions/index.js';
+import { useEvent, useFoundationApp, useService, useServiceState } from '../src/index.js';
+import type { ActionButtonProps } from '../src/components/action-button.js';
+import type { ActionProps } from '../src/components/action.js';
+import type { FoundationProviderProps } from '../src/types/provider.js';
 
-/** Compile-time contract only; never executed. */
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 type Assert<T extends true> = T;
 
-const command = defineAction({
-  resolve: (input: { memberId: string }) => ({ visible: !!input.memberId }),
-  execute: async () => ({ id: 'created' }),
+// --- defineAction: input and result inference -------------------------------------------------
+
+const memberSchema = { parse: (input: unknown) => ({ memberId: String(input) }) };
+const promote = defineAction({
+  input: memberSchema,
+  visible: ({ input }) => input.memberId.length > 0,
+  execute: async ({ input }) => ({ id: input.memberId }),
 });
-type _CommandEntry = Assert<
+type _Promote = Assert<
   Equal<
-    ActionEntry<typeof command, 'members.promote'>,
+    ActionEntry<typeof promote, 'members.promote'>,
     { 'members.promote': { input: { memberId: string }; result: { id: string } } }
   >
 >;
 
-const explicit = defineAction({ id: 'custom.id', title: 'Custom' });
-type _ExplicitId = Assert<Equal<keyof ActionEntry<typeof explicit, 'ignored.path'>, 'custom.id'>>;
-
-const replacement = defineAction({ replaces: 'plugin.example' });
-type _Replacement = Assert<
-  Equal<keyof ActionEntry<typeof replacement, 'app.override'>, 'plugin.example'>
->;
-
-const form = defineFormAction({ fields: { email: { type: 'email' } }, submit: () => 1 });
-type _Form = Assert<
-  Equal<
-    ActionEntry<typeof form, 'users.invite'>,
-    { 'users.invite': { input: unknown; result: void } }
-  >
->;
-
-const dialog = defineDialogAction({
-  resolve: (input: { organizationId: string }) => ({ enabled: !!input.organizationId }),
-  render: () => null,
+// Without a schema the input is named explicitly; the result is then unknown.
+const add = defineAction<string>({
+  enabled: ({ input }) => input.trim().length > 0,
+  execute: ({ input }) => input.length,
 });
-type _Dialog = Assert<
-  Equal<
-    ActionEntry<typeof dialog, 'organizations.edit'>,
-    { 'organizations.edit': { input: { organizationId: string }; result: void } }
-  >
->;
+type AddEntry = ActionEntry<typeof add, 'todos.add'>;
+type _AddKey = Assert<Equal<keyof AddEntry, 'todos.add'>>;
+type _AddInput = Assert<Equal<AddEntry['todos.add']['input'], string>>;
+type _AddResult = Assert<Equal<AddEntry['todos.add']['result'], unknown>>;
 
-const url = defineURLAction({ href: '/help' });
-type _Url = Assert<
-  Equal<ActionEntry<typeof url, 'account.help'>, { 'account.help': { input: void; result: void } }>
->;
+const help = defineAction({ title: 'Help', href: '/help', groups: ['navigation'] });
+type HelpEntry = ActionEntry<typeof help, 'account.help'>;
+type _HelpKey = Assert<Equal<keyof HelpEntry, 'account.help'>>;
+type _HelpInput = Assert<Equal<HelpEntry['account.help']['input'], unknown>>;
+type _HelpResult = Assert<Equal<HelpEntry['account.help']['result'], unknown>>;
 
-// Class and function exports choose their ID at construction, so discovery emits no entry for them.
-class Logout extends Action {
-  constructor() {
-    super({ id: 'account.signOut', title: 'Sign out' });
-  }
+// Dialog and page components may type the props the host passes them.
+function RenameDialog({
+  input,
+  close,
+}: {
+  input: { id: number };
+  close(): void;
+  services: Services;
+}) {
+  void input.id;
+  void close;
+  return null;
 }
-type _Class = Assert<Equal<ActionEntry<typeof Logout, 'account.logout'>, {}>>;
-const factory = (_: ActionEnvironment) => new Logout();
-type _Factory = Assert<Equal<ActionEntry<typeof factory, 'account.logout'>, {}>>;
+const rename = defineAction({ title: 'Rename', dialog: RenameDialog, dialogSize: 'wide' });
+function Details({ params }: { params: { id: string } }) {
+  void params.id;
+  return null;
+}
+const tasks = definePlugin({
+  id: 'tasks',
+  ui: { pages: [{ path: '/tasks/[id]', component: Details }] },
+});
+void rename;
+void tasks;
 
-// Global conventions disabled: only explicit IDs remain.
-type _NoConventions = Assert<Equal<ActionEntry<typeof command, never>, {}>>;
-type _NoConventionsExplicit = Assert<Equal<keyof ActionEntry<typeof explicit, never>, 'custom.id'>>;
-
-import { ActionStatus } from '@bitakit/core';
-const stateful = defineAction<{ title: string }>()({
-  initialState: { count: 0, title: '' },
-  async execute(input) {
-    this.state.update((current) => ({ count: current.count + 1, title: input.title }));
-    // @ts-expect-error Custom state retains its inferred field types.
-    this.state.update((current) => ({ count: 'bad', title: current.title }));
-    return { savedTitle: input.title };
+// Shortcut inputs follow the action contract; contextual input is never guessed from UI focus.
+defineAction<{ documentId: string }>({
+  shortcut: { keys: 'Mod+Shift+S', input: { documentId: 'current' } },
+  execute: ({ input }) => {
+    void input.documentId;
   },
 });
-declare module '@bitakit/core' {
-  interface ActionMap extends ActionEntry<typeof stateful, 'documents.save'> {}
-}
+defineAction<{ documentId: string }>({
+  // @ts-expect-error Actions requiring input must declare their keyboard input.
+  shortcut: { keys: 'Mod+Shift+S' },
+});
+defineAction<void>({ shortcut: { keys: 'Mod+Shift+S' }, execute() {} });
 
-// The same augmentation build tooling generates, through the public package entry.
+// --- Plugins, services and events -------------------------------------------------------------
+
+const items = defineService(({ store }) => {
+  const state = store({ items: [] as string[] });
+  return {
+    state,
+    add: (title: string) => state.set((current) => ({ items: [...current.items, title] })),
+  };
+});
+const todosEvents = defineEvents({
+  changed: event<{ kind: 'added' | 'removed' }>(),
+  deleting: event<{ id: number }>({ cancelable: true }),
+});
+const todos = definePlugin({ id: 'todos', services: { items }, events: todosEvents });
+type TodoServices = PublicServicesOf<readonly [typeof todos]>;
+type _ServiceNames = Assert<Equal<keyof TodoServices, 'todos.items'>>;
+// Manual compositions type the app facade through the hook generic.
+declare const composed: ReturnType<typeof useFoundationApp<readonly [typeof todos]>>;
+const composedState: Store<{ items: string[] }> = composed.services.todos.items.state;
+// @ts-expect-error Unpublished services are absent from completion.
+composed.services.notes;
+void composedState;
+
+// The same augmentations build tooling generates into src/bitakit.gen.tsx. The service entry is
+// written by hand here, as the generated file derives it from each service file.
 declare module '@bitakit/core' {
-  interface ActionMap extends ActionEntry<typeof command, 'members.promote'> {}
+  interface ActionMap
+    extends ActionEntry<typeof promote, 'members.promote'>,
+      ActionEntry<typeof add, 'todos.add'> {}
+  interface ServiceMap {
+    'todos.items': { state: Store<{ items: string[] }>; add(title: string): void };
+  }
+  interface EventMap extends EventsOf<typeof todosEvents, 'todos'> {}
 }
 type _Input = Assert<Equal<ActionInput<'members.promote'>, { memberId: string }>>;
 type _Result = Assert<Equal<ActionResult<'members.promote'>, { id: string }>>;
 type _UnknownInput = Assert<Equal<ActionInput<'not.registered'>, unknown>>;
 
-declare const promote: ReturnType<typeof useAction<'members.promote'>>;
-const outcome: Promise<ExecutionResult<{ id: string }>> | undefined = promote?.execute({
+// --- useAction: one control with state and prop getters ----------------------------------------
+
+declare const control: ReturnType<typeof useAction<'members.promote'>>;
+type _Control = Assert<Equal<typeof control, ActionControl<'members.promote'> | undefined>>;
+const outcome: Promise<ExecutionResult<{ id: string }>> | undefined = control?.execute({
   memberId: 'a',
 });
 // @ts-expect-error Input follows the action map.
-void promote?.execute({ memberId: 1 });
+void control?.execute({ memberId: 1 });
+if (control) {
+  const state: [boolean, boolean, boolean, boolean, string, string | undefined] = [
+    control.enabled,
+    control.visible,
+    control.pending,
+    control.disabled,
+    control.title,
+    control.href,
+  ];
+  const button: ControlProps = control.props({
+    onExecuted: (result) => {
+      const status: 'completed' | 'skipped' = result.status;
+      void status;
+    },
+    onError: (error: unknown) => void error,
+  });
+  const link: ControlProps = control.linkProps();
+  const toggle: ControlProps = control.checkedProps();
+  const choice: ControlProps = control.valueProps();
+  const item: ControlProps = control.menuItemProps();
+  // @ts-expect-error Controls carry no action-owned custom state.
+  control.state;
+  // @ts-expect-error Status spelling mistakes are rejected.
+  control.status === 'suceeded';
+  void state;
+  void button;
+  void link;
+  void toggle;
+  void choice;
+  void item;
+}
 // Non-strict default: unknown IDs stay allowed and untyped.
 const dynamic: ActionId = 'not.registered';
 declare const untyped: ReturnType<typeof useAction<'not.registered'>>;
 void untyped?.execute('anything');
 export { outcome, dynamic };
 
-import type { FoundationApp } from '@bitakit/core';
-import type { ActionButtonProps } from '../src/components/action-button.js';
+// --- References from the app facade -----------------------------------------------------------
+
 declare const app: FoundationApp;
-const referencedOutcome: Promise<ExecutionResult<{ id: string }>> =
-  app.actions.members.promote.execute({ memberId: 'a' });
+const referenced: Promise<ExecutionResult<{ id: string }>> = app.actions.members.promote.execute({
+  memberId: 'a',
+});
+// @ts-expect-error References preserve the input contract.
+app.actions.members.promote.execute({ memberId: 1 });
+// @ts-expect-error Namespace completion excludes unknown actions.
+app.actions.members.unknown;
+const added: string[] = app.services.todos.items.state.get().items;
+void referenced;
+void added;
+
+// --- Components ------------------------------------------------------------------------------
+
+function CustomButton(props: { tone: 'primary' | 'secondary'; children?: ReactNode }) {
+  void props;
+  return null;
+}
 const buttonProps: ActionButtonProps<'members.promote'> = {
   action: app.actions.members.promote,
   input: { memberId: 'a' },
 };
-// @ts-expect-error References preserve the existing Action input contract.
-app.actions.members.promote.execute({ memberId: 1 });
-// @ts-expect-error Namespace completion excludes unknown Actions.
-app.actions.members.unknown;
-void referencedOutcome;
+const customButton: ActionButtonProps<'todos.add', typeof CustomButton> = {
+  action: 'todos.add',
+  input: 'Milk',
+  as: CustomButton,
+  tone: 'primary',
+};
+const wrongTone: ActionButtonProps<'todos.add', typeof CustomButton> = {
+  action: 'todos.add',
+  as: CustomButton,
+  // @ts-expect-error Component props follow `as`.
+  tone: 'loud',
+};
+// @ts-expect-error Input follows the action map.
+const wrongInput: ActionButtonProps<'todos.add'> = { action: 'todos.add', input: 42 };
+const actionProps: ActionProps<'members.promote'> = {
+  id: 'members.promote',
+  input: { memberId: 'a' },
+  children: (bound) => bound.title,
+};
+const wrongActionProps: ActionProps<'members.promote'> = {
+  id: 'members.promote',
+  // @ts-expect-error Input follows the action map.
+  input: { memberId: 1 },
+  children: () => null,
+};
 void buttonProps;
+void customButton;
+void wrongTone;
+void wrongInput;
+void actionProps;
+void wrongActionProps;
 
-const statefulBinding = useAction(app.actions.documents.save);
-if (statefulBinding) {
-  const count: number = statefulBinding.state.count;
-  const result: Promise<ExecutionResult<{ savedTitle: string }>> = statefulBinding.execute({
-    title: 'Title',
+// --- Hooks ------------------------------------------------------------------------------------
+
+export function Consumer() {
+  const titles = useServiceState('todos.items', (state) => state.items);
+  type _Titles = Assert<Equal<typeof titles, string[] | undefined>>;
+  const safe = useServiceState('todos.items', (state) => state.items, []);
+  type _Safe = Assert<Equal<typeof safe, string[]>>;
+  const whole = useServiceState('todos.items');
+  type _Whole = Assert<Equal<typeof whole, { items: string[] } | undefined>>;
+  // @ts-expect-error Selectors see the typed store state.
+  useServiceState('todos.items', (state) => state.missing);
+  const unknown = useServiceState('other.service');
+  type _Unknown = Assert<Equal<typeof unknown, unknown>>;
+  const service = useService('todos.items');
+  type _Service = Assert<Equal<NonNullable<typeof service>['add'], (title: string) => void>>;
+  useEvent('todos.changed', (changed) => {
+    const kind: 'added' | 'removed' = changed.data.kind;
+    void kind;
   });
-  // @ts-expect-error State is read-only outside the action update API.
-  statefulBinding.state.count = 4;
-  // @ts-expect-error Unknown state field.
-  statefulBinding.state.missing;
-  // @ts-expect-error Status spelling mistakes are rejected.
-  statefulBinding.status === 'suceeded';
-  // @ts-expect-error Enum member spelling mistakes are rejected.
-  ActionStatus.Suceeded;
-  // @ts-expect-error Wrong invocation input.
-  statefulBinding.execute({ title: 4 });
-  void count;
-  void result;
+  useEvent('todos.*', (any) => {
+    const type: 'todos.changed' | 'todos.deleting' = any.type;
+    void type;
+  });
+  useEvent(['todos.changed'], () => {});
+  useEvent('todos.changed', (changed) => {
+    // @ts-expect-error Payloads follow the event map.
+    const wrong: number = changed.data.kind;
+    void wrong;
+  });
+  const group: BoundGroup = useActionGroup('navigation');
+  const groups: readonly BoundGroup[] = useActionGroups(['navigation', 'todos.toolbar'], { id: 1 });
+  type _Items = Assert<Equal<BoundGroup['items'], readonly ActionControl[]>>;
+  void titles;
+  void safe;
+  void whole;
+  void unknown;
+  void group;
+  void groups;
+  return null;
 }
 
-// Shortcut inputs follow the Action contract; contextual input is never guessed from UI focus.
-defineAction<{ documentId: string }, void>({
-  shortcut: { keys: 'Mod+Shift+S', input: { documentId: 'current' } },
-  execute: ({ input }) => {
-    void input.documentId;
+// --- Provider ---------------------------------------------------------------------------------
+
+const controls: ControlAdapters = {
+  button: (state) => ({ isDisabled: state.disabled }),
+  link: (state) => ({ isDisabled: !state.href }),
+};
+// @ts-expect-error Only the five control kinds have adapters.
+const unknownControl: ControlAdapters = { switch: () => ({}) };
+const providerProps: FoundationProviderProps = {
+  config: {},
+  controls,
+  additionalPlugins: [todos, tasks],
+  labels: { confirm: 'Yes' },
+  notify: (message, kind) => {
+    const known: 'success' | 'failure' = kind;
+    void known;
+    void message;
   },
-});
-defineAction<{ documentId: string }, void>({
-  // @ts-expect-error Actions requiring input must declare their keyboard input.
-  shortcut: { keys: 'Mod+Shift+S' },
-});
-defineAction<void, void>({ shortcut: { keys: 'Mod+Shift+S' }, execute() {} });
-defineAction<{ documentId: string }>()({
-  initialState: {},
-  // @ts-expect-error Stateful Actions keep the same required input contract.
-  shortcut: { keys: 'Mod+Shift+S' },
-  execute() {},
-});
+  children: null,
+};
+void controls;
+void unknownControl;
+void providerProps;

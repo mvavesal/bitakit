@@ -280,7 +280,10 @@ test('the generated file wires app and plugins: nested services, typed events, c
     assert.match(source, /events: discoverEvents\(\[file\d+\]\)/);
     assert.match(source, /discoveredFile\(entry\d+, "", "src\/plugins\/todos\/events\.ts"\)/);
     assert.match(source, /id: "todos", metadata: \{"name":"Todos"\}, dependencies: \[\]/);
-    assert.match(source, /const configOverrides = \{"todos":\{"limits":\{"maxItems":5\}\}\};/);
+    assert.match(
+      source,
+      /const configOverrides: Record<string, Record<string, unknown>> = \{"todos":\{"limits":\{"maxItems":5\}\}\};/,
+    );
     assert.doesNotMatch(
       source,
       /components\/button|\.foundation|publicServices|discoverPublicServices/,
@@ -603,7 +606,6 @@ test('legacy folders and suffixes are discovered with migration warnings; helper
     await put('src/plugins/todos/ui/components/button.tsx', 'export default () => null;');
     const result = await generateFoundation(root, { quiet: true });
     expectWarnings(result.warnings, [
-      /^src\/providers\/legacy\.tsx: move it under ui\/providers\/; the old location is deprecated \(run "bitakit migrate"\)\.$/,
       /^src\/plugins\/todos\/pages\/legacy\.tsx: move it under ui\/pages\/; the old location is deprecated/,
       /^src\/plugins\/todos\/views\/panel\.view\.tsx: move it under ui\/slots\/; the old location is deprecated/,
       /^src\/plugins\/todos\/views\/panel\.view\.tsx: drop the "\.view" suffix; folders are the one convention \(run "bitakit migrate"\)\.$/,
@@ -1213,28 +1215,32 @@ test('migrateProject rewrites the 0.1 layout; a dry run only reports the same ch
         { from: 'src/actions.refresh.ts', to: 'src/actions/refresh.ts' },
         { from: 'src/configs.actions.refresh.ts', to: 'src/configs/actions/refresh.ts' },
         { from: 'src/services.logging.ts', to: 'src/services/logging.ts' },
-        { from: 'src/ui/pages/home.page.tsx', to: 'src/ui/pages/home.tsx' },
-        { from: 'src/ui/slots/workspace.view.tsx', to: 'src/ui/slots/workspace.tsx' },
+        // Legacy pages and views move file by file; the suffix is dropped in the same step.
+        { from: 'src/pages/home.page.tsx', to: 'src/ui/pages/home.tsx' },
+        { from: 'src/views/workspace.view.tsx', to: 'src/ui/slots/workspace.tsx' },
         { from: 'src/plugins/todos/actions/add.action.ts', to: 'src/plugins/todos/actions/add.ts' },
+        { from: 'src/plugins/todos/pages/index.tsx', to: 'src/plugins/todos/ui/pages/index.tsx' },
         {
-          from: 'src/plugins/todos/ui/slots/app-bar.end.view.tsx',
+          from: 'src/plugins/todos/views/app-bar.end.view.tsx',
           to: 'src/plugins/todos/ui/slots/app-bar.end.tsx',
         },
       ]),
     );
-    assert.deepEqual(byKind('move'), [
-      { from: 'src/pages', to: 'src/ui/pages' },
-      { from: 'src/views', to: 'src/ui/slots' },
-      { from: 'src/plugins/todos/pages', to: 'src/plugins/todos/ui/pages' },
-      { from: 'src/plugins/todos/views', to: 'src/plugins/todos/ui/slots' },
-    ]);
+    assert.deepEqual(byKind('move'), []);
     assert.deepEqual(
       byKind('rewrite').map((change) => change.from),
       ['src/app/layout.tsx', 'package.json', '.gitignore'],
     );
     assert.deepEqual(
       byKind('delete').map((change) => change.from),
-      ['.foundation', 'foundation-env.d.ts'],
+      [
+        'src/pages',
+        'src/views',
+        'src/plugins/todos/pages',
+        'src/plugins/todos/views',
+        '.foundation',
+        'foundation-env.d.ts',
+      ],
     );
     const after = await snapshot();
     assert.deepEqual(Object.keys(after), [

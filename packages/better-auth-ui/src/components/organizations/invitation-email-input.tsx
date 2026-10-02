@@ -2,8 +2,8 @@
 import { useTranslation } from '@bitakit/ui';
 
 import { useState } from 'react';
-import {  Avatar, AvatarFallback  } from '../ui/index.js';
-import { 
+import { Avatar, AvatarFallback } from '../ui/index.js';
+import {
   Combobox,
   ComboboxChip,
   ComboboxChips,
@@ -13,7 +13,7 @@ import {
   ComboboxList,
   ComboboxValue,
   useComboboxAnchor,
- } from '../ui/index.js';
+} from '../ui/index.js';
 
 export function InvitationEmailInput({
   value,
@@ -76,8 +76,12 @@ export function InvitationEmailInput({
         </ComboboxValue>
         <ComboboxChipsInput
           id="invite-email"
-          aria-label={translateUI("foundationUI.invitation_email_input.email", undefined, "Email")}
-          placeholder={translateUI("foundationUI.invitation_email_input.addEmailAddresses", undefined, "Add email addresses")}
+          aria-label={translateUI('foundationUI.invitation_email_input.email', undefined, 'Email')}
+          placeholder={translateUI(
+            'foundationUI.invitation_email_input.addEmailAddresses',
+            undefined,
+            'Add email addresses',
+          )}
           aria-invalid={invalid}
           aria-describedby="invite-email-hint invite-email-error"
           onBlur={onBlur}
@@ -97,7 +101,8 @@ export function InvitationEmailInput({
               <Avatar className="size-6">
                 <AvatarFallback>{email.slice(0, 1).toUpperCase()}</AvatarFallback>
               </Avatar>
-              {email} {translateUI("foundationUI.invitation_email_input.add", undefined, "add")}</ComboboxItem>
+              {email} {translateUI('foundationUI.invitation_email_input.add', undefined, 'add')}
+            </ComboboxItem>
           )}
         </ComboboxList>
       </ComboboxContent>

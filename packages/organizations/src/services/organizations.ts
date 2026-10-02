@@ -82,13 +82,15 @@ export function createOrganizationService(backend: OrganizationBackend) {
     void refresh().catch(() => {});
   });
   return {
-    get capabilities() { return {
-      customInvitationExpiry: backend.customInvitationExpiry !== false,
-      update: !!backend.update,
-      delete: !!backend.delete,
-      suspension: !!backend.setMemberDisabled,
-      invitations: !!backend.acceptInvitation && !!backend.rejectInvitation,
-    }; },
+    get capabilities() {
+      return {
+        customInvitationExpiry: backend.customInvitationExpiry !== false,
+        update: !!backend.update,
+        delete: !!backend.delete,
+        suspension: !!backend.setMemberDisabled,
+        invitations: !!backend.acceptInvitation && !!backend.rejectInvitation,
+      };
+    },
     getSnapshot: () => state,
     subscribe(listener: () => void) {
       listeners.add(listener);
@@ -109,7 +111,14 @@ export function createOrganizationService(backend: OrganizationBackend) {
       if (!isOrganizationWebsite(input.website ?? '')) throw new Error(organizationWebsiteError);
       if (!input.name.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.slug))
         throw new Error('Check the name and identifier.');
-      return mutate(() => backend.create({ ...input, name: input.name.trim(), website: input.website?.trim(), slug: input.slug }));
+      return mutate(() =>
+        backend.create({
+          ...input,
+          name: input.name.trim(),
+          website: input.website?.trim(),
+          slug: input.slug,
+        }),
+      );
     },
     invite(email: string, role: 'member' | 'admin' = 'member', expiresInDays = 30) {
       const organizationId = active();
@@ -166,15 +175,23 @@ export function createOrganizationService(backend: OrganizationBackend) {
     },
     update(input: OrganizationInput) {
       if (!isOrganizationWebsite(input.website ?? '')) throw new Error(organizationWebsiteError);
-      const organizationId=active();
+      const organizationId = active();
       if (!backend.update) throw new Error('Not supported.');
-      if (!input.name.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.slug)) throw new Error('Check the name and identifier.');
-      return mutate(()=>backend.update!({...input,website:input.website?.trim(),name:input.name.trim(),organizationId}));
+      if (!input.name.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.slug))
+        throw new Error('Check the name and identifier.');
+      return mutate(() =>
+        backend.update!({
+          ...input,
+          website: input.website?.trim(),
+          name: input.name.trim(),
+          organizationId,
+        }),
+      );
     },
     delete() {
-      const organizationId=active();
-      if(!state.canDelete || !backend.delete) throw new Error('Not available.');
-      return mutate(()=>backend.delete!(organizationId));
+      const organizationId = active();
+      if (!state.canDelete || !backend.delete) throw new Error('Not available.');
+      return mutate(() => backend.delete!(organizationId));
     },
     setDisabled(memberId: string, disabled: boolean) {
       const organizationId = active();

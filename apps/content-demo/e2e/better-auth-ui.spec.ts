@@ -80,9 +80,7 @@ test('social login returns to the Content UI origin rather than the auth server'
     request.url().endsWith('/api/auth/sign-in/social'),
   );
   await page.getByRole('button', { name: 'Mit Google fortfahren' }).click();
-  expect((await request).postDataJSON().callbackURL).toBe(
-    new URL('/', baseURL!).toString(),
-  );
+  expect((await request).postDataJSON().callbackURL).toBe(new URL('/', baseURL!).toString());
 });
 async function signup(page: Page, email: string, name: string) {
   await page.goto('/better-auth/auth/sign-up');
@@ -99,8 +97,14 @@ async function signup(page: Page, email: string, name: string) {
   await page.getByRole('button', { name: new RegExp(name) }).click();
   await page.getByRole('menuitem', { name: 'Einstellungen', exact: true }).click();
   await expect(page).toHaveURL(/\/settings\/profile$/);
-  await expect(page.getByRole('navigation', { name: 'Einstellungsnavigation' }).getByRole('link', { name: 'Profil', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'E-Mail-Adresse ändern', exact: true })).toHaveCount(0);
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Einstellungsnavigation' })
+      .getByRole('link', { name: 'Profil', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'E-Mail-Adresse ändern', exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Konten verwalten', exact: true })).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Einstellungsnavigation' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Benutzerprofil' })).toBeVisible();
@@ -111,7 +115,9 @@ async function signup(page: Page, email: string, name: string) {
     .getByRole('link', { name: 'Sicherheit', exact: true })
     .click();
   await expect(page).toHaveURL(/\/settings\/security$/);
-  await expect(page.getByRole('heading', { name: 'E-Mail-Adresse ändern', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'E-Mail-Adresse ändern', exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole('heading', { name: 'API-Schlüssel', exact: true })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Passwort ändern', exact: true })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Einstellungsnavigation' })).toBeVisible();
@@ -266,9 +272,9 @@ test('native signup, user/session UI, organization creation and invitation work 
   await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Browser Organization');
   await page.getByLabel('Name', { exact: true }).fill('Updated Organization');
   await page.getByRole('button', { name: 'Änderungen speichern' }).click();
-  await expect(page.getByRole('button', { name: 'Organisation wechseln', exact: true })).toContainText(
-    'Updated Organization',
-  );
+  await expect(
+    page.getByRole('button', { name: 'Organisation wechseln', exact: true }),
+  ).toContainText('Updated Organization');
   await page.goto('/better-auth/settings/account');
   await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Browser Owner');
   await page.getByLabel('Name', { exact: true }).fill('Updated Owner');
@@ -354,7 +360,9 @@ test('native user menu switches two authenticated accounts on the same device', 
   await page.getByLabel('Passwort', { exact: true }).fill(password);
   await page.locator('button[type=submit]').click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('button', { name: /Second Account second@example.test/ })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Second Account second@example.test/ }),
+  ).toBeVisible();
 });
 
 test('external HeroUI controls inherit Foundation geometry and light/dark colors', async ({
@@ -461,8 +469,10 @@ test('native personal and organization API keys can be created and revoked', asy
   expect(database.apikey).toHaveLength(0);
 });
 
-
-test('security cards share separators and destructive button finish across themes and widths', async ({ page, baseURL }) => {
+test('security cards share separators and destructive button finish across themes and widths', async ({
+  page,
+  baseURL,
+}) => {
   const { auth } = backend(baseURL!);
   await connect(page, auth);
   await signup(page, 'security-theme@example.test', 'Security Theme');
@@ -471,11 +481,16 @@ test('security cards share separators and destructive button finish across theme
   for (const width of [390, 768, 1386]) {
     await page.setViewportSize({ width, height: 900 });
     for (const dark of [false, true]) {
-      await page.evaluate(value => document.documentElement.classList.toggle('dark', value), dark);
+      await page.evaluate(
+        (value) => document.documentElement.classList.toggle('dark', value),
+        dark,
+      );
       const styles = await page.evaluate(() => {
         const danger = getComputedStyle(document.querySelector('.button--danger')!);
         const primary = getComputedStyle(document.querySelector('.button--primary')!);
-        const separators = [...document.querySelectorAll('.card .border-dashed, .card .border-divider')];
+        const separators = [
+          ...document.querySelectorAll('.card .border-dashed, .card .border-divider'),
+        ];
         return {
           radius: danger.borderRadius,
           primaryRadius: primary.borderRadius,
@@ -483,7 +498,7 @@ test('security cards share separators and destructive button finish across theme
           primaryCorner: primary.getPropertyValue('corner-shape'),
           fill: danger.backgroundImage,
           shadow: danger.boxShadow,
-          separators: separators.map(el => getComputedStyle(el).borderTopStyle),
+          separators: separators.map((el) => getComputedStyle(el).borderTopStyle),
           sessionInsets: (() => {
             const button = document.querySelector('.button--danger')!;
             const card = button.closest('.card')!;
@@ -505,7 +520,7 @@ test('security cards share separators and destructive button finish across theme
       expect(styles.fill).toContain('linear-gradient');
       expect(styles.shadow).not.toBe('none');
       expect(styles.separators.length).toBeGreaterThan(0);
-      expect(styles.separators.every(style => style === 'solid')).toBe(true);
+      expect(styles.separators.every((style) => style === 'solid')).toBe(true);
       expect(styles.sessionInsets.outer).toBe('0px');
       expect(styles.sessionInsets.row).toBe('16px');
       expect(styles.sessionInsets.footer).toBe('16px');
@@ -515,7 +530,10 @@ test('security cards share separators and destructive button finish across theme
   }
 });
 
-test('studio organization plugin persists real organizations and isolates account switches', async ({ page, baseURL }) => {
+test('studio organization plugin persists real organizations and isolates account switches', async ({
+  page,
+  baseURL,
+}) => {
   const { auth, database } = backend(baseURL!);
   await connect(page, auth);
   await signup(page, 'organization-owner@example.test', 'Organization Owner');
@@ -527,19 +545,23 @@ test('studio organization plugin persists real organizations and isolates accoun
   await dialog.getByLabel('Name', { exact: true }).fill('Persistent Studio');
   await dialog.getByRole('button', { name: 'Organisation erstellen', exact: true }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Organisation wechseln', exact: true })).toContainText('Persistent Studio');
+  await expect(
+    page.getByRole('button', { name: 'Organisation wechseln', exact: true }),
+  ).toContainText('Persistent Studio');
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Organisation wechseln', exact: true })).toContainText('Persistent Studio');
+  await expect(
+    page.getByRole('button', { name: 'Organisation wechseln', exact: true }),
+  ).toContainText('Persistent Studio');
   expect(database.organization).toHaveLength(1);
   expect(database.member).toHaveLength(1);
   await page.goto('/settings/organization');
   await page.getByRole('textbox', { name: /^Website/ }).fill('https://www.mva');
   await page.getByRole('button', { name: 'Änderungen speichern', exact: true }).click();
-  await expect(page.getByText('Ungültige URL.', {exact:true})).toBeVisible();
+  await expect(page.getByText('Ungültige URL.', { exact: true })).toBeVisible();
   await page.getByRole('textbox', { name: /^Website/ }).fill('https://example.com');
   await page.getByRole('textbox', { name: /^Name/ }).fill('Updated Studio');
   await page.getByRole('button', { name: 'Änderungen speichern', exact: true }).click();
-  await expect(page.getByText('Änderungen gespeichert.', {exact:true})).toBeVisible();
+  await expect(page.getByText('Änderungen gespeichert.', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('textbox', { name: /^Name/ })).toHaveValue('Updated Studio');
   await page.goto('/settings/organization-members');
@@ -552,20 +574,28 @@ test('studio organization plugin persists real organizations and isolates accoun
 });
 
 // Validates the package-owned controls without relying on the removed local demo service.
-test('authenticated host renders owned shell and organization controls', async ({ page, baseURL }) => {
+test('authenticated host renders owned shell and organization controls', async ({
+  page,
+  baseURL,
+}) => {
   const { auth } = backend(baseURL!);
   const errors: string[] = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', (error) => errors.push(error.message));
   await connect(page, auth);
   await signup(page, 'owned-ui@example.test', 'Owned UI');
   await page.goto('/');
   await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Organisation wechseln', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Organisation wechseln', exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: /Owned UI/ })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
-test('language preference updates plugin UI, persists and resets through App Preferences', async ({ page, baseURL }) => {
+test('language preference updates plugin UI, persists and resets through App Preferences', async ({
+  page,
+  baseURL,
+}) => {
   const { auth } = backend(baseURL!);
   await connect(page, auth);
   await page.goto('/better-auth/auth/sign-up');
@@ -577,19 +607,29 @@ test('language preference updates plugin UI, persists and resets through App Pre
   await expect(page).toHaveURL(/\/$/);
   await page.goto('/settings/language');
   await expect(page.getByRole('combobox')).toHaveText('🇩🇪 Deutsch');
-  await page.evaluate(() => { (window as unknown as { localeMarker: string }).localeMarker = 'mounted'; });
+  await page.evaluate(() => {
+    (window as unknown as { localeMarker: string }).localeMarker = 'mounted';
+  });
   await page.getByRole('combobox').click();
   await page.getByRole('option', { name: '🇬🇧 English', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('heading', { name: 'Language', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Reset to default: Interface language', exact: true })).toBeVisible();
-  expect(await page.evaluate(() => (window as unknown as { localeMarker: string }).localeMarker)).toBe('mounted');
+  await expect(
+    page.getByRole('button', { name: 'Reset to default: Interface language', exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => (window as unknown as { localeMarker: string }).localeMarker),
+  ).toBe('mounted');
   await page.reload();
   await expect(page.getByRole('combobox')).toHaveText('🇬🇧 English');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await page.setViewportSize({ width: 390, height: 850 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.getByRole('button', { name: 'Reset to default: Interface language', exact: true }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page
+    .getByRole('button', { name: 'Reset to default: Interface language', exact: true })
+    .click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   await expect(page.getByRole('combobox')).toHaveText('🇩🇪 Deutsch');
 });

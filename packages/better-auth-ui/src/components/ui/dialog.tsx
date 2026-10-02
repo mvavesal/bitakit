@@ -68,7 +68,9 @@ function DialogContent({
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button variant="ghost" className="absolute top-4 right-4" size="icon-sm">
               <XIcon aria-hidden="true" />
-              <span className="sr-only">{translateUI("foundationUI.dialog.close", undefined, "Close")}</span>
+              <span className="sr-only">
+                {translateUI('foundationUI.dialog.close', undefined, 'Close')}
+              </span>
             </Button>
           </DialogPrimitive.Close>
         )}
@@ -102,7 +104,9 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close asChild>
-          <Button variant="outline">{translateUI("foundationUI.dialog.close", undefined, "Close")}</Button>
+          <Button variant="outline">
+            {translateUI('foundationUI.dialog.close', undefined, 'Close')}
+          </Button>
         </DialogPrimitive.Close>
       )}
     </div>

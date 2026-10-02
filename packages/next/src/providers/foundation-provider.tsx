@@ -1,10 +1,8 @@
 'use client';
-import { useMemo } from 'react';
 import {
   StandardFoundationProvider,
   type StandardFoundationProviderProps,
 } from '@bitakit/ui/components';
-import { createFoundationConfig } from '@bitakit/next/generated';
 import { useActionNavigation } from '../routing/use-action-navigation.js';
 import { QueryProvider } from '../query.js';
 
@@ -13,7 +11,11 @@ export type NextFoundationProviderProps = StandardFoundationProviderProps & {
   queryState?: boolean;
 };
 
-/** Connects Next routing, query state and generated contributions to the shared UI runtime. */
+/**
+ * Connects Next routing and query state to the shared UI runtime. The generated
+ * `BitaKitProvider` in `src/bitakit.gen.tsx` passes the discovered configuration; use this
+ * directly only with an explicit `config`.
+ */
 export function FoundationProvider({
   config,
   actionOptions,
@@ -21,14 +23,14 @@ export function FoundationProvider({
   ...props
 }: NextFoundationProviderProps) {
   const navigation = useActionNavigation();
-  const selectedConfig = useMemo(
-    () => config ?? createFoundationConfig(),
-    [config, createFoundationConfig],
-  );
+  if (!config)
+    throw new Error(
+      "FoundationProvider needs a configuration. Use <BitaKitProvider> from './bitakit.gen', or pass config={createBitaKitConfig()}.",
+    );
   const content = (
     <StandardFoundationProvider
       {...props}
-      config={selectedConfig}
+      config={config}
       actionOptions={{ ...navigation, ...actionOptions }}
     />
   );

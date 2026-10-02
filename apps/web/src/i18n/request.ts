@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { getRequestConfig } from 'next-intl/server';
 import { deDE } from '@better-auth-ui/locales/de-DE';
 import { enUS } from '@better-auth-ui/locales/en-US';
-import discovered from '../../.foundation/messages.json';
+import discovered from '../bitakit.gen.messages.json';
 import en from '../../locales/en.json';
 import de from '../../locales/de.json';
 import { defaultLocale, isLocale, localeCookie } from './config';

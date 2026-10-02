@@ -4,7 +4,15 @@
  */
 import type { ReactNode } from 'react';
 import { AppShell, verticalLayout, type ShellLayout, type ShellLayoutProps } from '@bitakit/shell';
-import { AppBar, ActionNavigationMenu, ActionSidebarNavigation, Sidebar, SidebarHeader, SidebarContent, SidebarFooter } from '@bitakit/ui/components';
+import {
+  AppBar,
+  ActionNavigationMenu,
+  ActionSidebarNavigation,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+} from '@bitakit/ui/components';
 
 /** Compose a custom sidebar from standard primitives and existing Action bindings. */
 function StudioSidebar({ brand, account, ...navigation }: ShellLayoutProps) {
@@ -44,7 +52,12 @@ const layouts = {
 } satisfies Partial<Record<'sidebar' | 'navbar', ShellLayout>>;
 
 /** AppShell owns the stable content area; overrides customize only surrounding UI. */
-export function Application({ children, brand, account, search }: {
+export function Application({
+  children,
+  brand,
+  account,
+  search,
+}: {
   children: ReactNode;
   brand: ReactNode;
   account: ReactNode;

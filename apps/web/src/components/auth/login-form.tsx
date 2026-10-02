@@ -31,7 +31,7 @@ export function LoginForm({
   returnTo = '/dashboard',
   className,
   ...props
-}: React.ComponentProps<'div'> & { mode?: 'login' | 'register';returnTo?:string }) {
+}: React.ComponentProps<'div'> & { mode?: 'login' | 'register'; returnTo?: string }) {
   const t = useTranslations('Auth');
   const isRegister = mode === 'register';
   const [state, action, pending] = useActionState(isRegister ? register : login, { error: '' });
@@ -45,7 +45,8 @@ export function LoginForm({
           <CardDescription>{isRegister ? t('createIntro') : t('loginIntro')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={action}><input type="hidden" name="returnTo" value={returnTo}/>
+          <form action={action}>
+            <input type="hidden" name="returnTo" value={returnTo} />
             <FieldGroup>
               {state.error && (
                 <Alert variant="destructive">
@@ -121,11 +122,17 @@ export function LoginForm({
                 <FieldDescription className="text-center">
                   {isRegister ? (
                     <>
-                      {t('hasAccount')} <Link href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>{t('logIn')}</Link>
+                      {t('hasAccount')}{' '}
+                      <Link href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>
+                        {t('logIn')}
+                      </Link>
                     </>
                   ) : (
                     <>
-                      {t('new')} <Link href={`/register?returnTo=${encodeURIComponent(returnTo)}`}>{t('createLink')}</Link>
+                      {t('new')}{' '}
+                      <Link href={`/register?returnTo=${encodeURIComponent(returnTo)}`}>
+                        {t('createLink')}
+                      </Link>
                     </>
                   )}
                 </FieldDescription>

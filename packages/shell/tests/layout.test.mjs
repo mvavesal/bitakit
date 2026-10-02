@@ -6,7 +6,11 @@ import { createRoot } from 'react-dom/client';
 import { FoundationRuntime, createActionList } from '@bitakit/core';
 import { ActionProvider } from '@bitakit/ui/actions';
 import { FoundationContext } from '../../ui/dist/providers/foundation-context.js';
-import { createAppPreferences, createMemoryStorage, SettingsProvider } from '@bitakit/app-preferences';
+import {
+  createAppPreferences,
+  createMemoryStorage,
+  SettingsProvider,
+} from '@bitakit/app-preferences';
 import { appPreferencesPlugin } from '@bitakit/app-preferences/foundation';
 import { AppShell, shellPlugin, shellLayout } from '../dist/index.js';
 
@@ -29,7 +33,9 @@ test('fixed layout overrides preserve mounted content and omitted variants use d
   const root = createRoot(container);
   let mounts = 0;
   function Content() {
-    useEffect(() => { mounts++; }, []);
+    useEffect(() => {
+      mounts++;
+    }, []);
     return h('input', { 'aria-label': 'Unsaved document', defaultValue: 'Draft' });
   }
   const layouts = {
@@ -39,21 +45,36 @@ test('fixed layout overrides preserve mounted content and omitted variants use d
     },
   };
   try {
-    await act(async () => root.render(
-      h(ActionProvider, { actions },
-        h(FoundationContext.Provider, { value: { runtime } },
-          h(SettingsProvider, { settings, context: { userId: 'layout-test' } },
-            h(AppShell, { layouts, brand: 'Brand', account: 'Account' }, h(Content))))),
-    ));
+    await act(async () =>
+      root.render(
+        h(
+          ActionProvider,
+          { actions },
+          h(
+            FoundationContext.Provider,
+            { value: { runtime } },
+            h(
+              SettingsProvider,
+              { settings, context: { userId: 'layout-test' } },
+              h(AppShell, { layouts, brand: 'Brand', account: 'Account' }, h(Content)),
+            ),
+          ),
+        ),
+      ),
+    );
     const input = container.querySelector('input');
     input.value = 'Unsaved edit';
     assert.ok(container.querySelector('[data-custom="sidebar"]'));
-    await act(async () => { await settings.set(shellLayout, 'navbar'); });
+    await act(async () => {
+      await settings.set(shellLayout, 'navbar');
+    });
     assert.equal(container.querySelector('[data-custom="sidebar"]'), null);
     assert.match(container.textContent, /Account/);
     assert.equal(container.querySelector('input'), input);
     assert.equal(input.value, 'Unsaved edit');
-    await act(async () => { await settings.set(shellLayout, 'sidebar'); });
+    await act(async () => {
+      await settings.set(shellLayout, 'sidebar');
+    });
     assert.ok(container.querySelector('[data-custom="sidebar"]'));
     assert.equal(container.querySelector('input'), input);
     assert.equal(mounts, 1);

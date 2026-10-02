@@ -11,7 +11,7 @@ import BuildingIcon from 'reicon-react/icons/Building';
 import ChevronExpandYIcon from 'reicon-react/icons/ChevronExpandY';
 import PlusIcon from 'reicon-react/icons/Plus';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { useActiveOrganization } from '@/providers/organization-provider';
+import { useActiveOrganization } from '@/components/providers/organization-provider';
 import { authClient } from '@/lib/auth-client';
 import {
   SidebarMenu,

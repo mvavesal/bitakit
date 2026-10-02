@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useSyncExternalStore, type ElementType, type ReactNode } from 'react';
 import type { FoundationEvent, FoundationRuntime, Plugin } from '@bitakit/core';
+import type { NormalizedPlugin } from '@bitakit/core';
 import { useFoundation, useFoundationNavigation } from '@bitakit/ui';
 import { useActions } from '@bitakit/ui/actions';
 import { Badge, Button, Input, PageHeader, Separator } from '@bitakit/ui/components';
@@ -56,7 +57,15 @@ export function Inspector({ plugin }: InspectorProps) {
   );
 }
 
-function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -82,7 +91,7 @@ function Rows({ items, empty }: { items: ReactNode[]; empty: string }) {
   );
 }
 
-function Pages({ module }: { module: Plugin }) {
+function Pages({ module }: { module: NormalizedPlugin }) {
   const { Link } = useFoundationNavigation();
   const Anchor: ElementType = Link ?? 'a';
   return (
@@ -99,7 +108,7 @@ function Pages({ module }: { module: Plugin }) {
   );
 }
 
-function Actions({ module, runtime }: { module: Plugin; runtime: FoundationRuntime }) {
+function Actions({ module, runtime }: { module: NormalizedPlugin; runtime: FoundationRuntime }) {
   const snapshots = useActions();
   const ids = new Set(
     (module.actions ?? []).flatMap((action) =>
@@ -174,15 +183,33 @@ function ActionRow({ id, runtime }: { id: string; runtime: FoundationRuntime }) 
           Run
         </Button>
       </div>
-      {outcome && <p role="status" className="wrap-anywhere text-muted-foreground">{outcome}</p>}
+      {outcome && (
+        <p role="status" className="wrap-anywhere text-muted-foreground">
+          {outcome}
+        </p>
+      )}
     </div>
   );
 }
 
-function Services({ module, runtime }: { module: Plugin; runtime: FoundationRuntime }) {
-  const services = runtime.services as Record<string, unknown>;
+function Services({ module, runtime }: { module: NormalizedPlugin; runtime: FoundationRuntime }) {
+  // Services form a tree: `todos.items` lives at services.todos.items.
+  const services = new Proxy({} as Record<string, unknown>, {
+    get: (_target, id) =>
+      typeof id === 'string'
+        ? id
+            .split('.')
+            .reduce<unknown>(
+              (node, segment) => (node as Record<string, unknown> | undefined)?.[segment],
+              runtime.services as unknown,
+            )
+        : undefined,
+  });
   return (
-    <Section title="Services" description="Instances this plugin provides and the methods other code can call.">
+    <Section
+      title="Services"
+      description="Instances this plugin provides and the methods other code can call."
+    >
       <Rows
         empty="This plugin has no services."
         items={(module.services ?? []).map((service) => (
@@ -238,7 +265,10 @@ function Events({ runtime }: { runtime: FoundationRuntime }) {
 function Configuration({ plugin, runtime }: { plugin: string; runtime: FoundationRuntime }) {
   const snapshot = runtime.configuration.plugin(plugin).snapshot();
   return (
-    <Section title="Configuration" description="Resolved defaults and app overrides (configs/ and foundation.config.ts).">
+    <Section
+      title="Configuration"
+      description="Resolved defaults and app overrides (configs/ and foundation.config.ts)."
+    >
       {snapshot && Object.keys(snapshot).length ? (
         <pre className="overflow-x-auto text-xs">{JSON.stringify(snapshot, null, 2)}</pre>
       ) : (
@@ -251,9 +281,16 @@ function Configuration({ plugin, runtime }: { plugin: string; runtime: Foundatio
 /** Public method names of a service instance, including class methods. */
 function methods(instance: unknown): string[] {
   const names = new Set<string>();
-  for (let target = instance; target && target !== Object.prototype; target = Object.getPrototypeOf(target))
+  for (
+    let target = instance;
+    target && target !== Object.prototype;
+    target = Object.getPrototypeOf(target)
+  )
     for (const name of Object.getOwnPropertyNames(target))
-      if (name !== 'constructor' && typeof (instance as Record<string, unknown>)[name] === 'function')
+      if (
+        name !== 'constructor' &&
+        typeof (instance as Record<string, unknown>)[name] === 'function'
+      )
         names.add(name);
   return [...names];
 }

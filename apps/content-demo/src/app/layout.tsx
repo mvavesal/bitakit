@@ -10,9 +10,11 @@ export default async function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang={locale}>
       <body>
-          <Suspense>
-            <NextIntlClientProvider ><Providers>{children}</Providers></NextIntlClientProvider>
-          </Suspense>
+        <Suspense>
+          <NextIntlClientProvider>
+            <Providers>{children}</Providers>
+          </NextIntlClientProvider>
+        </Suspense>
       </body>
     </html>
   );

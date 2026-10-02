@@ -552,17 +552,13 @@ test('real auth and organization boundaries', async ({ page, context, browser })
     ).toBeVisible();
     await page.getByRole('button', { name: 'Actions for Test outsider', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Remove from organization', exact: true }).click();
-    await page
-      .getByRole('alertdialog')
-      .getByRole('button', { name: 'Cancel', exact: true })
-      .click();
+    // The action's confirm option renders the shared confirmation dialog.
+    const removal = page.getByRole('dialog', { name: 'Remove from organization', exact: true });
+    await removal.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(page.getByRole('cell', { name: outsiderEmail, exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Actions for Test outsider', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Remove from organization', exact: true }).click();
-    await page
-      .getByRole('alertdialog')
-      .getByRole('button', { name: 'Remove from organization', exact: true })
-      .click();
+    await removal.getByRole('button', { name: 'Confirm', exact: true }).click();
     await expect(page.getByRole('cell', { name: outsiderEmail, exact: true })).toHaveCount(0);
     const maliciousOrigin = await page.request.post('/api/auth/organization/create', {
       data: { name: 'Forbidden', slug: `forbidden-${suffix}` },

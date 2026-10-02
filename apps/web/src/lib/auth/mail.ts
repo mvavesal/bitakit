@@ -25,7 +25,10 @@ export function getAuthMail() {
   mail = betterAuthEmail(getService(runtime.services, emailService), {
     invitationURL(id) {
       const uiOrigin = process.env.AUTH_UI_ORIGIN;
-      const url = new URL(uiOrigin ? '/better-auth/auth/accept-invitation' : '/organizations', uiOrigin ?? process.env.BETTER_AUTH_URL);
+      const url = new URL(
+        uiOrigin ? '/better-auth/auth/accept-invitation' : '/organizations',
+        uiOrigin ?? process.env.BETTER_AUTH_URL,
+      );
       url.searchParams.set(uiOrigin ? 'invitationId' : 'invitation', id);
       return url.toString();
     },

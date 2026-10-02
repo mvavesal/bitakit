@@ -6,7 +6,7 @@ export default defineConfig([
   ...nextVitals,
   ...nextTypeScript,
   globalIgnores([
-    '.foundation/**',
+    'src/bitakit.gen.*',
     '.next/**',
     'next-env.d.ts',
     'zenstack/schema.ts',

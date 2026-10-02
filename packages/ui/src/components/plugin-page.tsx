@@ -6,8 +6,9 @@ import { useFoundationReady } from './plugin-slot.js';
 import { findPluginPage } from '@bitakit/core';
 
 /**
- * Renders the plugin page registered for the current path. The pathname defaults to the
- * framework adapter's router; pass it explicitly for other hosts.
+ * Renders the plugin page registered for the current path and passes its `params`
+ * (`ui/pages/tasks/[id].tsx` receives `{ id }`). The pathname defaults to the framework
+ * adapter's router; pass it explicitly for other hosts.
  */
 export function PluginPage({
   pathname,
@@ -21,5 +22,15 @@ export function PluginPage({
   const ready = useFoundationReady();
   if (!ready) return null;
   const page = findPluginPage(runtime.modules, pathname ?? navigation.pathname ?? '/');
-  return page ? createElement(page.component, { key: page.key }) : fallback;
+  return page
+    ? createElement(page.component as never, { key: page.key, params: page.params })
+    : fallback;
+}
+/** The current plugin page, its parameters and layout name; undefined outside plugin pages. */
+export function useCurrentPage(pathname?: string) {
+  const { runtime } = useFoundation();
+  const navigation = useFoundationNavigation();
+  const ready = useFoundationReady();
+  if (!ready) return undefined;
+  return findPluginPage(runtime.modules, pathname ?? navigation.pathname ?? '/');
 }

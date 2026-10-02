@@ -1,11 +1,6 @@
 'use client';
 import { createElement, type ComponentType, type ReactNode } from 'react';
-import {
-  definePlugin,
-  provideService,
-  serviceKey,
-  type PluginPageDefinition,
-} from '@bitakit/core';
+import { definePlugin, provideService, serviceKey, type PluginPageDefinition } from '@bitakit/core';
 import { useTranslation } from '@bitakit/ui';
 import { SettingsSection, type AppPreferences } from '@bitakit/app-preferences/core';
 import { resolveAuthConfig, type SettingsView } from '@better-auth-ui/core';
@@ -61,7 +56,11 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
   };
   if (options.pages !== false) {
     for (const path of paths('auth'))
-      addPage(`${config.basePaths.auth}/${path}`, () => <Auth path={path} />, options.authPageLayout ?? Layout);
+      addPage(
+        `${config.basePaths.auth}/${path}`,
+        () => <Auth path={path} />,
+        options.authPageLayout ?? Layout,
+      );
     for (const path of paths('settings'))
       addPage(`${config.basePaths.settings}/${path}`, () => <Settings path={path} />);
     if (config.plugins.some((plugin) => plugin.id === 'organization')) {

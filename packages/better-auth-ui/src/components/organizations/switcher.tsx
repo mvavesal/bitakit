@@ -3,11 +3,11 @@ import { useTranslation } from '@bitakit/ui';
 import { useState, useSyncExternalStore } from 'react';
 import { getService } from '@bitakit/core';
 import { useFoundation, useActionList } from '@bitakit/ui';
-import {  SidebarIdentity  } from '../ui/index.js';
-import {  useSidebar  } from '../ui/index.js';
-import {  Avatar, AvatarImage, AvatarFallback  } from '../ui/index.js';
-import {  Popover, PopoverTrigger, PopoverContent  } from '../ui/index.js';
-import { 
+import { SidebarIdentity } from '../ui/index.js';
+import { useSidebar } from '../ui/index.js';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/index.js';
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/index.js';
+import {
   Command,
   CommandInput,
   CommandList,
@@ -15,7 +15,7 @@ import {
   CommandItem,
   CommandEmpty,
   CommandSeparator,
- } from '../ui/index.js';
+} from '../ui/index.js';
 import { organizationService } from '@bitakit/organizations';
 import PlusIcon from 'reicon-react/icons/Plus';
 
@@ -50,8 +50,25 @@ export function OrganizationSwitcher({ side }: { side?: 'bottom' | 'right' } = {
     >
       <PopoverTrigger asChild>
         <SidebarIdentity
-          aria-label={translateUI("foundationUI.switcher.switchOrganization", undefined, "Switch organization")}
-          name={state.pending ? translateUI("foundationUI.switcher.loadingOrganizations", undefined, "Loading organizations…") : active?.name ?? translateUI("foundationUI.switcher.selectOrganization", undefined, "Select organization")}
+          aria-label={translateUI(
+            'foundationUI.switcher.switchOrganization',
+            undefined,
+            'Switch organization',
+          )}
+          name={
+            state.pending
+              ? translateUI(
+                  'foundationUI.switcher.loadingOrganizations',
+                  undefined,
+                  'Loading organizations…',
+                )
+              : (active?.name ??
+                translateUI(
+                  'foundationUI.switcher.selectOrganization',
+                  undefined,
+                  'Select organization',
+                ))
+          }
           aria-busy={state.pending}
           avatar={
             <Avatar>
@@ -73,13 +90,33 @@ export function OrganizationSwitcher({ side }: { side?: 'bottom' | 'right' } = {
             value={search}
             onValueChange={setSearch}
             onClear={search ? () => setSearch('') : undefined}
-            clearLabel={translateUI("foundationUI.switcher.clearSearch", undefined, "Clear search")}
-            placeholder={translateUI("foundationUI.switcher.searchOrganizations", undefined, "Search organizations")}
-            aria-label={translateUI("foundationUI.switcher.searchOrganizations", undefined, "Search organizations")}
+            clearLabel={translateUI('foundationUI.switcher.clearSearch', undefined, 'Clear search')}
+            placeholder={translateUI(
+              'foundationUI.switcher.searchOrganizations',
+              undefined,
+              'Search organizations',
+            )}
+            aria-label={translateUI(
+              'foundationUI.switcher.searchOrganizations',
+              undefined,
+              'Search organizations',
+            )}
           />
           <CommandSeparator alwaysRender />
           <CommandList>
-            <CommandEmpty>{state.pending ? translateUI("foundationUI.switcher.loadingOrganizations", undefined, "Loading organizations…") : translateUI("foundationUI.switcher.noOrganizationsFound", undefined, "No organizations found.")}</CommandEmpty>
+            <CommandEmpty>
+              {state.pending
+                ? translateUI(
+                    'foundationUI.switcher.loadingOrganizations',
+                    undefined,
+                    'Loading organizations…',
+                  )
+                : translateUI(
+                    'foundationUI.switcher.noOrganizationsFound',
+                    undefined,
+                    'No organizations found.',
+                  )}
+            </CommandEmpty>
             <CommandGroup>
               {state.organizations.map((org) => (
                 <CommandItem
@@ -96,7 +133,11 @@ export function OrganizationSwitcher({ side }: { side?: 'bottom' | 'right' } = {
                     <AvatarFallback>{org.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <span className="truncate">{org.name}</span>
-                  {org.id === state.activeId && <span className="sr-only">{translateUI("foundationUI.switcher.active", undefined, "Active")}</span>}
+                  {org.id === state.activeId && (
+                    <span className="sr-only">
+                      {translateUI('foundationUI.switcher.active', undefined, 'Active')}
+                    </span>
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -113,11 +154,25 @@ export function OrganizationSwitcher({ side }: { side?: 'bottom' | 'right' } = {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-xl border">
                   <PlusIcon aria-hidden="true" />
                 </span>
-                {translateUI("foundationUI.switcher.addOrganization", undefined, "Add organization")}</CommandItem>
+                {translateUI(
+                  'foundationUI.switcher.addOrganization',
+                  undefined,
+                  'Add organization',
+                )}
+              </CommandItem>
             </CommandGroup>
           </CommandList>
         </Command>
-        {(error || state.error) && <p role="alert">{state.error ?? translateUI("foundationUI.switcher.theOperationFailed", undefined, "The operation failed.")}</p>}
+        {(error || state.error) && (
+          <p role="alert">
+            {state.error ??
+              translateUI(
+                'foundationUI.switcher.theOperationFailed',
+                undefined,
+                'The operation failed.',
+              )}
+          </p>
+        )}
       </PopoverContent>
     </Popover>
   );

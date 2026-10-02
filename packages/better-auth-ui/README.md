@@ -16,7 +16,7 @@ const plugin = betterAuthUIPlugin({
   provider: {
     authClient, // bestehender Better-Auth-Client mit passenden Client-Plugins
     queryClient, // TanStack QueryClient
-    navigate: ({ to, replace }) => replace ? router.replace(to) : router.push(to),
+    navigate: ({ to, replace }) => (replace ? router.replace(to) : router.push(to)),
     basePaths: { auth: '/auth', settings: '/account', organization: '/organization' },
     plugins: [organizationPlugin(), multiSessionPlugin()],
   },
@@ -190,7 +190,6 @@ Content Demo now keeps only its locale, paths, social providers, layout, and dem
 This visual package owns its required controls under src/components/ui and declares their library dependencies. It does not import application source or require host-components registration. Generic action execution bindings come from @bitakit/ui. The application supplies central CSS theme tokens; this package does not create another theme store.
 
 For a minimal host, `organizationUIPlugin({ path: false, settings })` contributes organization Settings and commands without registering a standalone management page or its navigation Action. Omitting `path` preserves the existing default page.
-
 
 ### Shared notification surface
 

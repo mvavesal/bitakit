@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useActiveOrganization } from '@/providers/organization-provider';
+import { useActiveOrganization } from '@/components/providers/organization-provider';
 import { authClient } from '@/lib/auth-client';
 import { notify } from '@/lib/notifications';
 import type { OrganizationDetails } from '@/lib/organizations/details';

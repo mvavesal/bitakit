@@ -82,10 +82,13 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) 
   const messages = Object.freeze({ ...defaultSettingsMessages, ...options.messages });
   return definePlugin({
     id: 'app-preferences',
-    setup: ({ app, services }) => bindSettingsNavigation(app, getService(services, settingsService), services.i18n),
+    setup: ({ app, services }) =>
+      bindSettingsNavigation(app, getService(services, settingsService), services.i18n),
     appExtensions: { settings: (runtime) => createSettingsAccess(runtime, () => preferences) },
     // A host-owned service has no definition here to carry its public name.
-    ...(options.provideSettings === false ? { publicServices: { preferences: settingsService } } : {}),
+    ...(options.provideSettings === false
+      ? { publicServices: { preferences: settingsService } }
+      : {}),
     metadata: {
       name: 'App Preferences',
       description: 'Application preferences and their rendering.',
@@ -93,7 +96,9 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) 
     services: [
       ...(options.provideSettings === false
         ? []
-        : [provideService(settingsService, { exposeAs: 'preferences', create: () => preferences })]),
+        : [
+            provideService(settingsService, { exposeAs: 'preferences', create: () => preferences }),
+          ]),
       provideService(settingsRendererService, {
         create: () => new SettingsRendererService(options.defaults ?? builtInRenderers),
       }),

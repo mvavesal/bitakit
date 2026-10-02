@@ -66,12 +66,22 @@ export function useSettingsSections() {
     const ids = new Set(live.map((section) => section.id));
     const sections = [...live, ...(pending ?? []).filter((section) => !ids.has(section.id))];
     const text = settingsText(ui?.translate);
-    return sections.map(section => Object.assign(Object.create(Object.getPrototypeOf(section)), section, {
-      title: text.sectionTitle(section),
-      description: text.sectionDescription(section),
-      category: section.category ? { ...section.category,
-        title: resolveLocalized(ui?.translate, [`settings.categories.${section.category.id}.title`], section.category.title),
-      } : undefined,
-    }) as typeof section);
+    return sections.map(
+      (section) =>
+        Object.assign(Object.create(Object.getPrototypeOf(section)), section, {
+          title: text.sectionTitle(section),
+          description: text.sectionDescription(section),
+          category: section.category
+            ? {
+                ...section.category,
+                title: resolveLocalized(
+                  ui?.translate,
+                  [`settings.categories.${section.category.id}.title`],
+                  section.category.title,
+                ),
+              }
+            : undefined,
+        }) as typeof section,
+    );
   }, [live, pending, ui?.translate]);
 }

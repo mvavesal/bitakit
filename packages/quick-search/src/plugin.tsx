@@ -26,15 +26,23 @@ export function quickSearchPlugin(options: QuickSearchOptions = {}) {
   return definePlugin({
     id: 'quick-search',
     views: [{ slot: 'app-bar.end', component: QuickSearchTrigger }],
-    actions: [defineDialogAction({
-      id: quickSearchActionId,
-      title,
-      size: 'wide',
-      icon: SearchIcon,
-      shortcut: shortcut ? { keys: shortcut } : undefined,
-      render: ({ close }) => <SearchResults close={close} label={title}
-        placeholder={options.placeholder ?? 'Search pages…'}
-        empty={options.empty ?? 'No results found.'} results={options.results} />,
-    })],
+    actions: [
+      defineDialogAction({
+        id: quickSearchActionId,
+        title,
+        size: 'wide',
+        icon: SearchIcon,
+        shortcut: shortcut ? { keys: shortcut } : undefined,
+        render: ({ close }) => (
+          <SearchResults
+            close={close}
+            label={title}
+            placeholder={options.placeholder ?? 'Search pages…'}
+            empty={options.empty ?? 'No results found.'}
+            results={options.results}
+          />
+        ),
+      }),
+    ],
   });
 }

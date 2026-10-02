@@ -1,5 +1,17 @@
-export type Organization = { id: string; name: string; slug: string; logo?: string | null; website?: string };
-export type OrganizationInput = { name: string; slug: string; website?: string; logo?: File; removeLogo?: boolean };
+export type Organization = {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string | null;
+  website?: string;
+};
+export type OrganizationInput = {
+  name: string;
+  slug: string;
+  website?: string;
+  logo?: File;
+  removeLogo?: boolean;
+};
 export type Member = {
   id: string;
   email: string;

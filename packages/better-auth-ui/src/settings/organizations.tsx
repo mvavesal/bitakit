@@ -16,11 +16,17 @@ import {
 import BuildingIcon from 'reicon-react/icons/Building';
 import UsersIcon from 'reicon-react/icons/Users';
 import SendIcon from 'reicon-react/icons/Send';
-import {  Alert, AlertDescription  } from '../components/ui/index.js';
-import {  Button  } from '../components/ui/index.js';
-import {  Item, ItemContent, ItemTitle, ItemDescription, ItemMedia  } from '../components/ui/index.js';
-import {  PageHeader  } from '../components/ui/index.js';
-import {  Avatar, AvatarImage, AvatarFallback  } from '../components/ui/index.js';
+import { Alert, AlertDescription } from '../components/ui/index.js';
+import { Button } from '../components/ui/index.js';
+import {
+  Item,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemMedia,
+} from '../components/ui/index.js';
+import { PageHeader } from '../components/ui/index.js';
+import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/index.js';
 import { OrganizationDialog } from '../components/organizations/organization-dialog.js';
 import { GroupActions } from '../components/organizations/group-actions.js';
 import { OrganizationsPage } from '../components/organizations/pages.js';
@@ -47,20 +53,59 @@ export function OrganizationSettings() {
             disabled={state.pending}
             onClick={() => void service.refresh().catch(() => {})}
           >
-            {translateUI("foundationUI.organizations.reload", undefined, "Reload")}</Button>
+            {translateUI('foundationUI.organizations.reload', undefined, 'Reload')}
+          </Button>
         </AlertDescription>
       </Alert>
     );
-  if (!state.loaded && state.pending) return <p role="status">{translateUI("foundationUI.organizations.loadingOrganizations", undefined, "Loading organizations…")}</p>;
-  if (!state.activeId) return <p>{translateUI("foundationUI.organizations.selectAnOrganization", undefined, "Select an organization.")}</p>;
+  if (!state.loaded && state.pending)
+    return (
+      <p role="status">
+        {translateUI(
+          'foundationUI.organizations.loadingOrganizations',
+          undefined,
+          'Loading organizations…',
+        )}
+      </p>
+    );
+  if (!state.activeId)
+    return (
+      <p>
+        {translateUI(
+          'foundationUI.organizations.selectAnOrganization',
+          undefined,
+          'Select an organization.',
+        )}
+      </p>
+    );
   return (
     <section className="mx-auto flex w-full max-w-4xl flex-col gap-7">
       <PageHeader
-        title={state.canManage ? translateUI("foundationUI.organizations.organizationSettings", undefined, "Organization settings") : translateUI("foundationUI.organizations.organizationProfile", undefined, "Organization profile")}
+        title={
+          state.canManage
+            ? translateUI(
+                'foundationUI.organizations.organizationSettings',
+                undefined,
+                'Organization settings',
+              )
+            : translateUI(
+                'foundationUI.organizations.organizationProfile',
+                undefined,
+                'Organization profile',
+              )
+        }
         subtitle={
           state.canManage
-            ? translateUI("foundationUI.organizations.manageYourWorkspaceAppearanceAndDetails", undefined, "Manage your workspace appearance and details.")
-            : translateUI("foundationUI.organizations.informationAboutYourWorkspace", undefined, "Information about your workspace.")
+            ? translateUI(
+                'foundationUI.organizations.manageYourWorkspaceAppearanceAndDetails',
+                undefined,
+                'Manage your workspace appearance and details.',
+              )
+            : translateUI(
+                'foundationUI.organizations.informationAboutYourWorkspace',
+                undefined,
+                'Information about your workspace.',
+              )
         }
       />
       <div className="flex min-w-0 flex-col gap-6">
@@ -86,26 +131,42 @@ export function OrganizationSettings() {
             <ItemMedia>
               <Avatar>
                 {organization?.logo && (
-                  <AvatarImage src={organization.logo} alt={translateUI("foundationUI.organizations.organizationLogo", undefined, "Organization logo")} />
+                  <AvatarImage
+                    src={organization.logo}
+                    alt={translateUI(
+                      'foundationUI.organizations.organizationLogo',
+                      undefined,
+                      'Organization logo',
+                    )}
+                  />
                 )}
                 <AvatarFallback>{organization?.name.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
             </ItemMedia>
             <ItemContent>
               <ItemTitle>{organization?.name}</ItemTitle>
-              <ItemDescription>{translateUI("foundationUI.organizations.identifier", undefined, "Identifier:")}{organization?.slug}</ItemDescription>
               <ItemDescription>
-                {translateUI("foundationUI.organizations.website", undefined, "Website:")}{' '}
+                {translateUI('foundationUI.organizations.identifier', undefined, 'Identifier:')}
+                {organization?.slug}
+              </ItemDescription>
+              <ItemDescription>
+                {translateUI('foundationUI.organizations.website', undefined, 'Website:')}{' '}
                 {organization?.website && isOrganizationWebsite(organization.website) ? (
                   <a href={organization.website} target="_blank" rel="noopener noreferrer">
                     {organization.website}
                   </a>
                 ) : (
-                  organization?.website || translateUI("foundationUI.organizations.notSpecified", undefined, "Not specified")
+                  organization?.website ||
+                  translateUI('foundationUI.organizations.notSpecified', undefined, 'Not specified')
                 )}
               </ItemDescription>
               <ItemDescription>
-                {translateUI("foundationUI.organizations.youCanViewTheseDetailsButCannotEditThem", undefined, "You can view these details but cannot edit them.")}</ItemDescription>
+                {translateUI(
+                  'foundationUI.organizations.youCanViewTheseDetailsButCannotEditThem',
+                  undefined,
+                  'You can view these details but cannot edit them.',
+                )}
+              </ItemDescription>
             </ItemContent>
           </Item>
         )}

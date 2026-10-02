@@ -26,7 +26,10 @@ test('member settings navigation follows organization role and cleans up on unmo
   const { AppPreferences } = await import('@bitakit/app-preferences/core');
   const settings = new AppPreferences({ read: async () => null, write: async () => {} });
   const runtime = new FoundationRuntime(createActionList(), {
-    plugins: [organizationsPlugin(createDemoOrganizationBackend), organizationUIPlugin({ settings })],
+    plugins: [
+      organizationsPlugin(createDemoOrganizationBackend),
+      organizationUIPlugin({ settings }),
+    ],
   });
   const stop = runtime.mount();
   const service = getService(runtime.services, organizationService);

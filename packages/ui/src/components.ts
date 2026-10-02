@@ -10,7 +10,12 @@ export * from './components/primitives/sheet.js';
 export * from './components/primitives/skeleton.js';
 export * from './components/primitives/tooltip.js';
 export { AppBar, type AppBarProps } from './components/app-bar.js';
-export { ActionSidebarNavigation, ActionNavigationMenu, type ActionNavigationProps } from './components/action-navigation.js';
+export {
+  ActionSidebarNavigation,
+  ActionNavigationMenu,
+  type ActionNavigationProps,
+} from './components/action-navigation.js';
+export { ConfirmDialog } from './components/confirm-dialog.js';
 export * from './components/primitives/field.js';
 export * from './components/primitives/label.js';
 export * from './components/primitives/badge.js';
@@ -18,4 +23,7 @@ export * from './components/primitives/dialog.js';
 export * from './components/primitives/page-header.js';
 export { standardFoundationUI } from './components/standard-foundation-ui.js';
 
-export { StandardFoundationProvider, type StandardFoundationProviderProps } from './components/standard-foundation-provider.js';
+export {
+  StandardFoundationProvider,
+  type StandardFoundationProviderProps,
+} from './components/standard-foundation-provider.js';

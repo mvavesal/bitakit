@@ -220,7 +220,10 @@ export async function generateFoundation(root, { quiet = false } = {}) {
       const directory = path.resolve(root, selected.directory);
       return collect(appRoot, await files(directory, moduleRoots), kind, { directory });
     }
-    return collect(appRoot, appFiles, kind);
+    // Apps keep ordinary React providers in src/providers; only ui/providers (or `enabled`) count.
+    return collect(appRoot, appFiles, kind, {
+      legacy: kind !== 'providers' || config.providers?.enabled !== undefined,
+    });
   };
   const appContributions = contributions(
     await Promise.all(kinds.map((kind) => collect(appRoot, appFiles, kind))),
@@ -268,7 +271,7 @@ export async function generateFoundation(root, { quiet = false } = {}) {
         );
       return entry;
     });
-  } else providerEntries = providerEntries.filter((entry) => entry.source.startsWith('ui/'));
+  }
   const appProviders = emitUI('providers', providerEntries, appId, true);
   const appSetupFile = appFiles.find((file) => file === path.join(appRoot, 'setup.ts'));
   const appSetup = appSetupFile ? importFile(appSetupFile) : 'undefined';
@@ -462,7 +465,7 @@ ${strict ? '  interface ActionMapOptions { strict: true }\n' : ''}}
 /** Everything discovery found, as one runtime configuration. Create it once per runtime. */
 export function createBitaKitConfig() {
   const appConfig = ${appConfigExpression};
-  const configOverrides = ${quote(configOverrides)};
+  const configOverrides: Record<string, Record<string, unknown>> = ${quote(configOverrides)};
 ${configured ? `  const options = new ConfigService([{ id: ${quote(appId)}, config: appConfig }], { [${quote(appId)}]: configOverrides[${quote(appId)}] ?? {} }).plugin(${quote(appId)});\n` : ''}  return {
     appId: ${quote(appId)},
     metadata: ${quote(appManifest.metadata ?? {})},

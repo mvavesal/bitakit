@@ -25,9 +25,12 @@ type RecordServices<Id extends string, R> = {
         : {};
   }[keyof R & string]
 >;
-type ArrayServices<D> = D extends { id: infer Id extends string }
+type ArrayServices<D> = (D extends { id: infer Id extends string }
   ? { readonly [K in Id]: Instance<D> }
-  : {};
+  : {}) &
+  (D extends { exposeAs: infer Alias extends string }
+    ? { readonly [K in Alias]: Instance<D> }
+    : {});
 type PluginServices<P> = P extends { id: infer Id extends string; services: infer S }
   ? S extends readonly (infer D)[]
     ? Intersection<ArrayServices<D>>

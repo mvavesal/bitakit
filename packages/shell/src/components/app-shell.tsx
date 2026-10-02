@@ -27,7 +27,8 @@ export function AppShell({ children, layouts, ...props }: AppShellProps) {
   const selected = useShellLayout();
   const { groups } = useContext(ShellContext);
   const horizontal = selected === 'navbar';
-  const { Navigation, Header } = layouts?.[selected] ?? (horizontal ? horizontalLayout : verticalLayout);
+  const { Navigation, Header } =
+    layouts?.[selected] ?? (horizontal ? horizontalLayout : verticalLayout);
   return (
     <TooltipProvider>
       <SidebarProvider data-shell-layout={selected} className={horizontal ? 'flex-col' : undefined}>

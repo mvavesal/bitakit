@@ -32,7 +32,17 @@ export function ShellNotifications({
   return placement ? <NotificationSurface placement={placement} layout={layout} /> : null;
 }
 
-function NotificationSurface({ placement, layout }: { placement: SelectSetting<NotificationPlacement>; layout?: NotificationLayout }) {
+function NotificationSurface({
+  placement,
+  layout,
+}: {
+  placement: SelectSetting<NotificationPlacement>;
+  layout?: NotificationLayout;
+}) {
   const state = useSetting(placement);
-  return <Toast.Provider placement={state.value} width={360}>{layout}</Toast.Provider>;
+  return (
+    <Toast.Provider placement={state.value} width={360}>
+      {layout}
+    </Toast.Provider>
+  );
 }

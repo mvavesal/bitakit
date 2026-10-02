@@ -36,10 +36,14 @@ export function organizationUIPlugin(
       { path: '/settings/organization-members', component: OrganizationMembersSettings },
       { path: '/settings/organization-invitations', component: OrganizationMembersSettings },
       { path: '/settings/received-invitations', component: IncomingInvitations },
-      ...(options.path === false ? [] : [{
-        path: options.path ?? '/organizations',
-        component: () => <OrganizationsPage demo={options.demo} />,
-      }]),
+      ...(options.path === false
+        ? []
+        : [
+            {
+              path: options.path ?? '/organizations',
+              component: () => <OrganizationsPage demo={options.demo} />,
+            },
+          ]),
     ],
     actions: organizationActions(options),
     setup(context) {

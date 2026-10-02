@@ -2,18 +2,18 @@
 
 Upstream code is not copied or patched. `src/upstream` contains re-exports only. `src/components` contains Foundation-authored components; moving them here does not imply that native replacements have been completed.
 
-| Location | Ownership and purpose | Relationship to upstream |
-| --- | --- | --- |
-| components/organizations/pages.tsx | Existing service-backed member and invitation pages | Custom alternative for the historical web app and local demo; retains membership suspension, service actions, and URL filters |
-| components/organizations/organization-dialog.tsx | Existing organization form and confirmation | Custom integration with the backend contract, website and logo handling |
-| components/organizations/invite-dialog.tsx, invitation-email-input.tsx | Existing invitation form | Service-backed custom flow, including local demo |
-| components/organizations/incoming-invitations.tsx | Existing received invitations view | Custom service-backed view |
-| components/organizations/switcher.tsx | Local demo organization switcher | Native switcher is already used for real Content Demo sessions |
-| components/organizations/people-filters.tsx, people-icons.tsx | URL filters and role/status presentation | Helpers used by custom pages; not native component overrides |
-| components/organizations/group-actions.tsx | Action group renderer | Foundation integration |
-| components/organizations/logo-field.tsx | Existing logo input | Custom form helper |
-| auth-page-layout.tsx | Shared authentication page shell | Wraps native content; does not implement authentication |
-| settings/account.tsx | Profile/security settings composition | Uses native account components and existing settings catalog |
+| Location                                                               | Ownership and purpose                               | Relationship to upstream                                                                                                      |
+| ---------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| components/organizations/pages.tsx                                     | Existing service-backed member and invitation pages | Custom alternative for the historical web app and local demo; retains membership suspension, service actions, and URL filters |
+| components/organizations/organization-dialog.tsx                       | Existing organization form and confirmation         | Custom integration with the backend contract, website and logo handling                                                       |
+| components/organizations/invite-dialog.tsx, invitation-email-input.tsx | Existing invitation form                            | Service-backed custom flow, including local demo                                                                              |
+| components/organizations/incoming-invitations.tsx                      | Existing received invitations view                  | Custom service-backed view                                                                                                    |
+| components/organizations/switcher.tsx                                  | Local demo organization switcher                    | Native switcher is already used for real Content Demo sessions                                                                |
+| components/organizations/people-filters.tsx, people-icons.tsx          | URL filters and role/status presentation            | Helpers used by custom pages; not native component overrides                                                                  |
+| components/organizations/group-actions.tsx                             | Action group renderer                               | Foundation integration                                                                                                        |
+| components/organizations/logo-field.tsx                                | Existing logo input                                 | Custom form helper                                                                                                            |
+| auth-page-layout.tsx                                                   | Shared authentication page shell                    | Wraps native content; does not implement authentication                                                                       |
+| settings/account.tsx                                                   | Profile/security settings composition               | Uses native account components and existing settings catalog                                                                  |
 
 `organization-plugin.tsx` registers the custom pages and their actions. The `/organizations` entry is explicit opt-in; `/plugins/organization` remains the unchanged upstream API. Native capability replacement is a separate migration: do not silently remove custom suspension, website/logo, or demo behavior. There is no source-level override of an upstream component in this cleanup.
 

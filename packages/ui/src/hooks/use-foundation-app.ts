@@ -1,11 +1,6 @@
 'use client';
 import { useSyncExternalStore } from 'react';
-import type {
-  FoundationApp,
-  Plugin,
-  PublicServiceMap,
-  PublicServicesOf,
-} from '@bitakit/core';
+import type { FoundationApp, Plugin, PublicServiceMap, PublicServicesOf } from '@bitakit/core';
 import { useFoundation } from '../providers/foundation-context.js';
 
 /** Reads the existing app facade and follows mount/removal. Service data uses its own subscription hooks. */

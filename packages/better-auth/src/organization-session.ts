@@ -23,7 +23,8 @@ export function sessionOrganizationBackend(
           current.data?.user.id === previous.data?.user.id &&
           current.data?.user.emailVerified === previous.data?.user.emailVerified &&
           current.data?.session?.id === previous.data?.session?.id &&
-          current.data?.session?.activeOrganizationId === previous.data?.session?.activeOrganizationId &&
+          current.data?.session?.activeOrganizationId ===
+            previous.data?.session?.activeOrganizationId &&
           current.isPending === previous.isPending &&
           current.error === previous.error
         )

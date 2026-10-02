@@ -9,7 +9,10 @@ import DemoteIcon from 'reicon-react/icons/ArrowDown3';
 import CancelIcon from 'reicon-react/icons/Xmark';
 import SendIcon from 'reicon-react/icons/Send';
 import BuildingIcon from 'reicon-react/icons/Building';
-import { OrganizationDialog, ConfirmOrganizationAction } from '../components/organizations/organization-dialog.js';
+import {
+  OrganizationDialog,
+  ConfirmOrganizationAction,
+} from '../components/organizations/organization-dialog.js';
 import { createElement } from 'react';
 import { InviteDialog } from '../components/organizations/invite-dialog.js';
 import {
@@ -76,41 +79,96 @@ export function organizationActions(options: {
         success: operation === 'accept' ? 'Invitation accepted.' : 'Invitation declined.',
       }),
     ),
-    ...(options.path === false ? [] : [defineURLAction({
-      id: ids.page,
-      title: 'Organizations',
-      href: options.path ?? '/organizations',
-      groups: options.groups ?? ['navigation'],
-    })]),
+    ...(options.path === false
+      ? []
+      : [
+          defineURLAction({
+            id: ids.page,
+            title: 'Organizations',
+            href: options.path ?? '/organizations',
+            groups: options.groups ?? ['navigation'],
+          }),
+        ]),
     defineDialogAction({
-      id:ids.create,groups:[],title:'Create organization',
-      render:({services,close})=>createElement(OrganizationDialog,{service:getService(services,organizationService),close}),
+      id: ids.create,
+      groups: [],
+      title: 'Create organization',
+      render: ({ services, close }) =>
+        createElement(OrganizationDialog, {
+          service: getService(services, organizationService),
+          close,
+        }),
     }),
-    defineDialogAction({id:'organizations.edit',title:'Edit organization',groups:[organizationGroups.management],render:({services,input,close})=>createElement(OrganizationDialog,{service:getService(services,organizationService),organizationId:context(input).organizationId,close})}),
-    defineDialogAction({id:'organizations.delete',title:'Delete organization',groups:[organizationGroups.danger],render:({services,input,close})=>createElement(ConfirmOrganizationAction,{service:getService(services,organizationService),organizationId:context(input).organizationId??null,close})}),
-    defineDialogAction({id:ids.remove,icon:RemoveIcon,title:'Remove',groups:[organizationGroups.member],watch:[organizationService],resolve:(input,{services})=>{const state=getService(services,organizationService).getSnapshot();const member=state.members.find((item)=>item.id===context(input).memberId);return {enabled:!state.pending,visible:state.canManage && !!member && !member.role.split(',').includes('owner')};},render:({services,input,close})=>createElement(ConfirmOrganizationAction,{service:getService(services,organizationService),organizationId:context(input).organizationId??null,memberId:context(input).memberId,close})}),
-    ...(['admin', 'member'] as const).map((targetRole) => defineDialogAction({
-      id: `organizations.${targetRole === 'admin' ? 'promote' : 'demote'}`,
-      title: targetRole === 'admin' ? 'Make administrator' : 'Make member',
-      icon: targetRole === 'admin' ? RoleIcon : DemoteIcon,
+    defineDialogAction({
+      id: 'organizations.edit',
+      title: 'Edit organization',
+      groups: [organizationGroups.management],
+      render: ({ services, input, close }) =>
+        createElement(OrganizationDialog, {
+          service: getService(services, organizationService),
+          organizationId: context(input).organizationId,
+          close,
+        }),
+    }),
+    defineDialogAction({
+      id: 'organizations.delete',
+      title: 'Delete organization',
+      groups: [organizationGroups.danger],
+      render: ({ services, input, close }) =>
+        createElement(ConfirmOrganizationAction, {
+          service: getService(services, organizationService),
+          organizationId: context(input).organizationId ?? null,
+          close,
+        }),
+    }),
+    defineDialogAction({
+      id: ids.remove,
+      icon: RemoveIcon,
+      title: 'Remove',
       groups: [organizationGroups.member],
       watch: [organizationService],
       resolve: (input, { services }) => {
         const state = getService(services, organizationService).getSnapshot();
-        const member = state.members.find(item => item.id === context(input).memberId);
+        const member = state.members.find((item) => item.id === context(input).memberId);
         return {
           enabled: !state.pending,
-          visible: state.canManage && member?.role === (targetRole === 'admin' ? 'member' : 'admin'),
+          visible: state.canManage && !!member && !member.role.split(',').includes('owner'),
         };
       },
-      render: ({ services, input, close }) => createElement(ConfirmOrganizationAction, {
-        service: getService(services, organizationService),
-        organizationId: context(input).organizationId ?? null,
-        memberId: context(input).memberId,
-        targetRole,
-        close,
+      render: ({ services, input, close }) =>
+        createElement(ConfirmOrganizationAction, {
+          service: getService(services, organizationService),
+          organizationId: context(input).organizationId ?? null,
+          memberId: context(input).memberId,
+          close,
+        }),
+    }),
+    ...(['admin', 'member'] as const).map((targetRole) =>
+      defineDialogAction({
+        id: `organizations.${targetRole === 'admin' ? 'promote' : 'demote'}`,
+        title: targetRole === 'admin' ? 'Make administrator' : 'Make member',
+        icon: targetRole === 'admin' ? RoleIcon : DemoteIcon,
+        groups: [organizationGroups.member],
+        watch: [organizationService],
+        resolve: (input, { services }) => {
+          const state = getService(services, organizationService).getSnapshot();
+          const member = state.members.find((item) => item.id === context(input).memberId);
+          return {
+            enabled: !state.pending,
+            visible:
+              state.canManage && member?.role === (targetRole === 'admin' ? 'member' : 'admin'),
+          };
+        },
+        render: ({ services, input, close }) =>
+          createElement(ConfirmOrganizationAction, {
+            service: getService(services, organizationService),
+            organizationId: context(input).organizationId ?? null,
+            memberId: context(input).memberId,
+            targetRole,
+            close,
+          }),
       }),
-    })),
+    ),
     defineDialogAction({
       id: ids.invite,
       size: 'wide',
@@ -161,7 +219,18 @@ export function organizationActions(options: {
       defineAction({
         id,
         title,
-        icon: id === ids.retry ? RefreshIcon : id === ids.cancel ? CancelIcon : id === ids.resend ? SendIcon : id === ids.disable ? BlockIcon : id === ids.enable ? UnlockIcon : undefined,
+        icon:
+          id === ids.retry
+            ? RefreshIcon
+            : id === ids.cancel
+              ? CancelIcon
+              : id === ids.resend
+                ? SendIcon
+                : id === ids.disable
+                  ? BlockIcon
+                  : id === ids.enable
+                    ? UnlockIcon
+                    : undefined,
         groups: [
           id === ids.select
             ? organizationGroups.organization

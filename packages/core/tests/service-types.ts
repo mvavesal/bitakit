@@ -18,15 +18,21 @@ interface Mail {
 }
 const mail = serviceKey<Mail>('mail');
 // The contract phantom is contravariant: a richer instance satisfies a narrower contract.
-const outbox = defineService(() => ({ send: async ({ to }: { to: string }) => ({ id: to }), drafts: [] as string[] }), {
-  provides: mail,
-  exposeAs: 'messaging.mail',
-});
+const outbox = defineService(
+  () => ({ send: async ({ to }: { to: string }) => ({ id: to }), drafts: [] as string[] }),
+  {
+    provides: mail,
+    exposeAs: 'messaging.mail',
+  },
+);
 defineService(() => ({ send: async () => 123 }), {
   // @ts-expect-error A provider must implement the declared contract.
   provides: mail,
 });
-const typed: ServiceDefinition<{ send(input: { to: string }): Promise<{ id: string }>; drafts: string[] }> = outbox;
+const typed: ServiceDefinition<{
+  send(input: { to: string }): Promise<{ id: string }>;
+  drafts: string[];
+}> = outbox;
 // The deprecated object form types the same way.
 provideService(mail, { create: () => ({ send: async ({ to }) => ({ id: to }) }) });
 provideService(mail, {
@@ -99,12 +105,19 @@ const has: boolean = app.has('mail.outbox');
 declare const emptyApp: FoundationApp<PublicServicesOf<readonly []>>;
 // @ts-expect-error An empty composition does not claim plugin availability.
 emptyApp.services.mail;
-const arrayPlugin = definePlugin({ id: 'arr', services: [defineService(() => 1, { id: 'arr.one' })] });
+const arrayPlugin = definePlugin({
+  id: 'arr',
+  services: [defineService(() => 1, { id: 'arr.one' })],
+});
 declare const arrayApp: FoundationApp<PublicServicesOf<readonly [typeof arrayPlugin]>>;
 const one: number = arrayApp.services.arr.one;
 
 // Discovery: the file path names the service; exposeAs is part of the same entry.
-const file = discoveredFile(defineService(() => ({ now: () => new Date() }), { exposeAs: 'clock' }), 'internal', 'services/internal.ts');
+const file = discoveredFile(
+  defineService(() => ({ now: () => new Date() }), { exposeAs: 'clock' }),
+  'internal',
+  'services/internal.ts',
+);
 type Stored = DiscoveredServiceEntry<typeof file, 'plugin'>;
 const stored: Stored['plugin.internal'] = { now: () => new Date() };
 const exposed: Stored['clock'] = stored;

@@ -5,15 +5,24 @@ import { languagePreferences } from '../dist/preferences.js';
 
 test('language uses confirmed persistence, rejects failures, resets and supports configured new locales', async () => {
   const language = languagePreferences({
-    locales: ['en', 'de', 'fa'].map(value => ({ value, label: value })), defaultLocale: 'de',
+    locales: ['en', 'de', 'fa'].map((value) => ({ value, label: value })),
+    defaultLocale: 'de',
   });
   let persisted = 'en';
   let fail = false;
   const base = createMemoryStorage({ values: { 'shell.theme': 'dark' } });
   const storage = language.storage(base, {
-    async load() { return persisted; },
-    async save(value) { if (fail) throw new Error('Offline'); persisted = value; },
-    async reset() { persisted = 'de'; return persisted; },
+    async load() {
+      return persisted;
+    },
+    async save(value) {
+      if (fail) throw new Error('Offline');
+      persisted = value;
+    },
+    async reset() {
+      persisted = 'de';
+      return persisted;
+    },
   });
   const settings = createAppPreferences({ storage, definitions: [language.setting] });
   await settings.activate({});

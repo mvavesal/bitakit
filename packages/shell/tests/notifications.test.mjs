@@ -39,7 +39,7 @@ test('public notification service uses the native HeroUI queue and is disposed w
   assert.equal(settings.get(notificationPreferences.fields.placement).value, 'top end');
   assert.ok(settings.getSection('shell-notifications'));
   stop();
-  assert.equal(runtime.app.optional.services.notifications, undefined);
+  assert.equal(runtime.app.has('notifications'), false);
   assert.throws(() => service.show('Late'), /no longer active/);
   toast.clear();
 });
@@ -80,7 +80,7 @@ test('developers replace the same public service through the existing lifecycle'
 
 test('notifications remain optional and configured native position supplies the reset default', async () => {
   const disabled = mount(false);
-  assert.equal(disabled.runtime.app.optional.services.notifications, undefined);
+  assert.equal(disabled.runtime.app.has('notifications'), false);
   disabled.stop();
   const { settings, runtime, stop } = mount({ placement: 'top start' });
   const section = settings.getSection('shell-notifications');
@@ -98,15 +98,26 @@ test('notification boundary translates title and description for replacement ren
   const { translatedNotifications } = await import('../dist/services/notifications.js');
   const { createTranslationPlugin } = await import('@bitakit/core');
   const calls = [];
-  const original = { show: (...args) => { calls.push(args); return 7; }, dismiss() {} };
+  const original = {
+    show: (...args) => {
+      calls.push(args);
+      return 7;
+    },
+    dismiss() {},
+  };
   let disposed;
   const translation = createTranslationPlugin((key, values) => `${key}:${values.name}`);
-  const definition = translatedNotifications({ create: () => original, dispose: value => { disposed = value; } });
+  const definition = translatedNotifications({
+    create: () => original,
+    dispose: (value) => {
+      disposed = value;
+    },
+  });
   const service = definition.create({ services: { i18n: translation.translation }, config: {} });
   assert.equal(service.show('saved', { description: 'details', values: { name: 'Ada' } }), 7);
   assert.equal(calls[0][0], 'saved:Ada');
   assert.equal(calls[0][1].description, 'details:Ada');
-  translation.update(key => `new:${key}`);
+  translation.update((key) => `new:${key}`);
   service.show('saved');
   assert.equal(calls[1][0], 'new:saved');
   definition.dispose(service);

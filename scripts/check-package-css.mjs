@@ -12,20 +12,34 @@ const root = path.resolve(import.meta.dirname, '..');
 const dir = await mkdtemp(path.join(tmpdir(), 'bitakit-css-consumer-'));
 const packs = path.join(dir, 'packs');
 try {
-  execFileSync(process.execPath, [path.join(root, 'scripts/pack-packages.mjs'), packs, 'core', 'ui', 'app-preferences', 'shell'], { stdio: 'inherit' });
+  execFileSync(
+    process.execPath,
+    [path.join(root, 'scripts/pack-packages.mjs'), packs, 'core', 'ui', 'app-preferences', 'shell'],
+    { stdio: 'inherit' },
+  );
   const archives = Object.fromEntries(
-    (await readdir(packs)).map((file) => [`@bitakit/${/^bitakit-(.+)-\d/.exec(file)[1]}`, `file:${path.join(packs, file)}`]),
+    (await readdir(packs)).map((file) => [
+      `@bitakit/${/^bitakit-(.+)-\d/.exec(file)[1]}`,
+      `file:${path.join(packs, file)}`,
+    ]),
   );
   await writeFile(
     path.join(dir, 'package.json'),
     JSON.stringify({
       private: true,
       dependencies: { ...archives, react: '^19.2.0', 'react-dom': '^19.2.0' },
-      devDependencies: { tailwindcss: '^4.1.0', '@tailwindcss/postcss': '^4.1.0', postcss: '^8.5.0' },
+      devDependencies: {
+        tailwindcss: '^4.1.0',
+        '@tailwindcss/postcss': '^4.1.0',
+        postcss: '^8.5.0',
+      },
       overrides: archives,
     }),
   );
-  execFileSync('npm', ['install', '--no-audit', '--no-fund', '--loglevel=error'], { cwd: dir, stdio: 'inherit' });
+  execFileSync('npm', ['install', '--no-audit', '--no-fund', '--loglevel=error'], {
+    cwd: dir,
+    stdio: 'inherit',
+  });
   const require = createRequire(path.join(dir, 'package.json'));
   const postcss = require('postcss');
   const tailwind = require('@tailwindcss/postcss');
@@ -40,7 +54,8 @@ try {
   const leaks = (css) => /\.dark\\:[^{\s]+[^{]*\{[^{}]*&::before/.test(css);
 
   const lean = await compile(['@bitakit/ui/styles.css', '@bitakit/ui/theme.css']);
-  if (!lean.includes('.size-10') || !lean.includes('.gap-6')) throw Error('UI utility classes are missing.');
+  if (!lean.includes('.size-10') || !lean.includes('.gap-6'))
+    throw Error('UI utility classes are missing.');
   if (leaks(lean)) throw Error('The UI dark variant styles pseudo-elements.');
   console.log('UI styles compile on their own:', lean.length, 'bytes');
 
@@ -51,14 +66,26 @@ try {
     '@bitakit/ui/theme.css',
   ]);
   if (full.length <= lean.length) throw Error('Optional package styles are missing.');
-  if (leaks(full)) throw Error('A package dark variant styles pseudo-elements (see Shell styles.css).');
-  if (!full.includes("[data-slot='radio-group-item']") && !full.includes('[data-slot="radio-group-item"]'))
+  if (leaks(full))
+    throw Error('A package dark variant styles pseudo-elements (see Shell styles.css).');
+  if (
+    !full.includes("[data-slot='radio-group-item']") &&
+    !full.includes('[data-slot="radio-group-item"]')
+  )
     throw Error('The central radio rule is missing.');
-  console.log('App Preferences and Shell styles add', full.length - lean.length, 'bytes without pseudo-element leaks');
+  console.log(
+    'App Preferences and Shell styles add',
+    full.length - lean.length,
+    'bytes without pseudo-element leaks',
+  );
   // Control: HeroUI's stylesheet imported last brings its variant back, so the check must notice.
-  const control = await compile(['@bitakit/ui/styles.css', '@bitakit/shell/styles.css', '@heroui/styles']);
+  const control = await compile([
+    '@bitakit/ui/styles.css',
+    '@bitakit/shell/styles.css',
+    '@heroui/styles',
+  ]);
   if (!leaks(control)) throw Error('The leak check did not detect its control case.');
-  console.log('Control: the leak check detects HeroUI\'s variant when it wins');
+  console.log("Control: the leak check detects HeroUI's variant when it wins");
 } finally {
   await rm(dir, { recursive: true, force: true });
 }

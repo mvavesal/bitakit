@@ -30,8 +30,16 @@ const addItem = async (page) => {
 const app = (framework, sample) => ({
   args: ['--framework', framework, ...(sample ? ['--sample'] : ['--features', 'none'])],
   visits: sample
-    ? [['/', 'Welcome'], ['/todos', 'Todos', addItem], ['/settings', 'Theme'], ['/missing', 'Page not found']]
-    : [['/', 'Welcome'], ['/missing', 'Page not found']],
+    ? [
+        ['/', 'Welcome'],
+        ['/todos', 'Todos', addItem],
+        ['/settings', 'Theme'],
+        ['/missing', 'Page not found'],
+      ]
+    : [
+        ['/', 'Welcome'],
+        ['/missing', 'Page not found'],
+      ],
   framework,
 });
 const scenarios = {
@@ -41,11 +49,20 @@ const scenarios = {
   'tanstack-sample': app('tanstack', true),
   // Plugin IDs come from the package name: notes-plugin → "notes".
   'notes-plugin': { args: ['--plugin', '--framework', 'next'], plugin: 'notes', framework: 'next' },
-  'tasks-plugin': { args: ['--plugin', '--framework', 'tanstack'], plugin: 'tasks', framework: 'tanstack' },
+  'tasks-plugin': {
+    args: ['--plugin', '--framework', 'tanstack'],
+    plugin: 'tasks',
+    framework: 'tanstack',
+  },
 };
 
 const run = (command, args, cwd) =>
-  execFileSync(command, args, { cwd, stdio: 'pipe', encoding: 'utf8', env: { ...process.env, NO_COLOR: '1' } });
+  execFileSync(command, args, {
+    cwd,
+    stdio: 'pipe',
+    encoding: 'utf8',
+    env: { ...process.env, NO_COLOR: '1' },
+  });
 
 async function serve(framework, cwd) {
   const current = port++;
@@ -56,7 +73,13 @@ async function serve(framework, cwd) {
   const server = spawn(command, args, { cwd, stdio: 'ignore', detached: true });
   const url = `http://localhost:${current}`;
   for (let attempt = 0; attempt < 120; attempt++) {
-    if (await fetch(url).then((response) => response.ok, () => false)) return { url, stop: () => process.kill(-server.pid) };
+    if (
+      await fetch(url).then(
+        (response) => response.ok,
+        () => false,
+      )
+    )
+      return { url, stop: () => process.kill(-server.pid) };
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   process.kill(-server.pid);
@@ -91,7 +114,13 @@ async function verify(name, scenario) {
       return value;
     });
   };
-  await step('generate and install', () => run(process.execPath, [generator, name, ...scenario.args, '--yes', '--packages-dir', packs], work));
+  await step('generate and install', () =>
+    run(
+      process.execPath,
+      [generator, name, ...scenario.args, '--yes', '--packages-dir', packs],
+      work,
+    ),
+  );
   if (scenario.plugin) {
     await step('npm test', () => run('npm', ['test'], target));
     await step('type check', () => run('npm', ['run', 'typecheck'], target));
@@ -102,7 +131,12 @@ async function verify(name, scenario) {
     await step('build playground', () => run('npm', ['run', 'build'], playground));
     const server = await step('start playground', () => serve(scenario.framework, playground));
     try {
-      await step('browser', () => smoke(server.url, [['/', 'Add item'], [`/${scenario.plugin}`, 'Add and remove items', addItem]]));
+      await step('browser', () =>
+        smoke(server.url, [
+          ['/', 'Add item'],
+          [`/${scenario.plugin}`, 'Add and remove items', addItem],
+        ]),
+      );
     } finally {
       server.stop();
     }
@@ -122,7 +156,24 @@ async function verify(name, scenario) {
 const failures = [];
 try {
   console.log(`Packing packages into ${packs}`);
-  run(process.execPath, [path.join(root, 'scripts/pack-packages.mjs'), packs, 'core', 'ui', 'app-preferences', 'next', 'tanstack', 'shell', 'quick-search', 'devtools', 'cli', 'create-app'], root);
+  run(
+    process.execPath,
+    [
+      path.join(root, 'scripts/pack-packages.mjs'),
+      packs,
+      'core',
+      'ui',
+      'app-preferences',
+      'next',
+      'tanstack',
+      'shell',
+      'quick-search',
+      'devtools',
+      'cli',
+      'create-app',
+    ],
+    root,
+  );
   console.log(`Packed ${(await readdir(packs)).length} packages.\n`);
   for (const [name, scenario] of Object.entries(scenarios)) {
     if (only && !only.includes(name)) continue;
@@ -131,7 +182,11 @@ try {
       await verify(name, scenario);
     } catch (error) {
       console.log('failed');
-      failures.push(`${name}: ${String(error.stdout || error.stderr || error.message).trim().slice(-2000)}`);
+      failures.push(
+        `${name}: ${String(error.stdout || error.stderr || error.message)
+          .trim()
+          .slice(-2000)}`,
+      );
     }
   }
 } finally {

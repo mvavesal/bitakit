@@ -4,16 +4,16 @@ import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { createJiti } from 'jiti';
 import { JSDOM } from 'jsdom';
-import { createElement as h, act, StrictMode } from 'react';
+import { createElement as h, act, useEffect, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NextIntlClientProvider } from 'next-intl';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime.js';
-import { createAppPreferences, SettingsProvider } from '@bitakit/app-preferences';
 import {
-  ActionButton,
-  useActionList,
-  useRegisterAction,
-} from '@bitakit/ui/actions';
+  PathnameContext,
+  SearchParamsContext,
+} from 'next/dist/shared/lib/hooks-client-context.shared-runtime.js';
+import { createAppPreferences, SettingsProvider } from '@bitakit/app-preferences';
+import { ActionButton, useActionList } from '@bitakit/ui/actions';
 
 const jiti = createJiti(import.meta.url, {
   fsCache: false,
@@ -23,7 +23,7 @@ const jiti = createJiti(import.meta.url, {
   },
   jsx: { runtime: 'automatic' },
 });
-const { AppActionsProvider } = await jiti.import('../src/providers/actions-provider.tsx');
+const { BitaKit } = await jiti.import('../src/components/providers/bitakit.tsx');
 const { settingDefinitions } = await jiti.import('../src/settings/definitions.ts');
 const messages = Object.fromEntries(
   ['en', 'de'].map((locale) => [
@@ -78,9 +78,11 @@ test('locale changes preserve pending execution, registration ownership and the 
       ctx.update({ description: 'Finished' });
     },
   };
+  // A page-owned registration on the shared list, released with the component.
   function Probe() {
-    list = useActionList();
-    useRegisterAction(definition);
+    const current = useActionList();
+    list = current;
+    useEffect(() => current.register(definition).unregister, [current]);
     return h(ActionButton, { action: definition.id });
   }
   const tree = (locale) =>
@@ -93,7 +95,15 @@ test('locale changes preserve pending execution, registration ownership and the 
         h(
           AppRouterContext.Provider,
           { value: router },
-          h(SettingsProvider, { settings }, h(AppActionsProvider, null, h(Probe))),
+          h(
+            PathnameContext.Provider,
+            { value: '/' },
+            h(
+              SearchParamsContext.Provider,
+              { value: new URLSearchParams() },
+              h(SettingsProvider, { settings }, h(BitaKit, null, h(Probe))),
+            ),
+          ),
         ),
       ),
     );

@@ -1,11 +1,6 @@
 'use client';
-import {
-  ActionGroupBinding,
-  ActionMenuItem,
-  type ActionGroup,
-  type ActionGroupsViewProps,
-} from '@bitakit/ui/actions';
 import { usePathname } from 'next/navigation';
+import { useActionGroups } from '@bitakit/ui';
 import { SettingsLink } from '@/components/settings/base/settings-link';
 import {
   SidebarGroup,
@@ -16,42 +11,50 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 
-function DrawerGroups({ groups }: ActionGroupsViewProps) {
-  const pathname = usePathname();
-  const { setOpenMobile } = useSidebar();
-  return groups.map((group) => (
-    <SidebarGroup key={group.id}>
-      {group.title && <SidebarGroupLabel>{group.title}</SidebarGroupLabel>}
-      <SidebarMenu>
-        {group.items.map((item) => (
-          <SidebarMenuItem key={item.id}>
-            <ActionMenuItem
-              binding={item}
-              as={SidebarMenuButton}
-              Link={SettingsLink}
-              activation="click"
-              itemProps={{ isActive: pathname === item.href, tooltip: item.tooltip ?? item.title }}
-              onExecuted={() => setOpenMobile(false)}
-            />
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    </SidebarGroup>
-  ));
-}
-/** The app owns the surrounding Sidebar, header and footer. */
-export function ActionDrawer<Input>({
+/** Renders action groups in the sidebar; the app owns the surrounding Sidebar, header and footer. */
+export function ActionDrawer({
   groups,
-  context,
+  input,
   label,
 }: {
-  groups: readonly ActionGroup<Input>[];
-  context: Input;
+  groups: readonly string[];
+  input?: unknown;
   label: string;
 }) {
+  const bound = useActionGroups(groups, input);
+  const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
+  const close = () => setOpenMobile(false);
   return (
     <nav aria-label={label}>
-      <ActionGroupBinding groups={groups} context={context} as={DrawerGroups} />
+      {bound.map((group) => (
+        <SidebarGroup key={group.id}>
+          {group.title && <SidebarGroupLabel>{group.title}</SidebarGroupLabel>}
+          <SidebarMenu>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const tooltip = item.tooltip ?? item.title;
+              return (
+                <SidebarMenuItem key={item.id}>
+                  {item.href !== undefined ? (
+                    <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={tooltip}>
+                      <SettingsLink {...item.linkProps({ onExecuted: close })} href={item.href}>
+                        {Icon && <Icon aria-hidden="true" />}
+                        <span>{item.title}</span>
+                      </SettingsLink>
+                    </SidebarMenuButton>
+                  ) : (
+                    <SidebarMenuButton {...item.props({ onExecuted: close })} tooltip={tooltip}>
+                      {Icon && <Icon aria-hidden="true" />}
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  )}
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
+      ))}
     </nav>
   );
 }

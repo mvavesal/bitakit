@@ -59,11 +59,6 @@ test('theme persists across routes and mobile navigation preserves auth boundary
   await expect(page.locator('html')).toHaveClass('dark');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
-  await page.getByRole('link', { name: 'Action demo', exact: true }).click();
-  await expect(page).toHaveURL(/\/actions-demo$/);
-  await expect(page.locator('html')).toHaveClass('dark');
-  await page.goto('/app-preview');
-  await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
   await page.getByRole('link', { name: 'Account dashboard' }).click();
   await expect(page).toHaveURL(/\/login$/);
 });

@@ -38,4 +38,10 @@ export {
 
 export type { NotificationLayout } from './providers/notifications.js';
 
-export { NotFoundPage, ErrorPage, LoadingPage, AccessDeniedPage, type PageStateProps } from './pages.js';
+export {
+  NotFoundPage,
+  ErrorPage,
+  LoadingPage,
+  AccessDeniedPage,
+  type PageStateProps,
+} from './pages.js';

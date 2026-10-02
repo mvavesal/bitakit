@@ -72,4 +72,4 @@ export class SettingsRendererService {
   }
 }
 export const settingsService = serviceKey<AppPreferences>('settings');
-export const settingsRendererService = serviceKey<SettingsRendererService>('settings.renderer');
+export const settingsRendererService = serviceKey<SettingsRendererService>('settings-renderer');

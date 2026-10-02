@@ -69,16 +69,54 @@ export async function migrateProject(root, { dryRun = false } = {}) {
   // 2. Contribution files: legacy folders, dotted names and suffixes.
   for (const base of moduleDirs) {
     const moved = new Map();
+    const moduleId =
+      base === appRoot
+        ? undefined
+        : (/id:\s*['"]([^'"]+)['"]/.exec(
+            await readFile(path.join(base, 'plugin.config.ts'), 'utf8').catch(() => ''),
+          )?.[1] ?? path.basename(base));
     for (const [legacy, target] of Object.entries(legacyFolders)) {
       const from = path.join(base, legacy);
       const to = path.join(base, target);
       if ((await exists(from)) && !(await exists(to))) {
         if (base === appRoot && legacy === 'providers') continue; // app providers are opt-in; leave them
         moved.set(legacy, target);
-        await apply({ kind: 'move', from: relative(from), to: relative(to) }, async () => {
-          await mkdir(path.dirname(to), { recursive: true });
-          await rename(from, to);
-        });
+        // File by file: a legacy definePage/defineView literal decides the new name, so the
+        // path or slot encoded in the call survives once the call itself is removed.
+        for (const file of await files(from)) {
+          if (!/\.tsx?$/.test(file)) continue;
+          const source = await readFile(file, 'utf8');
+          const stem = path
+            .relative(from, file)
+            .replace(/\.tsx?$/, '')
+            .replace(/\.(page|view|provider)$/, '');
+          let name = stem;
+          if (legacy === 'views') name = /slot:\s*['"]([^'"]+)['"]/.exec(source)?.[1] ?? stem;
+          if (legacy === 'pages') {
+            const literal = /path:\s*['"]([^'"]+)['"]/.exec(source)?.[1];
+            if (literal) {
+              const prefix = moduleId ? `/${moduleId}` : '';
+              const rest =
+                literal === prefix || literal === `${prefix}/`
+                  ? ''
+                  : literal.startsWith(`${prefix}/`)
+                    ? literal.slice(prefix.length + 1)
+                    : undefined;
+              if (rest !== undefined) name = rest || 'index';
+            }
+          }
+          const destination = path.join(to, `${name}${path.extname(file)}`);
+          await apply(
+            { kind: 'rename', from: relative(file), to: relative(destination) },
+            async () => {
+              await mkdir(path.dirname(destination), { recursive: true });
+              await rename(file, destination);
+            },
+          );
+        }
+        await apply({ kind: 'delete', from: relative(from), detail: 'legacy folder' }, () =>
+          rm(from, { recursive: true, force: true }),
+        );
       }
     }
     const boundaries = new Set(moduleDirs.filter((dir) => dir !== base && dir.startsWith(base)));
@@ -87,12 +125,18 @@ export async function migrateProject(root, { dryRun = false } = {}) {
       .filter((file) => /\.tsx?$/.test(file) && !/\.d\.ts$/.test(file))
       .map((file) => {
         let rel = path.relative(base, file).split(path.sep).join('/');
+        let fromLegacy = false;
         for (const [legacy, target] of moved)
-          if (rel.startsWith(`${legacy}/`)) rel = `${target}/${rel.slice(legacy.length + 1)}`;
-        return { file, rel };
+          if (rel.startsWith(`${legacy}/`)) {
+            rel = `${target}/${rel.slice(legacy.length + 1)}`;
+            fromLegacy = true;
+          }
+        return { file, rel, fromLegacy };
       })
       .sort((a, b) => a.rel.localeCompare(b.rel));
-    for (const { file, rel } of candidates) {
+    for (const { file, rel, fromLegacy } of candidates) {
+      // Files from a legacy folder already received their final names in the move above.
+      if (fromLegacy) continue;
       const current = path.join(base, rel);
       const extension = path.extname(file);
       const stem = path.basename(file, extension);
@@ -133,6 +177,9 @@ export async function migrateProject(root, { dryRun = false } = {}) {
   }
 
   // 3. Source rewrites: generated-file imports and renamed helpers.
+  const hasLocales = (
+    await Promise.all(moduleDirs.map((dir) => files(path.join(dir, 'locales'))))
+  ).some((list) => list.some((file) => file.endsWith('.json')));
   for (const file of await files(appRoot)) {
     if (!/\.(tsx?|css|mjs)$/.test(file) || /\.d\.ts$/.test(file) || /bitakit\.gen\./.test(file))
       continue;
@@ -153,9 +200,16 @@ export async function migrateProject(root, { dryRun = false } = {}) {
         /(['"])[^'"]*\.foundation\/plugins\1/g,
         (_, q) => `${q}${toGenerated('bitakit.gen')}${q}`,
       )
-      .replace(
-        /(['"])[^'"]*\.foundation\/messages\.json\1/g,
-        (_, q) => `${q}${toGenerated('bitakit.gen.messages.json')}${q}`,
+      .replace(/(['"])[^'"]*\.foundation\/messages\.json\1/g, (_, q) =>
+        hasLocales
+          ? `${q}${toGenerated('bitakit.gen.messages.json')}${q}`
+          : (changes.push({
+              kind: 'skip',
+              from: relative(file),
+              detail:
+                'imports .foundation/messages.json, but no plugin has locales; remove the import',
+            }),
+            `${q}${toGenerated('bitakit.gen.messages.json')}${q}`),
       )
       .replace(
         /(['"])@bitakit\/(?:next|tanstack)\/generated\1/g,

@@ -20,9 +20,18 @@ export function DateRangeFilter({
   to: string;
   onChange: (range: { from: string; to: string }) => void;
 }) {
-  const labels = { applied: 'Filter active', from: 'From', to: 'To', hint: 'Select a date range.', invalidRange: 'The end date must follow the start date.', clear: 'Reset', apply: 'Apply' };
+  const labels = {
+    applied: 'Filter active',
+    from: 'From',
+    to: 'To',
+    hint: 'Select a date range.',
+    invalidRange: 'The end date must follow the start date.',
+    clear: 'Reset',
+    apply: 'Apply',
+  };
   const translate = useTranslation();
-  const t = (key: keyof typeof labels) => translate(`foundationUI.dateRange.${key}`, undefined, labels[key]);
+  const t = (key: keyof typeof labels) =>
+    translate(`foundationUI.dateRange.${key}`, undefined, labels[key]);
   const id = useId();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({ from, to });

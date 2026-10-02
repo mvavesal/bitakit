@@ -10,18 +10,20 @@ import { nodemailerPlugin } from '@bitakit/nodemailer';
 import { betterAuthEmail } from '@bitakit/better-auth/email';
 
 const runtime = createRuntime({
-  plugins: [nodemailerPlugin({
-    host: process.env.SMTP_HOST!,
-    port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_SECURE === 'true',
-    user: process.env.SMTP_USER!,
-    password: process.env.SMTP_PASSWORD!,
-    from: process.env.SMTP_FROM!,
-  })],
+  plugins: [
+    nodemailerPlugin({
+      host: process.env.SMTP_HOST!,
+      port: Number(process.env.SMTP_PORT),
+      secure: process.env.SMTP_SECURE === 'true',
+      user: process.env.SMTP_USER!,
+      password: process.env.SMTP_PASSWORD!,
+      from: process.env.SMTP_FROM!,
+    }),
+  ],
 });
 const dispose = runtime.mount();
 const callbacks = betterAuthEmail(getService(runtime.services, emailService), {
-  invitationURL: id => new URL(`/invitations/${encodeURIComponent(id)}`, appOrigin).href,
+  invitationURL: (id) => new URL(`/invitations/${encodeURIComponent(id)}`, appOrigin).href,
 });
 // Pass callbacks to your server-side Better Auth configuration.
 // Call dispose when the server runtime is shut down, not after every request.

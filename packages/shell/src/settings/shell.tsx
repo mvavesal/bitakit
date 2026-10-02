@@ -4,7 +4,7 @@ import { Suspense, useId, type ElementType, type ReactNode } from 'react';
 import { useSettingsSections, useSettingsText } from '@bitakit/app-preferences';
 import { projectSettings } from '@bitakit/app-preferences/core';
 import { parseAsString, useQueryState } from 'nuqs';
-import { 
+import {
   Sidebar,
   SidebarProvider,
   SidebarHeader,
@@ -16,16 +16,16 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   useSidebar,
- } from '../components/ui/index.js';
-import {  TooltipProvider  } from '../components/ui/index.js';
-import { 
+} from '../components/ui/index.js';
+import { TooltipProvider } from '../components/ui/index.js';
+import {
   InputGroup,
   InputGroupInput,
   InputGroupAddon,
   InputGroupClearButton,
- } from '../components/ui/index.js';
-import {  Button  } from '../components/ui/index.js';
-import {  BackLink  } from '../components/ui/index.js';
+} from '../components/ui/index.js';
+import { Button } from '../components/ui/index.js';
+import { BackLink } from '../components/ui/index.js';
 import SearchIcon from 'reicon-react/icons/Search';
 import ChevronRightIcon from 'reicon-react/icons/ChevronRight';
 import { SettingsNavigationLink } from './link.js';
@@ -132,7 +132,15 @@ export function SettingsNavigation({
   onNavigate?: () => void;
 }) {
   const t = useTranslation();
-  const labels = { ...Object.fromEntries(Object.entries(defaultLabels).map(([key, value]) => [key, t(`shell.settingsShell.${key}`, undefined, value)])) as SettingsShellLabels, ...overrides };
+  const labels = {
+    ...(Object.fromEntries(
+      Object.entries(defaultLabels).map(([key, value]) => [
+        key,
+        t(`shell.settingsShell.${key}`, undefined, value),
+      ]),
+    ) as SettingsShellLabels),
+    ...overrides,
+  };
   const text = useSettingsText();
   const sections = useSettingsSections();
   const groups = projectSettings(
@@ -193,7 +201,15 @@ export function SettingsShell({
   ...props
 }: SettingsShellProps) {
   const t = useTranslation();
-  const labels = { ...Object.fromEntries(Object.entries(defaultLabels).map(([key, value]) => [key, t(`shell.settingsShell.${key}`, undefined, value)])) as SettingsShellLabels, ...overrides };
+  const labels = {
+    ...(Object.fromEntries(
+      Object.entries(defaultLabels).map(([key, value]) => [
+        key,
+        t(`shell.settingsShell.${key}`, undefined, value),
+      ]),
+    ) as SettingsShellLabels),
+    ...overrides,
+  };
   const text = useSettingsText();
   const contentId = useId();
   const section = useSettingsSections().find(

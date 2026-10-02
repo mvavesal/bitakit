@@ -12,7 +12,7 @@
     "build": "npm run build:web",
     "start": "npm run start --workspace @bitakit/web",
     "check": "npm run build:actions && npm run typecheck --workspace @bitakit/web && npm run lint --workspace @bitakit/web",
-    "test": "node scripts/check-versions.mjs && npm run test --workspace @bitakit/core && npm run test --workspace @bitakit/ui && npm run test --workspace @bitakit/app-preferences && npm run test --workspace @bitakit/shell && npm run test --workspace @bitakit/next && npm run test --workspace @bitakit/organizations && npm run test --workspace @bitakit/better-auth && npm run test --workspace @bitakit/nodemailer && npm run test --workspace @bitakit/better-auth-ui && npm run test --workspace @bitakit/quick-search && npm run test --workspace @bitakit/devtools && npm run test --workspace @bitakit/cli && npm run test --workspace @bitakit/create-app",
+    "test": "node scripts/check-versions.mjs && npm run test --workspace @bitakit/core && npm run test --workspace @bitakit/ui && npm run test --workspace @bitakit/app-preferences && npm run test --workspace @bitakit/shell && npm run test --workspace @bitakit/next && npm run test --workspace @bitakit/tanstack && npm run test --workspace @bitakit/organizations && npm run test --workspace @bitakit/better-auth && npm run test --workspace @bitakit/nodemailer && npm run test --workspace @bitakit/better-auth-ui && npm run test --workspace @bitakit/quick-search && npm run test --workspace @bitakit/devtools && npm run test --workspace @bitakit/cli && npm run test --workspace @bitakit/create-app",
     "test:e2e": "npm run build:actions && npm run test:e2e --workspace @bitakit/web",
     "build:preferences": "npm run build --workspace @bitakit/app-preferences",
     "format": "prettier --write .",

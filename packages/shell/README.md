@@ -65,7 +65,12 @@ visibility and are removed with Shell.
 const plugins = useMemo(
   () => [
     appPreferencesPlugin({ settings }),
-    shellPlugin({ appearance: true, pluginManagement: true, category: accountCategory, groups: [] }),
+    shellPlugin({
+      appearance: true,
+      pluginManagement: true,
+      category: accountCategory,
+      groups: [],
+    }),
   ],
   [settings],
 );
@@ -166,11 +171,9 @@ URL Actions remain links and command Actions remain buttons. Shell's public `./s
 is retained for compatibility. See [examples/composition.tsx](examples/composition.tsx) for a complete
 composition; it is type-checked with the package tests.
 
-
 AppearanceSection places App Preferences' pre-bound `item.resetControl` in each settings card.
 The Settings package owns the reset operation, pending/error state and standard button; Shell
 only composes that existing part. This does not add section-wide reset or affect auth forms.
-
 
 ### Notifications for developers
 
@@ -218,7 +221,9 @@ shellPlugin({
             duration: options?.duration,
           });
         },
-        dismiss(id) { toast.dismiss(id); },
+        dismiss(id) {
+          toast.dismiss(id);
+        },
       }),
     },
   },

@@ -3,7 +3,7 @@ import { useTranslations } from 'next-intl';
 
 import { type ReactElement, type ComponentProps } from 'react';
 import { ActionMenu } from './action-menu';
-import { actionGroups } from '@/actions/groups';
+import { actionGroups } from '@/lib/action-groups';
 import { authClient } from '@/lib/auth-client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import UserIcon from 'reicon-react/icons/User';
@@ -33,7 +33,6 @@ export function UserMenu({
   return (
     <ActionMenu
       groups={[actionGroups.preferences, actionGroups.account]}
-      context={undefined}
       side={side}
       trigger={
         trigger ?? (

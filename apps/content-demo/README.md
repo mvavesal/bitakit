@@ -16,8 +16,9 @@ Configure the authentication host first; see the [development environment guide]
 The app connects through its configured auth proxy. Installing the packages does not
 configure OAuth, email delivery or a production database.
 
-`FoundationProvider` comes from the Next integration. The host composes translation,
-preferences and authentication plugins through its existing `additionalPlugins` option.
+Discovery generates `src/bitakit.gen.tsx`, whose `BitaKitProvider` wraps the Next
+integration with the discovered configuration. The host adds translation, preferences and
+authentication plugins through its `additionalPlugins` option (`src/components/providers.tsx`).
 Framework routes and workspace composition remain explicit application decisions.
 
 Browser tests use an isolated Better Auth memory backend for authentication flows.

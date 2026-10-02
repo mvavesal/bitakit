@@ -2,7 +2,13 @@ import Link from 'next/link';
 import GalleryVerticalEndIcon from 'reicon-react/icons/Layers';
 import { LoginForm } from '@/components/auth/login-form';
 
-export function AuthScreen({ mode, returnTo = '/dashboard' }: { mode: 'login' | 'register';returnTo?:string }) {
+export function AuthScreen({
+  mode,
+  returnTo = '/dashboard',
+}: {
+  mode: 'login' | 'register';
+  returnTo?: string;
+}) {
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">

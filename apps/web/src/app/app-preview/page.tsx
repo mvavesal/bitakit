@@ -1,4 +1,4 @@
-import { CourseStudio } from './course-studio';
+import { CourseStudio } from '@/plugins/studio/ui/course-studio';
 
 export const metadata = { title: 'Course studio · SaaS Foundation' };
 

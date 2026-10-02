@@ -82,10 +82,17 @@ export function createBridge(
       () => ({
         renderers,
         translate,
-        messages: Object.fromEntries(Object.entries(messages).map(([key, fallback]) => {
-          const raw = translate.getCatalog('settings.messages')?.[key];
-          return [key, typeof raw === 'string' ? raw : translate(`settings.messages.${key}`, undefined, fallback)];
-        })) as SettingsMessages,
+        messages: Object.fromEntries(
+          Object.entries(messages).map(([key, fallback]) => {
+            const raw = translate.getCatalog('settings.messages')?.[key];
+            return [
+              key,
+              typeof raw === 'string'
+                ? raw
+                : translate(`settings.messages.${key}`, undefined, fallback),
+            ];
+          }),
+        ) as SettingsMessages,
         initial: ready ? undefined : initial.state,
       }),
       [renderers, ready, initial, translate, messages],

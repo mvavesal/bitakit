@@ -9,17 +9,15 @@ export { useFoundation } from './providers/foundation-context.js';
 export { useFoundationApp } from './hooks/use-foundation-app.js';
 export type { FoundationUI, FoundationLabels } from './types/ui.js';
 export { PluginSlot, useFoundationReady } from './components/plugin-slot.js';
-
-export { PluginPage } from './components/plugin-page.js';
+export { PluginPage, useCurrentPage } from './components/plugin-page.js';
 export { useFoundationNavigation } from './hooks/use-foundation-navigation.js';
 export { useGroupTitle } from './hooks/use-group-title.js';
-
 export * from './actions/index.js';
+// The React binding wins over Core's low-level Action class, which stays available from @bitakit/core.
+export { Action } from './components/action.js';
 export { usePluginConfig } from './hooks/use-plugin-config.js';
-
 export { useTranslation, type Translate } from './hooks/use-translation.js';
-
-export { useWatchEvent } from './hooks/use-watch-event.js';
-
+export { useEvent, useWatchEvent } from './hooks/use-event.js';
+export { useService, useServiceState } from './hooks/use-service.js';
 export { useAuth } from './hooks/use-auth.js';
 export { AuthBoundary, type AuthBoundaryProps } from './components/auth-boundary.js';

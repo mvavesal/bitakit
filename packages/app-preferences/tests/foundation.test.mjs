@@ -394,12 +394,29 @@ test('discovered setting references render before mount and bind to the same per
   const { SettingToggle } = await import('../dist/index.js');
   const makeView = () => {
     const settings = createAppPreferences({ storage: createMemoryStorage() });
-    const definitions = discoverSettings([discoveredFile(defineSettings({ fields: {
-      autosave: booleanField({ title: 'Auto save', defaultValue: true }),
-    } }), 'editor', 'settings/editor.ts')], 'documents');
-    const config = { plugins: [appPreferencesPlugin({ settings }), {
-      id: 'documents', contributions: { settings: definitions },
-    }] };
+    const definitions = discoverSettings(
+      [
+        discoveredFile(
+          defineSettings({
+            fields: {
+              autosave: booleanField({ title: 'Auto save', defaultValue: true }),
+            },
+          }),
+          'editor',
+          'settings/editor.ts',
+        ),
+      ],
+      'documents',
+    );
+    const config = {
+      plugins: [
+        appPreferencesPlugin({ settings }),
+        {
+          id: 'documents',
+          contributions: { settings: definitions },
+        },
+      ],
+    };
     function Content() {
       return h(SettingToggle, { setting: useFoundationApp().settings.documents.editor.autosave });
     }
@@ -415,7 +432,9 @@ test('discovered setting references render before mount and bind to the same per
   let root;
   try {
     await act(async () => {
-      root = hydrateRoot(host, client.view, { onRecoverableError: error => errors.push(error.message) });
+      root = hydrateRoot(host, client.view, {
+        onRecoverableError: (error) => errors.push(error.message),
+      });
     });
     assert.deepEqual(errors, []);
     assert.equal(host.querySelector('input').disabled, false);

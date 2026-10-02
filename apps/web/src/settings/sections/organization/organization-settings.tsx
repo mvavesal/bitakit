@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, type ComponentProps } from 'react';
 import { useTranslations } from 'next-intl';
-import { useActiveOrganization } from '@/providers/organization-provider';
+import { useActiveOrganization } from '@/components/providers/organization-provider';
 import { OrganizationPeople } from '@/components/organizations/organization-people';
 import { OrganizationManagement } from '@/components/organizations/organization-management';
 import type { OrganizationDetails } from '@/lib/organizations/details';

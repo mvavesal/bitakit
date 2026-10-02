@@ -38,13 +38,16 @@ export function deprecated(name: string, hint: string) {
 }
 
 /** @deprecated Use `defineService(factory, { provides: key })`. */
-export function provideService<T>(
+export function provideService<T, const D extends Omit<LegacyServiceDefinition<NoInfer<T>>, 'id'>>(
   key: ServiceKey<T>,
-  definition: Omit<LegacyServiceDefinition<NoInfer<T>>, 'id'>,
-): ServiceDefinition<T> & { provides: ServiceKey<T> } {
+  definition: D,
+): ServiceDefinition<T> & { provides: ServiceKey<T> } & Pick<D, 'exposeAs' & keyof D> {
   deprecated('provideService', 'Use defineService(factory, { provides: key }).');
   const service = defineService(definition as LegacyServiceDefinition<T>);
-  return { ...service, provides: key } as ServiceDefinition<T> & { provides: ServiceKey<T> };
+  return { ...service, provides: key } as ServiceDefinition<T> & { provides: ServiceKey<T> } & Pick<
+      D,
+      'exposeAs' & keyof D
+    >;
 }
 
 /** @deprecated Use `defineAction({ title, href, groups })`. */

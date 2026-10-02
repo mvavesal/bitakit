@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { organizationSchema, type OrganizationInput } from '@/lib/organizations/schema';
 import { notify } from '@/lib/notifications';
-import { useActiveOrganization } from '@/providers/organization-provider';
+import { useActiveOrganization } from '@/components/providers/organization-provider';
 import { authClient } from '@/lib/auth-client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';

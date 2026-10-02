@@ -3,7 +3,6 @@ import { cookies } from 'next/headers';
 import { getRequestConfig } from 'next-intl/server';
 import { deDE } from '@better-auth-ui/locales/de-DE';
 import { enUS } from '@better-auth-ui/locales/en-US';
-import discovered from '../../.foundation/messages.json';
 import en from '../../locales/en.json';
 import de from '../../locales/de.json';
 import { defaultLocale, isLocale, localeCookie } from './config';
@@ -32,7 +31,6 @@ const catalogs = [
   { en: betterauthuien, de: betterauthuide },
   { en: organizationsen, de: organizationsde },
   { en: { betterAuth: enUS }, de: { betterAuth: deDE } },
-  discovered,
 ];
 export default getRequestConfig(async () => {
   const preference = (await cookies()).get(localeCookie)?.value;
