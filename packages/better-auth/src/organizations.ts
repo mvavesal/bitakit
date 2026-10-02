@@ -176,7 +176,7 @@ export function betterAuthOrganizations(
         canManage: false,
         incomingInvitations,
         incomingInvitationsError: verificationRequired
-          ? 'Bitte bestätige deine E-Mail-Adresse, um Einladungen zu sehen.'
+          ? 'Verify your email address to see invitations.'
           : undefined,
       };
       if (!active.data) return empty;
@@ -241,7 +241,7 @@ export function betterAuthOrganizations(
         viewerMemberId: current.id,
         incomingInvitations,
         incomingInvitationsError: verificationRequired
-          ? 'Bitte bestätige deine E-Mail-Adresse, um Einladungen zu sehen.'
+          ? 'Verify your email address to see invitations.'
           : undefined,
       };
     },

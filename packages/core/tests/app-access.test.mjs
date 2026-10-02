@@ -88,7 +88,7 @@ test('public names reject collisions without constructing services', () => {
   for (const publicServices of [{ then: key }, { toJSON: key }]) {
     assert.throws(
       () => new FoundationRuntime(createActionList(), { publicServices }),
-      /reserved public service path/,
+      /uses a reserved segment/,
     );
   }
   assert.throws(
@@ -99,6 +99,6 @@ test('public names reject collisions without constructing services', () => {
           { id: 'two', publicServices: { documents: key } },
         ],
       }),
-    /Duplicate or reserved public service path "documents"/,
+    /Plugins "one" and "two" both expose a service named "documents"/,
   );
 });

@@ -7,17 +7,10 @@ Use this guide when building a standalone Node program or a provider package tha
 
 ## Explicit contracts across packages
 
-Use a shared key when independent provider and consumer packages need an agreed contract. Unlike the discovered example above, this standalone composition supplies identities explicitly because no file discovery runs:
+Use a shared key when independent provider and consumer packages need an agreed contract. Unlike the discovered examples in [Plugins and lifecycle](/docs/concepts/plugins), this standalone composition supplies identities explicitly because no file discovery runs:
 
 ```ts
-import {
-  createActionList,
-  definePlugin,
-  FoundationRuntime,
-  getService,
-  provideService,
-  serviceKey,
-} from '@bitakit/core';
+import { createRuntime, definePlugin, getService, provideService, serviceKey } from '@bitakit/core';
 
 interface Clock {
   now(): Date;
@@ -33,7 +26,7 @@ const clockPlugin = definePlugin({
   ],
 });
 
-const runtime = new FoundationRuntime(createActionList(), { plugins: [clockPlugin] });
+const runtime = createRuntime({ plugins: [clockPlugin] });
 const stop = runtime.mount();
 try {
   console.log(getService(runtime.services, clockService).now());
@@ -44,6 +37,8 @@ try {
 
 `serviceKey` identifies a contract; `provideService` registers its implementation; `getService` returns that instance with its type. Share the key rather than defining unrelated keys in each consumer. `exposeAs` names that same instance in the public app facade.
 
+`createRuntime` is new in 0.2. With Core 0.1, write `new FoundationRuntime(createActionList(), { plugins: [clockPlugin] })`; it does the same. Prefer a single import? `import * as bitakit from '@bitakit/core'` works too, and bundlers still drop what you do not use.
+
 ## Name the service where you define it
 
 `exposeAs: 'clock'` makes the registered instance available as `app.services.clock`. The type comes from the shared service key. You do not need a separate name-mapping list.
@@ -52,7 +47,7 @@ For discovered services, the filename already supplies the name; `exposeAs` is o
 
 ## When to own a runtime
 
-The example creates and mounts a runtime because it runs without an application host. Mount creates services and installs contributions. The returned cleanup function releases them when the standalone program finishes.
+The example creates and mounts a runtime because it runs without an application host. Mount creates services and installs contributions. The returned cleanup function releases them when the standalone program finishes. `createRuntime` creates the runtime's ActionList for you; pass `{ actions }` to use one you already share with an `ActionProvider`, or `{ services }` for host-owned services such as authentication.
 
 In a configured app, the Foundation provider already owns that lifecycle. Do not repeat these imports or startup code when adding a normal service or action.
 

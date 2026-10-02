@@ -1,8 +1,8 @@
 # Events and action setup
 
-Workspace API, pending publication. Core owns one mitt-backed event bus per
-`FoundationRuntime`, available as `runtime.events` and `app.events`. There is no
-global bus, React dependency, replay buffer, persistence, or cross-process delivery.
+Available since Core 0.1.1. Each `FoundationRuntime` owns one event bus, available as
+`runtime.events` and `app.events`. There is no global bus, React dependency, replay
+buffer, persistence, or cross-process delivery.
 
 ## Sending and receiving
 

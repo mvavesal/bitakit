@@ -31,16 +31,16 @@ import ChevronRightIcon from 'reicon-react/icons/ChevronRight';
 import { SettingsNavigationLink } from './link.js';
 
 const defaultLabels = {
-  title: 'Einstellungen',
-  back: 'Zurück zum Studio',
-  navigation: 'Einstellungsnavigation',
-  toggle: 'Einstellungsnavigation umschalten',
-  breadcrumb: 'Brotkrümelnavigation',
-  search: 'Einstellungen durchsuchen',
-  placeholder: 'Einstellungen durchsuchen …',
-  clear: 'Suche löschen',
-  empty: 'Keine Einstellungen gefunden',
-  skip: 'Zu den Einstellungen',
+  title: 'Settings',
+  back: 'Back to app',
+  navigation: 'Settings navigation',
+  toggle: 'Toggle settings navigation',
+  breadcrumb: 'Breadcrumbs',
+  search: 'Search settings',
+  placeholder: 'Search settings…',
+  clear: 'Clear search',
+  empty: 'No settings found',
+  skip: 'Skip to settings',
 };
 export type SettingsShellLabels = typeof defaultLabels;
 export type SettingsShellProps = {

@@ -11,6 +11,8 @@ export type { FoundationUI, FoundationLabels } from './types/ui.js';
 export { PluginSlot, useFoundationReady } from './components/plugin-slot.js';
 
 export { PluginPage } from './components/plugin-page.js';
+export { useFoundationNavigation } from './hooks/use-foundation-navigation.js';
+export { useGroupTitle } from './hooks/use-group-title.js';
 
 export * from './actions/index.js';
 export { usePluginConfig } from './hooks/use-plugin-config.js';

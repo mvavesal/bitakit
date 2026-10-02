@@ -25,6 +25,11 @@ export interface ServiceMap {
   auth?: AuthService;
   i18n?: TranslationService;
 }
+/**
+ * What a contribution sees as `services`: public names (exposeAs, by default the file path) and
+ * raw container keys, which discovery adds to ServiceMap. A name means the same service in every
+ * plugin, so these types describe exactly what the runtime resolves.
+ */
 export type Services = Readonly<ServiceMap>;
 export type Translator = ((key: string, values?: MessageValues) => string) & {
   has?: (key: string) => boolean;

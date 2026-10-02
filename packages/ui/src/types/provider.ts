@@ -17,5 +17,10 @@ export type FoundationProviderProps = FoundationOverrides & {
   notify?: (message: string, kind: 'success' | 'failure') => unknown;
   services?: Partial<Services>;
   actionOptions?: Omit<ActionProviderProps, 'children'>;
+  /**
+   * Keep the app running when a plugin fails to start: the plugin and its dependents are
+   * turned off and a dialog explains the error. Defaults to on in development builds only.
+   */
+  isolateFailures?: boolean;
   children: ReactNode;
 };

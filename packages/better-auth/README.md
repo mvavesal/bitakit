@@ -14,7 +14,7 @@ oder Ersatz für serverseitige Rechteprüfungen verstanden werden.
 `@bitakit/better-auth/organizations` exportiert `betterAuthOrganizations(client)`.
 Es implementiert den allgemeinen Organisationsvertrag mit den SDK-Methoden des bereits
 konfigurierten Organization-Clients, einschließlich paginierter Mitgliederlisten.
-Die UI kommt optional aus `@bitakit/organizations/react`.
+Die UI kommt optional aus `@bitakit/better-auth-ui/organizations`.
 
 Die aktuelle UI-Berechtigungsprojektion unterstützt die Standardrollen owner/admin/member.
 Ein deaktiviertes Mitglied wird beim Laden abgewiesen. Eigene Rollen benötigen eine
@@ -52,5 +52,5 @@ The existing `signOut` override remains supported. Use the shared UI hook for co
 post-logout navigation; avoid also redirecting inside the override.
 
 See the [client authentication guide](../core/docs/auth.md) for configuration,
-`AuthBoundary`, safe return destinations and a provider adapter template. These additions
-are workspace APIs pending release. Native server configuration and login UI remain external.
+`AuthBoundary`, safe return destinations and a provider adapter template. Available since
+0.1.0. Native server configuration and login UI remain external.

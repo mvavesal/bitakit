@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/bitakit-banner-castle-assembly.png" alt="BitaKit — Your app. Your building blocks. A modular castle assembled from stairs, walls, and towers." width="1024">
+  <img src="packages/core/assets/bitakit-banner.png" alt="BitaKit — Your app. Your building blocks. A modular castle assembled from stairs, walls, and towers." width="1024">
 </p>
 
 <h1 align="center">Build your app bit by bit.</h1>
@@ -23,12 +23,12 @@
   <a href="#-ship-features-with-your-ai-assistant">AI workflow</a> ·
   <a href="#-break-your-app-into-plugins">Plugins</a> ·
   <a href="packages/core/README.md">Core</a> ·
-  <a href="packages/README.md">Packages</a> ·
-  <a href="docs/TODO.md">Roadmap</a>
+  <a href="packages/README.md">Packages</a>
 </p>
 
 > [!NOTE]
-> **Early release.** All 14 BitaKit packages and the app generator are on npm.
+> **Early release.** The BitaKit packages and the app generator are on npm (0.1).
+> This repository already contains the next release: features marked **0.2** are not on npm yet.
 > APIs are still evolving, and TanStack Start support is experimental.
 
 ## ⚡ From zero to running app in one command
@@ -37,8 +37,8 @@
 npx @bitakit/create-app my-app
 ```
 
-Pick **Next.js** or **TanStack Start**, tick the extras you want — app shell, settings,
-⌘K quick search — and start building. Your pages stay plain framework routes.
+Pick **Next.js** or **TanStack Start**, tick the extras you want — an app shell with
+settings pages, ⌘K quick search — and start building. Your pages stay plain framework routes.
 No lock-in, no magic folder you can't leave.
 
 ## Why BitaKit?
@@ -112,9 +112,6 @@ src/plugins/todos/
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<string>({
-  // Services this action uses. Core checks that they exist before registering it.
-  requires: ['tasks'],
-
   // Initial state: the task list starts empty, so deleting is disabled.
   enabled: false,
 
@@ -122,12 +119,12 @@ export default defineAction<string>({
   events: ['todos.changed'],
 
   // Runs each time one of those events is emitted. Core owns the subscription.
-  onEvent(_event, { services, action }) {
-    action.enabled = services.tasks.list().length > 0;
+  onEvent(_event, { app, action }) {
+    action.enabled = app.services.tasks.list().length > 0;
   },
 
   // Runs when a bound control or your code executes the action.
-  execute: ({ services, input }) => services.tasks.remove(input),
+  execute: ({ app, input }) => app.services.tasks.remove(input),
 });
 ```
 
@@ -216,13 +213,15 @@ Create an app, add a To-do plugin, and bind an action to your interface.
 ### 1. Create your app
 
 ```sh
-npx @bitakit/create-app my-app
+npx @bitakit/create-app my-app --framework next --features none --yes
 cd my-app
 npm run dev
 ```
 
-This walkthrough uses Next.js. The generator connects the BitaKit provider and
-build-time discovery; your pages and routes remain ordinary Next.js files.
+Open http://localhost:3000: you see **Welcome**. This walkthrough uses Next.js without
+extras, so the files below match your project exactly. The generator connects the
+BitaKit provider and build-time discovery; your pages and routes remain ordinary
+Next.js files.
 
 ### 2. Add a plugin folder
 
@@ -277,28 +276,30 @@ so a page reload clears them.
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<string>({
-  // Services this action uses. Core checks that they exist before registering it.
-  requires: ['tasks'],
-
   // Runs when a bound control or your code executes the action.
-  execute({ services, input }) {
-    services.tasks.add(input);
+  execute({ app, input }) {
+    app.services.tasks.add(input);
   },
 });
 ```
+
+`defineAction<string>` declares the input: the task title. The action uses its plugin's
+own service directly, with no declaration.
 
 ### 5. Let discovery connect the feature
 
 Discovery finds supported files and generates their imports, registration and types
 during the build:
 
-| Contribution         | Discovered identity    |
-| -------------------- | ---------------------- |
-| `src/plugins/todos/` | Plugin `todos`         |
-| `services/tasks.ts`  | Public service `tasks` |
-| `actions/create.ts`  | Action `todos.create`  |
+| Contribution         | Discovered identity                |
+| -------------------- | ---------------------------------- |
+| `src/plugins/todos/` | Plugin `todos`                     |
+| `services/tasks.ts`  | Service `tasks` (ID `todos.tasks`) |
+| `actions/create.ts`  | Action `todos.create`              |
 
-No handwritten import list. See [how discovery works](docs/concepts/discovery.md).
+No handwritten import list. Only a service from another plugin goes in an action's
+`requires`, so a missing plugin is reported at startup. See
+[how discovery works](docs/concepts/discovery.md).
 
 ### 6. Bind the action to your UI
 
@@ -322,12 +323,63 @@ export default function Page() {
 }
 ```
 
-Each click adds **New task** through the action — no click handler required.
-`ActionButton` follows the action's state: disabled while it is disabled or pending,
-hidden while it is hidden. Use its `as` prop to render your own button component.
+You see an **Add a task** button. Each click adds **New task** through the action — no
+click handler required. `ActionButton` follows the action's state: disabled while it is
+disabled or pending, hidden while it is hidden. Use its `as` prop to render your own
+button component.
 
-Tasks are stored but not displayed yet; list rendering and input fields are natural
-next steps. For a framework-free version with three actions, follow the
+### 7. Show the tasks
+
+The page cannot know when the service changes, so let the service announce it with an
+event:
+
+```diff
+ export default defineService({
+-  create() {
++  create({ events }) {
+     const tasks: string[] = [];
+
+     return {
+       add(title: string) {
+         tasks.push(title);
++        events.emit('todos.changed');
+       },
+```
+
+Then read the list whenever that event arrives. Replace `src/app/page.tsx`:
+
+```tsx
+'use client';
+
+import { useState } from 'react';
+import { ActionButton, useFoundationApp, useWatchEvent } from '@bitakit/ui';
+
+export default function Page() {
+  const app = useFoundationApp();
+  const [tasks, setTasks] = useState<string[]>([]);
+  // Re-read the list whenever the service announces a change.
+  useWatchEvent('todos.changed', () => setTasks(app.services.tasks.list()));
+
+  return (
+    <main>
+      <h1>My tasks</h1>
+
+      <ActionButton action="todos.create" input="New task">
+        Add a task
+      </ActionButton>
+
+      <ul>
+        {tasks.map((task, index) => (
+          <li key={index}>{task}</li>
+        ))}
+      </ul>
+    </main>
+  );
+}
+```
+
+Each click now adds a **New task** line to the list. The hook removes its subscription
+when the page goes away. For a framework-free version with three actions, follow the
 [To-do tutorial](packages/core/docs/todo-tutorial.md).
 
 **Your framework renders the page. Your plugin defines the feature. BitaKit connects the parts.**

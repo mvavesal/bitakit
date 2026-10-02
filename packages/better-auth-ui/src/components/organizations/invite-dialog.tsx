@@ -56,7 +56,7 @@ export function InviteDialog({
       expiry < 1 ||
       expiry > 365
     ) {
-      setError(translateUI("foundationUI.invite_dialog.enterUpTo20ValidAddressesAndAValidityPeriodOf1", undefined, "Bitte gib bis zu 20 gültige Adressen und eine Gültigkeit von 1 bis 365 Tagen an."));
+      setError(translateUI("foundationUI.invite_dialog.enterUpTo20ValidAddressesAndAValidityPeriodOf1", undefined, "Enter up to 20 valid addresses and a validity period of 1 to 365 days."));
       return;
     }
     setPending(true);
@@ -90,13 +90,13 @@ export function InviteDialog({
               </Avatar>
             </ItemMedia>
             <ItemContent>
-              <ItemDescription>{translateUI("foundationUI.invite_dialog.invitationTo", undefined, "Einladung zu")}</ItemDescription>
+              <ItemDescription>{translateUI("foundationUI.invite_dialog.invitationTo", undefined, "Invitation to")}</ItemDescription>
               <ItemTitle className="break-all">{organization.name}</ItemTitle>
             </ItemContent>
           </Item>
         </>}
         <Field data-invalid={!!error}>
-          <FieldLabel htmlFor="invite-email">{translateUI("foundationUI.invite_dialog.email", undefined, "E-Mail")}</FieldLabel>
+          <FieldLabel htmlFor="invite-email">{translateUI("foundationUI.invite_dialog.email", undefined, "Email")}</FieldLabel>
           <InvitationEmailInput
             value={email}
             onChange={setEmail}
@@ -105,16 +105,16 @@ export function InviteDialog({
             disabled={pending || unavailable}
           />
           <FieldDescription id="invite-email-hint">
-            {translateUI("foundationUI.invite_dialog.upTo20AddressesSeparatedByCommasSemicolonsOrNewLines", undefined, "Bis zu 20 Adressen, getrennt durch Komma, Semikolon oder Zeilenumbruch.")}</FieldDescription>
+            {translateUI("foundationUI.invite_dialog.upTo20AddressesSeparatedByCommasSemicolonsOrNewLines", undefined, "Up to 20 addresses, separated by commas, semicolons or new lines.")}</FieldDescription>
         </Field>
         <FieldGroup className="grid grid-cols-2 gap-4 sm:flex sm:flex-row sm:justify-between sm:gap-6">
         <Field className="min-w-0 gap-2 sm:w-40">
-          <FieldLabel id="invite-role-label">{translateUI("foundationUI.invite_dialog.role", undefined, "Rolle")}</FieldLabel>
+          <FieldLabel id="invite-role-label">{translateUI("foundationUI.invite_dialog.role", undefined, "Role")}</FieldLabel>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button" variant="outline" disabled={pending || unavailable} className="w-full justify-between" aria-labelledby="invite-role-label invite-role-value">
                 {role === 'admin' ? <AdminIcon aria-hidden="true" data-icon="inline-start" /> : <MemberIcon aria-hidden="true" data-icon="inline-start" />}
-                <span id="invite-role-value" className="flex-1 text-left">{role === 'admin' ? translateUI("foundationUI.invite_dialog.admin", undefined, "Administrator") : translateUI("foundationUI.invite_dialog.member", undefined, "Mitglied")}</span>
+                <span id="invite-role-value" className="flex-1 text-left">{role === 'admin' ? translateUI("foundationUI.invite_dialog.admin", undefined, "Admin") : translateUI("foundationUI.invite_dialog.member", undefined, "Member")}</span>
                 <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
               </Button>
             </DropdownMenuTrigger>
@@ -123,14 +123,14 @@ export function InviteDialog({
                 value={role}
                 onValueChange={(value) => setRole(value === 'admin' ? 'admin' : 'member')}
               >
-                <DropdownMenuRadioItem value="member"><MemberIcon aria-hidden="true" />{translateUI("foundationUI.invite_dialog.member", undefined, "Mitglied")}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="admin"><AdminIcon aria-hidden="true" />{translateUI("foundationUI.invite_dialog.admin", undefined, "Administrator")}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="member"><MemberIcon aria-hidden="true" />{translateUI("foundationUI.invite_dialog.member", undefined, "Member")}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="admin"><AdminIcon aria-hidden="true" />{translateUI("foundationUI.invite_dialog.admin", undefined, "Admin")}</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         </Field>
         <Field className="min-w-0 gap-2 sm:w-40">
-          <FieldLabel htmlFor="invite-expiry">{translateUI("foundationUI.invite_dialog.validity", undefined, "Gültigkeit")}</FieldLabel>
+          <FieldLabel htmlFor="invite-expiry">{translateUI("foundationUI.invite_dialog.validity", undefined, "Validity")}</FieldLabel>
           <InputGroup className="max-w-44 overflow-hidden">
           <InputGroupInput
             id="invite-expiry"
@@ -141,13 +141,13 @@ export function InviteDialog({
             onChange={(event) => setDays(event.target.value)}
             disabled={pending || unavailable || !service.capabilities.customInvitationExpiry}
           />
-          <InputGroupAddon align="inline-end" className="self-stretch border-l border-input bg-muted px-3"><InputGroupText>{translateUI("foundationUI.invite_dialog.days", undefined, "Tage")}</InputGroupText></InputGroupAddon>
+          <InputGroupAddon align="inline-end" className="self-stretch border-l border-input bg-muted px-3"><InputGroupText>{translateUI("foundationUI.invite_dialog.days", undefined, "Days")}</InputGroupText></InputGroupAddon>
           </InputGroup>
         </Field>
         </FieldGroup>
         {unavailable && (
           <p role="alert">
-            {translateUI("foundationUI.invite_dialog.theWorkspaceChangedOrPermissionIsMissingOpenTheInvitationAgain", undefined, "Der Arbeitsbereich wurde geändert oder die Berechtigung fehlt. Bitte öffne die Einladung erneut.")}</p>
+            {translateUI("foundationUI.invite_dialog.theWorkspaceChangedOrPermissionIsMissingOpenTheInvitationAgain", undefined, "The workspace changed or permission is missing. Open the invitation again.")}</p>
         )}
         {error && (
           <p role="alert" id="invite-email-error" className="text-sm text-destructive">
@@ -156,9 +156,9 @@ export function InviteDialog({
         )}
         <div className="flex flex-wrap justify-end gap-2 pt-4">
           <Button type="button" variant="ghost" onClick={close} disabled={pending}>
-            {translateUI("foundationUI.invite_dialog.cancel", undefined, "Abbrechen")}</Button>
+            {translateUI("foundationUI.invite_dialog.cancel", undefined, "Cancel")}</Button>
           <Button type="submit" disabled={pending || unavailable || !email.trim()}>
-            {pending ? translateUI("foundationUI.invite_dialog.sending", undefined, "Wird gesendet …") : translateUI("foundationUI.invite_dialog.sendInvitations", undefined, "Einladungen senden")}
+            {pending ? translateUI("foundationUI.invite_dialog.sending", undefined, "Sending …") : translateUI("foundationUI.invite_dialog.sendInvitations", undefined, "Send invitations")}
           </Button>
         </div>
       </FieldGroup>

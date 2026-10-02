@@ -55,7 +55,7 @@ export function organizationActions(options: {
     ...(['accept', 'reject'] as const).map((operation) =>
       defineAction({
         id: `organizations.${operation}`,
-        title: operation === 'accept' ? 'Annehmen' : 'Ablehnen',
+        title: operation === 'accept' ? 'Accept' : 'Decline',
         icon: operation === 'accept' ? AcceptIcon : CancelIcon,
         groups: [organizationGroups.incoming],
         watch: [organizationService],
@@ -73,25 +73,25 @@ export function organizationActions(options: {
         },
         execute: ({ services, input }) =>
           getService(services, organizationService)[operation](context(input).invitationId ?? ''),
-        success: operation === 'accept' ? 'Einladung angenommen.' : 'Einladung abgelehnt.',
+        success: operation === 'accept' ? 'Invitation accepted.' : 'Invitation declined.',
       }),
     ),
     ...(options.path === false ? [] : [defineURLAction({
       id: ids.page,
-      title: 'Organisationen',
+      title: 'Organizations',
       href: options.path ?? '/organizations',
       groups: options.groups ?? ['navigation'],
     })]),
     defineDialogAction({
-      id:ids.create,groups:[],title:'Organisation erstellen',
+      id:ids.create,groups:[],title:'Create organization',
       render:({services,close})=>createElement(OrganizationDialog,{service:getService(services,organizationService),close}),
     }),
-    defineDialogAction({id:'organizations.edit',title:'Organisation bearbeiten',groups:[organizationGroups.management],render:({services,input,close})=>createElement(OrganizationDialog,{service:getService(services,organizationService),organizationId:context(input).organizationId,close})}),
-    defineDialogAction({id:'organizations.delete',title:'Organisation löschen',groups:[organizationGroups.danger],render:({services,input,close})=>createElement(ConfirmOrganizationAction,{service:getService(services,organizationService),organizationId:context(input).organizationId??null,close})}),
-    defineDialogAction({id:ids.remove,icon:RemoveIcon,title:'Entfernen',groups:[organizationGroups.member],watch:[organizationService],resolve:(input,{services})=>{const state=getService(services,organizationService).getSnapshot();const member=state.members.find((item)=>item.id===context(input).memberId);return {enabled:!state.pending,visible:state.canManage && !!member && !member.role.split(',').includes('owner')};},render:({services,input,close})=>createElement(ConfirmOrganizationAction,{service:getService(services,organizationService),organizationId:context(input).organizationId??null,memberId:context(input).memberId,close})}),
+    defineDialogAction({id:'organizations.edit',title:'Edit organization',groups:[organizationGroups.management],render:({services,input,close})=>createElement(OrganizationDialog,{service:getService(services,organizationService),organizationId:context(input).organizationId,close})}),
+    defineDialogAction({id:'organizations.delete',title:'Delete organization',groups:[organizationGroups.danger],render:({services,input,close})=>createElement(ConfirmOrganizationAction,{service:getService(services,organizationService),organizationId:context(input).organizationId??null,close})}),
+    defineDialogAction({id:ids.remove,icon:RemoveIcon,title:'Remove',groups:[organizationGroups.member],watch:[organizationService],resolve:(input,{services})=>{const state=getService(services,organizationService).getSnapshot();const member=state.members.find((item)=>item.id===context(input).memberId);return {enabled:!state.pending,visible:state.canManage && !!member && !member.role.split(',').includes('owner')};},render:({services,input,close})=>createElement(ConfirmOrganizationAction,{service:getService(services,organizationService),organizationId:context(input).organizationId??null,memberId:context(input).memberId,close})}),
     ...(['admin', 'member'] as const).map((targetRole) => defineDialogAction({
       id: `organizations.${targetRole === 'admin' ? 'promote' : 'demote'}`,
-      title: targetRole === 'admin' ? 'Zum Administrator machen' : 'Zum Mitglied machen',
+      title: targetRole === 'admin' ? 'Make administrator' : 'Make member',
       icon: targetRole === 'admin' ? RoleIcon : DemoteIcon,
       groups: [organizationGroups.member],
       watch: [organizationService],
@@ -115,7 +115,7 @@ export function organizationActions(options: {
       id: ids.invite,
       size: 'wide',
       groups: [organizationGroups.members],
-      title: 'Mitglied einladen',
+      title: 'Invite member',
       icon: UserAddIcon,
       render: ({ services, input, close }) =>
         createElement(InviteDialog, {
@@ -128,28 +128,28 @@ export function organizationActions(options: {
       [
         [
           ids.select,
-          'Wechseln',
+          'Switch',
           (service, input) => service.setActive(context(input).organizationId ?? ''),
         ],
-        [ids.retry, 'Aktualisieren', (service) => service.refresh()],
+        [ids.retry, 'Reload', (service) => service.refresh()],
         [
           ids.cancel,
-          'Zurückziehen',
+          'Revoke',
           (service, input) => service.cancel(context(input).invitationId ?? ''),
         ],
         [
           ids.resend,
-          'Erneut senden',
+          'Resend',
           (service, input) => service.resend(context(input).invitationId ?? ''),
         ],
         [
           ids.disable,
-          'Sperren',
+          'Suspend',
           (service, input) => service.setDisabled(context(input).memberId ?? '', true),
         ],
         [
           ids.enable,
-          'Entsperren',
+          'Unsuspend',
           (service, input) => service.setDisabled(context(input).memberId ?? '', false),
         ],
       ] satisfies [
@@ -200,7 +200,7 @@ export function organizationActions(options: {
             id !== ids.retry &&
             context(input).organizationId !== service.getSnapshot().activeId
           )
-            throw new Error('Der Arbeitsbereich wurde geändert.');
+            throw new Error('The workspace changed.');
           return run(service, input);
         },
         success: false,

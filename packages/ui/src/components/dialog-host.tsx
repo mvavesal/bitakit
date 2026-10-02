@@ -2,7 +2,7 @@
 import { useState, useSyncExternalStore, useId, useRef, useEffect, type FormEvent } from 'react';
 import { useAction, useActions } from '@bitakit/ui/actions';
 import type { ResolvedForm } from '@bitakit/core';
-import { ActionFailure } from '@bitakit/core';
+import { isActionFailure } from '@bitakit/core';
 import { useTranslation } from '../hooks/use-translation.js';
 import { useFoundation } from '../providers/foundation-context.js';
 import { validateFields } from '@bitakit/core';
@@ -111,7 +111,7 @@ function FormDialog({
       if (live.current && runtime.getSnapshot()?.token === token)
         setError({
           message:
-            error instanceof ActionFailure
+            isActionFailure(error)
               ? error.feedback
               : runtime.text('Foundation.failure', 'Action failed. Please try again.'),
         });

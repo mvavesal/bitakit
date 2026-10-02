@@ -10,6 +10,7 @@ import {
   FoundationRuntime,
   PluginScope,
   scopeModule,
+  scopePlugins,
   createActionList,
   Action,
   ActionGroup,
@@ -124,6 +125,26 @@ test('runtime-issued scopes identify their module; foreign scopes are rejected',
   );
 });
 
+test('runtime-issued scopes list the composed plugins by ID and metadata, without the app', () => {
+  const seen = [];
+  const runtime = new FoundationRuntime(createActionList(), {
+    appId: 'app',
+    setup: ({ app }) => void seen.push(scopePlugins(app)),
+    plugins: [
+      { id: 'notes', metadata: { name: 'Notes' }, services: [] },
+      { id: 'reports', dependencies: ['notes'], setup: ({ app }) => void seen.push(scopePlugins(app)) },
+    ],
+  });
+  runtime.mount()();
+  assert.deepEqual(seen[0], [
+    { id: 'notes', metadata: { name: 'Notes' } },
+    { id: 'reports', metadata: undefined },
+  ]);
+  assert.equal(seen[1], seen[0], 'every scope of one runtime shares the same frozen list');
+  assert.ok(Object.isFrozen(seen[0]) && Object.isFrozen(seen[0][0]));
+  assert.throws(() => scopePlugins(new PluginScope(createActionList(), new Map())), /Unknown plugin scope/);
+});
+
 test('integration kinds are validated and cannot collide with built-in or other folders', () => {
   const kind = { name: 'widgets', directory: 'widgets', from: 'x', normalize: 'discoverWidgets' };
   assert.equal(contributionKindSpecs([kind])[0].directory, 'widgets');
@@ -184,7 +205,7 @@ test('discovery emits imports for integration kinds per module without executing
     });
     const { foundationConfig } = await jiti.import(output);
     assert.deepEqual(foundationConfig.contributions.widgets, [
-      { moduleId: 'app', source: 'ui/widgets/first.ts', path: 'first', value: 'first' },
+      { moduleId: 'app', source: 'src/ui/widgets/first.ts', path: 'first', value: 'first' },
     ]);
     const byId = Object.fromEntries(foundationConfig.plugins.map((plugin) => [plugin.id, plugin]));
     assert.equal(byId.content.contributions.widgets[0].value, 'second');

@@ -1,2 +1,4 @@
+/* Animation utilities used by the standard components (shadcn). */
+@import 'tw-animate-css';
 /* Tailwind sources owned by this installed package; host theme stays authoritative. */
 @source "./dist";

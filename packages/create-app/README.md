@@ -1,105 +1,53 @@
 # @bitakit/create-app
 
-A small frontend project generator. Supports **Next.js** and **experimental TanStack Start (React)**. It runs the
-pinned official framework CLI with an empty/blank template and adds Foundation dependencies,
-native routes and essential configuration. It does not copy plugin implementations,
-create a backend, install auth/database services or add demo business pages.
-
-## Local usage
-
-From this repository after `npm install`:
+Create a BitaKit app with **Next.js** or **TanStack Start** (experimental), or a standalone plugin package.
 
 ```sh
-node packages/create-app/src/cli.mjs my-app
-node packages/create-app/src/cli.mjs my-app --framework next --features shell,quick-search --no-install --yes
-node packages/create-app/src/cli.mjs my-app --features none --dry-run --yes
+npx @bitakit/create-app my-app
+cd my-app
+npm run dev
 ```
 
-The interactive flow asks for the directory, framework (Next.js or experimental TanStack Start), then
-optional capabilities. Equivalent flags support non-interactive use. No features are
-selected by default. Shell requires App Preferences; Quick Search requires Shell.
-Selecting prerequisites is automatic, and the resolved selection is printed before writing.
-App Preferences alone installs the existing runtime capability without inventing example settings.
+The generator asks for a framework, the features you want and whether to add a sample plugin, installs everything and prints the next steps. Open the printed address: your app is running, with BitaKit already connected to the framework's router. You did not write any setup code.
 
-The destination must not exist. Existing projects, including empty directories and
-symlinks, are never overwritten. Cancel prompts before scaffolding to leave no output.
-After a process/install failure, generated files remain for inspection; the CLI exits
-with an error and does not print a completion message.
-
-## Verify before publication
-
-The generator is private until release preparation is complete. Foundation packages
-are not assumed to exist on the public registry. To install generated projects now,
-build the selected packages and `npm pack` them into a dedicated directory. Include
-Core, UI, the selected host adapter and all Foundation dependencies of your chosen features. Then run:
+For the shortest path to a first feature, create a minimal app without prompts:
 
 ```sh
-node packages/create-app/src/cli.mjs my-app --features shell,quick-search --packages-dir /absolute/path/to/tarballs --yes
+npx @bitakit/create-app my-app --framework next --features none --yes
 ```
 
-Use standard npm-generated filenames, one version per package. This mode writes local
-file dependencies and npm overrides so transitive Foundation packages also resolve to
-tarballs. Those paths are local verification configuration, not portable release metadata.
-Normal generation uses versioned registry dependencies. No custom package registry is built.
+## Options
 
-After a future public release, the intended command is:
+| Option                       | What it does                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| `--framework next\|tanstack` | The framework. Default: `next`. TanStack Start is experimental.                                   |
+| `--features <list>`          | Comma-separated `preferences`, `shell`, `quick-search`, or `none`. Default: `shell,quick-search`. |
+| `--sample` / `--no-sample`   | Add the Todos sample plugin in `src/plugins/todos`. Asked interactively; off with `--yes`.        |
+| `--plugin`                   | Create a standalone plugin package with a playground app instead of an app.                       |
+| `-y, --yes`                  | Use the defaults without prompts.                                                                 |
+| `--no-install`               | Write the files without installing dependencies.                                                  |
+| `--dry-run`                  | Print the resolved plan without writing anything.                                                 |
+
+Features bring their prerequisites: Shell adds App Preferences, and Quick Search adds Shell. The generator never overwrites an existing directory. If installing fails, the generated files stay for inspection and the command exits with an error.
+
+## What you get
+
+- The official framework project (`create-next-app` or the blank TanStack Start template), with your pages and routes as ordinary framework files.
+- The BitaKit provider in the root layout and build-time discovery: files in `src/plugins/<name>/` become plugins without a registry.
+- A catch-all route that renders plugin pages, and the generated package stylesheet (`.foundation/styles.css`) imported once.
+- With Shell: the application layout, settings pages and `src/configs/shell.ts`. In Next.js, your home page is then `src/app/(app)/page.tsx`.
+- `README.md` and `AGENTS.md` for your project, and the `bitakit` command as a dev dependency: `npx bitakit add plugin notes` adds a feature, `npx bitakit doctor` checks the project.
+
+The generator does not create a backend, authentication, a database or email; those are separate integrations. Next.js projects use Webpack while a Turbopack discovery issue is open.
+
+## Plugin packages
 
 ```sh
-npx @bitakit/create-app my-app --framework next --features shell,quick-search
+npx @bitakit/create-app my-plugin --plugin
 ```
 
-This is a proposed published entry point, not a claim that the package is already available.
-Keep `private: true` until npm scope ownership, licensing, version compatibility and package
-publication order have been reviewed. No publish command runs in this tool.
+This creates a package with the same folders as a plugin inside an app (`src/services`, `src/actions`, `src/pages`), a headless test and a `playground/` app that loads the plugin source with hot reload. `npm run dev` starts the playground, `npm test` runs the tests, and `npm run build` builds the package for npm.
 
-## Output
+## Contributing
 
-The minimal preset has native framework configuration, root layout, one welcome page and
-shared CSS imports. Foundation mounts directly in the root layout; there is no host
-provider wrapper, manual plugin registry, empty contribution folders or copied theme.
-Selected Shell adds its config and native settings/workspace route layouts. Settings
-search uses nuqs through the selected host adapter. Settings values remain in App Preferences.
-
-The Next scaffold deliberately uses Webpack through the existing Next adapter because
-this repository has an unresolved Turbopack generated-alias issue. No runtime code or
-alternative discovery implementation is added to Core. Language setup and authentication
-are not options in this first generator version.
-
-## Source responsibilities
-
-- `src/cli.mjs`: Commander arguments and Clack prompts/cancellation.
-- `src/create-app.mjs`: destination checks, ordered generation/install and local tarball setup.
-- `src/features.mjs`: capability prerequisites; not a runtime plugin registry.
-- `src/project-files.mjs`: shared package manifest, README and stylesheet composition.
-- `src/adapters/next.mjs`: official framework invocation and Next-specific configuration.
-- `src/adapters/tanstack.mjs`: official blank Start scaffold and Vite/native-route configuration.
-- `templates/next` and `templates/tanstack`: small native app-owned routes, not copies of plugins.
-- `tests/create-app.test.mjs`: output boundaries, prerequisites, refusal to overwrite and failures.
-
-TanStack Start is explicitly experimental: the nuqs Router adapter is reused unchanged,
-but its upstream docs still exclude Start from supported coverage. Our settings/query
-smoke checks pass; this is not a claim of full Start compatibility. The selected integration
-package owns navigation and its nuqs provider. The generator installs only that adapter.
-
-```sh
-node packages/create-app/src/cli.mjs my-start-app --framework tanstack --features shell,quick-search --packages-dir /absolute/path/to/tarballs --yes
-```
-
-Run `npm test --workspace @bitakit/create-app`. Release verification additionally
-requires packing the CLI and its Foundation dependencies, generating outside this repository,
-installing, typechecking, building and exercising the generated application.
-
-## Verification recorded for this version
-
-Six focused CLI tests passed. Both the minimal preset and the Shell/Quick Search preset
-were generated into a temporary directory outside this repository, installed from actual
-npm tarballs, typechecked and production-built successfully. Browser checks covered the
-welcome/settings routes, Quick Search dialog, settings query-string updates and mobile
-layout without overflow or page errors. The packed CLI also generated a minimal project
-through npm exec. No public registry publication was performed.
-
-September 30 adapter verification: seven focused generator tests, ordered shared-provider
-composition and five discovery-host checks passed (including strict empty-output compilation). Isolated packed Next and Start apps
-with Shell/Quick Search passed typecheck/build. Browser checks verified settings query
-updates/reload on both and native route/back restoration on Start. Next owns its NuqsAdapter;
-no generated host Nuqs wrapper remains. Start support remains experimental.
+Run `npm test --workspace @bitakit/create-app`. To try the generator against this repository's unpublished packages, pack them and pass the directory: `npm run pack -- <directory>` from the repository root, then `node packages/create-app/src/cli.mjs my-app --packages-dir <directory>`. `npm run verify:generated` generates every project shape from packed packages and checks install, types, build and a browser smoke test.

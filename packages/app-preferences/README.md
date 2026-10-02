@@ -299,7 +299,9 @@ Existing `settings` and `settings.renderer` service keys, contribution kinds, pe
 local-storage prefixes and `/settings` routes intentionally remain stable. There is no second store.
 
 Controls use the repository's standard shadcn Radix Vega primitives with Reicon and central theme
-classes, owned by this optional visual package under `components/ui`. Customization uses the renderer
+classes, owned by this optional visual package under `components/ui`. Deviation: unchecked radio
+items have no dark-mode fill (`dark:bg-input/30` removed); the central theme keeps them transparent
+so they match the card or surface they sit on. Customization uses the renderer
 service rather than a host component catalog. Shell and Web reuse the same card control; Shell only
 supplies its icons. Web enables the plugin and renderer discovery while preserving its existing
 localized catalog, server storage and intercepted routes.

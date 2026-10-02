@@ -1,8 +1,8 @@
 /** Default plugin settings taxonomy. IDs are presentation only and never grant storage or domain access. */
 export const settingsCategories = {
-  general: { id: 'general', title: 'Allgemein', order: -10 },
-  appearance: { id: 'appearance', title: 'Darstellung', order: -5 },
-  account: { id: 'personal', title: 'Mein Konto', order: 0 },
-  organization: { id: 'organization', title: 'Organisation', order: 10 },
-  administration: { id: 'administration', title: 'Anwendungsverwaltung', order: 20 },
+  general: { id: 'general', title: 'General', order: -10 },
+  appearance: { id: 'appearance', title: 'Appearance', order: -5 },
+  account: { id: 'personal', title: 'My account', order: 0 },
+  organization: { id: 'organization', title: 'Organization', order: 10 },
+  administration: { id: 'administration', title: 'Administration', order: 20 },
 };

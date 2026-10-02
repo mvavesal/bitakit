@@ -12,7 +12,7 @@ export function AuthPageLayout({ children }: { children: ReactNode }) {
   const { data: session } = useSession(authClient);
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-6 p-6">
-      {session?.user && <BackLink href={safeHref(redirectTo) ?? '/'}>{translateUI("foundationUI.auth_page_layout.backToApplication", undefined, "Zurück zur Anwendung")}</BackLink>}
+      {session?.user && <BackLink href={safeHref(redirectTo) ?? '/'}>{translateUI("foundationUI.auth_page_layout.backToApplication", undefined, "Back to application")}</BackLink>}
       {children}
     </main>
   );

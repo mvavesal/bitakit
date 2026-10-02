@@ -15,19 +15,27 @@ export default withFoundation({});
 ```
 
 ```tsx
-// src/components/providers.tsx
-'use client';
-import { FoundationProvider } from '@bitakit/next';
+// src/app/layout.tsx
 import type { ReactNode } from 'react';
+import { FoundationProvider } from '@bitakit/next';
+import './globals.css';
 
-export function Providers({ children }: { children: ReactNode }) {
-  return <FoundationProvider>{children}</FoundationProvider>;
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <FoundationProvider>{children}</FoundationProvider>
+      </body>
+    </html>
+  );
 }
 ```
 
-Mount this client boundary in the native root layout. The provider supplies standard UI,
-default English labels, native Next navigation and the single root ActionProvider.
-Pass `labels` for translated copy and `ui` only to customize the standard mapping.
+`FoundationProvider` is a client component, so the native root layout renders it directly.
+The provider supplies standard UI, default English labels, native Next navigation and the
+single root ActionProvider. Pass `labels` for translated copy and `ui` only to customize the
+standard mapping. Pass props that hold components or functions, such as a custom `ui`, from
+a client component.
 An existing outer ActionProvider is reused, including its navigation options.
 Load the application's existing central theme and package styles as usual.
 

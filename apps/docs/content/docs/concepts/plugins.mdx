@@ -44,12 +44,15 @@ The `id` on a task is application data, not a service registration ID. This in-m
 // src/plugins/todos/actions/add.ts
 import { defineAction } from '@bitakit/core';
 
-export default defineAction<string, { id: number; title: string }>({
+export default defineAction<string>({
   title: 'Add task',
-  requires: ['todos.todos'],
-  execute: ({ app, input }) => app.services.todos.add(input),
+  execute({ app, input }) {
+    app.services.todos.add(input);
+  },
 });
 ```
+
+`defineAction<string>` declares the input, the task title.
 
 ### The paths supply the identities
 
@@ -59,14 +62,66 @@ export default defineAction<string, { id: number; title: string }>({
 | Service file `services/todos.ts` | Public service `todos`         |
 | Action file `actions/add.ts`     | Action `todos.add`             |
 
-Neither contribution needs an explicit registration `id`. Discovery generates the imports, registration and types. The action declares its dependency with `requires`; `todos.todos` is the plugin-scoped container key (plugin `todos`, service `todos`). The shorter `app.services.todos` is the typed application API for the same instance.
+Neither contribution needs an explicit registration `id`. Discovery generates the imports, registration and types. The action calls its plugin's own service through `app.services.todos` without declaring it: a plugin's services always exist when its actions run, and TypeScript checks the name.
 
 No `plugin.config.ts` or manual contribution list is needed for this example. Add explicit IDs only when a custom identity is required or must stay stable after moving a file. See [discovery](/docs/concepts/discovery) for flat filenames and [overrides](/docs/concepts/overrides) for intentional replacement.
+
+## Use it
+
+Bind the action to a button on any page of your app, for example `src/app/page.tsx`:
+
+```tsx
+'use client';
+
+import { ActionButton } from '@bitakit/ui';
+
+export default function Page() {
+  return (
+    <ActionButton action="todos.add" input="Buy milk">
+      Add task
+    </ActionButton>
+  );
+}
+```
+
+You see an **Add task** button. Each click runs `todos.add` with the input `Buy milk`; the button is disabled while the action runs, and you wrote no click handler. To show the tasks as they change, let the service emit an event and read the list with `useWatchEvent` — see [Events](/docs/concepts/events).
+
+## Add a page
+
+A plugin can bring its own screens. A file in `pages/` exports a component and the exact path it serves:
+
+```tsx
+// src/plugins/todos/pages/tasks.tsx
+import { definePage } from '@bitakit/core';
+import { TaskList } from '../components/task-list';
+
+export default definePage({ path: '/todos/tasks', component: TaskList });
+```
+
+The app renders plugin pages from one catch-all route. Apps created with `@bitakit/create-app` 0.2 include it; otherwise add it once:
+
+```tsx
+// src/app/[...path]/page.tsx
+'use client';
+
+import { usePathname } from 'next/navigation';
+import { PluginPage } from '@bitakit/ui';
+
+export default function Page() {
+  return <PluginPage pathname={usePathname()} fallback={<p>Page not found.</p>} />;
+}
+```
+
+Paths are exact: letters, digits, `-` and `_`, nested with `/`. Dynamic segments are not supported, and invalid or duplicate paths fail at startup. Routes of the app itself take precedence, and a navigation action only creates a link, never a page.
+
+To place a smaller component inside a screen the app owns, export a view from `views/` instead, for example `defineView({ slot: 'dashboard.content', component: TaskSummary })`, and render `<PluginSlot name="dashboard.content" />` once where it belongs. Views appear when the plugin starts and disappear with it.
 
 ## What happens automatically
 
 The configured host discovers the files. Core creates the service, registers the action and releases their owned resources when the application provider unmounts. You do not create an ActionList, mount a runtime or write a stop function for each feature.
 
-Services remain available to all actions that depend on them. Declare dependencies with `requires`; Foundation reports missing or cyclic dependencies during startup.
+An action uses its own plugin's services directly. When it needs a service from another plugin, list it in `requires` so a missing plugin is reported at startup instead of on the first click; see [Services](/docs/concepts/services#use-a-service-from-another-plugin).
+
+In development (0.2), a plugin that fails to start is turned off together with the plugins that depend on it, and a startup report names the plugin, the cause and the file. The rest of the app keeps running, and a page that still needs one of its services explains that instead of crashing. Production builds fail fast.
 
 Next, read [Services](/docs/concepts/services) and [Actions](/docs/concepts/actions). Manual runtime ownership is covered separately in [Advanced — manual composition](/docs/concepts/manual-composition).

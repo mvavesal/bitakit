@@ -9,8 +9,15 @@ export type {
 } from './app/types.js';
 export { FoundationServiceError } from './app/service-error.js';
 export { resolveFoundationConfig, type FoundationOverrides } from './configuration.js';
-export { FoundationRuntime } from './runtime.js';
-export { PluginScope, scopeModule, type ScopeModule } from './scope.js';
+export { FoundationRuntime, createRuntime } from './runtime.js';
+export { FoundationStartupError, isFoundationStartupError } from './startup-error.js';
+export {
+  PluginScope,
+  scopeModule,
+  scopePlugins,
+  type ComposedPlugin,
+  type ScopeModule,
+} from './scope.js';
 export { validateFields } from './validation.js';
 export { mergePluginMessages } from './messages.js';
 export { resolveContribution } from './conventions.js';
@@ -21,6 +28,7 @@ export * from './contracts.js';
 export { resolveText, createTranslationPlugin } from './translation.js';
 
 export { findPluginPage, validatePluginPages } from './pages.js';
+export { destinationMetadata, type Destination, type DestinationKind } from './destinations.js';
 
 export * from './actions/core.js';
 export { serviceKey, getService, provideService, type ServiceKey } from './service-key.js';

@@ -6,6 +6,7 @@ import { createStore } from 'zustand/vanilla';
 import { NavigationHost, safeHref } from './navigation.js';
 import { InstanceBindings } from './instance-bindings.js';
 import { Action } from './action.js';
+import { isBrandedInstance } from './brand.js';
 import { affectedActions, dependencyEnabled, freezeDependencies } from './dependencies.js';
 import type {
   ActionDefinition,
@@ -167,7 +168,7 @@ export function createActionList(
     definition: ActionDefinition | Action<any, any>,
     placement: RegistrationOptions = {},
   ): ActionRegistration {
-    if (definition instanceof Action) {
+    if (definition instanceof Action || isBrandedInstance(definition, Action, 'action')) {
       if (!definition.id) throw new Error('Use add(id, action) for an action without an ID.');
       return add(definition.id, definition, placement);
     }

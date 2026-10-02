@@ -4,12 +4,12 @@ Serverseitiges SMTP-Plugin für den gemeinsamen E-Mail-Service. Keine Browser-In
 oder globale SMTP-Instanz; jede Runtime besitzt ihren Transport und schließt ihn beim Unmount.
 
 ```ts
-import { FoundationRuntime, createActionList, getService } from '@bitakit/core';
+import { createRuntime, getService } from '@bitakit/core';
 import { emailService } from '@bitakit/email';
 import { nodemailerPlugin } from '@bitakit/nodemailer';
 import { betterAuthEmail } from '@bitakit/better-auth/email';
 
-const runtime = new FoundationRuntime(createActionList(), {
+const runtime = createRuntime({
   plugins: [nodemailerPlugin({
     host: process.env.SMTP_HOST!,
     port: Number(process.env.SMTP_PORT),

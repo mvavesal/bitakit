@@ -90,12 +90,12 @@ function NotificationSection(props: SettingsSectionRendererProps) {
     <AppearanceSection {...props} footer={
       <div className="flex w-full flex-col items-start gap-4">
       <Separator />
-      <CardDescription>{t("shell.ui.testHint", undefined, "Teste hier, wie eine Benachrichtigung an der gewählten Position aussieht.")}</CardDescription>
+      <CardDescription>{t("shell.ui.testHint", undefined, "Preview a notification at the selected position.")}</CardDescription>
       <Button type="button" variant="secondary" disabled={!notifications || props.items.some(item => item.state?.pending)}
         onClick={() => notifications?.show('shell.ui.testTitle', {
           type: 'info', description: 'shell.ui.testDescription',
         })}>
-        {t("shell.ui.testButton", undefined, "Testbenachrichtigung anzeigen")}
+        {t("shell.ui.testButton", undefined, "Show test notification")}
       </Button>
       </div>
     } />

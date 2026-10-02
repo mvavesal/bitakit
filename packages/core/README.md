@@ -142,7 +142,7 @@ the file path. Known event names and payloads are connected through `EventMap`.
 
 Unknown action IDs remain allowed unless strict mode is enabled. TypeScript checks
 code; validate external data and authorize requests at your application boundaries.
-See the [type-safety guide](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/reference.md)
+See the [Core reference](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/reference.md)
 for examples.
 
 ## React to events
@@ -181,9 +181,6 @@ export default defineService({
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<number>({
-  // Services this action uses. Core checks that they exist before registering it.
-  requires: ['todos'],
-
   // Initial state: the list starts empty, so deleting is disabled.
   enabled: false,
 
@@ -233,11 +230,9 @@ Plugins are trusted application code. Core is not a sandbox or a remote plugin m
 - [Runnable To-do example](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/examples/todos.mjs)
 - [Core reference](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/reference.md): configuration, typed services, actions, lifecycle, and advanced integration.
 - [File contributions and configuration](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/file-contributions.md): discovery and folder conventions.
+- [Client authentication](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/auth.md): the shared provider contract, externally configured login/logout paths, UI bindings and an adapter template.
 - [npm package](https://www.npmjs.com/package/@bitakit/core)
 
 ## License
 
 [MIT](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/LICENSE). Third-party dependencies retain their own licenses.
-
-See [client authentication](https://cdn.jsdelivr.net/npm/@bitakit/core@0.1.2/docs/auth.md) for the shared provider contract, externally
-configured login/logout paths, UI bindings and an adapter template.

@@ -1,7 +1,6 @@
 # BitaKit packages
 
-BitaKit is the product name. Source package names use `@bitakit/`;
-public npm publication is pending.
+BitaKit is the product name. Published on npm under `@bitakit/` (0.1.x).
 
 | Package                                      | Responsibility                                                                      |
 | -------------------------------------------- | ----------------------------------------------------------------------------------- |
@@ -19,6 +18,8 @@ public npm publication is pending.
 | [email](email/README.md)                     | Provider-independent message and sending contract                                   |
 | [nodemailer](nodemailer/README.md)           | Server-side SMTP implementation of the email contract                               |
 | [create-app](create-app/README.md)           | Native frontend scaffolding with installed BitaKit packages                         |
+| [cli](cli/README.md)                         | `bitakit` CLI: add plugins and contributions, doctor, build plugin packages (0.2)   |
+| [devtools](devtools/README.md)               | Live Inspector for one plugin: pages, actions, services, events and config (0.2)    |
 
 ## Dependency boundaries
 
@@ -52,22 +53,21 @@ preference store or authentication session store is required in the host.
 
 See each package's README for its API and verification commands. The generator supports
 Next.js and experimental TanStack Start, with optional App Preferences, Shell and Quick
-Search. It can consume locally packed archives before public npm publication.
+Search. It can also install locally packed archives (`--packages-dir`) for release checks.
 
 The reference web app still has application-specific Better Auth integration. Its
 historical domain examples are not a requirement for applications built with BitaKit.
 
-See the [repository README](../README.md), [roadmap](../docs/TODO.md) and
+See the [repository README](../README.md) and
 [package structure standard](../docs/architecture/package-structure-standard.md).
 
-Core now provides runtime-local events backed by mitt. Action setup and service
-creation receive automatically scoped event subscriptions; React's `useWatchEvent`
-binding belongs to UI. See [the event guide](core/docs/events.md). These additions
-are workspace changes pending publication.
+Core provides runtime-local events (since Core 0.1.1) backed by mitt. Action setup and
+service creation receive automatically scoped event subscriptions; React's `useWatchEvent`
+binding belongs to UI. See [the event guide](core/docs/events.md).
 
 ## Client authentication and page states
 
 The [client authentication guide](core/docs/auth.md) covers the shared service contract,
 external paths, Better Auth options and an adapter template. UI owns useAuth/AuthBoundary;
-Shell owns standalone page presentation through `@bitakit/shell/pages`. These additions
-are workspace APIs pending release. Auth.js and Clerk implementations remain future work.
+Shell owns standalone page presentation through `@bitakit/shell/pages`. Available since
+Core 0.1.1 and UI/Shell/Better Auth 0.1.0. Auth.js and Clerk implementations remain future work.

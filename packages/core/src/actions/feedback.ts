@@ -1,3 +1,4 @@
+import { brand, isBrandedInstance } from './brand.js';
 export type MessageValues = Record<string, string | number | Date>;
 export type FeedbackMessage = {
   message?: string;
@@ -22,6 +23,9 @@ export function evaluateFeedback<C>(feedback: Feedback<C>, context: C): Feedback
 
 /** Carries only the selected display message; the original error remains in cause. */
 export class ActionFailure extends Error {
+  static {
+    brand(this, 'failure');
+  }
   constructor(
     readonly feedback: string | false,
     cause: unknown,
@@ -29,4 +33,9 @@ export class ActionFailure extends Error {
     super(feedback || 'Action failed.', { cause });
     this.name = 'ActionFailure';
   }
+}
+
+/** Recognizes failures from any copy of this package (see brand.ts). */
+export function isActionFailure(error: unknown): error is ActionFailure {
+  return isBrandedInstance(error, ActionFailure, 'failure');
 }

@@ -9,6 +9,9 @@
   "foundationUI": {
     "dialog": {
       "close": "Schließen"
+    },
+    "navigation": {
+      "general": "Allgemein"
     }
   }
 }

@@ -2,6 +2,7 @@ import type { FoundationRuntime } from '../runtime.js';
 import type { FoundationApp } from './types.js';
 import { FoundationServiceError } from './service-error.js';
 import { createActionAccess } from './action-access.js';
+import { FoundationStartupError, moduleLabel } from '../startup-error.js';
 
 type Source = { key: string; plugin: string };
 type Branch = Map<string, Branch | Source>;
@@ -9,6 +10,7 @@ type Branch = Map<string, Branch | Source>;
 /** Projects public service paths onto the existing container, with no cached instances. */
 export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
   const tree: Branch = new Map();
+  const appId = runtime.modules[0]?.id ?? '@foundation/app';
   for (const plugin of runtime.modules) {
     for (const [name, key] of Object.entries(plugin.publicServices ?? {})) {
       const segments = name.split('.');
@@ -19,15 +21,8 @@ export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
           !segment ||
           ['then', 'toJSON', '__proto__'].includes(segment) ||
           (existing && (!(existing instanceof Map) || index === segments.length - 1))
-        ) {
-          const owner =
-            existing && !(existing instanceof Map)
-              ? ` (already exposed by "${existing.plugin}")`
-              : '';
-          throw new Error(
-            `Duplicate or reserved public service path "${name}" in plugin "${plugin.id}"${owner}.`,
-          );
-        }
+        )
+          throw conflict(name, segments.slice(0, index + 1).join('.'), plugin.id, existing, appId);
         if (index === segments.length - 1) branch.set(segment, { key, plugin: plugin.id });
         else {
           if (!existing) branch.set(segment, new Map());
@@ -99,4 +94,36 @@ export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
     },
     optional: Object.freeze({ services: project(tree, true) }),
   }) as unknown as FoundationApp;
+}
+
+/** Explains a public service name that cannot be added, with the usual fix. */
+function conflict(
+  name: string,
+  at: string,
+  plugin: string,
+  existing: Branch | Source | undefined,
+  appId: string,
+) {
+  const label = (module: string) => moduleLabel(module, appId);
+  const choose = 'Choose a different exposeAs.';
+  let message: string;
+  if (existing && !(existing instanceof Map) && at === name) {
+    const fix = `Rename one of the service files, or set exposeAs in one of them (for example exposeAs: '${plugin === appId ? 'app' : plugin}.${name}').`;
+    const first = existing.plugin;
+    message =
+      first === plugin
+        ? `${capitalize(label(plugin))} exposes two services named "${name}". ${fix}`
+        : first !== appId && plugin !== appId
+          ? `Plugins "${first}" and "${plugin}" both expose a service named "${name}". ${fix}`
+          : `${capitalize(label(first))} and ${label(plugin)} both expose a service named "${name}". ${fix}`;
+  } else if (existing && !(existing instanceof Map))
+    message = `Service name "${name}" in ${label(plugin)} is nested under "${at}", which is already a service in ${label(existing.plugin)}. ${choose}`;
+  else if (existing)
+    message = `Service name "${name}" in ${label(plugin)} is already used as a service namespace. ${choose}`;
+  else
+    message = `Service name "${name}" in ${label(plugin)} is empty or uses a reserved segment (then, toJSON, __proto__). ${choose}`;
+  return new FoundationStartupError(message, plugin, { app: plugin === appId });
+}
+function capitalize(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

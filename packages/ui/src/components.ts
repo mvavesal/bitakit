@@ -15,6 +15,7 @@ export * from './components/primitives/field.js';
 export * from './components/primitives/label.js';
 export * from './components/primitives/badge.js';
 export * from './components/primitives/dialog.js';
+export * from './components/primitives/page-header.js';
 export { standardFoundationUI } from './components/standard-foundation-ui.js';
 
 export { StandardFoundationProvider, type StandardFoundationProviderProps } from './components/standard-foundation-provider.js';

@@ -1,5 +1,5 @@
 import { preserveContributionPath } from './contribution-origin.js';
-import { Action } from '@bitakit/core/actions';
+import { Action, isBrandedClass } from '@bitakit/core/actions';
 import type { Contribution, ResolvedContribution } from './definitions.js';
 
 /** Build adapters supply a path-derived ID; explicit consumers supply their own ID. */
@@ -14,7 +14,7 @@ export function resolveContribution<T extends Contribution>(
           kind: 'native' as const,
           fromExport: true,
           load: (context: import('./definitions.js').ActionEnvironment) =>
-            entry.prototype instanceof Action
+            isBrandedClass(entry, 'action')
               ? new (entry as new (
                   context: import('./definitions.js').ActionEnvironment,
                 ) => Action<any, any>)(context)

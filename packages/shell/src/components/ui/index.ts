@@ -8,7 +8,7 @@ export { Field, FieldContent, FieldDescription, FieldError, FieldLabel, FieldLeg
 export { InputGroup, InputGroupAddon, InputGroupClearButton, InputGroupInput } from './input-group.js';
 export { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from './item.js';
 export { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from '@bitakit/ui/components';
-export { PageHeader } from './page-header.js';
+export { PageHeader } from '@bitakit/ui/components';
 export { RadioGroup, RadioGroupItem } from './radio-group.js';
 export { Separator } from '@bitakit/ui/components';
 export { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar } from '@bitakit/ui/components';

@@ -1,5 +1,5 @@
 import type { ConfigContext } from '../config-service.js';
-import { Action } from '@bitakit/core/actions';
+import { Action, isBrandedInstance } from '@bitakit/core/actions';
 import { ActionFailure } from '../actions/feedback.js';
 import { resolveContribution } from '../conventions.js';
 import type { NativeDefinition, ResolvedContribution } from '../definitions.js';
@@ -17,7 +17,7 @@ export function adaptNative(
   config: ConfigContext,
 ): Adapted {
   const instance = resolved.load({ services: host.services, translate: host.translator(), config });
-  if (!(instance instanceof Action))
+  if (!isBrandedInstance(instance, Action, 'action'))
     throw new Error(`Action export "${resolved.id}" must return an Action instance.`);
   let effective = resolved;
   if (resolved.fromExport) {

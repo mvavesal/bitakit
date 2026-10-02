@@ -45,7 +45,7 @@
     },
     "settingsShell": {
       "title": "Settings",
-      "back": "Back to studio",
+      "back": "Back to app",
       "navigation": "Settings navigation",
       "toggle": "Toggle settings navigation",
       "breadcrumb": "Breadcrumbs",
@@ -189,6 +189,9 @@
         "title": "Access denied",
         "description": "You do not have access to this page."
       }
+    },
+    "settingsRoute": {
+      "unavailable": "This setting is unavailable."
     }
   },
   "settings": {

@@ -1,5 +1,6 @@
 import type { Plugin } from '../definitions.js';
 import { serviceKey } from '../service-key.js';
+import { FoundationStartupError } from '../startup-error.js';
 import type { PublicServiceKeys } from './types.js';
 
 /** Resolves names onto existing container keys; this does not create or store service instances. */
@@ -14,7 +15,10 @@ export function serviceAliases(
     if (service.exposeAs === undefined) continue;
     const name = service.exposeAs;
     if (Object.hasOwn(aliases, name) && aliases[name] !== service.id)
-      throw new Error(`Duplicate public service "${name}" in plugin "${module.id}".`);
+      throw new FoundationStartupError(
+        `Plugin "${module.id}" exposes two services named "${name}". Rename one of the service files, or set exposeAs on one of them.`,
+        module.id,
+      );
     aliases[name] = serviceKey(service.id);
   }
   return aliases;

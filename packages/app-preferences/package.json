@@ -1,10 +1,11 @@
 {
   "name": "@bitakit/app-preferences",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "foundation": {
     "discovery": "./discovery",
-    "plugin": "./foundation"
+    "plugin": "./foundation",
+    "styles": "./styles.css"
   },
   "sideEffects": [
     "./styles.css"
@@ -47,13 +48,13 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "peerDependencies": {
-    "@bitakit/core": "^0.1.1",
-    "@bitakit/ui": "0.1.0",
+    "@bitakit/core": "^0.2.0",
+    "@bitakit/ui": "^0.2.0",
     "react": "^18.3.0 || ^19.0.0"
   },
   "devDependencies": {
-    "@bitakit/core": "^0.1.1",
-    "@bitakit/ui": "0.1.0",
+    "@bitakit/core": "^0.2.0",
+    "@bitakit/ui": "^0.2.0",
     "@types/react": "^19",
     "jsdom": "^27.0.0",
     "react": "19.3.0",

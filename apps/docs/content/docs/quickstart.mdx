@@ -13,23 +13,16 @@ You need **Node.js 24**, **npm 10 or newer**, and an internet connection.
 
 ## 1. Create your app
 
-Run the generator and follow the prompts to choose a framework and optional capabilities.
-
-```sh
-npx @bitakit/create-app my-app
-```
-
-Choose **Next.js** for the current default path. Start with no optional features for a
-minimal app, or select **Shell** and **Quick Search** for an application layout with settings
-and action search. The generator includes required dependencies automatically.
-
-Prefer a single command? This selects Next.js and the minimal preset:
-
 ```sh
 npx @bitakit/create-app my-app --framework next --features none --yes
 ```
 
+This creates a minimal Next.js app in `my-app`, the shortest path to a first feature.
 Choose a new directory name: the generator does not overwrite an existing project.
+
+To pick a framework and extras interactively — an application shell with settings pages,
+⌘K quick search — run `npx @bitakit/create-app my-app` instead. The generator adds the
+dependencies each choice needs.
 
 ## 2. Start developing
 
@@ -38,8 +31,9 @@ cd my-app
 npm run dev
 ```
 
-Open the local address printed in your terminal. Your welcome page is ready to edit.
-The generator has already connected Foundation to your application's router.
+Open the address printed in your terminal (usually http://localhost:3000). You see
+**Welcome**. Edit `src/app/page.tsx` and the page updates. The generator has already
+connected BitaKit to your application's router; you did not write any setup code.
 
 ## 3. Make it yours
 
@@ -63,12 +57,19 @@ To create a new project with an application shell and quick search:
 npx @bitakit/create-app my-app --framework next --features shell,quick-search
 ```
 
-Shell includes App Preferences as a prerequisite. Authentication, a database and email
-are separate integrations; the generator does not create a backend.
+Shell includes App Preferences as a prerequisite. Your home page then lives in a route
+group: `src/app/(workspace)/page.tsx` (0.1) or `src/app/(app)/page.tsx` (0.2).
+Authentication, a database and email are separate integrations; the generator does not
+create a backend.
 
 ## Where next?
 
 <Cards>
+  <Card
+    title="Build your first feature"
+    href="/docs/concepts/plugins"
+    description="Add a service and an action, then use them from a button."
+  />
   <Card
     title="Explore packages"
     href="/docs/packages"

@@ -1,8 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createActionList, PluginScope } from '@bitakit/core';
+import { createActionList, FoundationRuntime, PluginScope } from '@bitakit/core';
 import { createAppPreferences, createMemoryStorage, SettingsSection } from '../dist/index.js';
 import { bindSettingsNavigation } from '../dist/foundation/navigation.js';
+import { appPreferencesPlugin } from '../dist/foundation/index.js';
+
+test('settings pages name the plugin that contributed the section as their owner', () => {
+  const runtime = new FoundationRuntime(createActionList(), {
+    contributions: { 'settings.sections': [new SettingsSection({ id: 'profile', title: 'Profile' })] },
+    plugins: [
+      appPreferencesPlugin({ settings: createAppPreferences({ storage: createMemoryStorage() }) }),
+      { id: 'todos', contributions: { 'settings.sections': [new SettingsSection({ id: 'alerts', title: 'Notifications' })] } },
+    ],
+  });
+  const stop = runtime.mount();
+  try {
+    const of = (id) => runtime.destinationOf(runtime.actions.resolve(id));
+    assert.deepEqual(of('settings.section.alerts'), { kind: 'settings', plugin: 'todos' });
+    assert.deepEqual(of('settings.section.profile'), { kind: 'settings' });
+  } finally {
+    stop();
+  }
+});
 
 test('catalog sections automatically register, update and remove URL Actions', () => {
   const settings = createAppPreferences({ storage: createMemoryStorage() });

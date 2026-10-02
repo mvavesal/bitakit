@@ -122,7 +122,7 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 
 ### Plugin-Seiten und Menügruppen
 
-- Plugin-Seiten liegen unter `pages/**/*.page.tsx` und exportieren `definePage({ path, component })`; `entries.pages` überschreibt den Discovery-Pfad. `PluginPage` erhält den aktuellen Pfad vom Host-Router. Exakte statische Pfade werden unterstützt, dynamische Parameter noch nicht.
+- Plugin-Seiten liegen unter `pages/**/*.page.tsx` und exportieren `definePage({ path, component })`; `entries.pages` überschreibt den Discovery-Pfad. `PluginPage` erhält den aktuellen Pfad seit 0.2 standardmäßig vom Framework-Adapter (`useFoundationNavigation`); Hosts ohne Adapter und Dokumentation, die auch mit 0.1 funktionieren soll, übergeben `pathname`. Exakte statische Pfade werden unterstützt, dynamische Parameter noch nicht.
 - Doppelte/ungültige Plugin-Pfade werden vor dem Mounten abgelehnt. Host-Routenkollisionen und HTTP-404-Verhalten benötigen weiterhin die jeweilige Router-Anbindung; ein Client-Fallback allein ist kein HTTP-404.
 - Die Content-Demo bindet `navigation` und `navigation2` ausdrücklich an ihr Menü. Weitere Gruppen werden nicht ungeprüft sichtbar. Neue Actions innerhalb gebundener Gruppen erscheinen reaktiv; keine einzelne Action manuell in das Menü aufnehmen.
 - Hot-Reload kann die rein lokalen Demo-Services neu erstellen und dadurch deren Beispieldaten/Sitzung zurücksetzen. Das nicht als dauerhafte Speicherung oder erhaltenen Sitzungszustand darstellen.
@@ -192,6 +192,8 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 
 - Dezente Flächenrahmen und Trennlinien werden über den zentralen Host-Token --border gesteuert; Sidebar-Rahmen referenzieren ihn. Keine lokalen Opacity-Sonderwerte pro Plugin. Eingabefelder behalten den separaten --input-Token für erkennbare Bedienflächen.
 
+- Package stylesheets that import `@heroui/styles` (Shell, Better Auth UI) restore the theme's `@custom-variant dark (&:is(.dark *))` directly after that import. HeroUI's dark variant also applies every `dark:` utility to `::before`/`::after`, which paints the shadcn hit areas of radios, checkboxes and switches (`after:-inset-*`) as visible squares. Generated apps import `@bitakit/ui/theme.css` before Shell, so the repository apps (theme imported last) do not reveal this. Verify the computed `::after` background in dark mode in a generated app. Unchecked radios are transparent by central theme decision; checked radios keep the primary fill.
+
 - ActionButton rendert das Action-Icon selbst, auch bei eigenen children. Menü-Renderer dürfen es nicht zusätzlich als Kind einfügen; bei ActionLink bleibt die explizite Icon-Komposition nötig.
 
 - Organisationseinstellungen enthalten Profil sowie Mitglieder und Einladungen. Die Personenansicht verwendet dieselbe OrganizationsPage wie die eigenständige Mitgliederseite: keine zweite Tabelle, Filter-, Einladungs- oder Action-Implementierung. Die Settings-Sidebar bietet Organisationsprofil und eine gemeinsame Seite Mitglieder und Einladungen. Diese Personenansicht verwendet wie die alte App Linien-Tabs mit Zählern, eine kompakte Filterleiste und die Tabelle ohne zusätzliche Karten oder wiederholte Überschriften. Einladungen an mich stehen als eigener Eintrag unter Mein Konto; sie bleiben die persönlich erhaltenen Einladungen und sind nicht die ausgehenden Organisationseinladungen. Die persönliche Kategorie heißt Mein Konto (englisch My Account); ihre technische ID personal bleibt erhalten.
@@ -243,7 +245,7 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 - API-Key-Verwaltung verwendet getrennte Konfigurationen default/user und organization/organization. Schlüssel werden nur einmal angezeigt, nicht geloggt oder in Testbildern gespeichert; Testkeys nach Prüfung widerrufen. Server prüft Eigentum/Rollen und gesperrte Organisationsmitgliedschaften auch bei Schlüssel-ID- und Team-ID-Zugriffen. Neue Auth-Tabellen erhalten RLS und keine öffentlichen Datenbankrechte.
 - Native HeroUI-Selects (auch secondary/full-width und Dialog-Portale) extern auf Foundation SelectTrigger rounded-md plus zentrale Squircle-Eckenform abbilden; nicht mit der runden Textinput-Ausnahme vermischen. Umrandete native Dialog-Listenzeilen verwenden Item rounded-xl. Keine dynamischen React-Aria-IDs oder übersetzten Labels als CSS-Selektor. Upstream-CSS über einen regulären Styles-Export des besitzenden Adapterpakets auflösen, damit npm-Hoisting keine Voraussetzung ist.
 
-- Tailwind-Quellen gehören ins besitzende Paket: öffentlicher styles.css-Export mit @source "./dist", CSS in files und sideEffects aufnehmen. Hosts importieren nur tatsächlich genutzte Paketoberflächen; keine ../../packages-Scanpfade, kein Scan des ganzen Monorepos, keine Sammeldatei aller optionalen Plugins. Notwendige UI-/Core-Styles darf ein UI-Plugin selbst importieren. Headless-Service-Verbrauch benötigt keine Styles. Paketgrenzen durch npm-pack plus isolierte Tailwind-Kompilierung ohne ungenutzte Plugins prüfen; Host-Theme nicht duplizieren.
+- Tailwind-Quellen gehören ins besitzende Paket: öffentlicher styles.css-Export mit @source "./dist", CSS in files und sideEffects aufnehmen. Hosts importieren nur tatsächlich genutzte Paketoberflächen; keine ../../packages-Scanpfade, kein Scan des ganzen Monorepos, keine handgepflegte Sammeldatei aller optionalen Plugins. Die generierte `.foundation/styles.css` (0.2) importiert nur die Styles installierter Pakete aus deren `foundation.styles`/`theme`-Metadaten, nach Abhängigkeiten geordnet und Theme zuletzt; Apps importieren nur diese Datei. Notwendige UI-/Core-Styles darf ein UI-Plugin selbst importieren. Headless-Service-Verbrauch benötigt keine Styles. Paketgrenzen durch npm-pack plus isolierte Tailwind-Kompilierung ohne ungenutzte Plugins prüfen; Host-Theme nicht duplizieren.
 
 
 ### Settings: App Preferences and plugin-owned pages (implemented)
@@ -461,7 +463,7 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 - Validate changed contracts with focused type, lifecycle, discovery and hydration tests. Do not repeat successful checks without new changes or run full builds/browser suites for unrelated edits.
 
 - Local discovery treats each immediate folder under src/plugins as a plugin. plugin.config.ts is optional; its explicit ID overrides the folder name. foundation.config.ts can override the directory. Reuse the existing scanner and contribution pipeline.
-- Local defineService contributions expose app.services using exposeAs, then their explicit ID or relative file path. Generated hosts carry names on service definitions, without separate publicServices maps. Preserve the module-scoped raw key used by requires and the services context; app-facing aliases do not rename those keys. Generated and manual composition types preserve literal names and method input/output contracts. Do not use an unqualified public alias in a raw plugin service context.
+- Local defineService contributions expose app.services using exposeAs, then their explicit ID or relative file path. Generated hosts carry names on service definitions, without separate publicServices maps. requires and the services context accept those public names and the raw container keys; aliases never rename the keys. A name means the same service in every module: do not add module-local names, because the single generated ServiceMap cannot describe a second meaning and types would disagree with the runtime. A plugin reaches its own aliased service by that alias or its ID. Contributions use their own module's services without declaring them; `requires` only lists services from other modules (checked at startup, so a missing plugin fails clearly) and, on service definitions, services used inside `create` (creation order and cycle detection, also within one module). Templates, examples and docs follow this rule. Generated and manual composition types preserve literal names and method input/output contracts.
 - app.actions projects dotted Action IDs as typed references. References execute through the existing ActionList, reflect current registrations and guards, and exclude internal actions from enumeration. ActionButton, ActionBinding and useAction accept same-list references; do not duplicate action state.
 - Plain command execution receives app alongside the existing services/config context. Setup retains its existing scoped contract. Do not imply that setup or service factories receive the new app facade.
 - Services have no root-level aliases. Use app.services, app.actions and app.optional.services consistently in examples. Preserve existing action input contracts; this change does not add an action-parameter system.
@@ -530,7 +532,7 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
 ### Automatic Quick Search
 
 - Quick Search is an optional discoverable package. Its dialog Action uses the existing Foundation dialog host and Mod+K shortcut binding; its view targets the standard AppBar `app-bar.end` slot. No host search component, provider, action registry or manual bootstrap is required. AppBar remains usable without Foundation.
-- Search reads current public resolved Action snapshots and only safe URL destinations. Reuse ActionLink for native navigation without double execution, cmdk for filtering/keyboard behavior, central primitives/theme tokens and Reicon. Disabled/pending and hidden/internal guards remain authoritative. Group each Action once by its first existing group and search all group labels; do not invent a category model.
+- Search is navigation only: it reads current public resolved Action snapshots with safe URL destinations and never lists or runs Actions without a URL (general Action execution is a separate, future feature). Destination types (pages, settings, plugins) are independent switches in the package configuration (`src/configs/quick-search.ts`, `results`); omitted configuration keeps pages and settings only, and excluding plugins never hides a plugin's pages or settings. Reuse ActionLink for native navigation without double execution, cmdk for filtering/keyboard behavior, central primitives/theme tokens and Reicon. Disabled/pending and hidden/internal guards remain authoritative. Types and owners come from `runtime.destinationOf`; plugin results come from Shell's `pluginManagement` projection and follow the overview section's visibility. Group each Action once by its first existing group and search all group labels; do not invent a category model.
 - Keep ephemeral dialog search local. Do not introduce URL state, persistence, remote content search or a second action registry. Package styles load with its entry; Content Demo only declares the package dependency.
 
 - Quick Search imports its CSS from the concrete plugin module; preserve package sideEffects metadata for CSS-bearing entry modules so Next/Webpack does not prune the stylesheet. Verify actual computed layout in a browser; a DOM behavior test without CSS cannot establish visual correctness.
@@ -589,7 +591,15 @@ der Roadmap festhalten; Dokumentation ersetzt keine Implementierung.
   supplies scaffold/configure behavior; do not add unused adapters or a second runtime registry.
 - Generate only native routes, required composition/configuration and selected dependencies.
   Import shared package styles/theme rather than copying plugin code or maintaining another
-  theme. No demo business data, auth server, database, empty folders or host bootstrap layer.
+  theme. No demo business data unless the developer opts into the Todos sample (`--sample`,
+  interactive default yes, off with `--yes`); no auth server, database, empty folders or host
+  bootstrap layer.
+- Since 0.2 the generator adds a plugin-page catch-all route, imports the generated
+  `.foundation/styles.css` once, writes the project README and AGENTS.md, and installs
+  `@bitakit/cli` as a dev dependency. Plugin files come from the CLI templates
+  (`pluginFiles`), the single source for `--sample`, `bitakit add` and plugin packages.
+  `--plugin` creates a standalone plugin package with a headless test and a playground
+  workspace that discovers the package source (`plugins.include`).
 - Never overwrite an existing destination. Preserve partial output on failure, propagate
   failures, and report completion only after selected installation succeeds. Support explicit
   no-install and dry-run modes and prompt cancellation before filesystem changes.
@@ -742,3 +752,69 @@ transparent light/dark BitaKit logos without recoloring. Registration is not pub
   global-error HTML wrappers. Never render raw errors by default.
 - Empty headings/descriptions must wrap long unbroken content on mobile. Keep the fix in
   the shared Empty primitive rather than per-page overrides; check light/dark and retry focus.
+
+### Startup isolation, headless tests and developer tools (0.2)
+
+- Startup failures are `FoundationStartupError`s attributed to the failing module (`plugin`,
+  `app`, optional `source`). In development `FoundationProvider` (`isolateFailures`, on unless
+  `NODE_ENV` is production) turns off the failed plugin and its dependents and shows the startup
+  report. Page content sits inside a boundary that explains a required service of a turned-off
+  plugin (service, plugin, why, fix: repair it or use `app.optional.services`); every other
+  render error passes through unchanged. Production fails fast; never swallow unrelated errors.
+- `mountPlugin()` from `@bitakit/core/testing` discovers one plugin folder like an app,
+  including `setup.ts`, and runs it through the normal mount: setup cleanup on `stop()`,
+  rollback and the attributed error on failure. Keep services, actions and setup headless (no
+  JSX; guard browser-only APIs).
+- Manual composition (Node programs, tests, provider packages) uses `createRuntime(config,
+  { actions, services })`; it creates the ActionList unless one is passed and returns a
+  `FoundationRuntime`, which stays the class and type. Document the 0.1 equivalent
+  `new FoundationRuntime(createActionList(), config)` while 0.2 is unpublished. Do not add a
+  default-export object for Core: `import * as bitakit from '@bitakit/core'` already gives a
+  single import and stays tree-shakable.
+- `@bitakit/cli` (`bitakit add plugin|action|service|page`, `doctor`, `info`, `build`) uses the
+  same templates and discovery description as the generator; never write files that exist.
+  `@bitakit/devtools`' Inspector reads the running runtime and keeps no copy of plugin state;
+  install it as a regular dependency so discovery includes its styles.
+- Integrations that present plugins read the composition through `scopePlugins(scope)` (ID
+  and metadata only). Shell's `pluginManagement` publishes one plugin link per plugin that
+  follows the overview section's visibility; Quick Search shows them only with
+  `results.plugins`.
+
+### Actions guide, groups and forms (review 2026-10-02)
+
+- The Actions guide starts with one default path (define, bind, run from code). Reference
+  sections follow; lifecycle/reactivity (`watch`, events, `setup`, `initialState`) and
+  identity/discovery/config escape hatches (`id`, `replaces`, `conventions`, `configPath`)
+  live in separate "Advanced" sections at the end. Keep `description` (longer explanation)
+  and `tooltip` (short hover hint) separate. Keep `enabled` (not now), `visible` (not here)
+  and runtime-owned `pending` (running) distinct. `dependsOn` is an availability dependency
+  only: it never runs prerequisites, never checks earlier success, and a missing ID or a
+  cycle disables the action.
+- An Action group is a name for related actions; it only groups and never renders. Docs say
+  "put actions in a group" and "show a group", never "membership". `groups` puts an action in a
+  group; `app.actions.getGroup(id).attach(actionId)` or `.add(definition)` in a setup file
+  adds actions the module does not own or creates there. Components decide how to show a group
+  (ActionMenu, ActionGroupBinding, navigation components and Shell with `navigation`, Quick
+  Search headings). `order` and `dividerBefore` are display hints of the action in every group;
+  the standard ActionMenu does not draw `dividerBefore` yet. The "Action groups" docs page is
+  the reference. Do not add a second grouping mechanism.
+- A group's title belongs to its ID: the runtime keeps the first title given for an ID
+  regardless of registration order or configured `groups` entries, and `useGroupTitle` falls
+  back to it for untitled snapshot groups. Keep matching groups by ID, never by object identity.
+- Forms must not require a dialog. A page form or a section of a larger form uses the
+  existing form stack (react-hook-form, zod) and runs an ordinary Action with the validated
+  values through `useAction`: the button follows `enabled`/`pending`, the form resets only
+  after a `completed` outcome, and failures keep the draft. Sections never nest `<form>`.
+  A dialog is an optional host: render the same form component in a Dialog Action.
+  Decision (user, option a): `defineFormAction` stays the documented quick dialog form for
+  simple string fields; no inline hosting, no deprecation, `users.invite` stays as it is.
+- Every Actions-guide sample is type-checked and executed in temporary discovery fixtures,
+  and the page-form sample is driven in jsdom (no popup, input delivery, pending skip,
+  failure keeps the draft, retry). Re-run that check when the guide's samples change.
+- Hover text in every binding: an explicit `title` prop, then `tooltip`, then `description`
+  (ActionButton, ActionLink, menu items, ActionBinding). ActionButton resolves its snapshot
+  with its own `input`, so `resolve` results (tooltip, icon, checked) apply per button.
+- Known gaps, not changed pending a decision: ActionButton on a link-only Action (`href`, no
+  `execute`) is a no-op (bind those with ActionLink or menu items; settings navigation and
+  Shell plugin results register such Actions on purpose); `defineAction` accepts `state`,
+  which registration drops (only `initialState` seeds state); `configPath` has no test.

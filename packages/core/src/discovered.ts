@@ -1,4 +1,4 @@
-import { setContributionPath } from './contribution-origin.js';
+import { setContributionPath, setContributionSource } from './contribution-origin.js';
 import {
   defineAction,
   type Contribution,
@@ -64,14 +64,14 @@ export function discoverActions(
       (!!value &&
         typeof value === 'object' &&
         ('kind' in value || typeof value.execute === 'function')),
-  ).map(({ value, path }) => {
+  ).map(({ value, path, source }) => {
     const definition = typeof value === 'object' && !value.kind ? defineAction(value) : value;
     const resolved = resolveContribution(
       definition,
       [moduleId, ...path].filter(Boolean).join('.'),
       conventions,
     );
-    setContributionPath(resolved, path);
+    setContributionPath(resolved, path, source);
     return resolved;
   });
 }
@@ -80,11 +80,15 @@ export function discoverServices(
   moduleId = '',
 ): ServiceDefinition[] {
   return expand(files, (value) => !!value && typeof value.create === 'function').map(
-    ({ value, path }) => ({
-      ...value,
-      id: value.id ?? [moduleId, ...path].filter(Boolean).join('.'),
-      exposeAs: value.exposeAs ?? value.id ?? path.join('.'),
-    }),
+    ({ value, path, source }) => {
+      const definition = {
+        ...value,
+        id: value.id ?? [moduleId, ...path].filter(Boolean).join('.'),
+        exposeAs: value.exposeAs ?? value.id ?? path.join('.'),
+      };
+      setContributionSource(definition, source);
+      return definition;
+    },
   );
 }
 /** Compatibility projection. New generated hosts carry names directly on discovered services. */

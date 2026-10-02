@@ -2,7 +2,7 @@ import { parse } from 'tldts';
 import { z } from 'zod';
 
 export const organizationWebsiteError =
-  'Ungültige URL.';
+  'Invalid URL.';
 
 /** Standard URL syntax plus the product's public-domain policy; no reachability check. */
 export const organizationWebsiteSchema = z.string().trim().pipe(

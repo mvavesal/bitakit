@@ -1,8 +1,8 @@
-import { createActionList, FoundationRuntime } from '@bitakit/core';
+import { createRuntime } from '@bitakit/core';
 import todos from './todos/plugin.mjs';
 
-const actions = createActionList();
-const runtime = new FoundationRuntime(actions, { plugins: [todos] });
+const runtime = createRuntime({ plugins: [todos] });
+const { actions } = runtime;
 const stop = runtime.mount();
 
 try {

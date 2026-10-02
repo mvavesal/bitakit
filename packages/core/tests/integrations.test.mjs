@@ -86,7 +86,7 @@ test('plugins share service dependency ordering, reject collisions and obey expl
   );
   assert.throws(
     () => new FoundationRuntime(createActionList(), { plugins: [derived] }).mount(),
-    /Missing or cyclic/,
+    /requires service "base"/,
   );
 });
 

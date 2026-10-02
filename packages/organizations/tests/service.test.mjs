@@ -13,8 +13,8 @@ test('organization switching isolates invitations, validates roles and protects 
   await service.refresh();
   await service.invite(' Person@Example.test ');
   assert.equal(service.getSnapshot().invitations[0].email, 'person@example.test');
-  assert.throws(() => service.updateRole('studio-owner', 'member'), /nicht verfügbar/);
-  assert.throws(() => service.invite('x@example.test', 'owner'), /Ungültige Rolle/);
+  assert.throws(() => service.updateRole('studio-owner', 'member'), /not available/);
+  assert.throws(() => service.invite('x@example.test', 'owner'), /Invalid role/);
   await service.setActive('academy');
   assert.equal(service.getSnapshot().invitations.length, 0);
   await service.setActive('studio');
@@ -24,7 +24,7 @@ test('organization switching isolates invitations, validates roles and protects 
   await service.cancel(invite.id);
   assert.equal(service.getSnapshot().invitations.length, 0);
   service.dispose();
-  await assert.rejects(service.refresh(), /beendet/);
+  await assert.rejects(service.refresh(), /disposed/);
 });
 
 test('stale loads and disposed responses cannot restore old organization data', async () => {
@@ -83,7 +83,7 @@ test('backend context invalidation clears tenant data immediately and unsubscrib
 test('suspension protects owners and recipient invitation acceptance changes membership', async () => {
   const service=createOrganizationService(createDemoOrganizationBackend());
   await service.refresh();
-  assert.throws(()=>service.setDisabled('studio-owner',true),/nicht verfügbar/);
+  assert.throws(()=>service.setDisabled('studio-owner',true),/not available/);
   await service.setDisabled('studio-member',true);
   assert.equal(service.getSnapshot().members.find(x=>x.id==='studio-member').disabled,true);
   await service.setDisabled('studio-member',false);
@@ -92,7 +92,7 @@ test('suspension protects owners and recipient invitation acceptance changes mem
   assert.equal(service.getSnapshot().incomingInvitations.length,0);
   await service.setActive('partner');
   assert.equal(service.getSnapshot().canManage,false);
-  assert.throws(()=>service.invite('a@example.test'),/nicht verfügbar/);
+  assert.throws(()=>service.invite('a@example.test'),/not available/);
   service.dispose();
 });
 
@@ -104,8 +104,8 @@ test('website validation blocks invalid create and update before backend writes'
   await service.refresh();
   for (const website of invalid) {
     assert.equal(isOrganizationWebsite(website), false, website);
-    assert.throws(() => service.create({name:'Invalid',slug:'invalid',website}), /Ungültige URL/);
-    assert.throws(() => service.update({name:'Invalid',slug:'invalid',website}), /Ungültige URL/);
+    assert.throws(() => service.create({name:'Invalid',slug:'invalid',website}), /Invalid URL/);
+    assert.throws(() => service.update({name:'Invalid',slug:'invalid',website}), /Invalid URL/);
   }
   for (const website of ['', 'https://example.com/path?q=1#section', 'http://localhost:3102', 'https://bücher.de', 'https://127.0.0.1', 'https://[::1]']) assert.equal(isOrganizationWebsite(website), true, website);
   await service.create({name:'Valid',slug:'valid',website:' https://example.com '});

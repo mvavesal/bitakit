@@ -45,7 +45,7 @@
     },
     "settingsShell": {
       "title": "Einstellungen",
-      "back": "Zurück zum Studio",
+      "back": "Zurück zur App",
       "navigation": "Einstellungsnavigation",
       "toggle": "Einstellungsnavigation umschalten",
       "breadcrumb": "Brotkrümelnavigation",
@@ -189,6 +189,9 @@
         "title": "Kein Zugriff",
         "description": "Du hast keinen Zugriff auf diese Seite."
       }
+    },
+    "settingsRoute": {
+      "unavailable": "Diese Einstellung ist nicht verfügbar."
     }
   },
   "settings": {

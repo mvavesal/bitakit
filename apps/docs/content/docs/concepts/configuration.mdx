@@ -30,7 +30,6 @@ The plugin folder supplies the module ID `todos`. A single `configs.ts` defines 
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  requires: ['todos.todos'],
   execute({ app, config }) {
     const pageSize = config.action.get('pageSize', 10);
     return app.services.todos.list().slice(0, pageSize);
@@ -54,6 +53,22 @@ export default {
 ```
 
 The same `configOverrides` field exists on manual `FoundationConfig`. Objects merge recursively, arrays replace arrays, `undefined` retains defaults and `null` is explicit. Unknown module IDs are rejected. Overrides for known disabled plugins are removed with their contributions.
+
+## Configure an installed package
+
+Some installed packages read their options from a config file of your app. Shell reads `src/configs/shell.ts`; Quick Search (0.2 and later) reads `src/configs/quick-search.ts`, for example to add plugin results:
+
+```ts
+// src/configs/quick-search.ts
+import { defineConfig } from '@bitakit/core';
+import type { QuickSearchOptions } from '@bitakit/quick-search';
+
+export default defineConfig({
+  defaults: { results: { plugins: true } } satisfies QuickSearchOptions,
+});
+```
+
+Without the file, the package uses its defaults. A package names the file it reads with `foundation.configuration` in its `package.json`, and discovery passes the values to the package's plugin when the app starts. The package README lists its options.
 
 ## Optional schemas
 

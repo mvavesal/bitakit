@@ -24,6 +24,32 @@ const runtime = (settings, shell, plugins = []) =>
     plugins: [appPreferencesPlugin({ settings }), shellPlugin({ settings, ...shell }), ...plugins],
   });
 
+test('plugin management links every plugin to its view in the overview and follows its visibility', () => {
+  const settings = createAppPreferences({ storage });
+  const todos = { id: 'todos', metadata: { name: 'Todos', description: 'Task lists' } };
+  const app = runtime(settings, { pluginManagement: true }, [todos]);
+  const stop = app.mount();
+  const result = () => app.actions.resolve('shell.plugins.todos');
+  assert.equal(result().href, '/settings/plugins?plugin=todos');
+  assert.equal(result().title, 'Todos');
+  assert.equal(result().description, 'Task lists');
+  assert.equal(result().groups[0].title, 'Plugins');
+  assert.deepEqual(app.destinationOf(result()), { kind: 'plugin', plugin: 'todos' });
+  assert.ok(app.actions.resolve('shell.plugins.shell'), 'every composed plugin has a view');
+  settings.updateSection('plugins', { visible: false });
+  assert.equal(result().visible, false);
+  settings.updateSection('plugins', { visible: true, enabled: false });
+  assert.equal(result().enabled, false);
+  stop();
+  assert.equal(result(), undefined);
+  // Without plugin management there is no view to link to; the plugin itself is unaffected.
+  const plain = runtime(createAppPreferences({ storage }), {}, [todos]);
+  const stopPlain = plain.mount();
+  assert.equal(plain.actions.resolve('shell.plugins.todos'), undefined);
+  assert.ok(plain.modules.some((module) => module.id === 'todos'));
+  stopPlain();
+});
+
 test('Shell contributes owned preferences and its page; cleanup cancels late responses', async () => {
   let finish;
   const settings = createAppPreferences({
@@ -149,7 +175,7 @@ test('Settings navigation includes field-only Shell pages from the shared catalo
     );
     assert.match(html, /href="\/settings\/theme"/);
     assert.match(html, /href="\/settings\/appearance"/);
-    assert.match(html, /Darstellung/);
+    assert.match(html, /Appearance/);
   } finally {
     stop();
   }

@@ -17,12 +17,12 @@ export function OrganizationLogoField({
   const translateUI = useTranslation();
   const labels = {
     logo: translateUI("foundationUI.logo_field.logo", undefined, "Logo"),
-    logoPreview: translateUI("foundationUI.logo_field.organizationLogo", undefined, "Organisationslogo"),
-    changeLogo: translateUI("foundationUI.logo_field.changeLogo", undefined, "Logo ändern"),
-    chooseLogo: translateUI("foundationUI.logo_field.chooseLogo", undefined, "Logo auswählen"),
-    removeLogo: translateUI("foundationUI.logo_field.removeLogo", undefined, "Logo entfernen"),
-    logoHint: translateUI("foundationUI.logo_field.pngJPEGOrWebPUpTo2MB", undefined, "PNG, JPEG oder WebP, höchstens 2 MB."),
-    logoInvalid: translateUI("foundationUI.logo_field.chooseAValidImageUpTo2MB", undefined, "Bitte ein gültiges Bild mit höchstens 2 MB auswählen."),
+    logoPreview: translateUI("foundationUI.logo_field.organizationLogo", undefined, "Organization logo"),
+    changeLogo: translateUI("foundationUI.logo_field.changeLogo", undefined, "Change logo"),
+    chooseLogo: translateUI("foundationUI.logo_field.chooseLogo", undefined, "Choose logo"),
+    removeLogo: translateUI("foundationUI.logo_field.removeLogo", undefined, "Remove logo"),
+    logoHint: translateUI("foundationUI.logo_field.pngJPEGOrWebPUpTo2MB", undefined, "PNG, JPEG or WebP, up to 2 MB."),
+    logoInvalid: translateUI("foundationUI.logo_field.chooseAValidImageUpTo2MB", undefined, "Choose a valid image up to 2 MB."),
   };
   const t = (key: keyof typeof labels) => labels[key];
   const input = useRef<HTMLInputElement>(null);

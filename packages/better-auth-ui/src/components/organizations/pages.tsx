@@ -87,8 +87,8 @@ export function OrganizationsPage({
       aria-busy={state.pending}
     >
       <PageHeader
-        title={view === 'pending' ? translateUI("foundationUI.pages.invitations", undefined, "Einladungen") : translateUI("foundationUI.pages.members", undefined, "Mitglieder")}
-        subtitle={translateUI("foundationUI.pages.membersAndInvitationsInTheActiveWorkspace", undefined, "Mitglieder und Einladungen im aktiven Arbeitsbereich.")}
+        title={view === 'pending' ? translateUI("foundationUI.pages.invitations", undefined, "Invitations") : translateUI("foundationUI.pages.members", undefined, "Members")}
+        subtitle={translateUI("foundationUI.pages.membersAndInvitationsInTheActiveWorkspace", undefined, "Members and invitations in the active workspace.")}
         trailing={
           <>
             <GroupActions
@@ -110,7 +110,7 @@ export function OrganizationsPage({
       {demo && (
         <Alert role="note">
           <AlertDescription>
-            {translateUI("foundationUI.pages.pluginTestWithSampleDataNoRealSigninOrEmailDeliveryChanges", undefined, "Plugin-Test mit eigenen Beispieldaten. Keine echte Anmeldung, keine E-Mail-Zustellung; Änderungen bleiben nur bis zum Neuladen.")}</AlertDescription>
+            {translateUI("foundationUI.pages.pluginTestWithSampleDataNoRealSigninOrEmailDeliveryChanges", undefined, "Plugin test with sample data. No real sign-in or email delivery; changes last until reload.")}</AlertDescription>
         </Alert>
       )}
       {state.error && (
@@ -118,7 +118,7 @@ export function OrganizationsPage({
           {state.error}
         </p>
       )}
-      {!state.loaded && state.pending && <p role="status">{translateUI("foundationUI.pages.loadingOrganizations", undefined, "Organisationen werden geladen …")}</p>}
+      {!state.loaded && state.pending && <p role="status">{translateUI("foundationUI.pages.loadingOrganizations", undefined, "Loading organizations…")}</p>}
       {active && (
         <>
           <div className="flex min-w-0 flex-col gap-4">
@@ -133,12 +133,12 @@ export function OrganizationsPage({
                   })
                 }
               >
-                <TabsList variant="line" aria-label={translateUI("foundationUI.pages.people", undefined, "Personen")}>
+                <TabsList variant="line" aria-label={translateUI("foundationUI.pages.people", undefined, "People")}>
                   <TabsTrigger value="current">
-                    {translateUI("foundationUI.pages.members", undefined, "Mitglieder")}<Badge variant="secondary">{state.members.length}</Badge>
+                    {translateUI("foundationUI.pages.members", undefined, "Members")}<Badge variant="secondary">{state.members.length}</Badge>
                   </TabsTrigger>
                   <TabsTrigger value="pending">
-                    {translateUI("foundationUI.pages.pendingInvitations", undefined, "Offene Einladungen")}{' '}
+                    {translateUI("foundationUI.pages.pendingInvitations", undefined, "Pending invitations")}{' '}
                     <Badge variant="secondary">
                       {state.invitations.filter((item) => item.status === 'pending').length}
                     </Badge>
@@ -150,16 +150,16 @@ export function OrganizationsPage({
           </div>
           {filters.tab === 'current' && (
             <div className="min-w-0">
-              {!members.length && <p>{translateUI("foundationUI.pages.noMatchingMembers", undefined, "Keine passenden Mitglieder.")}</p>}
+              {!members.length && <p>{translateUI("foundationUI.pages.noMatchingMembers", undefined, "No matching members.")}</p>}
               <div className="min-w-0">
                 <Table className="min-w-2xl table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{translateUI("foundationUI.pages.member", undefined, "Mitglied")}</TableHead>
+                      <TableHead>{translateUI("foundationUI.pages.member", undefined, "Member")}</TableHead>
                       <TableHead>{translateUI("foundationUI.pages.status", undefined, "Status")}</TableHead>
-                      <TableHead className="w-1/5">{translateUI("foundationUI.pages.role", undefined, "Rolle")}</TableHead>
+                      <TableHead className="w-1/5">{translateUI("foundationUI.pages.role", undefined, "Role")}</TableHead>
                       <TableHead>
-                        <span className="sr-only">{translateUI("foundationUI.pages.actions", undefined, "Aktionen")}</span>
+                        <span className="sr-only">{translateUI("foundationUI.pages.actions", undefined, "Actions")}</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -188,7 +188,7 @@ export function OrganizationsPage({
                         <TableCell>
                           <Badge variant={member.disabled ? 'error' : 'success'}>
                             <MemberStatusIcon status={member.disabled ? 'disabled' : 'active'} />
-                            {member.disabled ? translateUI("foundationUI.pages.suspended", undefined, "Gesperrt") : translateUI("foundationUI.pages.active", undefined, "Aktiv")}
+                            {member.disabled ? translateUI("foundationUI.pages.suspended", undefined, "Suspended") : translateUI("foundationUI.pages.active", undefined, "Active")}
                           </Badge>
                         </TableCell>
                         <TableCell className="whitespace-normal">
@@ -210,18 +210,18 @@ export function OrganizationsPage({
           {filters.tab === 'pending' && (
             <div className="min-w-0">
               {!invitations.length ? (
-                <p className="text-sm text-muted-foreground">{translateUI("foundationUI.pages.noPendingInvitations", undefined, "Keine offenen Einladungen.")}</p>
+                <p className="text-sm text-muted-foreground">{translateUI("foundationUI.pages.noPendingInvitations", undefined, "No pending invitations.")}</p>
               ) : (
                 <>
                   <div className="min-w-0">
                     <Table className="min-w-2xl table-fixed">
                       <TableHeader>
                         <TableRow>
-                          <TableHead>{translateUI("foundationUI.pages.email", undefined, "E-Mail")}</TableHead>
+                          <TableHead>{translateUI("foundationUI.pages.email", undefined, "Email")}</TableHead>
                           <TableHead>{translateUI("foundationUI.pages.status", undefined, "Status")}</TableHead>
-                          <TableHead className="w-1/5">{translateUI("foundationUI.pages.role", undefined, "Rolle")}</TableHead>
+                          <TableHead className="w-1/5">{translateUI("foundationUI.pages.role", undefined, "Role")}</TableHead>
                           <TableHead>
-                            <span className="sr-only">{translateUI("foundationUI.pages.actions", undefined, "Aktionen")}</span>
+                            <span className="sr-only">{translateUI("foundationUI.pages.actions", undefined, "Actions")}</span>
                           </TableHead>
                         </TableRow>
                       </TableHeader>
@@ -234,7 +234,7 @@ export function OrganizationsPage({
                             <TableCell>
                               <Badge variant="warning">
                                 <MemberStatusIcon status="pending" />
-                                {translateUI("foundationUI.pages.pending", undefined, "Ausstehend")}</Badge>
+                                {translateUI("foundationUI.pages.pending", undefined, "Pending")}</Badge>
                             </TableCell>
                             <TableCell>
                               <Badge variant="secondary">

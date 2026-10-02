@@ -9,26 +9,26 @@ export const shellPreferences = defineSettings({
   scope: 'user',
   fields: {
     theme: choiceField({
-      title: 'Farbschema',
-      description: 'Hell, dunkel oder passend zu deinem System.',
+      title: 'Color scheme',
+      description: 'Light, dark or matching your system.',
       defaultValue: 'system',
       options: [
-        { value: 'light', label: 'Hell', description: 'Immer helle Oberfläche.' },
-        { value: 'dark', label: 'Dunkel', description: 'Immer dunkle Oberfläche.' },
-        { value: 'system', label: 'System', description: 'Folgt deinem Betriebssystem.' },
+        { value: 'light', label: 'Light', description: 'Always use a light appearance.' },
+        { value: 'dark', label: 'Dark', description: 'Always use a dark appearance.' },
+        { value: 'system', label: 'System', description: 'Follow your operating system.' },
       ],
       presentation: { variant: 'cards', columns: 3 },
     }),
     layout: choiceField({
       title: 'Navigation',
-      description: 'Wähle die Anordnung deiner Navigation. Inhalte bleiben geöffnet.',
+      description: 'Choose the navigation layout. Content stays open.',
       defaultValue: 'sidebar',
       options: [
-        { value: 'sidebar', label: 'Sidebar', description: 'Navigation links, Inhalte rechts.' },
+        { value: 'sidebar', label: 'Sidebar', description: 'Navigation on the left, content on the right.' },
         {
           value: 'navbar',
-          label: 'Horizontale Navbar',
-          description: 'Navigation über dem Inhaltsbereich.',
+          label: 'Horizontal navigation',
+          description: 'Navigation above the content.',
         },
       ],
       presentation: { variant: 'cards', columns: 2 },

@@ -24,9 +24,9 @@ function GroupView({ groups }: ActionGroupsViewProps) {
   const [error, setError] = useState<string | null>(null);
   const menu = useContext(Menu);
   const items = groups.flatMap(group => group.items);
-  const report = (error: unknown) => setError(error instanceof Error ? error.message : translateUI("foundationUI.group_actions.theActionFailed", undefined, "Die Aktion ist fehlgeschlagen."));
+  const report = (error: unknown) => setError(error instanceof Error ? error.message : translateUI("foundationUI.group_actions.theActionFailed", undefined, "The action failed."));
   if (menu) return <div className="flex justify-end">
-    {items.length > 0 && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon-sm" aria-label={translateUI("foundationUI.group_actions.moreActions", undefined, "Weitere Aktionen")}><MoreIcon aria-hidden="true" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+    {items.length > 0 && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon-sm" aria-label={translateUI("foundationUI.group_actions.moreActions", undefined, "More actions")}><MoreIcon aria-hidden="true" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
       {items.map(action => safeHref(action.href)
         ? <DropdownMenuItem key={action.id} disabled={action.disabled} asChild><ActionLink action={action.id} as="a">{action.icon && <action.icon aria-hidden="true"/>}{action.title}</ActionLink></DropdownMenuItem>
         : <ActionButton key={action.id} action={action.id} input={input} as={DropdownMenuItem} disabled={action.disabled} onError={report}/>
@@ -76,7 +76,7 @@ function GroupView({ groups }: ActionGroupsViewProps) {
               action={action.id}
               input={input}
               onError={(error) =>
-                setError(error instanceof Error ? error.message : translateUI("foundationUI.group_actions.theActionFailed", undefined, "Die Aktion ist fehlgeschlagen."))
+                setError(error instanceof Error ? error.message : translateUI("foundationUI.group_actions.theActionFailed", undefined, "The action failed."))
               }
             />
           );

@@ -26,7 +26,7 @@ export function ActionLink({
     );
   const Component = as ?? (!/^https?:/i.test(href) && Link ? Link : 'a');
   return (
-    <Component {...props} href={href} title={state.description}>
+    <Component {...props} href={href} title={props.title ?? state.tooltip ?? state.description}>
       {children ?? state.title}
     </Component>
   );

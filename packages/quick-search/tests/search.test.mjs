@@ -69,7 +69,7 @@ test('automatic AppBar trigger, URL-only search, metadata, native links and live
       labels: { cancel: 'Cancel', submit: 'Submit', pending: 'Pending', invalid: 'Invalid', unavailable: 'Unavailable' },
     }, h(AppBar))));
     const trigger = container.querySelector('button');
-    assert.match(trigger.textContent, /Schnellsuche/);
+    assert.match(trigger.textContent, /Quick search/);
     assert.equal(container.querySelector('input'), null);
     await act(async () => trigger.click());
     assert.ok(document.querySelector('[role=dialog]'));
@@ -86,8 +86,131 @@ test('automatic AppBar trigger, URL-only search, metadata, native links and live
     });
     assert.equal(document.querySelectorAll('[cmdk-item]').length, 1);
     await act(async () => remove.unregister());
-    assert.match(document.body.textContent, /Keine Ergebnisse/);
+    assert.match(document.body.textContent, /No results found/);
     await act(async () => input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
     assert.equal(document.querySelector('[role=dialog]'), null);
   } finally { await act(async () => root.unmount()); container.remove(); }
+});
+
+const labels = { cancel: 'Cancel', submit: 'Submit', pending: 'Pending', invalid: 'Invalid', unavailable: 'Unavailable' };
+/** Renders an app with quick search, opens it and returns helpers to read and drive the results. */
+async function openSearch({ plugins = [], list = createActionList(), results } = {}) {
+  const container = document.createElement('div'); document.body.append(container);
+  const root = createRoot(container);
+  await act(async () => root.render(h(FoundationProvider, {
+    plugins: [quickSearchPlugin({ results }), ...plugins], actionOptions: { list, shortcuts: false }, ui: standardFoundationUI, labels,
+  }, h(AppBar))));
+  await act(async () => container.querySelector('button').click());
+  return {
+    list,
+    ids: () => [...document.querySelectorAll('[cmdk-item]')].map((item) => item.getAttribute('data-value')).sort(),
+    async close() { await act(async () => root.unmount()); container.remove(); },
+  };
+}
+
+test('results name their type and owning plugin, derived from existing registrations', async () => {
+  const { defineURLAction, destinationMetadata } = await import('@bitakit/core');
+  const list = createActionList();
+  // What the settings catalog and a plugin overview project; developers never declare these.
+  list.register({ id: 'alerts', title: 'Notifications', href: '/settings/alerts', metadata: destinationMetadata({ kind: 'settings', plugin: 'todos' }) });
+  list.register({ id: 'overview', title: 'Todos', href: '/settings/plugins?plugin=todos', metadata: destinationMetadata({ kind: 'plugin', plugin: 'todos' }) });
+  list.register({ id: 'alerts.shortcut', title: 'Alerts', href: '/settings/alerts', shortcut: { keys: 'Mod+J' } });
+  list.register({ id: 'home', title: 'Home', href: '/' });
+  list.register({ id: 'docs', title: 'Docs', href: 'https://example.com/docs' });
+  const todos = {
+    id: 'todos',
+    metadata: { name: 'Todos' },
+    pages: [{ path: '/todos/tasks', component: () => null }],
+    actions: [defineURLAction({ id: 'todos.tasks', title: 'Tasks', href: '/todos/tasks' })],
+  };
+  const search = await openSearch({ plugins: [todos], list, results: { plugins: true } });
+  try {
+    const kind = (href) => document.querySelector(`a[href="${href}"] .quick-search-kind`)?.textContent;
+    assert.equal(kind('/todos/tasks'), 'Page · Todos');
+    // Duplicate destinations merge: the shortcut Action is shown, the settings type is kept.
+    assert.equal(kind('/settings/alerts'), 'Settings · Todos');
+    assert.match(document.querySelector('a[href="/settings/alerts"]').textContent, /Alerts/);
+    assert.equal(document.querySelectorAll('a[href="/settings/alerts"]').length, 1);
+    // A plugin is its own owner; application pages and external links name no plugin.
+    assert.equal(kind('/settings/plugins?plugin=todos'), 'Plugin');
+    assert.equal(kind('/'), 'Page');
+    assert.equal(kind('https://example.com/docs'), undefined);
+    const input = document.querySelector('[cmdk-input]');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, 'todos');
+      input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    // Searching for the plugin finds everything it owns, including results whose IDs do not say so.
+    assert.deepEqual(
+      [...document.querySelectorAll('[cmdk-item] a')].map((link) => link.getAttribute('href')).sort(),
+      ['/settings/alerts', '/settings/plugins?plugin=todos', '/todos/tasks'],
+    );
+  } finally { await search.close(); }
+});
+
+test('each result type has its own switch; turning one off never hides another', async () => {
+  const { defineAction, defineURLAction, destinationMetadata } = await import('@bitakit/core');
+  const todos = {
+    id: 'todos',
+    metadata: { name: 'Todos' },
+    pages: [{ path: '/todos/tasks', component: () => null }],
+    actions: [
+      defineURLAction({ id: 'todos.tasks', title: 'Tasks', href: '/todos/tasks' }),
+      // An Action without a URL is never a result, whatever the switches say.
+      defineAction({ id: 'todos.archive', title: 'Archive done', execute: () => {} }),
+    ],
+  };
+  const projected = () => {
+    const list = createActionList();
+    list.register({ id: 'alerts', title: 'Notifications', href: '/settings/alerts', metadata: destinationMetadata({ kind: 'settings', plugin: 'todos' }) });
+    list.register({ id: 'overview', title: 'Todos', href: '/settings/plugins?plugin=todos', metadata: destinationMetadata({ kind: 'plugin', plugin: 'todos' }) });
+    return list;
+  };
+  const cases = [
+    // Omitted configuration keeps the existing behavior: pages and settings.
+    [undefined, ['alerts', 'todos.tasks']],
+    [{ plugins: true }, ['alerts', 'overview', 'todos.tasks']],
+    // Plugin results off never hides the plugin's own pages or settings.
+    [{ plugins: false }, ['alerts', 'todos.tasks']],
+    [{ settings: false }, ['todos.tasks']],
+    [{ pages: false }, ['alerts']],
+    [{ pages: false, settings: false, plugins: true }, ['overview']],
+  ];
+  for (const [results, expected] of cases) {
+    const search = await openSearch({ plugins: [todos], list: projected(), results });
+    try {
+      assert.deepEqual(search.ids(), expected, JSON.stringify(results));
+    } finally { await search.close(); }
+  }
+});
+
+test('only navigation links are results: Actions without a URL never appear, even those that need input', async () => {
+  const { defineAction, defineDialogAction, defineFormAction } = await import('@bitakit/core');
+  const runs = [];
+  const todos = {
+    id: 'todos',
+    metadata: { name: 'Todos' },
+    actions: [
+      defineAction({ id: 'todos.archive', title: 'Archive done', execute: () => void runs.push('archive') }),
+      // Needs input and does not hide itself without it.
+      defineAction({ id: 'todos.rename', title: 'Rename', execute: ({ input }) => void runs.push(`rename ${input.title}`) }),
+      defineDialogAction({ id: 'todos.details', title: 'Task details', render: () => null }),
+      defineFormAction({ id: 'todos.create', title: 'New task', fields: { title: { type: 'text', required: true } }, submit: () => {} }),
+    ],
+  };
+  const list = createActionList();
+  list.register({ id: 'dark', title: 'Dark mode', checked: false, execute: () => {} });
+  list.register({ id: 'reports', title: 'Reports', href: '/reports' });
+  const search = await openSearch({ plugins: [todos], list, results: { pages: true, settings: true, plugins: true } });
+  try {
+    assert.deepEqual(search.ids(), ['reports']);
+    const input = document.querySelector('[cmdk-input]');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, 'rename');
+      input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    assert.deepEqual(search.ids(), []);
+    assert.match(document.body.textContent, /No results found/);
+    assert.deepEqual(runs, []);
+  } finally { await search.close(); }
 });

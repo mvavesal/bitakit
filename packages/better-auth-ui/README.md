@@ -68,7 +68,7 @@ Die originalen Bibliotheksicons und Marken bleiben unverändert.
 
 ## Content Studio
 
-Host-Konfiguration: `apps/content-demo/src/features/better-auth/plugin.tsx`.
+Host-Konfiguration: `apps/content-demo/src/auth.tsx`.
 Der reguläre Plugin-Beitrag liefert den Menülink **Konto & Organisationen**.
 
 - `/better-auth`: öffentliche Paket-Einstiegspunkte.

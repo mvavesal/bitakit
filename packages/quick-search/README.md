@@ -1,19 +1,58 @@
 # Quick Search
 
-Install `@bitakit/quick-search` as a direct app dependency. Foundation package discovery registers its dialog Action and `app-bar.end` view automatically; the standard AppBar displays the search button in either Shell layout. No app component, provider or per-action registration is required. The package entry imports its styles using the host's central theme tokens.
+A search dialog for BitaKit apps: press Mod+K, or click the search button in the app bar, to jump to a page, a settings page or a plugin.
 
-The plugin uses Core, generic Foundation React bindings and standard UI primitives, cmdk, React and Reicon. It does not import Shell, Settings or Better Auth. A custom application header can render the same `PluginSlot` named `app-bar.end`, or render `QuickSearchTrigger` explicitly. Without an AppBar the default Mod+K shortcut still opens the dialog.
+## Install
 
-The trigger is a button styled as a compact search field. Clicking it opens Foundation's existing dialog and focuses the real search input. Cmdk provides filtering, ranking and arrow/Enter selection. Escape closes the dialog. Search includes current public, visible, safe URL Actions only; command/form/dialog Actions and internal helpers are excluded. Disabled and pending destinations cannot be selected. Results use real ActionLink anchors, preserving native modified-click/new-tab behavior without also executing the Action handler.
+```sh
+npm install @bitakit/quick-search
+```
 
-Title, description, icon and platform-formatted shortcut come from current resolved snapshots. Existing Action groups supply headings and search keywords. Each Action appears once under its first group. There is no invented category schema, copied registry or persistent search state.
+That is all. Foundation package discovery registers the search Action and the `app-bar.end` view automatically; the standard AppBar shows the search button in either Shell layout. You do not register results, add a provider or write a component. The package imports its own styles and uses the host's theme tokens.
 
-For manual configuration, use `quickSearchPlugin({ title, placeholder, empty, shortcut })`; set `shortcut: false` to disable it. Defaults are German and Mod+K. Standard package discovery requires the Foundation host; installing the package cannot add a header to arbitrary React applications.
+## What search finds
+
+Search finds places to go, nothing else. Each result is a link and shows its type and, unless the app itself owns it, the plugin it belongs to: `Tasks — Page · Todos`, `Notifications — Settings · Todos`. Typing a plugin's name finds everything that plugin owns.
+
+| Type     | What it includes                                                   | Default |
+| -------- | ------------------------------------------------------------------ | ------- |
+| Pages    | Links to pages of the app, and other navigation links              | on      |
+| Settings | Pages of the Settings catalog                                      | on      |
+| Plugins  | One result per plugin, opening its view in Shell's plugin overview | off     |
+
+Commands, dialogs and forms (Actions without a URL) never appear, so search never runs an Action. Hidden Actions and internal helpers never appear either, and disabled or pending links cannot be selected.
+
+## Choose result types
+
+Without configuration, search shows pages and settings. To change that, add `src/configs/quick-search.ts` to your app:
+
+```ts
+import { defineConfig } from '@bitakit/core';
+import type { QuickSearchOptions } from '@bitakit/quick-search';
+
+export default defineConfig({
+  defaults: {
+    results: { plugins: true },
+  } satisfies QuickSearchOptions,
+});
+```
+
+Each switch only affects its own type: turning plugin results off never hides a plugin's pages or settings, and turning settings off keeps pages. The same file accepts `title`, `placeholder`, `empty` and `shortcut` (`false` disables Mod+K).
+
+Plugin results need Shell's plugin overview (`shellPlugin({ pluginManagement: true })`), which publishes one link per plugin to `/settings/plugins?plugin=<id>`. They follow that page's visibility, so people who cannot see the overview do not see plugin results either.
+
+## How results are built
+
+Results are the current, visible URL Actions of the app's single ActionList; there is no second search registry and no stored search state. Each result is a real link (`ActionLink`), so modified clicks still open new tabs, and unsafe URLs are never shown. When several Actions lead to the same place, search shows one result: it prefers the one with a keyboard shortcut and keeps the most specific type. Action groups supply the headings and extra keywords. Results appear and disappear with their plugins.
+
+Types and owners come from existing registrations through `runtime.destinationOf(action)`. A settings page belongs to the plugin that contributed its section. Another path of the app is a page of the plugin whose page path matches, otherwise of the plugin that contributed the link. External links have no type. Integrations that project their own registrations into the ActionList, such as the Settings catalog and Shell's plugin overview, mark them with `destinationMetadata({ kind, plugin })`; developers never declare destinations.
+
+## Without package discovery
+
+In a host without Foundation discovery, add the plugin yourself: `quickSearchPlugin({ title, placeholder, empty, shortcut, results })`. A custom header can render the `PluginSlot` named `app-bar.end`, or `QuickSearchTrigger` directly. Without any header, Mod+K still opens the dialog. Installing the package cannot add a header to an arbitrary React app.
+
+## Translation catalogs
+
+Package-owned English and German messages live in `locales/` and are exported as `./locales/en.json` and `./locales/de.json`. Compose them in the host request configuration with `mergePluginMessages`; app catalogs override matching keys in the same locale.
 
 Run the focused check with `npm test --workspace @bitakit/quick-search`.
-
-### Translation catalogs
-
-Package-owned English and German messages live in `locales/` and are exported as
-`./locales/en.json` and `./locales/de.json`. Compose them in the host request configuration
-with `mergePluginMessages`; app catalogs override matching keys in the same locale.

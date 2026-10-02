@@ -1,6 +1,6 @@
 # Client authentication
 
-These APIs are available in the workspace; they require a release before use from npm.
+Available since Core 0.1.1 with `@bitakit/ui`, `@bitakit/shell` and `@bitakit/better-auth` 0.1.0.
 Core owns the `AuthService` contract. Optional provider plugins supply the session;
 `@bitakit/ui` observes it and uses the existing framework navigation binding.
 There is no second session store. Server authentication and authorization remain
@@ -102,5 +102,5 @@ inside the optional integration package using existing plugin providers.
 
 Auth.js and Clerk adapters are not implemented here. Their native session/login APIs
 must be mapped inside their optional packages; organizations, registration and password
-recovery are not standardized by this small contract. Better Auth remains the working
-reference in `packages/better-auth/src/index.ts`.
+recovery are not standardized by this small contract. The `@bitakit/better-auth` package
+remains the working reference.

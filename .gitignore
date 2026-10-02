@@ -40,3 +40,6 @@ tmp/
 
 # Generated Fumadocs content
 apps/docs/.source/
+
+# Temporary package copies created by Core tests
+packages/*/.copy-*/

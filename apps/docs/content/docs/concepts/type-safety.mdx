@@ -21,6 +21,18 @@ BitaKit is designed around type-safe feature composition. Define the contract at
 ```ts
 import { defineAction } from '@bitakit/core';
 
+export default defineAction({
+  execute: ({ input }: { input: { title: string } }) => ({ title: input.title, saved: true }),
+});
+```
+
+TypeScript infers the input from the annotated parameter and the result from the return value. In the context-based `defineAction<Input, Result>({...})` form, supply both types when explicitly specifying generics; supplying only Input leaves Result at its default `void`.
+
+For custom Action state, use the curried form:
+
+```ts
+import { defineAction } from '@bitakit/core';
+
 export default defineAction<{ title: string }>()({
   initialState: {},
   execute(input) {
@@ -29,9 +41,9 @@ export default defineAction<{ title: string }>()({
 });
 ```
 
-The curried `defineAction<Input>()({...})` form keeps input explicit while inferring the return type. In the context-based `defineAction<Input, Result>({...})` form, supply both types when explicitly specifying generics; supplying only Input leaves Result at its default `void`.
+The curried `defineAction<Input>()({...})` form keeps input explicit while inferring the return type.
 
-In a discovered contribution, its effective ID maps to that input and inferred result. Generated `ActionMap`, `ServiceMap` and `ConfigMap` declarations connect definitions to consumers; keep the generated declaration file included in the host TypeScript project. Editors can then complete known IDs and service methods. `requires` separately declares runtime dependencies.
+In a discovered contribution, its effective ID maps to that input and inferred result. Generated `ActionMap`, `ServiceMap` and `ConfigMap` declarations connect definitions to consumers; keep the generated declaration file included in the host TypeScript project. Editors can then complete known IDs and service methods. `requires` separately lists services from other plugins, which Foundation checks at startup.
 
 ## Strict action IDs
 

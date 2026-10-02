@@ -2,7 +2,12 @@
   "quickSearch": {
     "title": "Quick search",
     "placeholder": "Search pages…",
-    "empty": "No results found."
+    "empty": "No results found.",
+    "kinds": {
+      "plugin": "Plugin",
+      "page": "Page",
+      "settings": "Settings"
+    }
   },
   "quick-search": {
     "open": {

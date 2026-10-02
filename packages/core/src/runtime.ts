@@ -3,14 +3,19 @@ import { setupAction } from './events/action-setup.js';
 import { serviceObserver } from './interceptors/service-observers.js';
 import { isServiceInterceptor } from './interceptors/service.js';
 import { ConfigService, type ConfigContext } from './config-service.js';
-import { contributionPath } from './contribution-origin.js';
+import { contributionPath, contributionSource } from './contribution-origin.js';
+import { ServiceNames, type ServiceRequester } from './service-names.js';
+import { FoundationStartupError, isFoundationStartupError, moduleLabel } from './startup-error.js';
 import { applyActionReplacements } from './replacements.js';
-import { validatePluginPages } from './pages.js';
+import { findPluginPage, validatePluginPages } from './pages.js';
+import { projectedDestination, type Destination } from './destinations.js';
 import { resolveText } from './translation.js';
 import {
   ActionGroup,
+  createActionList,
   type ActionList,
   type ActionRegistration,
+  type ActionSnapshot,
 } from '@bitakit/core/actions';
 import type {
   Contribution,
@@ -31,7 +36,7 @@ import { serviceAliases } from './app/service-aliases.js';
 import type { FoundationApp } from './app/types.js';
 import { fallbackTitle } from './conventions.js';
 import {
-  ActionFailure,
+  isActionFailure,
   evaluateFeedback,
   type Feedback,
   type MessageValues,
@@ -93,6 +98,8 @@ export class FoundationRuntime implements ContributionHost {
   private scopes: PluginScope[] = [];
   private extensionCleanups: (() => void)[] = [];
   private container?: ReturnType<typeof createServices>;
+  private names?: ServiceNames;
+  private view?: Services;
   private translate: Translator = (key) => key;
   private translationRevision = 0;
   private translationListeners = new Set<() => void>();
@@ -159,18 +166,55 @@ export class FoundationRuntime implements ContributionHost {
         : [];
     });
   }
+  /**
+   * What a URL Action leads to and which plugin owns it, from existing registrations: the
+   * destination an integration projected (settings sections), else a page of this app owned by
+   * the plugin whose page path matches, else by the plugin that contributed the Action. External
+   * links and Actions without a URL have none; the application is never named as the owner.
+   */
+  destinationOf(action: Pick<ActionSnapshot, 'id' | 'href' | 'metadata'>): Destination | undefined {
+    const owner = (plugin?: string) => (plugin && plugin !== this.appId ? { plugin } : {});
+    const projected = projectedDestination(action.metadata);
+    if (projected) return { kind: projected.kind, ...owner(projected.plugin) };
+    const href = action.href;
+    if (!href?.startsWith('/') || href.startsWith('//')) return undefined;
+    const page = findPluginPage(this.modules, href.split(/[?#]/)[0]);
+    return { kind: 'page', ...owner(page ? page.plugin : this.ownerOf(action.id)) };
+  }
+  /**
+   * The plugin whose contributions registered an Action. Undefined for the application's own
+   * Actions and for Actions registered outside contributions.
+   */
+  private ownerOf(id: string): string | undefined {
+    const module = this.actionConfigs.get(id)?.module;
+    return module && module !== this.appId ? module : undefined;
+  }
+  /**
+   * One group per ID. The first title given for an ID is kept, whichever registration or
+   * configured `groups` entry mentions the ID first; groups are always matched by ID.
+   */
   getGroup = (entry: string | ActionGroup) => {
     const id = typeof entry === 'string' ? entry : entry.id;
-    let group = this.groups.get(id);
-    if (!group) {
-      group = typeof entry === 'string' ? new ActionGroup(id) : entry;
-      this.groups.set(id, group);
-    }
-    return group;
+    const group = this.groups.get(id);
+    if (group && (typeof entry === 'string' || group.title !== undefined || entry.title === undefined))
+      return group;
+    const next = typeof entry === 'string' ? new ActionGroup(id) : entry;
+    this.groups.set(id, next);
+    return next;
   };
+  /**
+   * Services by public name (exposeAs) and by container key, exactly as every contribution sees
+   * them: a name means the same service in every module, which is what the generated ServiceMap
+   * describes. A live, read-only view; the container stays the only owner of the instances.
+   */
   get services(): Services {
+    if (!this.container || !this.names) throw new Error('Foundation is not mounted.');
+    return (this.view ??= this.names.view(this.container.services as Record<string, unknown>));
+  }
+  /** The container by key only, for the runtime's own key-based checks. */
+  private get instances(): Readonly<Record<string, unknown>> {
     if (!this.container) throw new Error('Foundation is not mounted.');
-    return this.container.services;
+    return this.container.services as Record<string, unknown>;
   }
   getSnapshot = () => this.state;
   getServerSnapshot = () => null;
@@ -316,12 +360,19 @@ export class FoundationRuntime implements ContributionHost {
         (plugin.services ?? []).map((service) => [service, plugin.id] as const),
       ),
     );
+    this.names = new ServiceNames(this.modules, this.appId);
     this.container = createServices(
       plugins.flatMap((plugin) => plugin.services ?? []),
       this.providedServices,
       (definition) => this.configuration.context(serviceModules.get(definition)!),
       serviceObserver(this.modules),
       this.events,
+      {
+        names: this.names,
+        appId: this.appId,
+        moduleOf: (definition) => serviceModules.get(definition) ?? this.appId,
+        sourceOf: (definition) => contributionSource(definition),
+      },
     );
     try {
       this.extensionCleanups.push(
@@ -329,16 +380,21 @@ export class FoundationRuntime implements ContributionHost {
           if (
             event.phase === 'failed' &&
             event.context.get() &&
-            event.error instanceof ActionFailure
+            isActionFailure(event.error)
           )
             this.notify(event.error.feedback, 'failure');
         }),
       );
       this.connectTranslation();
       this.installInterceptors(plugins);
+      const composed = Object.freeze(
+        plugins
+          .filter((plugin) => plugin.id !== this.appId)
+          .map((plugin) => Object.freeze({ id: plugin.id, metadata: plugin.metadata })),
+      );
       for (const plugin of plugins) {
         const scope = new PluginScope(this.actions, this.groups);
-        assignScopeModule(scope, { id: plugin.id, app: plugin.id === this.appId });
+        assignScopeModule(scope, { id: plugin.id, app: plugin.id === this.appId }, composed);
         this.scopes.push(scope);
       }
       this.installContributions(plugins);
@@ -350,8 +406,12 @@ export class FoundationRuntime implements ContributionHost {
       this.observe(observed);
       plugins.forEach((plugin, index) => {
         const scope = this.scopes[index];
-        const cleanup = plugin.setup?.({ app: scope, services: this.services });
-        if (cleanup) scope.own(cleanup);
+        try {
+          const cleanup = plugin.setup?.({ app: scope, services: this.services });
+          if (cleanup) scope.own(cleanup);
+        } catch (error) {
+          throw this.attribute(error, plugin.id, 'Setup');
+        }
       });
     } catch (error) {
       this.unmount();
@@ -383,12 +443,16 @@ export class FoundationRuntime implements ContributionHost {
       plugins.forEach((plugin, index) => {
         const values = plugin.contributions?.[kind];
         if (!values?.length) return;
-        const cleanup = install(values, {
-          module: plugin.id,
-          app: plugin.id === this.appId,
-          services: this.services,
-        });
-        if (cleanup) this.scopes[index].own(cleanup);
+        try {
+          const cleanup = install(values, {
+            module: plugin.id,
+            app: plugin.id === this.appId,
+            services: this.services,
+          });
+          if (cleanup) this.scopes[index].own(cleanup);
+        } catch (error) {
+          throw this.attribute(error, plugin.id, `Contribution "${kind}"`);
+        }
       });
   }
   private connectTranslation() {
@@ -414,15 +478,24 @@ export class FoundationRuntime implements ContributionHost {
     ].sort((a, b) => (a.definition.order ?? 0) - (b.definition.order ?? 0));
     for (const { definition, module, global } of entries) {
       if (isServiceInterceptor(definition)) continue;
-      if ('create' in definition) this.requireServices(definition.requires);
-      const interceptor =
-        'create' in definition
-          ? definition.create({
-              services: this.services,
-              translate: this.translator(),
-              config: this.configuration.context(module),
-            })
-          : definition;
+      const requester = {
+        label: `An interceptor in ${moduleLabel(module, this.appId)}`,
+        source: contributionSource(definition),
+      };
+      let interceptor: Pick<import('./definitions.js').FoundationInterceptor, 'before'>;
+      try {
+        if ('create' in definition) this.requireServices(module, definition.requires, requester);
+        interceptor =
+          'create' in definition
+            ? definition.create({
+                services: this.services,
+                translate: this.translator(),
+                config: this.configuration.context(module),
+              })
+            : definition;
+      } catch (error) {
+        throw this.attribute(error, module, 'Interceptor', requester.source);
+      }
       this.extensionCleanups.push(
         this.actions.use({
           before: (context) => {
@@ -437,9 +510,30 @@ export class FoundationRuntime implements ContributionHost {
       );
     }
   }
-  private requireServices(ids: readonly string[] = []) {
-    for (const id of ids)
-      if (!Object.hasOwn(this.services, id)) throw new Error(`Missing service "${id}".`);
+  /** Resolves required names to container keys; a missing one is attributed to `module`. */
+  private requireServices(
+    module: string,
+    ids: readonly string[] = [],
+    requester: ServiceRequester,
+  ): string[] {
+    const instances = this.instances;
+    const exists = (key: string) => Object.hasOwn(instances, key);
+    return ids.map((id) => {
+      const key = this.names!.key(id);
+      if (!exists(key))
+        throw this.names!.missing(module, id, requester, exists, Object.keys(instances));
+      return key;
+    });
+  }
+  /** Keeps attributed errors; otherwise names the module (and source) that failed to start. */
+  private attribute(error: unknown, module: string, what: string, source?: string) {
+    if (isFoundationStartupError(error)) return error;
+    const message = error instanceof Error ? error.message : String(error);
+    return new FoundationStartupError(
+      `${what} in ${moduleLabel(module, this.appId)} failed to start: ${message}${source ? `\nSource: ${source}` : ''}`,
+      module,
+      { cause: error, source, app: module === this.appId },
+    );
   }
   /** One path for every kind: adapt, check dependencies, register, remember for re-translation. */
   private install(
@@ -452,37 +546,51 @@ export class FoundationRuntime implements ContributionHost {
       (typeof contribution === 'object' ? contribution.configPath : undefined) ??
       contributionPath(contribution) ??
       (typeof contribution === 'object' && contribution.id ? contribution.id.split('.') : []);
-    const config = this.configuration.context(module, path);
-    const adapted = adaptContribution(contribution, this, config);
-    this.requireServices(adapted.requires);
-    for (const id of adapted.watch) {
-      const service = (this.services as unknown as Record<string, { subscribe?: unknown }>)[id];
-      if (!service || typeof service.subscribe !== 'function')
-        throw new Error(`Observed service "${id}" must provide subscribe(listener).`);
-      observed.add(id);
+    const source = contributionSource(contribution);
+    let adapted: ReturnType<typeof adaptContribution>;
+    let config: ConfigContext;
+    try {
+      config = this.configuration.context(module, path);
+      adapted = adaptContribution(contribution, this, config);
+      const requester = { label: `Action "${adapted.definition.id}"`, source };
+      this.requireServices(module, adapted.requires, requester);
+      for (const id of adapted.watch) {
+        const key = this.names!.key(id);
+        const service = (this.instances as Record<string, { subscribe?: unknown }>)[key];
+        if (!service || typeof service.subscribe !== 'function')
+          throw new Error(`Observed service "${id}" must provide subscribe(listener).`);
+        observed.add(key);
+      }
+    } catch (error) {
+      const id = typeof contribution === 'object' && contribution.id ? ` "${contribution.id}"` : '';
+      throw this.attribute(error, module, `Action${id}`, source);
     }
     for (const registration of adapted.registrations) {
-      this.actionConfigs.set(registration.id, { module, config });
-      const handle = registration.instance
-        ? this.actions.add(registration.id, registration.instance, registration.placement)
-        : this.actions.register(registration.definition, registration.placement);
-      scope.own(handle.unregister);
-      if (adapted.setup) {
-        const eventScope = createEventScope(this.events);
-        handle.onDispose(eventScope.dispose);
-        const cleanup = adapted.setup({
-          events: eventScope.events, services: this.services,
-          action: setupAction(handle), app: this.app, config,
-        });
-        if (cleanup) handle.onDispose(cleanup);
+      try {
+        this.actionConfigs.set(registration.id, { module, config });
+        const handle = registration.instance
+          ? this.actions.add(registration.id, registration.instance, registration.placement)
+          : this.actions.register(registration.definition, registration.placement);
+        scope.own(handle.unregister);
+        if (adapted.setup) {
+          const eventScope = createEventScope(this.events);
+          handle.onDispose(eventScope.dispose);
+          const cleanup = adapted.setup({
+            events: eventScope.events, services: this.services,
+            action: setupAction(handle), app: this.app, config,
+          });
+          if (cleanup) handle.onDispose(cleanup);
+        }
+        this.registrations.push({ definition: adapted.definition, handle });
+      } catch (error) {
+        throw this.attribute(error, module, `Action "${registration.id}"`, source);
       }
-      this.registrations.push({ definition: adapted.definition, handle });
     }
   }
   private observe(observed: Set<string>) {
     for (const id of observed) {
       const service = (
-        this.services as unknown as Record<string, { subscribe(listener: () => void): () => void }>
+        this.instances as Record<string, { subscribe(listener: () => void): () => void }>
       )[id];
       this.extensionCleanups.push(service.subscribe(() => this.actions.refresh()));
     }
@@ -513,9 +621,23 @@ export class FoundationRuntime implements ContributionHost {
     }
     this.events.clear();
     this.container = undefined;
+    this.names = undefined;
+    this.view = undefined;
     this.registrations = [];
     this.actionConfigs.clear();
     this.publish(null);
     if (errors.length) throw new AggregateError(errors, 'Foundation cleanup failed.');
   }
+}
+
+/**
+ * Creates the runtime for one composition; `runtime.mount()` starts it and returns the stop
+ * function. Core creates the ActionList unless you pass one, for example a list already shared
+ * with an ActionProvider. `services` supplies host-owned services, such as authentication.
+ */
+export function createRuntime(
+  config: FoundationConfig,
+  options: { actions?: ActionList; services?: Partial<Services> } = {},
+): FoundationRuntime {
+  return new FoundationRuntime(options.actions ?? createActionList(), config, options.services);
 }

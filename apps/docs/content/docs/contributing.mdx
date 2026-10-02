@@ -54,30 +54,24 @@ The development server uses port 3002. Search indexes the documentation content 
 These steps are for repository contributors, not application developers.
 Run them from the repository root with Node.js 24 and npm 10 or newer.
 
-## 1. Install and build
+### 1. Install dependencies
 
 ```sh
 npm install
-npm run build -w @bitakit/core
-npm run build -w @bitakit/ui
-npm run build -w @bitakit/next
 ```
 
-## 2. Prepare local packages
+### 2. Prepare local packages
 
 The generator can install packed BitaKit packages before they are published.
-Create a new archive directory and pack the three packages required by the minimal preset:
+Build and pack the four packages a minimal app installs, including the `@bitakit/cli` dev dependency:
 
 ```sh
-mkdir -p .tmp/docs-packages
-npm pack -w @bitakit/core --pack-destination .tmp/docs-packages
-npm pack -w @bitakit/ui --pack-destination .tmp/docs-packages
-npm pack -w @bitakit/next --pack-destination .tmp/docs-packages
+npm run pack -- .tmp/docs-packages core ui next cli
 ```
 
-Keep only one version of each package in this directory.
+The script builds each package first and removes older BitaKit archives from that directory.
 
-## 3. Generate your app
+### 3. Generate your app
 
 Choose a destination that does not already exist. The official Next.js scaffold is downloaded,
 so this step requires internet access.
@@ -93,7 +87,7 @@ node packages/create-app/src/cli.mjs ../my-foundation-app \
 The generator installs dependencies and creates native routes and Foundation configuration.
 It does not copy plugin implementations or create a backend.
 
-## 4. Run it
+### 4. Run it
 
 ```sh
 cd ../my-foundation-app
@@ -103,4 +97,8 @@ npm run dev
 Open the local URL printed by Next.js. You should see the generated welcome page.
 The generated Foundation provider connects to Next's router internally; no per-page router
 adapter is required.
+
+For the full check, run `npm run verify:generated`. It packs the packages itself, generates every
+supported project shape, and type-checks, builds and smoke-tests each one in a browser. It needs
+internet access and Playwright's Chromium.
 

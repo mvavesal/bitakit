@@ -2,11 +2,41 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createActionList } from '@bitakit/core/actions';
 import {
+  ActionGroup,
   FoundationRuntime,
+  createRuntime,
+  defineAction,
   defineFormAction,
   defineService,
   mergePluginMessages,
 } from '../dist/core.js';
+
+test('createRuntime creates the ActionList unless one is passed, and accepts host services', async () => {
+  const notes = {
+    id: 'notes',
+    services: [defineService({ id: 'notes.store', exposeAs: 'store', create: () => ({ count: () => 2 }) })],
+    actions: [defineAction({ id: 'notes.count', execute: ({ services }) => services.store.count() })],
+  };
+  const runtime = createRuntime({ plugins: [notes] });
+  assert.ok(runtime instanceof FoundationRuntime);
+  const stop = runtime.mount();
+  try {
+    assert.equal((await runtime.actions.execute('notes.count')).value, 2);
+  } finally {
+    stop();
+  }
+  const actions = createActionList();
+  const auth = { signOut: () => {} };
+  const shared = createRuntime({ plugins: [notes] }, { actions, services: { auth } });
+  assert.equal(shared.actions, actions);
+  const stopShared = shared.mount();
+  try {
+    assert.equal(shared.services.auth, auth);
+    assert.ok(actions.get('notes.count'));
+  } finally {
+    stopShared();
+  }
+});
 
 const form = (submit = async () => {}) =>
   defineFormAction({
@@ -147,7 +177,7 @@ test('service dependency failures are explicit and release created services', ()
       },
     ],
   });
-  assert.throws(() => runtime.mount(), /Missing or cyclic/);
+  assert.throws(() => runtime.mount(), /Service "second" requires service "missing"/);
   assert.equal(disposed, 1);
 });
 
@@ -174,4 +204,32 @@ test('host catalogs override plugin keys and add a language with per-key fallbac
   assert.deepEqual(mergePluginMessages({ app, plugins, locale: 'fa' }).shell, { title: 'برنامه', help: 'Help' });
   assert.equal(mergePluginMessages({ app, plugins, locale: 'en' }).shell.title, 'Application');
   assert.equal(plugins.en.shell.title, 'Shell');
+});
+
+test('a group keeps its title whichever registration or configured entry mentions it first', () => {
+  const titled = () =>
+    defineAction({ id: 'todos.export', groups: [new ActionGroup('todos.bulk', 'Bulk actions')], execute() {} });
+  const plain = () => defineAction({ id: 'todos.clear', groups: ['todos.bulk'], execute() {} });
+  const cases = [
+    ['plain name first', {}, [plain(), titled()]],
+    ['titled group first', {}, [titled(), plain()]],
+    ['configured groups first', { groups: ['todos.bulk'] }, [plain(), titled()]],
+  ];
+  for (const [label, config, actions] of cases) {
+    const runtime = createRuntime({ ...config, plugins: [{ id: 'todos', actions }] });
+    const stop = runtime.mount();
+    try {
+      assert.equal(runtime.getGroup('todos.bulk').title, 'Bulk actions', label);
+      assert.equal(runtime.getGroup(new ActionGroup('todos.bulk')).title, 'Bulk actions', label);
+      // Both actions stay in the same group, which is matched by ID.
+      for (const id of ['todos.clear', 'todos.export'])
+        assert.ok(runtime.actions.get(id).groups.some((group) => group.id === 'todos.bulk'), `${label}: ${id}`);
+    } finally {
+      stop();
+    }
+  }
+  // Conflicting titles: the first title stays.
+  const runtime = createRuntime({});
+  runtime.getGroup(new ActionGroup('todos.bulk', 'First'));
+  assert.equal(runtime.getGroup(new ActionGroup('todos.bulk', 'Second')).title, 'First');
 });

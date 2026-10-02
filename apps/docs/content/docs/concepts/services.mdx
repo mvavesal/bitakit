@@ -27,12 +27,27 @@ That is the complete service definition. The filename supplies the name `clock`;
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  requires: ['clock'],
   execute: ({ services }) => services.clock.now(),
 });
 ```
 
-The action declares that it needs `clock`, then calls its function. Discovery finds both files, connects them and generates their types. You do not write registration IDs, a service-name mapping or runtime startup code.
+The action calls the service's function. Both files belong to your app, so the action needs no declaration. Discovery finds both files, connects them and generates their types. You do not write registration IDs, a service-name mapping or runtime startup code.
+
+## Use a service from another plugin
+
+An action can use any service, but list one that belongs to another plugin in `requires`. If that plugin is missing or turned off, startup reports it instead of the first click failing:
+
+```ts
+// src/plugins/reports/actions/summary.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  requires: ['billing.invoices'],
+  execute: ({ app }) => app.services.invoices.total(),
+});
+```
+
+`billing.invoices` is the ID of the `invoices` service in the `billing` plugin. Services follow the same rule. A service that uses another service while it is being created lists it too, even in the same plugin: that sets the creation order and lets Foundation report cycles.
 
 ## What Foundation handles
 

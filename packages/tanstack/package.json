@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/tanstack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "files": [
     "dist",
@@ -30,8 +30,8 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@bitakit/core": "^0.1.1",
-    "@bitakit/ui": "0.1.0",
+    "@bitakit/core": "^0.2.0",
+    "@bitakit/ui": "^0.2.0",
     "nuqs": "2.10.1"
   },
   "peerDependencies": {

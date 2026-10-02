@@ -37,6 +37,19 @@ The smaller Content Demo connects to the auth host through its configured proxy.
 Use `npm run dev:content-auth` for the auth host and `npm run dev:content` for the
 frontend. Consult each application's configuration for origins and ports.
 
+### Settings in the web app
+
+The web app stores settings in the database through its own server routes
+(`apps/web/src/settings/server`). User settings take their owner from the verified
+session. Organization settings need membership to read and owner or admin membership
+to write. Global settings can only be written by the user IDs listed in
+`APP_SETTINGS_ADMIN_IDS`. `APP_DEFAULT_THEME` and `APP_DEFAULT_LOCALE` set the defaults
+on the server; stored values win.
+
+Guests keep only the theme (browser storage) and the language (cookie). Other user
+settings are read-only for guests, and their writes are rejected instead of being
+reported as saved.
+
 ## Verification
 
 Run the relevant workspace's tests for a package change. The root `npm test` runs
@@ -46,6 +59,10 @@ application types and lint. Neither command proves every external integration.
 Browser tests use Playwright. Review each app's `playwright.config.ts` for its
 server and port requirements. Tests that opt into real authentication/database
 operations must use an isolated test environment, never production data.
+
+The web app's plugin dashboard tests need a signed-in session: set
+`PLUGIN_TEST_STORAGE_STATE` to a local Playwright storage-state file. Without it they
+are skipped. Never commit session files.
 
 ## Repository hygiene
 

@@ -1,9 +1,13 @@
 import type { ActionContext } from './core.js';
+import { brand, isBrandedInstance } from './brand.js';
 
 type Navigation = (href: string) => void;
 
 /** A per-list adapter. Bind once at the application boundary, not per action. */
 export class NavigationHost {
+  static {
+    brand(this, 'navigation');
+  }
   private navigate?: Navigation;
   bind(navigate: Navigation) {
     this.navigate = navigate;
@@ -35,8 +39,8 @@ export function navigate(context: ActionContext) {
   const current = context.get();
   const href = safeHref(current?.href);
   if (!href) throw new Error('Invalid navigation target.');
-  if (!(context.environment instanceof NavigationHost))
+  if (!isBrandedInstance(context.environment, NavigationHost, 'navigation'))
     throw new Error('A NavigationHost is required.');
   // This dispatches navigation. Completion does NOT mean the next route has loaded.
-  context.environment.go(href);
+  (context.environment as NavigationHost).go(href);
 }

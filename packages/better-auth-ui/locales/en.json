@@ -210,6 +210,9 @@
     "invite": {
       "title": "Invite member"
     },
+    "select": {
+      "title": "Switch"
+    },
     "refresh": {
       "title": "Reload"
     },
@@ -258,6 +261,10 @@
   "plugins": {
     "better-auth-ui": {
       "description": "Native HeroUI components for sign-in, accounts and organizations."
+    },
+    "organizations-ui": {
+      "name": "Organization management",
+      "description": "Members, invitations and organization profile."
     }
   }
 }

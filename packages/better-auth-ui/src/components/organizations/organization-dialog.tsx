@@ -24,15 +24,15 @@ const organizationFormSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, 'Bitte gib einen Namen ein.')
-    .max(100, 'Der Name darf höchstens 100 Zeichen enthalten.'),
+    .min(1, 'Enter a name.')
+    .max(100, 'The name must be at most 100 characters.'),
   slug: z
     .string()
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      'Bitte verwende Kleinbuchstaben, Zahlen und einzelne Bindestriche.',
+      'Use lowercase letters, numbers and single hyphens.',
     )
-    .max(80, 'Die Kennung darf höchstens 80 Zeichen enthalten.'),
+    .max(80, 'The identifier must be at most 80 characters.'),
   website: organizationWebsiteSchema,
 });
 
@@ -110,7 +110,7 @@ export function OrganizationDialog({
     >
       <FieldGroup>
         <FieldSet>
-          {embedded && <FieldLegend>{translateUI("foundationUI.organization_dialog.appearance", undefined, "Erscheinungsbild")}</FieldLegend>}
+          {embedded && <FieldLegend>{translateUI("foundationUI.organization_dialog.appearance", undefined, "Appearance")}</FieldLegend>}
           <Surface>
             <Content>
               <OrganizationLogoField disabled={busy} initialLogo={initial?.logo ?? ''} />
@@ -118,7 +118,7 @@ export function OrganizationDialog({
           </Surface>
         </FieldSet>
         <FieldSet>
-          {embedded && <FieldLegend>{translateUI("foundationUI.organization_dialog.general", undefined, "Allgemein")}</FieldLegend>}
+          {embedded && <FieldLegend>{translateUI("foundationUI.organization_dialog.general", undefined, "General")}</FieldLegend>}
           <Surface>
             <Content>
               <FieldGroup
@@ -137,7 +137,7 @@ export function OrganizationDialog({
                     <FieldLabel htmlFor="org-name">{translateUI("foundationUI.organization_dialog.name", undefined, "Name")}</FieldLabel>
                     {embedded && (
                       <FieldDescription>
-                        {translateUI("foundationUI.organization_dialog.howYourOrganizationAppearsInTheWorkspace", undefined, "So wird deine Organisation im Arbeitsbereich angezeigt.")}</FieldDescription>
+                        {translateUI("foundationUI.organization_dialog.howYourOrganizationAppearsInTheWorkspace", undefined, "How your organization appears in the workspace.")}</FieldDescription>
                     )}
                   </FieldContent>
                   <FieldContent>
@@ -161,10 +161,10 @@ export function OrganizationDialog({
                   }
                 >
                   <FieldContent>
-                    <FieldLabel htmlFor="org-slug">{translateUI("foundationUI.organization_dialog.identifier", undefined, "Kennung")}</FieldLabel>
+                    <FieldLabel htmlFor="org-slug">{translateUI("foundationUI.organization_dialog.identifier", undefined, "Identifier")}</FieldLabel>
                     {embedded && (
                       <FieldDescription>
-                        {translateUI("foundationUI.organization_dialog.uniqueShortNameUsingLowercaseLettersNumbersAndHyphens", undefined, "Eindeutiger Kurzname aus Kleinbuchstaben, Zahlen und Bindestrichen.")}</FieldDescription>
+                        {translateUI("foundationUI.organization_dialog.uniqueShortNameUsingLowercaseLettersNumbersAndHyphens", undefined, "Unique short name using lowercase letters, numbers and hyphens.")}</FieldDescription>
                     )}
                   </FieldContent>
                   <FieldContent>
@@ -192,7 +192,7 @@ export function OrganizationDialog({
                     <FieldLabel htmlFor="org-website">{translateUI("foundationUI.organization_dialog.website", undefined, "Website")}</FieldLabel>
                     {embedded && (
                       <FieldDescription>
-                        {translateUI("foundationUI.organization_dialog.thePublicWebsiteOfYourOrganizationOptional", undefined, "Die öffentliche Website deiner Organisation. Optional.")}</FieldDescription>
+                        {translateUI("foundationUI.organization_dialog.thePublicWebsiteOfYourOrganizationOptional", undefined, "The public website of your organization. Optional.")}</FieldDescription>
                     )}
                   </FieldContent>
                   <FieldContent>
@@ -214,11 +214,11 @@ export function OrganizationDialog({
             </Content>
           </Surface>
         </FieldSet>
-        {saved && <p role="status">{translateUI("foundationUI.organization_dialog.changesSaved", undefined, "Änderungen gespeichert.")}</p>}
-        {changed && <p role="alert">{translateUI("foundationUI.organization_dialog.theWorkspaceChangedOpenItAgain", undefined, "Der Arbeitsbereich wurde geändert. Bitte erneut öffnen.")}</p>}
+        {saved && <p role="status">{translateUI("foundationUI.organization_dialog.changesSaved", undefined, "Changes saved.")}</p>}
+        {changed && <p role="alert">{translateUI("foundationUI.organization_dialog.theWorkspaceChangedOpenItAgain", undefined, "The workspace changed. Open it again.")}</p>}
         {error && (
           <p role="alert">
-            {translateUI("foundationUI.organization_dialog.savingFailedCheckYourInputAndPermissions", undefined, "Speichern fehlgeschlagen. Bitte prüfe die Eingaben und deine Berechtigung.")}</p>
+            {translateUI("foundationUI.organization_dialog.savingFailedCheckYourInputAndPermissions", undefined, "Saving failed. Check your input and permissions.")}</p>
         )}
         <div
           data-slot="organization-form-actions"
@@ -227,16 +227,16 @@ export function OrganizationDialog({
           {secondaryActions && <div className="mr-auto">{secondaryActions}</div>}
           {!embedded && (
             <Button variant="outline" type="button" disabled={busy} onClick={close}>
-              {translateUI("foundationUI.organization_dialog.cancel", undefined, "Abbrechen")}</Button>
+              {translateUI("foundationUI.organization_dialog.cancel", undefined, "Cancel")}</Button>
           )}
           <Button disabled={busy || changed || state.pending} type="submit">
             {busy
-              ? translateUI("foundationUI.organization_dialog.saving", undefined, "Wird gespeichert …")
+              ? translateUI("foundationUI.organization_dialog.saving", undefined, "Saving…")
               : state.pending
-                ? translateUI("foundationUI.organization_dialog.loadingOrganizationDetails", undefined, "Organisationsdaten werden geladen …")
+                ? translateUI("foundationUI.organization_dialog.loadingOrganizationDetails", undefined, "Loading organization details…")
                 : organizationId
-                  ? translateUI("foundationUI.organization_dialog.saveChanges", undefined, "Änderungen speichern")
-                  : translateUI("foundationUI.organization_dialog.createOrganization", undefined, "Organisation erstellen")}
+                  ? translateUI("foundationUI.organization_dialog.saveChanges", undefined, "Save changes")
+                  : translateUI("foundationUI.organization_dialog.createOrganization", undefined, "Create organization")}
           </Button>
         </div>
       </FieldGroup>
@@ -266,13 +266,13 @@ export function ConfirmOrganizationAction({
         {targetRole
           ? translateUI(`foundationUI.organization_dialog.${targetRole === 'admin' ? 'promoteConfirm' : 'demoteConfirm'}`, { name: member?.name || member?.email || translateUI('foundationUI.organization_dialog.thisMember', undefined, 'This member') }, targetRole === 'admin' ? 'Make this member an administrator? Administrators can manage the organization and its members.' : 'Make this person a member? They will lose their administrative permissions.')
           : memberId
-          ? translateUI("foundationUI.organization_dialog.removeThisMemberFromTheOrganization", undefined, "Dieses Mitglied aus der Organisation entfernen?")
-          : translateUI("foundationUI.organization_dialog.permanentlyDeleteThisOrganizationAndItsMemberships", undefined, "Diese Organisation und ihre Mitgliedschaften dauerhaft löschen?")}
+          ? translateUI("foundationUI.organization_dialog.removeThisMemberFromTheOrganization", undefined, "Remove this member from the organization?")
+          : translateUI("foundationUI.organization_dialog.permanentlyDeleteThisOrganizationAndItsMemberships", undefined, "Permanently delete this organization and its memberships?")}
       </p>
-      {error && <p role="alert">{translateUI("foundationUI.organization_dialog.theChangeCouldNotBeCompleted", undefined, "Die Änderung konnte nicht ausgeführt werden.")}</p>}
+      {error && <p role="alert">{translateUI("foundationUI.organization_dialog.theChangeCouldNotBeCompleted", undefined, "The change could not be completed.")}</p>}
       <div className="flex flex-wrap justify-end gap-2">
         <Button variant="outline" onClick={close} disabled={pending}>
-          {translateUI("foundationUI.organization_dialog.cancel", undefined, "Abbrechen")}</Button>
+          {translateUI("foundationUI.organization_dialog.cancel", undefined, "Cancel")}</Button>
         <Button
           variant={targetRole ? "default" : "destructive"}
           disabled={pending}
@@ -295,7 +295,7 @@ export function ConfirmOrganizationAction({
             }
           }}
         >
-          {targetRole ? translateUI("foundationUI.organization_dialog.confirmRoleChange", undefined, "Rollenänderung bestätigen") : memberId ? translateUI("foundationUI.organization_dialog.confirmRemoval", undefined, "Entfernen bestätigen") : translateUI("foundationUI.organization_dialog.deleteOrganization", undefined, "Organisation löschen")}
+          {targetRole ? translateUI("foundationUI.organization_dialog.confirmRoleChange", undefined, "Confirm role change") : memberId ? translateUI("foundationUI.organization_dialog.confirmRemoval", undefined, "Confirm removal") : translateUI("foundationUI.organization_dialog.deleteOrganization", undefined, "Delete organization")}
         </Button>
       </div>
     </div>

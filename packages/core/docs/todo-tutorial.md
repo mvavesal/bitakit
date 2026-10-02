@@ -12,9 +12,14 @@ npm init -y
 npm install @bitakit/core
 ```
 
-Download or copy [todos.mjs](../examples/todos.mjs) and the entire
-[todos folder](../examples/todos), preserving their relative paths. The walkthrough
-uses explicit imports; these files do not require a discovery-enabled host.
+Copy [todos.mjs](../examples/todos.mjs) and the [todos folder](../examples/todos) from
+the installed package, preserving their relative paths:
+
+```sh
+cp -R node_modules/@bitakit/core/examples/. .
+```
+
+The walkthrough uses explicit imports; these files do not require a discovery-enabled host.
 
 ```text
 my-example/
@@ -49,8 +54,9 @@ ID reuse. This is temporary memory, not database persistence.
 | [todos.list](../examples/todos/actions/list.mjs)     | None       | `list()`          | Current tasks              |
 | [todos.delete](../examples/todos/actions/delete.mjs) | Task ID    | `delete(id)`      | Whether a task was removed |
 
-Each action declares `requires: ['todos']`. The action context supplies the service
-and the caller's `input`. The plugin imports these definitions and contributes them
+The actions use the plugin's own `todos` service without declaring it; only services
+from other plugins go in `requires`. The action context supplies the service and the
+caller's `input`. The plugin imports these definitions and contributes them
 to the same runtime; they do not create separate service instances.
 
 ```text

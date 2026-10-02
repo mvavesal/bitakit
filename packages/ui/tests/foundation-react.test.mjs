@@ -506,3 +506,42 @@ test('two Add buttons derive availability from their own current input without e
     await act(async () => root.unmount());
   }
 });
+
+test('group headings use the title the app gave a group ID, even from an untitled snapshot group', async () => {
+  const { ActionGroup, defineAction, useActionList, useGroupTitle } = await import('../dist/index.js');
+  // The plain name registers first, so this action's snapshot holds an untitled group object.
+  const plugins = [
+    {
+      id: 'todos',
+      actions: [
+        defineAction({ id: 'todos.clear', title: 'Clear', groups: ['todos.bulk'], execute() {} }),
+        defineAction({
+          id: 'todos.export',
+          title: 'Export',
+          groups: [new ActionGroup('todos.bulk', 'Bulk actions')],
+          execute() {},
+        }),
+        defineAction({ id: 'todos.open', title: 'Open', groups: ['navigation'], execute() {} }),
+      ],
+    },
+  ];
+  const headings = [];
+  function Headings() {
+    const groupTitle = useGroupTitle();
+    const list = useActionList();
+    const clear = list.get('todos.clear');
+    const open = list.get('todos.open');
+    if (clear && open) headings.push(groupTitle(clear.groups[0]), groupTitle(open.groups[0]), groupTitle({ id: 'other' }));
+    return null;
+  }
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(h(FoundationProvider, { plugins, ui, labels }, h(Headings))));
+    assert.deepEqual(headings.slice(-3), ['Bulk actions', 'General', 'other']);
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+  }
+});

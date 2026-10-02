@@ -50,7 +50,7 @@ export function Choice({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button type="button" variant="outline" aria-label={label}>
-          {label === translateUI("foundationUI.people_filters.role", undefined, "Rolle") && <RoleIcon aria-hidden="true" data-icon="inline-start" />}
+          {label === translateUI("foundationUI.people_filters.role", undefined, "Role") && <RoleIcon aria-hidden="true" data-icon="inline-start" />}
           {label === translateUI("foundationUI.people_filters.status", undefined, "Status") && <StatusIcon aria-hidden="true" data-icon="inline-start" />}
           {label}{value !== 'all' && `: ${choices.find(([key]) => key === value)?.[1]}`}
           <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
@@ -60,7 +60,7 @@ export function Choice({
         <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
           {choices.map(([key, title]) => (
             <DropdownMenuRadioItem key={key} value={key}>
-              {key !== 'all' && (label === translateUI("foundationUI.people_filters.role", undefined, "Rolle") ? <MemberRoleIcon role={key} /> : label === translateUI("foundationUI.people_filters.status", undefined, "Status") ? <MemberStatusIcon status={key} /> : null)}
+              {key !== 'all' && (label === translateUI("foundationUI.people_filters.role", undefined, "Role") ? <MemberRoleIcon role={key} /> : label === translateUI("foundationUI.people_filters.status", undefined, "Status") ? <MemberStatusIcon status={key} /> : null)}
               {title}
             </DropdownMenuRadioItem>
           ))}
@@ -117,14 +117,14 @@ export function PeopleFilters({ model }: { model: ReturnType<typeof usePeopleFil
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2">
       <InputGroup className="w-full sm:w-64">
-        <InputGroupInput aria-label={translateUI("foundationUI.people_filters.search", undefined, "Suchen")} placeholder={translateUI("foundationUI.people_filters.nameOrEmail", undefined, "Name oder E-Mail")} value={f.q} onChange={(e) => void set({ q: e.target.value, page: 1 })} />
+        <InputGroupInput aria-label={translateUI("foundationUI.people_filters.search", undefined, "Search")} placeholder={translateUI("foundationUI.people_filters.nameOrEmail", undefined, "Name or email")} value={f.q} onChange={(e) => void set({ q: e.target.value, page: 1 })} />
         <InputGroupAddon><SearchIcon aria-hidden="true" /></InputGroupAddon>
-        {f.q && <InputGroupAddon align="inline-end"><InputGroupClearButton aria-label={translateUI("foundationUI.people_filters.clearSearch", undefined, "Suche löschen")} onClear={() => { void set({ q: null, page: 1 }); }} /></InputGroupAddon>}
+        {f.q && <InputGroupAddon align="inline-end"><InputGroupClearButton aria-label={translateUI("foundationUI.people_filters.clearSearch", undefined, "Clear search")} onClear={() => { void set({ q: null, page: 1 }); }} /></InputGroupAddon>}
       </InputGroup>
         <Choice
-          label={translateUI("foundationUI.people_filters.role", undefined, "Rolle")}
+          label={translateUI("foundationUI.people_filters.role", undefined, "Role")}
           value={f.role}
-          choices={([['all', translateUI("foundationUI.people_filters.all", undefined, "Alle")], ['owner', translateUI("foundationUI.people_filters.owner", undefined, "Eigentümer")], ['admin', translateUI("foundationUI.people_filters.admin", undefined, "Administrator")], ['member', translateUI("foundationUI.people_filters.member", undefined, "Mitglied")]] as const).filter(([role]) => f.tab !== 'pending' || role !== 'owner')}
+          choices={([['all', translateUI("foundationUI.people_filters.all", undefined, "All")], ['owner', translateUI("foundationUI.people_filters.owner", undefined, "Owner")], ['admin', translateUI("foundationUI.people_filters.admin", undefined, "Admin")], ['member', translateUI("foundationUI.people_filters.member", undefined, "Member")]] as const).filter(([role]) => f.tab !== 'pending' || role !== 'owner')}
           onChange={(value) => void set({ role: value as typeof f.role, page: 1 })}
         />
         {f.tab === 'current' && (
@@ -132,14 +132,14 @@ export function PeopleFilters({ model }: { model: ReturnType<typeof usePeopleFil
             label={translateUI("foundationUI.people_filters.status", undefined, "Status")}
             value={f.status}
             choices={[
-              ['all', translateUI("foundationUI.people_filters.all", undefined, "Alle")],
-              ['active', translateUI("foundationUI.people_filters.active", undefined, "Aktiv")],
-              ['disabled', translateUI("foundationUI.people_filters.suspended", undefined, "Gesperrt")],
+              ['all', translateUI("foundationUI.people_filters.all", undefined, "All")],
+              ['active', translateUI("foundationUI.people_filters.active", undefined, "Active")],
+              ['disabled', translateUI("foundationUI.people_filters.suspended", undefined, "Suspended")],
             ]}
             onChange={(value) => void set({ status: value as typeof f.status, page: 1 })}
           />
         )}
-        <DateRangeFilter label={f.tab === 'current' ? translateUI("foundationUI.people_filters.joinDate", undefined, "Beitrittsdatum") : translateUI("foundationUI.people_filters.invitationDate", undefined, "Einladungsdatum")} from={f.from} to={f.to} onChange={({from, to}) => { void set({from: from || null, to: to || null, page: 1}); }} />
+        <DateRangeFilter label={f.tab === 'current' ? translateUI("foundationUI.people_filters.joinDate", undefined, "Join date") : translateUI("foundationUI.people_filters.invitationDate", undefined, "Invitation date")} from={f.from} to={f.to} onChange={({from, to}) => { void set({from: from || null, to: to || null, page: 1}); }} />
         {(f.q || f.from || f.to || f.role !== 'all' || f.status !== 'all') &&
         <Button
           variant="ghost"
@@ -147,7 +147,7 @@ export function PeopleFilters({ model }: { model: ReturnType<typeof usePeopleFil
             void set({ q: null, role: null, status: null, from: null, to: null, page: null })
           }
         >
-          {translateUI("foundationUI.people_filters.clearFilters", undefined, "Filter zurücksetzen")}</Button>}
+          {translateUI("foundationUI.people_filters.clearFilters", undefined, "Clear filters")}</Button>}
     </div>
   );
 }
@@ -167,11 +167,11 @@ export function PeoplePagination({
   }, [page, f.page, set]);
   return (
     <nav
-      aria-label={translateUI("foundationUI.people_filters.pagination", undefined, "Seitennavigation")}
+      aria-label={translateUI("foundationUI.people_filters.pagination", undefined, "Pagination")}
       className="flex min-w-0 flex-wrap items-center justify-between gap-3 py-4"
     >
       <Choice
-        label={translateUI("foundationUI.people_filters.perPage", undefined, "Pro Seite")}
+        label={translateUI("foundationUI.people_filters.perPage", undefined, "Per page")}
         value={String(f.pageSize)}
         choices={[5, 10, 20, 50].map((n) => [String(n), String(n)])}
         onChange={(value) => void set({ pageSize: Number(value) as typeof f.pageSize, page: 1 })}
@@ -186,14 +186,14 @@ export function PeoplePagination({
           disabled={page <= 1}
           onClick={() => void set({ page: page - 1 })}
         >
-          {translateUI("foundationUI.people_filters.back", undefined, "Zurück")}</Button>
+          {translateUI("foundationUI.people_filters.back", undefined, "Back")}</Button>
         <Button
           variant="outline"
           size="sm"
           disabled={page >= pages}
           onClick={() => void set({ page: page + 1 })}
         >
-          {translateUI("foundationUI.people_filters.next", undefined, "Weiter")}</Button>
+          {translateUI("foundationUI.people_filters.next", undefined, "Next")}</Button>
       </div>
     </nav>
   );

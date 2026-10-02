@@ -47,20 +47,20 @@ export function OrganizationSettings() {
             disabled={state.pending}
             onClick={() => void service.refresh().catch(() => {})}
           >
-            {translateUI("foundationUI.organizations.reload", undefined, "Erneut laden")}</Button>
+            {translateUI("foundationUI.organizations.reload", undefined, "Reload")}</Button>
         </AlertDescription>
       </Alert>
     );
-  if (!state.loaded && state.pending) return <p role="status">{translateUI("foundationUI.organizations.loadingOrganizations", undefined, "Organisationen werden geladen …")}</p>;
-  if (!state.activeId) return <p>{translateUI("foundationUI.organizations.selectAnOrganization", undefined, "Bitte wähle eine Organisation.")}</p>;
+  if (!state.loaded && state.pending) return <p role="status">{translateUI("foundationUI.organizations.loadingOrganizations", undefined, "Loading organizations…")}</p>;
+  if (!state.activeId) return <p>{translateUI("foundationUI.organizations.selectAnOrganization", undefined, "Select an organization.")}</p>;
   return (
     <section className="mx-auto flex w-full max-w-4xl flex-col gap-7">
       <PageHeader
-        title={state.canManage ? translateUI("foundationUI.organizations.organizationSettings", undefined, "Organisationseinstellungen") : translateUI("foundationUI.organizations.organizationProfile", undefined, "Organisationsprofil")}
+        title={state.canManage ? translateUI("foundationUI.organizations.organizationSettings", undefined, "Organization settings") : translateUI("foundationUI.organizations.organizationProfile", undefined, "Organization profile")}
         subtitle={
           state.canManage
-            ? translateUI("foundationUI.organizations.manageYourWorkspaceAppearanceAndDetails", undefined, "Verwalte das Erscheinungsbild und die Angaben deines Arbeitsbereichs.")
-            : translateUI("foundationUI.organizations.informationAboutYourWorkspace", undefined, "Informationen zu deinem Arbeitsbereich.")
+            ? translateUI("foundationUI.organizations.manageYourWorkspaceAppearanceAndDetails", undefined, "Manage your workspace appearance and details.")
+            : translateUI("foundationUI.organizations.informationAboutYourWorkspace", undefined, "Information about your workspace.")
         }
       />
       <div className="flex min-w-0 flex-col gap-6">
@@ -86,14 +86,14 @@ export function OrganizationSettings() {
             <ItemMedia>
               <Avatar>
                 {organization?.logo && (
-                  <AvatarImage src={organization.logo} alt={translateUI("foundationUI.organizations.organizationLogo", undefined, "Organisationslogo")} />
+                  <AvatarImage src={organization.logo} alt={translateUI("foundationUI.organizations.organizationLogo", undefined, "Organization logo")} />
                 )}
                 <AvatarFallback>{organization?.name.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
             </ItemMedia>
             <ItemContent>
               <ItemTitle>{organization?.name}</ItemTitle>
-              <ItemDescription>{translateUI("foundationUI.organizations.identifier", undefined, "Kennung:")}{organization?.slug}</ItemDescription>
+              <ItemDescription>{translateUI("foundationUI.organizations.identifier", undefined, "Identifier:")}{organization?.slug}</ItemDescription>
               <ItemDescription>
                 {translateUI("foundationUI.organizations.website", undefined, "Website:")}{' '}
                 {organization?.website && isOrganizationWebsite(organization.website) ? (
@@ -101,11 +101,11 @@ export function OrganizationSettings() {
                     {organization.website}
                   </a>
                 ) : (
-                  organization?.website || translateUI("foundationUI.organizations.notSpecified", undefined, "Nicht angegeben")
+                  organization?.website || translateUI("foundationUI.organizations.notSpecified", undefined, "Not specified")
                 )}
               </ItemDescription>
               <ItemDescription>
-                {translateUI("foundationUI.organizations.youCanViewTheseDetailsButCannotEditThem", undefined, "Du kannst diese Angaben ansehen, aber nicht bearbeiten.")}</ItemDescription>
+                {translateUI("foundationUI.organizations.youCanViewTheseDetailsButCannotEditThem", undefined, "You can view these details but cannot edit them.")}</ItemDescription>
             </ItemContent>
           </Item>
         )}
@@ -132,28 +132,28 @@ export function registerOrganizationSettings(
         id: 'organization',
         navigation: { id: 'organizations.settings', shortcut: 'Alt+Shift+O' },
         icon: BuildingIcon,
-        title: 'Organisationsprofil',
+        title: 'Organization profile',
         component: OrganizationSettings,
-        category: { id: 'organization', title: 'Organisation' },
+        category: { id: 'organization', title: 'Organization' },
       }),
       new SettingsSection({
         pluginId: 'organizations-ui',
         id: 'organization-members',
         icon: UsersIcon,
-        title: 'Mitglieder und Einladungen',
+        title: 'Members and invitations',
         visible: service.getSnapshot().canManage,
-        description: 'Mitglieder und versendete Einladungen der aktiven Organisation verwalten.',
+        description: 'Manage members and sent invitations for the active organization.',
         component: OrganizationMembersSettings,
-        category: { id: 'organization', title: 'Organisation' },
+        category: { id: 'organization', title: 'Organization' },
       }),
       new SettingsSection({
         pluginId: 'organizations-ui',
         id: 'received-invitations',
         icon: SendIcon,
-        title: 'Einladungen an mich',
-        description: 'Einladungen, anderen Organisationen beizutreten.',
+        title: 'Invitations for me',
+        description: 'Invitations to join other organizations.',
         component: IncomingInvitations,
-        category: { id: 'organization', title: 'Organisation' },
+        category: { id: 'organization', title: 'Organization' },
       }),
     ])
       app.own(

@@ -3,11 +3,11 @@ title: Standalone To-do walkthrough
 description: Follow services, actions, events and cleanup in one runnable feature.
 ---
 
-Build a small To-do feature with services, actions and events. This example runs in Node.js with `@bitakit/core` 0.1.1 or newer.
+Build a small To-do feature with services, actions and events. This example runs in Node.js with `@bitakit/core`.
 
 This walkthrough deliberately uses manual composition to run without a host framework. Its explicit registration IDs are required in that mode. For the simpler discovery-based workflow without registration IDs, start with [Plugins and lifecycle](/docs/concepts/plugins).
 
-Install `@bitakit/core@^0.1.1`, then create the following files in your project. Keep their relative paths. No React, router, database or file discovery is required.
+Install `@bitakit/core`, then create the following files in your project. Keep their relative paths. No React, router, database or file discovery is required.
 
 The service owns tasks, three actions invoke it, and the plugin groups them. The delete action starts disabled because the list starts empty, then reacts after mutations through the same runtime event bus. It needs no setup method.
 
@@ -53,7 +53,6 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   id: 'todos.create',
-  requires: ['todos'],
   execute: ({ services, input }) => services.todos.create(input),
 });
 ```
@@ -65,7 +64,6 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   id: 'todos.list',
-  requires: ['todos'],
   execute: ({ services }) => services.todos.list(),
 });
 ```
@@ -77,9 +75,6 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   id: 'todos.delete',
-
-  // Services this action uses. Core checks that they exist before registering it.
-  requires: ['todos'],
 
   // Initial state: the task list starts empty, so deleting is disabled.
   enabled: false,
@@ -116,11 +111,11 @@ export default definePlugin({
 ## todos.mjs
 
 ```js
-import { createActionList, FoundationRuntime } from '@bitakit/core';
+import { createRuntime } from '@bitakit/core';
 import todos from './todos/plugin.mjs';
 
-const actions = createActionList();
-const runtime = new FoundationRuntime(actions, { plugins: [todos] });
+const runtime = createRuntime({ plugins: [todos] });
+const { actions } = runtime;
 const stop = runtime.mount();
 
 try {
@@ -134,6 +129,10 @@ try {
   stop();
 }
 ```
+
+`createRuntime` is new in 0.2. With Core 0.1, write `new FoundationRuntime(createActionList(), { plugins: [todos] })` and use `runtime.actions`.
+
+The actions use the plugin's own `todos` service without declaring it. Only services from other plugins go in `requires`, so that a missing plugin is reported at startup.
 
 ## Run and inspect
 

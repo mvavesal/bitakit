@@ -34,6 +34,21 @@ async function fixture(run) {
   }
 }
 const file = (value, localPath, source = localPath) => discoveredFile(value, localPath, source);
+/** Strict TypeScript errors for generated output and consumers, against this build of Core. */
+const typeErrors = (files, root) =>
+  ts
+    .getPreEmitDiagnostics(
+      ts.createProgram(files, {
+        noEmit: true, strict: true, skipLibCheck: true,
+        target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
+        moduleResolution: ts.ModuleResolutionKind.Bundler, baseUrl: root,
+        paths: {
+          '@bitakit/core': [new URL('../dist/core.d.ts', import.meta.url).pathname],
+          '@bitakit/core/actions': [new URL('../dist/actions/core.d.ts', import.meta.url).pathname],
+        },
+      }),
+    )
+    .map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
 
 test('folder-only plugins provide inferred service methods, Action references and owned setup', async () =>
   fixture(async (root, put) => {
@@ -52,6 +67,13 @@ test('folder-only plugins provide inferred service methods, Action references an
     await put('src/plugins/documents/actions/create.ts', `
       import { defineAction } from '@bitakit/core';
       export default defineAction({ execute: ({ app }) => app.services.documents.createDraft('New draft') });
+    `);
+    await put('src/plugins/documents/actions/draft.ts', `
+      import { defineAction } from '@bitakit/core';
+      export default defineAction({
+        requires: ['documents'],
+        execute: ({ services }) => services.documents.createDraft('From services'),
+      });
     `);
     await put('src/plugins/documents/actions/save.ts', `
       import { defineAction } from '@bitakit/core';
@@ -116,21 +138,15 @@ test('folder-only plugins provide inferred service methods, Action references an
       app.services.documents.createDraft(42);
       // @ts-expect-error Promise output remains typed.
       const wrong: Promise<string> = app.services.documents.loadCount('folder');
+      app.actions.documents.draft.execute().then(result => {
+        if (result.status === 'completed') { const status: 'draft' = result.value.status; }
+      });
       // @ts-expect-error Services have one namespace, not root aliases.
       app.documents;
       // @ts-expect-error Unknown Actions are not part of completion.
       app.actions.documents.unknown;
     `);
-    const program = ts.createProgram([output, consumer], {
-      noEmit: true, strict: true, skipLibCheck: true,
-      target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Bundler, baseUrl: root,
-      paths: {
-        '@bitakit/core': [new URL('../dist/core.d.ts', import.meta.url).pathname],
-        '@bitakit/core/actions': [new URL('../dist/actions/core.d.ts', import.meta.url).pathname],
-      },
-    });
-    assert.deepEqual(ts.getPreEmitDiagnostics(program).map(d => ts.flattenDiagnosticMessageText(d.messageText, '\n')), []);
+    assert.deepEqual(typeErrors([output, consumer], root), []);
     const jiti = createJiti(import.meta.url, { moduleCache: false,
       alias: { '@bitakit/core': new URL('../dist/core.js', import.meta.url).pathname } });
     const { foundationConfig } = await jiti.import(output);
@@ -143,6 +159,10 @@ test('folder-only plugins provide inferred service methods, Action references an
     assert.equal(service, runtime.services['documents.documents']);
     assert.equal(action, runtime.app.actions.documents.create);
     assert.deepEqual((await action.execute()).value, { title: 'New draft', status: 'draft' });
+    assert.deepEqual((await runtime.app.actions.documents.draft.execute()).value, {
+      title: 'From services',
+      status: 'draft',
+    });
     await runtime.app.actions.documents.save.execute({title: 'Saved'});
     assert.deepEqual(runtime.actions.get('documents.save').state, {count: 1});
     assert.deepEqual(service.events, ['setup']);
@@ -168,6 +188,60 @@ test('local plugin path, plugin ID and explicit service/Action IDs remain overri
       assert.equal(foundationConfig.plugins[0].id, 'library');
       assert.equal((await runtime.app.actions.archive.open.execute()).value, 42);
       assert.equal(runtime.app.services.archive.read(), 42);
+    } finally { stop(); }
+  }));
+
+test('a service name means the same service in every plugin, so generated types match the runtime', async () =>
+  fixture(async (root, put) => {
+    // notes publishes "store"; todos owns todos.store and publishes it as "todoStore".
+    await put('src/plugins/notes/services/store.ts', `
+      import { defineService } from '@bitakit/core';
+      export default defineService({ create: () => ({ read: () => 'notes' }) });
+    `);
+    await put('src/plugins/todos/services/store.ts', `
+      import { defineService } from '@bitakit/core';
+      export default defineService({
+        exposeAs: 'todoStore',
+        create: () => ({ add: (title: string) => \`todos:\${title}\` }),
+      });
+    `);
+    await put('src/plugins/todos/actions/inspect.ts', `
+      import { defineAction } from '@bitakit/core';
+      export default defineAction({
+        requires: ['store', 'todoStore', 'todos.store'],
+        execute: ({ services }) => [
+          services.store.read(),
+          services.todoStore.add('alias'),
+          services['todos.store'].add('key'),
+        ],
+      });
+    `);
+    await generateFoundation(root);
+    const output = path.join(root, '.foundation/plugins.ts');
+    const consumer = await put('consumer.ts', `
+      import type { Services } from '@bitakit/core';
+      // The type every contribution receives as services, including those of the todos plugin.
+      declare const services: Services;
+      const notes: string = services.store.read();
+      const todo: string = services.todoStore.add('alias');
+      // @ts-expect-error "store" is the notes service everywhere; todos reaches its own as todoStore.
+      services.store.add('x');
+      // @ts-expect-error The todos service does not gain the methods of the notes service.
+      services.todoStore.read();
+      void [notes, todo];
+    `);
+    assert.deepEqual(typeErrors([output, consumer], root), []);
+    const jiti = createJiti(import.meta.url, { moduleCache: false,
+      alias: { '@bitakit/core': new URL('../dist/core.js', import.meta.url).pathname } });
+    const { foundationConfig } = await jiti.import(output);
+    const runtime = new FoundationRuntime(createActionList(), foundationConfig);
+    const stop = runtime.mount();
+    try {
+      const outcome = await runtime.app.actions.todos.inspect.execute();
+      assert.equal(outcome.status, 'completed');
+      assert.deepEqual(outcome.value, ['notes', 'todos:alias', 'todos:key']);
+      assert.equal(runtime.app.services.store.read(), 'notes');
+      assert.equal(runtime.app.services.todoStore.add('app'), 'todos:app');
     } finally { stop(); }
   }));
 

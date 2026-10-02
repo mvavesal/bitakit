@@ -40,7 +40,7 @@ export default defineService({
 });
 ```
 
-Call it through `app.services.tools.clock`. The internal key remains `todos.clock`; service dependencies still use that key. Omit `exposeAs` to use the file-derived public name `clock`. This option requires Core 0.1.1 or newer.
+Call it through `app.services.tools.clock`. Its ID stays `todos.clock`. In Core 0.1, `requires` and the `services` context use that ID; from 0.2 both `'tools.clock'` and `'todos.clock'` work, because a name means the same service in every plugin. Inside contributions use `services['tools.clock']`; only `app.services` nests dotted names. Omit `exposeAs` to use the file-derived public name `clock`. This option requires Core 0.1.1 or newer.
 
 ## Replace an action from the host
 
@@ -50,6 +50,7 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   replaces: 'todos.list',
+  // This action lives in the app, not in the todos plugin, so it lists the plugin's service.
   requires: ['todos.todos'],
   execute: ({ app }) => app.services.todos.list().slice(0, 5),
 });
@@ -75,6 +76,20 @@ export default {
 Discovery maps `actions.overrides` to the runtime configuration. For manual `FoundationConfig`, use `actionOverrides` directly.
 
 A false cap prevents re-enabling through a reactive subscription. Setting a cap to true does not override the action's own guards. Visibility and availability remain UI/execution concerns, not server authorization.
+
+## Turn local plugins on or off
+
+```ts
+// foundation.config.ts
+export default {
+  plugins: {
+    autoEnable: true,
+    overrides: { demo: { enabled: false } },
+  },
+};
+```
+
+Every folder under the plugin directory is a plugin and is enabled by default. `autoEnable: false` turns off all of them unless an override enables one; `overrides` sets single plugins by ID. A disabled plugin contributes nothing: no services, actions, pages, views or settings. To keep a plugin but cap one of its actions, use `actions.overrides` instead.
 
 ## Opt out of automatic package loading
 

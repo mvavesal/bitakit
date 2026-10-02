@@ -12,6 +12,7 @@ import {
   ActionCheckbox,
   ActionRadioGroup,
   ActionBinding,
+  ActionLink,
 } from '../dist/actions/index.js';
 const dom = new JSDOM('<html><body></body></html>');
 globalThis.window = dom.window;
@@ -205,6 +206,47 @@ test('navigation and command actions inherit reactive state and accept ordinary 
     });
     await act(async () => view.host.querySelectorAll('button')[1].click());
     assert.deepEqual(received, ['message']);
+  } finally {
+    await view.close();
+  }
+});
+
+test('buttons and links show the tooltip on hover, fall back to the description and keep an explicit title', async () => {
+  const list = createActionList([
+    { id: 'hint', title: 'Hint', description: 'Long explanation', tooltip: 'Short hint' },
+    { id: 'plain', title: 'Plain', description: 'Only a description' },
+    {
+      id: 'row',
+      title: 'Row',
+      description: 'Row action',
+      resolve: (input) => ({ tooltip: input ? `Remove ${input}` : undefined, checked: input === 'Milk' }),
+    },
+    { id: 'docs', title: 'Docs', description: 'Opens the documentation', tooltip: 'Docs', href: '/docs' },
+  ]);
+  const view = await mount(
+    h(
+      ActionProvider,
+      { actions: list },
+      h(ActionButton, { action: 'hint' }),
+      h(ActionButton, { action: 'plain' }),
+      h(ActionButton, { action: 'row', input: 'Milk' }),
+      h(ActionButton, { action: 'hint', title: 'Custom' }),
+      h(ActionLink, { action: 'docs' }),
+      h(ActionLink, { action: 'docs', title: 'Custom link' }),
+    ),
+  );
+  try {
+    const buttons = [...view.host.querySelectorAll('button')];
+    assert.deepEqual(
+      buttons.map((button) => button.title),
+      ['Short hint', 'Only a description', 'Remove Milk', 'Custom'],
+    );
+    // Presentation resolved for the button's own input also sets the pressed state.
+    assert.equal(buttons[2].getAttribute('aria-pressed'), 'true');
+    assert.deepEqual(
+      [...view.host.querySelectorAll('a')].map((link) => link.title),
+      ['Docs', 'Custom link'],
+    );
   } finally {
     await view.close();
   }

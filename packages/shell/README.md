@@ -48,13 +48,18 @@ discovery, compose `appPreferencesPlugin(...)` followed by `shellPlugin(...)` ex
 ## Preferences and settings pages
 
 Shell requires `appPreferencesPlugin` from `@bitakit/app-preferences/foundation` in the same Foundation.
-It contributes declaratively (no imperative registration in `setup`):
+It contributes its settings declaratively:
 
 - `settings`: `shellPreferences` with `shell.theme` and `shell.layout` (keys unchanged).
 - `settings.sections`: the Appearance page (`appearance: true`, category "Appearance" unless the host
   passes `category`) or the App Shell page, and the plugin overview with `pluginManagement: true`.
 - `settings.renderers`: plugin-layer icon card renderers for its own fields and the Appearance
   section layout (one card per field).
+
+With `pluginManagement: true`, Shell's setup also publishes one link per plugin to its view in the
+overview (`/settings/plugins?plugin=<id>`), named from the plugin's metadata. Quick Search shows them
+as plugin results when its `results.plugins` switch is on. The links follow the overview page's
+visibility and are removed with Shell.
 
 ```tsx
 const plugins = useMemo(
@@ -158,7 +163,8 @@ preference, with two fixed choices. There is no new layout registry, discovery o
 (left, center, right and bottom ReactNode slots), `ActionSidebarNavigation` and
 `ActionNavigationMenu`. The navigation components reuse the existing root Action bindings;
 URL Actions remain links and command Actions remain buttons. Shell's public `./sidebar` entry
-is retained for compatibility. See `docs/proposals/shell-composition.example.tsx` for composition.
+is retained for compatibility. See [examples/composition.tsx](examples/composition.tsx) for a complete
+composition; it is type-checked with the package tests.
 
 
 AppearanceSection places App Preferences' pre-bound `item.resetControl` in each settings card.

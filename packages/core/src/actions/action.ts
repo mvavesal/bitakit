@@ -1,4 +1,5 @@
 import { safeHref } from './navigation.js';
+import { brand } from './brand.js';
 import type { Feedback } from './feedback.js';
 import type {
   ActionContext,
@@ -28,6 +29,9 @@ export type ActionOptions<Input, Result = unknown> = Omit<
 
 /** Reusable behavior and observable presentation state. No registration or UI. */
 export class Action<Input = void, Result = unknown> {
+  static {
+    brand(this, 'action');
+  }
   readonly id?: string;
   /**
    * Opt-in feedback for runtime-registered class actions. Undefined keeps the raw error for the

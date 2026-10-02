@@ -12,6 +12,7 @@
   .quick-search-link svg { width:1rem; height:1rem; flex-shrink:0; }
   .quick-search-text { display:flex; min-width:0; flex:1; flex-direction:column; overflow-wrap:anywhere; }
   .quick-search-description { font-size:.75rem; color:var(--muted-foreground); }
+  .quick-search-kind { flex-shrink:0; max-width:40%; font-size:.75rem; color:var(--muted-foreground); text-align:end; overflow-wrap:anywhere; }
   .quick-search-shortcut { margin-inline-start:auto; flex-shrink:0; font-size:.75rem; letter-spacing:.1em; color:var(--muted-foreground); }
   .quick-search-trigger { min-width:0; max-width:100%; justify-content:flex-start; }
   .quick-search-trigger-label { color:var(--muted-foreground); font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

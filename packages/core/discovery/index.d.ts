@@ -28,14 +28,58 @@ export type DiscoveryConfig = {
   groups?: readonly string[];
   conventions?: boolean;
   plugins?: {
-    directory: string;
+    directory?: string;
+    /**
+     * Plugins outside the plugin directory, by ID: `{ notes: '../src' }`. A plugin package's
+     * playground uses this to discover the package source with hot reload.
+     */
+    include?: Record<string, string>;
     autoEnable?: boolean;
     overrides?: Record<string, { enabled: boolean }>;
   };
 };
 export function defineFoundation(config: DiscoveryConfig): DiscoveryConfig;
-export function generateFoundation(root: string): Promise<void>;
+export function generateFoundation(root: string): Promise<{ included: string[] }>;
 export function watchFoundation(root: string, onError?: (error: unknown) => void): () => void;
 
 /** Generates contributions and the host compiler reference without framework imports. */
-export function generateFoundationHost(root: string): Promise<void>;
+export function generateFoundationHost(root: string): Promise<{ included: string[] }>;
+
+/** One discovered contribution file: its logical path inside the module and project-relative file. */
+export type DescribedEntry = { path: string; file: string };
+export type DescribedModule = {
+  id: string;
+  directory: string;
+  actions: DescribedEntry[];
+  services: DescribedEntry[];
+  pages: DescribedEntry[];
+  views: DescribedEntry[];
+  configs: DescribedEntry[];
+  interceptors: DescribedEntry[];
+};
+/** Read-only summary for tooling; contribution modules are never executed. */
+export type FoundationDescription = {
+  root: string;
+  pluginsDirectory: string;
+  appDirectory: string;
+  app: DescribedModule;
+  plugins: (DescribedModule & { dependencies: readonly string[]; enabled: boolean })[];
+  /** Plugin entry specifiers of installed opt-in packages. */
+  packages: string[];
+  /** Stylesheet specifiers of installed packages, in import order. */
+  styles: string[];
+};
+export function describeFoundation(root: string): Promise<FoundationDescription>;
+
+/** The contribution files of one module folder (absolute paths), using app conventions. */
+export function describeModule(directory: string): Promise<{
+  directory: string;
+  actions: DescribedEntry[];
+  services: DescribedEntry[];
+  pages: DescribedEntry[];
+  views: DescribedEntry[];
+  configs: DescribedEntry[];
+  interceptors: DescribedEntry[];
+  setup?: string;
+  locales: string[];
+}>;

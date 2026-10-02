@@ -27,8 +27,8 @@ export function organizationUIPlugin(
     id: 'organizations-ui',
     metadata: {
       icon: UsersIcon,
-      name: 'Organisationsverwaltung',
-      description: 'Mitglieder, Einladungen und Organisationsprofil.',
+      name: 'Organization management',
+      description: 'Members, invitations and organization profile.',
     },
     dependencies: ['organizations'],
     pages: [

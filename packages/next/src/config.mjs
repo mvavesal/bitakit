@@ -7,7 +7,7 @@ const watchers = new Map();
 export function withFoundation(config = {}) {
   return async (phase) => {
     const root = process.cwd();
-    await generateFoundation(root);
+    const { included = [] } = (await generateFoundation(root)) ?? {};
     const generated = path.join(root, '.foundation/app.ts');
     if (phase === 'phase-development-server' && !watchers.has(root)) {
       watchers.set(
@@ -17,6 +17,10 @@ export function withFoundation(config = {}) {
     }
     return {
       ...config,
+      // Plugins included from outside the app (a plugin package's playground) are compiled too.
+      ...(included.length
+        ? { experimental: { ...config.experimental, externalDir: true } }
+        : {}),
       turbopack: {
         ...config.turbopack,
         resolveAlias: {

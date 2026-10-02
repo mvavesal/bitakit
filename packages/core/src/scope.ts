@@ -1,10 +1,22 @@
 import { ActionGroup, type ActionDefinition, type ActionList } from '@bitakit/core/actions';
+import type { PluginMetadata } from './definitions.js';
 
 export type ScopeModule = Readonly<{ id: string; app: boolean }>;
+/** A plugin as integrations may present it: its ID and metadata, never its services. */
+export type ComposedPlugin = Readonly<{ id: string; metadata?: PluginMetadata }>;
 const modules = new WeakMap<PluginScope, ScopeModule>();
-/** Runtime only: records which module a scope belongs to. Not exported from the package. */
-export function assignScopeModule(scope: PluginScope, module: ScopeModule) {
+const compositions = new WeakMap<PluginScope, readonly ComposedPlugin[]>();
+/**
+ * Runtime only: records which module a scope belongs to and the plugins composed with it. Not
+ * exported from the package.
+ */
+export function assignScopeModule(
+  scope: PluginScope,
+  module: ScopeModule,
+  plugins: readonly ComposedPlugin[] = [],
+) {
   modules.set(scope, Object.freeze({ ...module }));
+  compositions.set(scope, plugins);
 }
 /**
  * The module that owns a runtime-issued scope. Integrations derive ownership and layer from it,
@@ -14,6 +26,14 @@ export function scopeModule(scope: PluginScope): ScopeModule {
   const module = modules.get(scope);
   if (!module) throw new Error('Unknown plugin scope. Use the scope passed to setup.');
   return module;
+}
+/**
+ * The plugins composed with the runtime that issued a scope, in install order and without the
+ * application, for integrations that list or link plugins, such as a plugin overview.
+ */
+export function scopePlugins(scope: PluginScope): readonly ComposedPlugin[] {
+  scopeModule(scope);
+  return compositions.get(scope) ?? [];
 }
 /** Scoped facade over the host list, never a second action registry. */
 export class PluginScope {

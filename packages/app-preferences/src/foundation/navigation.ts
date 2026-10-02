@@ -1,4 +1,4 @@
-import { ActionGroup, type PluginScope, type TranslationService } from '@bitakit/core';
+import { ActionGroup, destinationMetadata, type PluginScope, type TranslationService } from '@bitakit/core';
 import { resolveLocalized } from '../text.js';
 import type { AppPreferences } from '../app-preferences.js';
 
@@ -24,6 +24,8 @@ export function bindSettingsNavigation(scope: PluginScope, settings: AppPreferen
         visible: section.visible,
         enabled: section.enabled,
         order: section.order,
+        // Search names the owning plugin; the catalog already validated it.
+        metadata: destinationMetadata({ kind: 'settings', plugin: section.pluginId }),
         groups: [
           ...(section.category ? [new ActionGroup(`settings.category.${section.category.id}`, resolveLocalized(i18n?.translate, [`settings.categories.${section.category.id}.title`], section.category.title))] : []),
           ...(section.navigation?.groups ?? []).map(id => new ActionGroup(id)),

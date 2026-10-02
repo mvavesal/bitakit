@@ -2,6 +2,7 @@
 import { useCallback, useContext, type ElementType } from 'react';
 import { UIContext } from '../providers/action-context.js';
 import { useFoundation } from '../providers/foundation-context.js';
+import { useGroupTitle } from '../hooks/use-group-title.js';
 import { ActionButton } from './action-button.js';
 import { ActionLink } from './action-link.js';
 import { ActionGroupBinding, type ActionGroupsViewProps } from './action-group-binding.js';
@@ -39,6 +40,7 @@ function Navigation({
 }) {
   const { runtime } = useFoundation();
   const navigation = useContext(UIContext);
+  const groupTitle = useGroupTitle();
   pathname ??= navigation.pathname ?? '';
   linkComponent ??= navigation.Link ?? 'a';
   const render = useCallback(
@@ -50,7 +52,7 @@ function Navigation({
               .filter((group) => group.items.length > 0)
               .map((group) => (
                 <NavigationMenuItem key={group.id}>
-                  <NavigationMenuTrigger>{group.title ?? (group.id === 'navigation' ? 'Allgemein' : group.id)}</NavigationMenuTrigger>
+                  <NavigationMenuTrigger>{groupTitle(group)}</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-64 max-w-[calc(100vw-3rem)] gap-1">
                       {group.items.map((action) => (
@@ -84,7 +86,7 @@ function Navigation({
         <div className="flex min-w-0 flex-col">
           {resolved.map((group) => (
             <SidebarGroup key={group.id}>
-              <SidebarGroupLabel>{group.title ?? (group.id === 'navigation' ? 'Allgemein' : group.id)}</SidebarGroupLabel>
+              <SidebarGroupLabel>{groupTitle(group)}</SidebarGroupLabel>
               <SidebarMenu>
                 {group.items.map((action) => (
                   <SidebarMenuItem key={action.id}>

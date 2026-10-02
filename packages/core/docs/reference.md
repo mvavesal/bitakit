@@ -96,7 +96,6 @@ import { defineFormAction } from '@bitakit/core';
 
 export default defineFormAction({
   groups: ['userManagement.dropdownMenu'],
-  requires: ['users'],
   fields: {
     email: { type: 'email', required: true },
   },
@@ -113,6 +112,10 @@ File discovery infers `users.invite` from the plugin ID and relative action file
 ```
 
 Optional `setup` runs after all selected plugins' actions are registered. Its scoped facade tracks registrations and placements; no manual cleanup is required for `getGroup().add()` or `attach()`. It can return cleanup for its own external subscriptions. Async setup is intentionally unsupported. Invalid group IDs, duplicate action IDs and missing/cyclic dependencies fail explicitly. Failed setup rolls back the contributions already installed.
+
+Since 0.2, startup failures are `FoundationStartupError`s that name the failing module (`plugin`, `app`) and, when discovery recorded it, the source file. In development, `FoundationProvider` from `@bitakit/ui` uses them to keep the app running: it turns off the failed plugin and the plugins that depend on it, shows a startup report, and explains on the page when a component still requires one of their services. Production fails fast; the `isolateFailures` prop changes the default.
+
+To test one plugin folder in Node, use `mountPlugin(directory, { id })` from `@bitakit/core/testing` (0.2). It discovers the folder with the same conventions as apps — services, actions, configs, interceptors and `setup.ts` — and returns the plugin's `services`, `execute(name, input)` and `stop()`. Pass `id` for a plugin folder inside an app; otherwise the ID comes from the nearest `package.json` name.
 
 `add()` accepts a core ActionDefinition. Declarative forms/dialogs are supplied in the plugin's `actions` contribution array (or discovered by the Next adapter); use `attach()` for their placements. `attach()` adds a placement without changing the action's global order. Set `order` on the action definition when ordering matters.
 
@@ -152,7 +155,7 @@ Form actions register the public opening action and an `<id>.submit` registratio
 
 ## Types and translation
 
-Core discovery generates a `ConfigMap` for module config and a `ServiceMap` augmentation using each service factory's return type, and an `ActionMap` augmentation from discovered action definitions: the effective ID (`replaces`, then an explicit `id`, then the file path) maps to the definition's input and result types, so `useAction`, `list.execute` and the UI bindings autocomplete IDs and type their input and completed `value`. Class and function exports establish their ID at construction and are excluded; augment `ActionMap` manually for those. With global `conventions: false` only explicit IDs are emitted. Unknown IDs remain allowed unless `ActionMapOptions` is augmented with `{ strict: true }`. Explicit consumers may augment `@bitakit/core` themselves. `requires` declares runtime dependencies; TypeScript provides method input/output inference. API responses still need runtime validation in the service.
+Core discovery generates a `ConfigMap` for module config and a `ServiceMap` augmentation using each service factory's return type, and an `ActionMap` augmentation from discovered action definitions: the effective ID (`replaces`, then an explicit `id`, then the file path) maps to the definition's input and result types, so `useAction`, `list.execute` and the UI bindings autocomplete IDs and type their input and completed `value`. Class and function exports establish their ID at construction and are excluded; augment `ActionMap` manually for those. With global `conventions: false` only explicit IDs are emitted. Unknown IDs remain allowed unless `ActionMapOptions` is augmented with `{ strict: true }`. Explicit consumers may augment `@bitakit/core` themselves. `requires` lists services from other plugins, which are checked at startup; a plugin's own services need no entry. TypeScript provides method input/output inference. API responses still need runtime validation in the service.
 
 `mergePluginMessages` merges each key in this priority: app current language, plugin current language, app fallback language, plugin fallback language (highest priority first). Packaged catalogs are exported by their owning package; local discovery catalogs retain their plugin namespace. Pass the result to your normal translation provider. The package does not create a second locale store.
 
@@ -180,6 +183,17 @@ A disabled boundary uses the action's localized unavailable message by default. 
 ## Discovery and explicit composition
 
 `@bitakit/core/discovery` is a Node-only build entry point. It scans files and emits imports; the browser provider never reads the filesystem. Adapters call `generateFoundation(root)` initially and `watchFoundation(root)` during development. Next integration is a separate package. Production changes require rebuilding and deployment.
+
+Without a host provider, for example in a Node program, create and mount the runtime yourself (0.2):
+
+```ts
+import { createRuntime } from '@bitakit/core';
+
+const runtime = createRuntime({ plugins: [notes] });
+const stop = runtime.mount();
+```
+
+`createRuntime(config, { actions, services })` creates the ActionList unless you pass one and accepts host-owned services such as authentication. It returns a `FoundationRuntime`; `new FoundationRuntime(createActionList(), config, services)` is the equivalent constructor and the form to use with Core 0.1.
 
 The generated config and the optional `FoundationProvider` props `actions`, `plugins`, `interceptors`, and `providers` follow one selection rule:
 
@@ -248,6 +262,15 @@ Integrations type their kinds by augmenting `ContributionMap`.
 integration can prepare an initial render snapshot that equals the mounted state.
 `scopeModule(scope)` identifies the module of a runtime-issued `PluginScope` (the scope passed to
 `setup`); integrations use it to derive ownership instead of trusting caller-supplied owner strings.
+`scopePlugins(scope)` lists the plugins composed with the same runtime (ID and metadata only, without
+the application), for integrations that list or link plugins, such as Shell's plugin overview.
+
+`runtime.destinationOf(action)` tells search and overview UIs what a URL Action leads to (`plugin`,
+`page` or `settings`) and which plugin owns it, with no extra declarations. It uses the destination
+an integration projected with `destinationMetadata({ kind, plugin })` (the settings catalog and
+Shell's plugin overview do this). Otherwise a path of the app is a page owned by the plugin whose
+page path matches, else by the plugin that contributed the link. The application is never named as
+the owner, and external links have no destination.
 
 Discovery supports integration kinds in `foundation.config.ts`:
 
@@ -278,7 +301,7 @@ Plugins may contribute services and ordered providers as well as actions, pages 
 Use `serviceKey<T>`, `provideService` and `getService` to preserve input/output types without
 pretending that an optional provider is always installed. See the owning integration package README for its setup.
 
-Plain Actions can declare `watch: ['auth']` and derive contextual presentation with `resolve(input, { services })`. The runtime validates the observable service, subscribes once per service (even for multiple Actions), refreshes the shared ActionList on changes and owns cleanup. There is no copied session state and no Action-level subscription boilerplate. `requires` remains useful for non-observable dependencies.
+Plain Actions can declare `watch: ['auth']` and derive contextual presentation with `resolve(input, { services })`. The runtime validates the observable service, subscribes once per service (even for multiple Actions), refreshes the shared ActionList on changes and owns cleanup. There is no copied session state and no Action-level subscription boilerplate. `requires` remains useful for services from other plugins.
 
 ### UI styles
 

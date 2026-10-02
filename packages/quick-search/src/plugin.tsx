@@ -3,21 +3,25 @@ import '../styles.css';
 import { defineDialogAction, definePlugin } from '@bitakit/core';
 import SearchIcon from 'reicon-react/icons/Search';
 import { QuickSearchTrigger } from './trigger.js';
-import { SearchResults } from './search-results.js';
+import { SearchResults, type QuickSearchResults } from './search-results.js';
 
 import { quickSearchActionId } from './constants.js';
 export { quickSearchActionId } from './constants.js';
+export type { QuickSearchResults } from './search-results.js';
+/** Installed packages read these from the app's `src/configs/quick-search.ts`. */
 export type QuickSearchOptions = {
   title?: string;
   placeholder?: string;
   empty?: string;
   /** Uses the root ActionProvider shortcut owner; false disables the shortcut. */
   shortcut?: string | false;
+  /** Result types to include; omitted types keep their defaults (pages and settings on). */
+  results?: QuickSearchResults;
 };
 
 /** A normal dialog Action; no second provider, service, registry or navigation dispatcher. */
 export function quickSearchPlugin(options: QuickSearchOptions = {}) {
-  const title = options.title ?? 'Schnellsuche';
+  const title = options.title ?? 'Quick search';
   const shortcut = options.shortcut ?? 'Mod+K';
   return definePlugin({
     id: 'quick-search',
@@ -29,8 +33,8 @@ export function quickSearchPlugin(options: QuickSearchOptions = {}) {
       icon: SearchIcon,
       shortcut: shortcut ? { keys: shortcut } : undefined,
       render: ({ close }) => <SearchResults close={close} label={title}
-        placeholder={options.placeholder ?? 'Seiten suchen …'}
-        empty={options.empty ?? 'Keine Ergebnisse gefunden.'} />,
+        placeholder={options.placeholder ?? 'Search pages…'}
+        empty={options.empty ?? 'No results found.'} results={options.results} />,
     })],
   });
 }

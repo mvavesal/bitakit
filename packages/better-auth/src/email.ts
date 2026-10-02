@@ -11,23 +11,23 @@ export function betterAuthEmail(
     async sendVerificationEmail({ user, url }: AccountEmail) {
       await service.send({
         to: user.email,
-        subject: 'E-Mail-Adresse bestätigen',
-        text: `Bitte bestätige deine E-Mail-Adresse:\n\n${url}`,
+        subject: 'Verify your email address',
+        text: `Please verify your email address:\n\n${url}`,
       });
     },
     async sendResetPassword({ user, url }: AccountEmail) {
       await service.send({
         to: user.email,
-        subject: 'Passwort zurücksetzen',
-        text: `Hier kannst du dein Passwort zurücksetzen:\n\n${url}`,
+        subject: 'Reset your password',
+        text: `You can reset your password here:\n\n${url}`,
       });
     },
     async sendInvitationEmail({ id, email, organization }: OrganizationInvitation) {
       const url = options.invitationURL(id);
       await service.send({
         to: email,
-        subject: 'Einladung zu einer Organisation',
-        text: `Du wurdest zu ${organization.name} eingeladen:\n\n${url}`,
+        subject: 'Organization invitation',
+        text: `You have been invited to join ${organization.name}:\n\n${url}`,
       });
     },
   };

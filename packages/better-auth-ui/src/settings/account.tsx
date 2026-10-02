@@ -37,15 +37,15 @@ function AccountContent({
   const auth = getService(useFoundation().runtime.services, authService);
   const session = useSyncExternalStore(auth.subscribe, auth.getSnapshot, auth.getSnapshot);
   const config = useAuth();
-  if (session.pending) return <p role="status">{translateUI("foundationUI.account.checkingSignin", undefined, "Anmeldung wird geprüft …")}</p>;
+  if (session.pending) return <p role="status">{translateUI("foundationUI.account.checkingSignin", undefined, "Checking sign-in…")}</p>;
   if (!session.user)
     return profile && Fallback ? (
       <Fallback />
     ) : (
       <p>
-        {translateUI("foundationUI.account.signInToAccessTheseAccountSettings", undefined, "Für diese Kontoeinstellungen benötigst du eine echte Anmeldung.")}{' '}
+        {translateUI("foundationUI.account.signInToAccessTheseAccountSettings", undefined, "Sign in to access these account settings.")}{' '}
         <a className="underline" href={`${config.basePaths.auth}/${config.viewPaths.auth.signIn}`}>
-          {translateUI("foundationUI.account.logIn", undefined, "Anmelden")}</a>
+          {translateUI("foundationUI.account.logIn", undefined, "Log in")}</a>
       </p>
     );
   if (profile) return <UserProfile />;
@@ -78,12 +78,12 @@ function AccountContent({
 
 /** Plugin-owned account pages, separate from the upstream component showcase. */
 export function accountSettingsSections(options: AccountSettingsOptions) {
-  const category = options.category ?? { id: 'personal', title: 'Mein Konto', order: 0 };
+  const category = options.category ?? { id: 'personal', title: 'My account', order: 0 };
   return [
     new SettingsSection({
       id: 'profile',
-      title: 'Profil',
-      description: 'Dein Profilbild und deine persönlichen Angaben.',
+      title: 'Profile',
+      description: 'Your profile picture and personal details.',
       category,
       icon: UserIcon,
       pluginId: 'better-auth-ui',
@@ -92,9 +92,9 @@ export function accountSettingsSections(options: AccountSettingsOptions) {
     }),
     new SettingsSection({
       id: 'security',
-      title: 'Sicherheit',
+      title: 'Security',
       description:
-        'E-Mail-Adresse, Passwort, Zwei-Faktor-Authentifizierung, verknüpfte Konten und aktive Sitzungen.',
+        'Email, password, two-factor authentication, linked accounts and active sessions.',
       category,
       icon: ShieldIcon,
       pluginId: 'better-auth-ui',

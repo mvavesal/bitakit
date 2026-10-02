@@ -1,5 +1,9 @@
+import { brand, isBrandedInstance } from './brand.js';
 /** A typed extension point. The same group can be rendered in different places. */
 export class ActionGroup<Input = unknown> {
+  static {
+    brand(this, 'group');
+  }
   declare readonly inputType: Input;
   constructor(
     public readonly id: string,
@@ -17,7 +21,7 @@ export type RegistrationOptions = {
 export function freezeGroups(groups: readonly ActionGroup<any>[] = []) {
   const ids = new Set<string>();
   for (const group of groups) {
-    if (!(group instanceof ActionGroup) || ids.has(group.id))
+    if (!isBrandedInstance(group, ActionGroup, 'group') || ids.has(group.id))
       throw new Error('Invalid or duplicate action group.');
     ids.add(group.id);
   }

@@ -19,7 +19,7 @@ test('UI uses the registered service and cleanup removes its navigation and comm
   assert.equal(service.getSnapshot().activeId, 'academy');
   stop();
   assert.equal(actions.get('organizations.open'), undefined);
-  await assert.rejects(service.refresh(), /beendet/);
+  await assert.rejects(service.refresh(), /disposed/);
 });
 
 test('member settings navigation follows organization role and cleans up on unmount', async () => {

@@ -7,7 +7,7 @@ export const organizationService = serviceKey<OrganizationService>('organization
 export function organizationsPlugin(createBackend: () => OrganizationBackend) {
   return definePlugin({
     id: 'organizations',
-    metadata: { name: 'Organisations-Service', description: 'Gemeinsamer Zugriff auf Organisationen und Mitgliedschaften.' },
+    metadata: { name: 'Organization service', description: 'Shared access to organizations and memberships.' },
     services: [
       provideService(organizationService, {
         create: () => createOrganizationService(createBackend()),

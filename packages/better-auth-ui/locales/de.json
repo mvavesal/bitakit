@@ -210,6 +210,9 @@
     "invite": {
       "title": "Mitglied einladen"
     },
+    "select": {
+      "title": "Wechseln"
+    },
     "refresh": {
       "title": "Erneut laden"
     },
@@ -258,6 +261,10 @@
   "plugins": {
     "better-auth-ui": {
       "description": "Original HeroUI-Komponenten für Anmeldung, Konto und Organisationen."
+    },
+    "organizations-ui": {
+      "name": "Organisationsverwaltung",
+      "description": "Mitglieder, Einladungen und Organisationsprofil."
     }
   }
 }

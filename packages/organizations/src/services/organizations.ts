@@ -26,7 +26,7 @@ export function createOrganizationService(backend: OrganizationBackend) {
     listeners.forEach((fn) => fn());
   };
   async function refresh() {
-    if (disposed) throw new Error('Organisations-Service ist beendet.');
+    if (disposed) throw new Error('Organization service is disposed.');
     const ticket = ++generation;
     update({ pending: true, error: null });
     try {
@@ -36,7 +36,7 @@ export function createOrganizationService(backend: OrganizationBackend) {
       if (ticket === generation)
         update({
           pending: false,
-          error: 'Die Organisationsdaten konnten nicht geladen werden.',
+          error: 'The organization data could not be loaded.',
           members: [],
           invitations: [],
           canManage: false,
@@ -46,7 +46,7 @@ export function createOrganizationService(backend: OrganizationBackend) {
   }
   async function mutate(operation: () => Promise<void>) {
     if (disposed || state.pending || mutating)
-      throw new Error('Bitte warte auf den laufenden Vorgang.');
+      throw new Error('Wait for the current operation to finish.');
     const ticket = generation;
     mutating = true;
     update({ pending: true, error: null });
@@ -55,14 +55,14 @@ export function createOrganizationService(backend: OrganizationBackend) {
       if (ticket === generation && !disposed) await refresh();
     } catch (error) {
       if (ticket === generation && !disposed)
-        update({ pending: false, error: 'Die Änderung konnte nicht gespeichert werden.' });
+        update({ pending: false, error: 'The change could not be saved.' });
       throw error;
     } finally {
       mutating = false;
     }
   }
   function active() {
-    if (!state.activeId || !state.canManage) throw new Error('Diese Aktion ist nicht verfügbar.');
+    if (!state.activeId || !state.canManage) throw new Error('This action is not available.');
     return state.activeId;
   }
   const unsubscribe = backend.subscribe?.(() => {
@@ -99,7 +99,7 @@ export function createOrganizationService(backend: OrganizationBackend) {
     refresh,
     setActive(id: string) {
       if (!state.organizations.some((org) => org.id === id))
-        throw new Error('Unbekannte Organisation.');
+        throw new Error('Unknown organization.');
       return mutate(async () => {
         update({ members: [], invitations: [], canManage: false });
         await backend.setActive(id);
@@ -108,16 +108,16 @@ export function createOrganizationService(backend: OrganizationBackend) {
     create(input: OrganizationInput) {
       if (!isOrganizationWebsite(input.website ?? '')) throw new Error(organizationWebsiteError);
       if (!input.name.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.slug))
-        throw new Error('Bitte prüfe Name und Kennung.');
+        throw new Error('Check the name and identifier.');
       return mutate(() => backend.create({ ...input, name: input.name.trim(), website: input.website?.trim(), slug: input.slug }));
     },
     invite(email: string, role: 'member' | 'admin' = 'member', expiresInDays = 30) {
       const organizationId = active();
-      if (role !== 'member' && role !== 'admin') throw new Error('Ungültige Rolle.');
+      if (role !== 'member' && role !== 'admin') throw new Error('Invalid role.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-        throw new Error('Bitte prüfe die E-Mail-Adresse.');
+        throw new Error('Check the email address.');
       if (!Number.isInteger(expiresInDays) || expiresInDays < 1 || expiresInDays > 365)
-        throw new Error('Gültigkeit muss zwischen 1 und 365 Tagen liegen.');
+        throw new Error('Validity must be between 1 and 365 days.');
       return mutate(() =>
         backend.invite({ organizationId, email: email.trim().toLowerCase(), role, expiresInDays }),
       );
@@ -127,7 +127,7 @@ export function createOrganizationService(backend: OrganizationBackend) {
       const invitation = state.invitations.find(
         (item) => item.id === invitationId && item.status === 'pending',
       );
-      if (!invitation) throw new Error('Einladung nicht verfügbar.');
+      if (!invitation) throw new Error('Invitation not available.');
       return mutate(() =>
         backend.invite({
           organizationId,
@@ -140,18 +140,18 @@ export function createOrganizationService(backend: OrganizationBackend) {
     cancel(invitationId: string) {
       const organizationId = active();
       if (!state.invitations.some((item) => item.id === invitationId && item.status === 'pending'))
-        throw new Error('Einladung nicht verfügbar.');
+        throw new Error('Invitation not available.');
       return mutate(() => backend.cancelInvitation({ organizationId, invitationId }));
     },
     updateRole(memberId: string, role: 'member' | 'admin') {
       const organizationId = active();
-      if (role !== 'member' && role !== 'admin') throw new Error('Ungültige Rolle.');
+      if (role !== 'member' && role !== 'admin') throw new Error('Invalid role.');
       if (
         !state.members.some(
           (item) => item.id === memberId && !item.role.split(',').includes('owner'),
         )
       )
-        throw new Error('Mitglied nicht verfügbar.');
+        throw new Error('Member not available.');
       return mutate(() => backend.updateRole({ organizationId, memberId, role }));
     },
     remove(memberId: string) {
@@ -161,19 +161,19 @@ export function createOrganizationService(backend: OrganizationBackend) {
           (item) => item.id === memberId && !item.role.split(',').includes('owner'),
         )
       )
-        throw new Error('Mitglied nicht verfügbar.');
+        throw new Error('Member not available.');
       return mutate(() => backend.removeMember({ organizationId, memberId }));
     },
     update(input: OrganizationInput) {
       if (!isOrganizationWebsite(input.website ?? '')) throw new Error(organizationWebsiteError);
       const organizationId=active();
-      if (!backend.update) throw new Error('Nicht unterstützt.');
-      if (!input.name.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.slug)) throw new Error('Bitte prüfe Name und Kennung.');
+      if (!backend.update) throw new Error('Not supported.');
+      if (!input.name.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.slug)) throw new Error('Check the name and identifier.');
       return mutate(()=>backend.update!({...input,website:input.website?.trim(),name:input.name.trim(),organizationId}));
     },
     delete() {
       const organizationId=active();
-      if(!state.canDelete || !backend.delete) throw new Error('Nicht verfügbar.');
+      if(!state.canDelete || !backend.delete) throw new Error('Not available.');
       return mutate(()=>backend.delete!(organizationId));
     },
     setDisabled(memberId: string, disabled: boolean) {
@@ -185,15 +185,15 @@ export function createOrganizationService(backend: OrganizationBackend) {
         memberId === state.viewerMemberId ||
         member.role.split(',').includes('owner')
       )
-        throw new Error('Mitglied nicht verfügbar.');
+        throw new Error('Member not available.');
       return mutate(() => backend.setMemberDisabled!({ organizationId, memberId, disabled }));
     },
     accept(invitationId: string) {
-      if (!backend.acceptInvitation || !invitationId) throw new Error('Einladung nicht verfügbar.');
+      if (!backend.acceptInvitation || !invitationId) throw new Error('Invitation not available.');
       return mutate(() => backend.acceptInvitation!(invitationId));
     },
     reject(invitationId: string) {
-      if (!backend.rejectInvitation || !invitationId) throw new Error('Einladung nicht verfügbar.');
+      if (!backend.rejectInvitation || !invitationId) throw new Error('Invitation not available.');
       return mutate(() => backend.rejectInvitation!(invitationId));
     },
     dispose() {

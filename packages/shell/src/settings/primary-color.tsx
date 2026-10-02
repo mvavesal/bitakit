@@ -6,10 +6,10 @@ import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
 import { Field, FieldLabel } from '@bitakit/ui/components';
 
 const presets = [
-  { value: 'default', label: 'Standard' },
-  { value: '#2563eb', label: 'Blau' },
-  { value: '#7c3aed', label: 'Violett' },
-  { value: '#059669', label: 'Grün' },
+  { value: 'default', label: 'Default' },
+  { value: '#2563eb', label: 'Blue' },
+  { value: '#7c3aed', label: 'Violet' },
+  { value: '#059669', label: 'Green' },
   { value: '#e11d48', label: 'Rose' },
   { value: '#ea580c', label: 'Orange' },
 ];
@@ -32,7 +32,7 @@ export function PrimaryColor(props: SettingControlProps<TextSetting>) {
       >
         {[
           ...presets.map((item, index) => ({ ...item, label: t(`shell.colors.p${index}`, undefined, item.label) })),
-          ...(preset === 'custom' ? [{ value: 'custom', label: t("shell.ui.customColor", undefined, "Eigene Farbe") }] : []),
+          ...(preset === 'custom' ? [{ value: 'custom', label: t("shell.ui.customColor", undefined, "Custom color") }] : []),
         ].map((item) => (
           <FieldLabel key={item.value} htmlFor={`${props.id}-${item.value}`}>
             <Field orientation="horizontal">
@@ -55,7 +55,7 @@ export function PrimaryColor(props: SettingControlProps<TextSetting>) {
         ))}
       </RadioGroup>
       <Field orientation="horizontal">
-        <FieldLabel htmlFor={`${props.id}-custom`}>{t("shell.ui.customColor", undefined, "Eigene Farbe")}</FieldLabel>
+        <FieldLabel htmlFor={`${props.id}-custom`}>{t("shell.ui.customColor", undefined, "Custom color")}</FieldLabel>
         <Input
           id={`${props.id}-custom`}
           type="color"
@@ -67,7 +67,7 @@ export function PrimaryColor(props: SettingControlProps<TextSetting>) {
           onChange={(event) => void props.setValue(event.target.value)}
         />
         <span className="text-sm text-muted-foreground">
-          {props.value === 'default' ? t("shell.ui.themeDefault", undefined, "Theme-Vorgabe") : props.value.toUpperCase()}
+          {props.value === 'default' ? t("shell.ui.themeDefault", undefined, "Theme default") : props.value.toUpperCase()}
         </span>
       </Field>
     </div>

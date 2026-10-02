@@ -12,11 +12,12 @@ export function validatePluginPages(plugins: readonly Plugin[]) {
     }
   }
 }
+/** The registered page for a pathname and the ID of the module that owns it. */
 export function findPluginPage(plugins: readonly Plugin[], pathname: string) {
   const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
   for (const plugin of plugins) {
     const page = plugin.pages?.find((entry) => entry.path === path);
-    if (page) return { ...page, key: `${plugin.id}:${page.path}` };
+    if (page) return { ...page, plugin: plugin.id, key: `${plugin.id}:${page.path}` };
   }
   return undefined;
 }

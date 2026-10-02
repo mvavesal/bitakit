@@ -165,8 +165,9 @@ or all methods; see the Core README for lifecycle and observation boundaries.
 `defineService({ exposeAs: 'clock', create: ... })` and
 `provideService(clockKey, { exposeAs: 'clock', create: ... })` expose the same container
 instance through `app.services.clock`. Omit `exposeAs` in ordinary discovered files:
-Core uses the explicit service ID or relative file path. An explicit name changes only
-the app facade, not the internal module-scoped key used by `requires` and factory contexts.
+Core uses the explicit service ID or relative file path. An explicit name does not rename
+the container key; from 0.2, `requires`, factory contexts and `runtime.services` accept the
+public name or the full ID.
 
 Generated hosts carry this name on each service definition instead of emitting a separate
 `publicServices` map. Runtime name resolution and collision checks are shared with manual

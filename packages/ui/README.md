@@ -10,6 +10,11 @@ provider during migration. `actionOptions` configures an owned provider; an oute
 keeps ownership of its options. Generic UI and labels remain explicit here. The optional
 Next adapter supplies its standard visual defaults and native navigation.
 
+In development (0.2+), FoundationProvider turns off a plugin that fails to start, together
+with the plugins that depend on it, and shows a startup report; a page that still requires
+one of its services shows an explanation instead of crashing. Production fails fast. Set
+`isolateFailures` to change this.
+
 `useFoundationApp()` returns the existing runtime's public facade and subscribes to readiness.
 Use `app.optional.services.documents` before mount or for an optional capability. Required
 `app.services.documents` reports a structured FoundationServiceError when unavailable. Service data
@@ -84,7 +89,7 @@ are irrelevant to execution. Core declares vendor-independent `ActionShortcut` m
 registration lives in `src/bindings/action-shortcuts.ts`. `shortcuts={false}` disables it.
 
 ```tsx
-const save = defineAction<void, void>({
+const save = defineAction({
   id: 'document.save',
   shortcut: { keys: 'Mod+Shift+S', scope: 'editor' },
   execute() { /* Save through the domain service. */ },

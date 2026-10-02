@@ -321,6 +321,11 @@
       background-color: var(--control-surface);
     }
 
+    /* Unchecked radios are transparent and take the color of the surface they sit on. */
+    [data-slot='radio-group-item'] {
+      background-color: transparent;
+    }
+
     :is([data-slot='checkbox'], [data-slot='radio-group-item']):is(
       [data-state='checked'],
       [data-state='indeterminate']

@@ -28,6 +28,13 @@ export async function generateFoundation(root) {
   const output = path.join(root, '.foundation');
   await mkdir(output, { recursive: true });
   const roots = pluginManifests(directory, await files(directory));
+  // Plugins outside the plugin directory, such as the source of a plugin package in its playground.
+  const included = Object.entries(config.plugins?.include ?? {}).map(([id, folder]) => {
+    if (!/^[a-z][a-z0-9-]*$/.test(id)) throw new Error(`Invalid included plugin ID: ${id}`);
+    const base = path.resolve(root, folder);
+    return { manifestFile: path.join(base, 'plugin.config.ts'), id };
+  });
+  const modules = [...roots.map((manifestFile) => ({ manifestFile })), ...included];
   const imports = [];
   const definitions = [];
   const serviceTypes = [];
@@ -89,7 +96,7 @@ export async function generateFoundation(root) {
     return `{ ${parts.join(', ')} }`;
   };
   const actionTypes = [];
-  const moduleRoots = new Set(roots.map((file) => path.dirname(file)));
+  const moduleRoots = new Set(modules.map((module) => path.dirname(module.manifestFile)));
   const appRoot = path.resolve(root, config.directory ?? './src');
   const appManifestFile = path.join(appRoot, 'plugin.config.ts');
   const appManifest = await readFile(appManifestFile, 'utf8')
@@ -109,7 +116,8 @@ export async function generateFoundation(root) {
       const imported = importFile(entry.file);
       const name = `file${serial++}`;
       imports.push(
-        `const ${name} = discoveredFile(${imported}, ${quote(entry.path.join('.'))}, ${quote(entry.source)});`,
+        // Project-relative sources make runtime diagnostics point at the actual file.
+        `const ${name} = discoveredFile(${imported}, ${quote(entry.path.join('.'))}, ${quote(path.relative(root, entry.file).split(path.sep).join('/'))});`,
       );
       return name;
     });
@@ -178,7 +186,7 @@ export async function generateFoundation(root) {
     if (!entry) throw new Error(`Unknown provider "${id}".`);
     return importFile(entry.file);
   });
-  for (const manifestFile of roots) {
+  for (const { manifestFile, id } of modules) {
     const base = path.dirname(manifestFile);
     const overrides = await readFile(manifestFile, 'utf8')
       .then(() => jiti.import(manifestFile, { default: true }))
@@ -186,18 +194,22 @@ export async function generateFoundation(root) {
         if (error.code === 'ENOENT' && error.path === manifestFile) return {};
         throw error;
       });
-    const manifest = { id: path.basename(base), ...overrides };
+    const manifest = { id: path.basename(base), ...overrides, ...(id ? { id } : {}) };
     if (!/^[a-z][a-z0-9-]*$/.test(manifest.id) || pluginIds.has(manifest.id))
       throw new Error(`Invalid or duplicate plugin ID: ${manifest.id}`);
     pluginIds.add(manifest.id);
     const enabled =
       config.plugins?.overrides?.[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true;
-    const packageInfo = await readFile(path.join(base, 'package.json'), 'utf8')
-      .then(JSON.parse)
-      .catch((error) => {
-        if (error.code === 'ENOENT') return {};
-        throw error;
-      });
+    // A package's sources usually sit in src/, next to its package.json.
+    const readPackage = (folder) =>
+      readFile(path.join(folder, 'package.json'), 'utf8')
+        .then(JSON.parse)
+        .catch((error) => {
+          if (error.code === 'ENOENT') return undefined;
+          throw error;
+        });
+    const packageInfo =
+      (await readPackage(base)) ?? (id ? await readPackage(path.dirname(base)) : undefined) ?? {};
     const metadata = {};
     for (const key of ['name', 'version', 'description', 'author', 'homepage', 'bugs', 'license']) {
       const value = manifest.metadata?.[key] ?? packageInfo[key];
@@ -288,13 +300,19 @@ export async function generateFoundation(root) {
   await writeChanged(
     path.join(output, 'plugins.ts'),
     `${header}${[...contributionTypes.values()].map(({ kind, index, entries }) => `type KindMap${index} = ${entries.join(' & ')}; declare module ${quote(kind.from)} { interface ${kind.types.map} extends KindMap${index} {} }`).join('\n')}
-${imports.join('\n')}\nimport { ${imports.some(entry => entry.includes('= discoveredFile(')) ? 'discoveredFile, ' : ''}discoverActions, discoverServices, discoverInterceptors, discoverConfig, ${actionTypes.length ? 'type DiscoveredActionEntry, ' : ''}${serviceTypes.length ? 'type DiscoveredServiceEntry, ' : ''}${publicServiceTypes.length ? 'type DiscoveredPublicServiceEntry, ' : ''}${configTypes.some(entry => entry.includes('DiscoveredConfigEntry')) ? 'type DiscoveredConfigEntry, ' : ''}type FoundationConfig } from '@bitakit/core';\ntype DiscoveredServices = ${serviceTypes.join(' & ') || '{}'};\ntype DiscoveredPublicServices = ${publicServiceTypes.join(' & ') || '{}'};\ntype DiscoveredActions = ${actionTypes.join(' & ') || '{}'};\ndeclare module '@bitakit/core' { interface PublicServiceMap extends DiscoveredPublicServices {} interface ServiceMap extends DiscoveredServices {} interface ActionMap extends DiscoveredActions {} interface ConfigMap { ${configTypes.join(' \n')} } }\nexport const foundationConfig = { appId: ${quote(appId)}, metadata: ${quote(appManifest.metadata ?? {})}, dependencies: ${quote(appManifest.dependencies ?? [])}, pages: [${appPages}], views: [${appViews}], setup: ${appSetup}, groups: ${quote(config.groups ?? [])}, actionOverrides: ${quote((config.actions && config.actions.overrides) || {})}, config: ${appConfig}, configOverrides: ${quote(Object.fromEntries(Object.entries(config.configOverrides ?? {}).filter(([id]) => !pluginIds.has(id) || enabledModuleIds.has(id))))}, services: ${appServices}, interceptors: ${interceptors}, providers: [${providers}], actions: ${appActions}, contributions: ${appContributions}, plugins: [${definitions.join(',\n')}] } satisfies FoundationConfig;\n`,
+${imports.join('\n')}\nimport { ${imports.some(entry => entry.includes('= discoveredFile(')) ? 'discoveredFile, ' : ''}discoverActions, discoverServices, discoverInterceptors, discoverConfig, ${actionTypes.length ? 'type DiscoveredActionEntry, ' : ''}${serviceTypes.length ? 'type DiscoveredServiceEntry, ' : ''}${publicServiceTypes.length ? 'type DiscoveredPublicServiceEntry, ' : ''}${configTypes.some(entry => entry.includes('DiscoveredConfigEntry')) ? 'type DiscoveredConfigEntry, ' : ''}type FoundationConfig } from '@bitakit/core';\ntype DiscoveredServices = ${serviceTypes.join(' & ') || '{}'};\ntype DiscoveredPublicServices = ${publicServiceTypes.join(' & ') || '{}'};\ntype DiscoveredActions = ${actionTypes.join(' & ') || '{}'};\ndeclare module '@bitakit/core' { interface PublicServiceMap extends DiscoveredPublicServices {} interface ServiceMap extends DiscoveredServices, DiscoveredPublicServices {} interface ActionMap extends DiscoveredActions {} interface ConfigMap { ${configTypes.join(' \n')} } }\nexport const foundationConfig = { appId: ${quote(appId)}, metadata: ${quote(appManifest.metadata ?? {})}, dependencies: ${quote(appManifest.dependencies ?? [])}, pages: [${appPages}], views: [${appViews}], setup: ${appSetup}, groups: ${quote(config.groups ?? [])}, actionOverrides: ${quote((config.actions && config.actions.overrides) || {})}, config: ${appConfig}, configOverrides: ${quote(Object.fromEntries(Object.entries(config.configOverrides ?? {}).filter(([id]) => !pluginIds.has(id) || enabledModuleIds.has(id))))}, services: ${appServices}, interceptors: ${interceptors}, providers: [${providers}], actions: ${appActions}, contributions: ${appContributions}, plugins: [${definitions.join(',\n')}] } satisfies FoundationConfig;\n`,
   );
   await writeChanged(
     path.join(output, 'messages.json'),
     JSON.stringify(allMessages, null, 2) + '\n',
   );
+  // One stylesheet for every installed package that ships styles; apps import only this file.
+  await writeChanged(
+    path.join(output, 'styles.css'),
+    `/* Generated by BitaKit. Do not edit. Styles of installed packages, theme last. */\n${(installed.styles ?? []).map((specifier) => `@import ${quote(specifier)};`).join('\n')}\n`,
+  );
   const configured = Object.keys(installed.configurations ?? {}).length > 0;
+  const watched = included.map((module) => path.dirname(module.manifestFile));
   const pluginFactories = installed.plugins.map((specifier, index) => {
     const configPath = installed.configurations?.[specifier];
     return `packagePlugin${index}(${configPath ? `options.get(${quote(configPath)}, {})` : ''})`;
@@ -307,7 +325,7 @@ ${installed.plugins.map((specifier, index) => `import packagePlugin${index} from
 import { ${configured ? 'ConfigService, type FoundationConfig, ' : ''}type PublicServicesOf } from '@bitakit/core';
 type InstalledPlugins = [${installed.plugins.map((_, index) => `ReturnType<typeof packagePlugin${index}>`).join(', ')}];
 type InstalledPublicServices = PublicServicesOf<InstalledPlugins>;
-declare module '@bitakit/core' { interface PublicServiceMap extends InstalledPublicServices {} }
+declare module '@bitakit/core' { interface PublicServiceMap extends InstalledPublicServices {} interface ServiceMap extends InstalledPublicServices {} }
 /** Factories describe plugins per provider instance; runtime creation and cleanup stay in Core. */
 export function createFoundationConfig() {
   ${configured ? `const { appId = '@foundation/app', config, configOverrides = {} }: FoundationConfig = foundationConfig;
@@ -318,4 +336,5 @@ export function createFoundationConfig() {
 }
 `,
   );
+  return { included: watched };
 }

@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/next-intl",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -23,8 +23,8 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@bitakit/core": "^0.1.1",
-    "@bitakit/app-preferences": "0.1.0"
+    "@bitakit/core": "^0.2.0",
+    "@bitakit/app-preferences": "^0.2.0"
   },
   "peerDependencies": {
     "react": "^18.3.0 || ^19.0.0",

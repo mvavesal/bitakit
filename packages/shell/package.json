@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/shell",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Optional theme-aware application shell with sidebar and navbar layouts.",
   "type": "module",
   "sideEffects": [
@@ -10,7 +10,8 @@
     "dist",
     "README.md",
     "styles.css",
-    "locales"
+    "locales",
+    "examples"
   ],
   "exports": {
     ".": {
@@ -48,9 +49,9 @@
   "dependencies": {
     "@heroui/react": "^3.2.6",
     "@heroui/styles": "^3.2.6",
-    "@bitakit/app-preferences": "0.1.0",
-    "@bitakit/core": "^0.1.1",
-    "@bitakit/ui": "0.1.0",
+    "@bitakit/app-preferences": "^0.2.0",
+    "@bitakit/core": "^0.2.0",
+    "@bitakit/ui": "^0.2.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
     "colorjs.io": "^0.7.1",
@@ -70,7 +71,8 @@
   },
   "foundation": {
     "plugin": "./foundation",
-    "configuration": "shell"
+    "configuration": "shell",
+    "styles": "./styles.css"
   },
   "license": "MIT",
   "repository": {

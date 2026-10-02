@@ -1,19 +1,67 @@
 import { createRequire } from 'node:module';
-import { cp } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
+  agentRules,
   configureProject,
-  writeProjectFile,
-  projectStyles,
   optionalPackages,
+  projectStyles,
+  readme,
+  shellConfig,
+  writeProjectFiles,
 } from '../project-files.mjs';
-const require = createRequire(import.meta.url);
-const templates = fileURLToPath(new URL('../../templates/tanstack/', import.meta.url));
 
-/** Official blank Start scaffold with native routes and the optional Foundation host adapter. */
+const require = createRequire(import.meta.url);
+
+const root = (title) => `import { HeadContent, Scripts, Outlet, createRootRoute } from '@tanstack/react-router';
+import { FoundationProvider } from '@bitakit/tanstack';
+import type { ReactNode } from 'react';
+import appCss from '../styles.css?url';
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: ${JSON.stringify(title)} },
+    ],
+    links: [{ rel: 'stylesheet', href: appCss }],
+  }),
+  component: () => (
+    <FoundationProvider>
+      <Outlet />
+    </FoundationProvider>
+  ),
+  shellComponent: Document,
+});
+
+function Document({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+`;
+
+const home = (route, subtitle) => `import { createFileRoute } from '@tanstack/react-router';
+import { PageHeader } from '@bitakit/ui/components';
+
+export const Route = createFileRoute('${route}')({
+  component: () => <PageHeader title="Welcome" subtitle="${subtitle}" />,
+});
+`;
+
+/** Official blank Start scaffold plus the few files BitaKit needs. */
 export const tanstack = {
-  label: 'TanStack Start (React, experimental)',
+  label: 'TanStack Start',
+  routes: 'src/routes',
   async scaffold(plan, run) {
     await run(
       process.execPath,
@@ -36,15 +84,83 @@ export const tanstack = {
     );
   },
   async configure(plan) {
+    const shell = plan.features.includes('shell');
     await configureProject(plan, {
       packages: ['tanstack', ...plan.features.map((feature) => optionalPackages[feature])],
       dependencies: { '@tanstack/react-router': '1.170.40', '@tanstack/react-start': '1.168.59' },
       devDependencies: { '@tailwindcss/vite': '^4.1.0', tailwindcss: '^4.1.0' },
       scripts: { typecheck: 'foundation-generate && tsr generate && tsc --noEmit' },
     });
-    await cp(path.join(templates, 'base'), plan.target, { recursive: true });
-    if (plan.features.includes('shell'))
-      await cp(path.join(templates, 'shell'), plan.target, { recursive: true });
-    await writeProjectFile(plan.target, 'src/styles.css', projectStyles(plan.features));
+    await rm(path.join(plan.target, 'src/routes/index.tsx'), { force: true });
+    const subtitle = plan.sample
+      ? 'Open Todos in the navigation, or add a feature with npx bitakit add plugin notes.'
+      : 'Edit this page, or add a feature with npx bitakit add plugin notes.';
+    const files = {
+      'vite.config.ts': `import { defineConfig } from 'vite';
+import { tanstackStart } from '@tanstack/react-start/plugin/vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { foundation } from '@bitakit/tanstack/config';
+
+export default defineConfig({
+  resolve: { tsconfigPaths: true },
+  plugins: [foundation(), tanstackStart(), react(), tailwindcss()],
+});
+`,
+      'src/styles.css': projectStyles('..'),
+      'src/routes/__root.tsx': root(plan.name),
+    };
+    if (shell)
+      Object.assign(files, {
+        'src/configs/shell.ts': shellConfig,
+        // A pathless layout: every route below renders inside the app frame.
+        'src/routes/_app.tsx': `import { createFileRoute, Outlet } from '@tanstack/react-router';
+import { AppShell } from '@bitakit/shell';
+
+export const Route = createFileRoute('/_app')({
+  component: () => (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  ),
+});
+`,
+        'src/routes/_app.index.tsx': home('/_app/', subtitle),
+        // Renders plugin pages such as /todos; unknown paths show the not-found state.
+        'src/routes/_app.$.tsx': `import { createFileRoute } from '@tanstack/react-router';
+import { PluginPage } from '@bitakit/ui';
+import { NotFoundPage } from '@bitakit/shell/pages';
+
+export const Route = createFileRoute('/_app/$')({
+  component: () => <PluginPage fallback={<NotFoundPage />} />,
+});
+`,
+        // Serves /settings and every section below it.
+        'src/routes/settings.$.tsx': `import { createFileRoute } from '@tanstack/react-router';
+import { SettingsRoute } from '@bitakit/shell';
+
+export const Route = createFileRoute('/settings/$')({ component: SettingsRoute });
+`,
+      });
+    else
+      Object.assign(files, {
+        'src/routes/index.tsx': home('/', subtitle),
+        // Renders plugin pages such as /todos.
+        'src/routes/$.tsx': `import { createFileRoute } from '@tanstack/react-router';
+import { PluginPage } from '@bitakit/ui';
+import { PageHeader } from '@bitakit/ui/components';
+
+export const Route = createFileRoute('/$')({
+  component: () => <PluginPage fallback={<PageHeader title="Page not found" />} />,
+});
+`,
+      });
+    await writeProjectFiles(plan.target, files);
+    const rules = await readFile(path.join(plan.target, 'AGENTS.md'), 'utf8').catch(() => '');
+    await writeProjectFiles(plan.target, {
+      'AGENTS.md': `${rules ? `${rules.trimEnd()}\n\n` : ''}${agentRules(plan, tanstack)}`,
+      'CLAUDE.md': '@AGENTS.md\n',
+      'README.md': readme(plan, tanstack),
+    });
   },
 };

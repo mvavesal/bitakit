@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "sideEffects": [
     "./styles.css",
@@ -28,19 +28,21 @@
       "default": "./dist/components.js"
     },
     "./locales/*.json": "./locales/*.json",
-    "./theme.css": "./theme.css"
+    "./theme.css": "./theme.css",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && tsc -p tsconfig.test.json && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.1.1",
+    "@bitakit/core": "^0.2.0",
     "@tanstack/hotkeys": "^0.10.1",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
     "radix-ui": "^1.6.7",
-    "reicon-react": "1.2.5"
+    "reicon-react": "1.2.5",
+    "tw-animate-css": "^1.4.0"
   },
   "peerDependencies": {
     "react": "^19.0.0"
@@ -61,5 +63,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "foundation": {
+    "styles": "./styles.css",
+    "theme": "./theme.css"
   }
 }

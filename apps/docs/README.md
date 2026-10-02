@@ -17,5 +17,5 @@ or configure a Next.js-compatible deployment with `apps/docs` as the application
 and the repository workspace lockfile available. Nothing is deployed automatically.
 
 Add reviewed MDX pages under `content/docs`, with title/description frontmatter and navigation
-metadata as needed. Follow `/docs/contributing`. Do not add fictitious repository links or
-published installation commands while npm publication is pending.
+metadata as needed. Follow `/docs/contributing`. Do not add fictitious repository links.
+Mark features that are not on npm yet with the release that adds them.

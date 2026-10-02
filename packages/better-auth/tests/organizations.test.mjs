@@ -133,7 +133,7 @@ test('unverified email only blocks personal invitations, other failures still re
   api.listUserInvitations = async () => ({data:null,error:{code:'EMAIL_VERIFICATION_REQUIRED_FOR_INVITATION'}});
   const data = await backend.load();
   assert.equal(data.activeId, 'one');
-  assert.match(data.incomingInvitationsError, /bestätige/);
+  assert.match(data.incomingInvitationsError, /Verify your email address/);
   assert.deepEqual(data.incomingInvitations, []);
   api.listUserInvitations = async () => ({data:null,error:new Error('network failed')});
   await assert.rejects(backend.load(), /network failed/);

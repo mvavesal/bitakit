@@ -9,7 +9,8 @@ export { NavigationHost, safeHref } from './navigation.js';
 export { ActionGroup } from './groups.js';
 export type { RegistrationOptions } from './groups.js';
 export type { ActionInterceptor, ExecutionEvent } from './interceptors.js';
-export { ActionFailure } from './feedback.js';
+export { ActionFailure, isActionFailure } from './feedback.js';
+export { isBrandedInstance, isBrandedClass, type Brand } from './brand.js';
 export type { Feedback, FeedbackMessage, FeedbackResult, MessageValues } from './feedback.js';
 
 export { ActionStatus, type ActionStateValue } from './state.js';

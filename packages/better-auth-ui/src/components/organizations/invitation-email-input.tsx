@@ -64,7 +64,7 @@ export function InvitationEmailInput({
             <ComboboxChip
               key={email}
               aria-label={email}
-              removeLabel={`Entfernen: ${email}`}
+              removeLabel={`Remove ${email}`}
               className="max-w-full"
             >
               <Avatar className="size-4">
@@ -76,8 +76,8 @@ export function InvitationEmailInput({
         </ComboboxValue>
         <ComboboxChipsInput
           id="invite-email"
-          aria-label={translateUI("foundationUI.invitation_email_input.email", undefined, "E-Mail")}
-          placeholder={translateUI("foundationUI.invitation_email_input.addEmailAddresses", undefined, "E-Mail-Adressen hinzufügen")}
+          aria-label={translateUI("foundationUI.invitation_email_input.email", undefined, "Email")}
+          placeholder={translateUI("foundationUI.invitation_email_input.addEmailAddresses", undefined, "Add email addresses")}
           aria-invalid={invalid}
           aria-describedby="invite-email-hint invite-email-error"
           onBlur={onBlur}
@@ -97,7 +97,7 @@ export function InvitationEmailInput({
               <Avatar className="size-6">
                 <AvatarFallback>{email.slice(0, 1).toUpperCase()}</AvatarFallback>
               </Avatar>
-              {email} {translateUI("foundationUI.invitation_email_input.add", undefined, "hinzufügen")}</ComboboxItem>
+              {email} {translateUI("foundationUI.invitation_email_input.add", undefined, "add")}</ComboboxItem>
           )}
         </ComboboxList>
       </ComboboxContent>

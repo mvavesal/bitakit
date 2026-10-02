@@ -87,7 +87,7 @@ test('inline names preserve existing collision and reserved-path checks before c
         new FoundationRuntime(createActionList(), {
           services: [service('one', name)],
         }),
-      /reserved public service path/,
+      /reserved segment/,
     );
   }
   for (const services of [
@@ -95,7 +95,10 @@ test('inline names preserve existing collision and reserved-path checks before c
     [service('one', 'clock'), service('two', 'clock.child')],
     [service('one', 'clock.child'), service('two', 'clock')],
   ]) {
-    assert.throws(() => new FoundationRuntime(createActionList(), { services }), /Duplicate/);
+    assert.throws(
+      () => new FoundationRuntime(createActionList(), { services }),
+      /exposes two services named "clock"|is nested under "clock"|already used as a service namespace/,
+    );
   }
   assert.throws(
     () =>
@@ -105,7 +108,7 @@ test('inline names preserve existing collision and reserved-path checks before c
           { id: 'two', services: [service('two', 'clock')] },
         ],
       }),
-    /Duplicate/,
+    /Plugins "one" and "two" both expose a service named "clock"/,
   );
   assert.throws(
     () =>
@@ -113,7 +116,7 @@ test('inline names preserve existing collision and reserved-path checks before c
         publicServices: { clock: serviceKey('different') },
         services: [service('one', 'clock')],
       }),
-    /Duplicate/,
+    /exposes two services named "clock"/,
   );
   assert.equal(created, 0);
 });

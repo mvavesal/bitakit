@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/organizations",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "files": [
     "dist",
@@ -23,7 +23,7 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.1.1",
+    "@bitakit/core": "^0.2.0",
     "tldts": "^7.4.13",
     "zod": "^4.6.5"
   },

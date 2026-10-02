@@ -1,9 +1,12 @@
 /** Only capabilities with a working starter integration are offered. */
 export const features = {
-  preferences: { label: 'App Preferences', requires: [] },
-  shell: { label: 'App Shell and settings pages', requires: ['preferences'] },
-  'quick-search': { label: 'Quick Search', requires: ['shell'] },
+  preferences: { label: 'App Preferences (settings storage)', requires: [] },
+  shell: { label: 'App Shell (navigation, layout and settings pages)', requires: ['preferences'] },
+  'quick-search': { label: 'Quick Search (⌘K)', requires: ['shell'] },
 };
+
+/** A complete app frame unless the developer asks for less (`--features none`). */
+export const defaultFeatures = ['shell', 'quick-search'];
 
 /** Resolve prerequisites once; adapters consume the same selected set. */
 export function resolveFeatures(selected) {

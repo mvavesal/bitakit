@@ -23,6 +23,7 @@ import BellIcon from 'reicon-react/icons/Notification';
 import PuzzleIcon from 'reicon-react/icons/Puzzle';
 import { shellLayout, shellPreferences, shellTheme } from './settings/appearance.js';
 import { PluginSettingsOverview } from './settings/overview.js';
+import { bindPluginResults, pluginOverviewSection } from './settings/plugin-results.js';
 import { settingsCategories } from './settings/categories.js';
 import { SettingsPage } from './settings/page.js';
 import { shellRenderers } from './settings/renderers.js';
@@ -53,6 +54,7 @@ export type ShellOptions = {
   layout?: 'sidebar' | 'navbar';
   navigationGroups?: readonly string[];
   appearance?: boolean;
+  /** Adds the Plugins settings page and publishes each plugin as a link to its view there. */
   pluginManagement?: boolean;
   settingsPath?: string;
   /** Legacy: registers the Shell page under an existing host section instead of contributing it. */
@@ -103,8 +105,8 @@ export function shellPlugin(options: ShellOptions = {}) {
     category:
       options.category ??
       (appearance ? settingsCategories.appearance : { id: 'plugins', title: 'Plugins' }),
-    title: appearance ? 'Layout und Farbschema' : 'App Shell',
-    description: appearance ? 'Farbschema und Navigation anpassen.' : undefined,
+    title: appearance ? 'Layout and color scheme' : 'App Shell',
+    description: appearance ? 'Customize color scheme and navigation.' : undefined,
     icon: WidgetIcon,
     settings: data,
   });
@@ -112,7 +114,7 @@ export function shellPlugin(options: ShellOptions = {}) {
     id: 'shell-theme',
     path: 'theme',
     title: 'Theme',
-    description: 'Farben, Ecken und Oberflächen anpassen.',
+    description: 'Customize colors, corners and surfaces.',
     category: options.category ?? settingsCategories.appearance,
     icon: PaletteIcon,
     settings: [themePreferences],
@@ -134,7 +136,7 @@ export function shellPlugin(options: ShellOptions = {}) {
     ...(options.pluginManagement
       ? [
           defineSettingsSection({
-            id: 'plugins',
+            id: pluginOverviewSection,
             title: 'Plugins',
             icon: PuzzleIcon,
             category: settingsCategories.administration,
@@ -146,14 +148,14 @@ export function shellPlugin(options: ShellOptions = {}) {
     ...(options.settingsSection ? [] : [page]),
   ];
   const Page = () => (
-    <SettingsPage pathname={path} unavailable="Diese Einstellung ist nicht verfügbar." />
+    <SettingsPage pathname={path} unavailable="This setting is unavailable." />
   );
   return definePlugin({
     id: 'shell',
     metadata: {
       icon: LayoutIcon,
       name: 'App Shell',
-      description: 'Navigation und Layout der Anwendung.',
+      description: 'Application navigation and layout.',
     },
     services: [
       ...(notifications ? [provideService(notificationService, { ...translatedNotifications(notificationDefinition), exposeAs: 'notifications' })] : []),
@@ -189,7 +191,7 @@ export function shellPlugin(options: ShellOptions = {}) {
               component: () => (
                 <SettingsPage
                   pathname="/settings/theme"
-                  unavailable="Diese Einstellung ist nicht verfügbar."
+                  unavailable="This setting is unavailable."
                 />
               ),
             },
@@ -210,6 +212,7 @@ export function shellPlugin(options: ShellOptions = {}) {
       if (appearance && options.applyTheme !== false && typeof document !== 'undefined') {
         app.own(bindThemePreferences(settings, document.documentElement));
       }
+      if (options.pluginManagement) app.own(bindPluginResults(app, settings, services.i18n));
       if (parentId) {
         // Legacy parent grouping; shared parents belong to the host.
         if (!settings.getSection(parentId))

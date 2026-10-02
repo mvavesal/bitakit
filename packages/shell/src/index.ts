@@ -10,6 +10,7 @@ export {
   AppearanceSection,
 } from './settings/renderers.js';
 export { SettingsPage } from './settings/page.js';
+export { SettingsRoute } from './settings/route.js';
 export { PluginSettingsOverview } from './settings/overview.js';
 export { settingsCategories } from './settings/categories.js';
 export { shellPlugin, type ShellOptions } from './plugin.js';

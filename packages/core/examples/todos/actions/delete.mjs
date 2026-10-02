@@ -3,9 +3,6 @@ import { defineAction } from '@bitakit/core';
 export default defineAction({
   id: 'todos.delete',
 
-  // Services this action uses. Core checks that they exist before registering it.
-  requires: ['todos'],
-
   // Initial state: the task list starts empty, so deleting is disabled.
   enabled: false,
 

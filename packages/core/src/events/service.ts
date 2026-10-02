@@ -50,6 +50,23 @@ export class EventService implements Events {
     return unsubscribe;
   };
 
+  /**
+   * Diagnostics only: receives every event after delivery is scheduled, for developer tools such
+   * as an event log. It cannot change or stop delivery. Returns the unsubscribe function.
+   */
+  observe(listener: (event: FoundationEvent) => void) {
+    const handler = (type: string, event: FoundationEvent) => {
+      if (!type.startsWith('event:')) return;
+      try {
+        listener(event);
+      } catch (error) {
+        console.error('Event observer failed.', error);
+      }
+    };
+    this.bus.on('*', handler as never);
+    return () => this.bus.off('*', handler as never);
+  }
+
   /** Diagnostics for lifecycle tests; counts watch calls, not individual event names. */
   get subscriptionCount() {
     return this.subscriptions.size;

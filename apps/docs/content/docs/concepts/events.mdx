@@ -9,9 +9,9 @@ An event announces that something happened. For example, the task service change
 
 Use an action when you want to request an operation and receive its execution outcome. Use a service for reusable operations and state. Use an event for a notification that may have several listeners. Events do not replay prior state, so each consumer reads its initial state from the service.
 
-Workspace API, pending publication. Core owns one mitt-backed event bus per
-`FoundationRuntime`, available as `runtime.events` and `app.events`. There is no
-global bus, React dependency, replay buffer, persistence, or cross-process delivery.
+Available since Core 0.1.1. Each `FoundationRuntime` owns one event bus, available as
+`runtime.events` and `app.events`. There is no global bus, React dependency, replay
+buffer, persistence, or cross-process delivery.
 
 ## Sending and receiving
 

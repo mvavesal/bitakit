@@ -21,8 +21,11 @@ export function ActionButton<Id extends ActionId>({
   children,
   ...props
 }: ActionButtonProps<Id>) {
-  const state = useAction(action);
+  // Resolved for this input, so presentation from resolve() applies to this button.
+  const state = useAction(action, input);
   const Icon = state?.icon;
+  // The tooltip is the hover hint and the description its fallback, as in menu items.
+  const hint = props.title ?? state?.tooltip ?? state?.description;
   return (
     <ActionBinding action={action} input={input} onError={onError}>
       {(binding) => (
@@ -32,7 +35,7 @@ export function ActionButton<Id extends ActionId>({
           disabled={binding.disabled || props.disabled}
           aria-busy={binding.pending}
           aria-pressed={state?.checked}
-          title={binding.description}
+          title={hint}
           onClick={() => void binding.execute()}
         >
           {Icon && <Icon aria-hidden="true" />}

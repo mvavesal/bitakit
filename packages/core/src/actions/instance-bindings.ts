@@ -1,5 +1,6 @@
 import { Action } from './action.js';
 import { NavigationHost } from './navigation.js';
+import { isBrandedInstance } from './brand.js';
 import type { ActionPatch, ActionRegistration } from './types.js';
 
 type Entry = {
@@ -19,7 +20,7 @@ export class InstanceBindings {
   attach(id: string, action: Action<any, any>, registration: ActionRegistration) {
     {
       const host = this.environment;
-      if (host instanceof NavigationHost) action.bindNavigation((href) => host.go(href));
+      if (isBrandedInstance(host, NavigationHost, 'navigation')) action.bindNavigation((href) => host.go(href));
     }
     const entry: Entry = {
       action,
@@ -65,7 +66,7 @@ export class InstanceBindings {
     this.mounted = true;
     this.navigate = navigate;
     const unbind =
-      this.environment instanceof NavigationHost && navigate
+      isBrandedInstance(this.environment, NavigationHost, 'navigation') && navigate
         ? this.environment.bind(navigate)
         : undefined;
     const cleanup = () => {

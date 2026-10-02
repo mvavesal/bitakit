@@ -36,14 +36,14 @@ export function PluginSettingsOverview() {
   if (selected) {
     const back = (
       <BackLink as={Link} href={listHref}>
-        {t("shell.ui.backPlugins", undefined, "Zurück zu Plugins")}
+        {t("shell.ui.backPlugins", undefined, "Back to plugins")}
       </BackLink>
     );
     if (!plugin)
       return (
         <section className="flex w-full min-w-0 flex-col gap-6">
           {back}
-          <PageHeader title={t("shell.ui.pluginUnavailable", undefined, "Plugin nicht verfügbar")} />
+          <PageHeader title={t("shell.ui.pluginUnavailable", undefined, "Plugin unavailable")} />
         </section>
       );
     const meta = plugin.metadata;
@@ -70,14 +70,14 @@ export function PluginSettingsOverview() {
         </div>
         <div className="grid min-w-0 gap-8 lg:grid-cols-3">
           <div className="flex min-w-0 flex-col gap-8 lg:col-span-2">
-            <section className="flex flex-col gap-3" aria-label={t("shell.ui.description", undefined, "Beschreibung")}>
-              <h2 className="text-base font-medium">{t("shell.ui.aboutPlugin", undefined, "Über dieses Plugin")}</h2>
+            <section className="flex flex-col gap-3" aria-label={t("shell.ui.description", undefined, "Description")}>
+              <h2 className="text-base font-medium">{t("shell.ui.aboutPlugin", undefined, "About this plugin")}</h2>
               <p className="text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
-                {meta?.description ?? t("shell.ui.noDescription", undefined, "Für dieses Plugin ist noch keine Beschreibung hinterlegt.")}
+                {meta?.description ?? t("shell.ui.noDescription", undefined, "No description is available for this plugin.")}
               </p>
             </section>
-            <section className="flex flex-col gap-3" aria-label={t("shell.ui.pluginSettings", undefined, "Plugin-Einstellungen")}>
-              <h2 className="text-base font-medium">{t("shell.ui.settings", undefined, "Einstellungen")}</h2>
+            <section className="flex flex-col gap-3" aria-label={t("shell.ui.pluginSettings", undefined, "Plugin settings")}>
+              <h2 className="text-base font-medium">{t("shell.ui.settings", undefined, "Settings")}</h2>
               {owned.length ? (
                 <ItemGroup>
                   {owned.map((section) => (
@@ -108,16 +108,16 @@ export function PluginSettingsOverview() {
                 </ItemGroup>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {t("shell.ui.noSettings", undefined, "Dieses Plugin bietet keine eigenen Einstellungen.")}
+                  {t("shell.ui.noSettings", undefined, "This plugin has no settings.")}
                 </p>
               )}
             </section>
           </div>
           <aside
             className="min-w-0 border-t border-border pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
-            aria-label={t("shell.ui.pluginInfo", undefined, "Plugin-Informationen")}
+            aria-label={t("shell.ui.pluginInfo", undefined, "Plugin information")}
           >
-            <h2 className="mb-4 text-base font-medium">{t("shell.ui.info", undefined, "Informationen")}</h2>
+            <h2 className="mb-4 text-base font-medium">{t("shell.ui.info", undefined, "Information")}</h2>
             <dl className="flex flex-col gap-5 text-sm [overflow-wrap:anywhere]">
               <div className="flex flex-col gap-1.5">
                 <dt className="text-muted-foreground">{t("shell.ui.version", undefined, "Version")}</dt>
@@ -125,13 +125,13 @@ export function PluginSettingsOverview() {
                   {meta?.version ? (
                     <Badge variant="secondary">{meta.version}</Badge>
                   ) : (
-                    t("shell.ui.unspecified", undefined, "Nicht angegeben")
+                    t("shell.ui.unspecified", undefined, "Not specified")
                   )}
                 </dd>
               </div>
               {meta?.license && (
                 <div className="flex flex-col gap-1.5">
-                  <dt className="text-muted-foreground">{t("shell.ui.license", undefined, "Lizenz")}</dt>
+                  <dt className="text-muted-foreground">{t("shell.ui.license", undefined, "License")}</dt>
                   <dd>{meta.license}</dd>
                 </div>
               )}
@@ -140,7 +140,7 @@ export function PluginSettingsOverview() {
                   <dt className="text-muted-foreground">{t("shell.ui.website", undefined, "Website")}</dt>
                   <dd>
                     <a href={homepage} className="underline underline-offset-4">
-                      {t("shell.ui.projectWebsite", undefined, "Projektwebsite")}
+                      {t("shell.ui.projectWebsite", undefined, "Project website")}
                     </a>
                   </dd>
                 </div>
@@ -150,7 +150,7 @@ export function PluginSettingsOverview() {
                   <dt className="text-muted-foreground">{t("shell.ui.support", undefined, "Support")}</dt>
                   <dd>
                     <a href={support} className="underline underline-offset-4">
-                      {t("shell.ui.supportLink", undefined, "Hilfe und Fehler melden")}
+                      {t("shell.ui.supportLink", undefined, "Get help and report issues")}
                     </a>
                   </dd>
                 </div>
@@ -168,7 +168,7 @@ export function PluginSettingsOverview() {
   );
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PageHeader title={t("shell.ui.plugins", undefined, "Plugins")} subtitle={t("shell.ui.pluginsDescription", undefined, "Aktivierte Erweiterungen und ihre Einstellungen.")} />
+      <PageHeader title={t("shell.ui.plugins", undefined, "Plugins")} subtitle={t("shell.ui.pluginsDescription", undefined, "Active extensions and their settings.")} />
       <div className="flex min-w-0 flex-col gap-4">
       <InputGroup className="w-full sm:max-w-xs">
         <InputGroupAddon>
@@ -176,8 +176,8 @@ export function PluginSettingsOverview() {
         </InputGroupAddon>
         <InputGroupInput
           type="text"
-          aria-label={t("shell.ui.searchPlugins", undefined, "Plugins durchsuchen")}
-          placeholder={t("shell.ui.pluginsPlaceholder", undefined, "Plugins durchsuchen …")}
+          aria-label={t("shell.ui.searchPlugins", undefined, "Search plugins")}
+          placeholder={t("shell.ui.pluginsPlaceholder", undefined, "Search plugins…")}
           value={query}
           onChange={(event) => {
             void setQuery(event.target.value);
@@ -186,7 +186,7 @@ export function PluginSettingsOverview() {
         {query && (
           <InputGroupAddon align="inline-end">
             <InputGroupClearButton
-              aria-label={t("shell.ui.clearPlugins", undefined, "Plugin-Suche löschen")}
+              aria-label={t("shell.ui.clearPlugins", undefined, "Clear plugin search")}
               onClear={() => {
                 void setQuery(null);
               }}
@@ -207,7 +207,7 @@ export function PluginSettingsOverview() {
             <li key={item.id} className="min-w-0">
               <Item asChild variant="outline" className="h-full">
                 <Link
-                  aria-label={t('shell.ui.openPlugin', { name }, `${name} öffnen`)}
+                  aria-label={t('shell.ui.openPlugin', { name }, `Open ${name}`)}
                   href={`/settings/plugins?${new URLSearchParams({ ...(query ? { pluginSearch: query } : {}), plugin: item.id })}`}
                 >
                   <ItemMedia variant={cover ? 'image' : 'icon'}>
@@ -246,7 +246,7 @@ export function PluginSettingsOverview() {
           );
         })}
       </ul>
-      {!entries.length && <p className="text-sm text-muted-foreground">{t('shell.ui.noPlugins', undefined, 'Keine Plugins gefunden.')}</p>}
+      {!entries.length && <p className="text-sm text-muted-foreground">{t('shell.ui.noPlugins', undefined, 'No plugins found.')}</p>}
       </div>
     </section>
   );
@@ -295,12 +295,12 @@ export function SettingsOverview({
   const defaultLink = useContext(SettingsNavigationLink);
   const SettingsLink = linkComponent ?? defaultLink;
   const labels = {
-    search: 'Einstellungen suchen',
-    placeholder: 'Einstellung suchen …',
-    clear: 'Suche löschen',
-    empty: 'Keine Einstellungen gefunden',
-    hint: 'Versuche einen anderen Suchbegriff.',
-    clearSearch: 'Suche zurücksetzen',
+    search: 'Search settings',
+    placeholder: 'Search settings…',
+    clear: 'Clear search',
+    empty: 'No settings found',
+    hint: 'Try another search term.',
+    clearSearch: 'Reset search',
   };
   const translate = useTranslation();
   const t = (key: keyof typeof labels) => translate(`shell.overview.${key}`, undefined, labels[key]);
@@ -350,7 +350,7 @@ export function SettingsOverview({
         </Field>
       )}
       <p role="status" className="sr-only">
-        {count} Einstellungen
+        {count} settings
       </p>
       {groups.map(({ group, entries }, index) => (
         <Fragment key={group?.id ?? index}>

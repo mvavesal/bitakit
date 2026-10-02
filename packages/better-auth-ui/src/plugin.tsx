@@ -95,7 +95,7 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
     metadata: {
       name: 'Better Auth UI',
       version: '0.1.0',
-      description: 'Original HeroUI-Komponenten für Anmeldung, Konto und Organisationen.',
+      description: 'Native HeroUI components for sign-in, accounts and organizations.',
       homepage: 'https://better-auth-ui.com',
       license: 'MIT',
     },
