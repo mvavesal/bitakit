@@ -347,11 +347,13 @@ produces this entry from the same folders apps use.
 
 ## Discovery entry
 
-`@bitakit/core/discovery` is Node-only: `defineBitaKit(config)` types `bitakit.config.ts`,
+`@bitakit/discovery` is Node-only: `defineBitaKit(config)` types `bitakit.config.ts`,
 `generateFoundation(root)` writes `src/bitakit.gen.*`, `watchFoundation(root)` regenerates
 during development, `describeFoundation(root)` lists what discovery finds (used by
 `bitakit info`) and `migrateProject(root, { dryRun })` rewrites a 0.1 layout. The browser never
 reads the filesystem; contribution modules are imported, not executed, at generation time.
+`@bitakit/core/discovery` re-exports the package for one release; install `@bitakit/discovery` (an
+optional peer dependency of Core) and import it directly.
 
 ## Testing
 
@@ -371,9 +373,13 @@ try {
 `mountPlugin(directory, { id, plugins, services, configOverrides })` discovers one folder with
 the app conventions (services, actions, events, configs, interceptors, `setup.ts`; files under
 `ui/` are skipped), mounts it, awaits `ready` and returns `{ id, runtime, app, actions, services,
-events, execute, stop }`. The ID comes from the plugin folder or the nearest `package.json`.
-A failed start releases everything and rejects with the attributed error. Files load through
-Node's TypeScript type stripping, so keep them free of JSX.
+events, execute, stop }`. The ID comes from `options.id`, the `id` in the folder's
+`plugin.config.ts`, the plugin folder or the nearest `package.json`; its `dependencies` and
+`metadata` apply as in an app, so `{ id }` is optional. `execute` types input and result for IDs
+known from `ActionMap`. A failed start releases everything and rejects with the attributed
+error. Files load through Node's TypeScript type stripping, so keep them free of JSX. The helper
+discovers folders with `@bitakit/discovery` and loads `plugin.config.ts` with `jiti`; both are
+optional peer dependencies of Core, so install them as dev dependencies of the package that tests.
 
 ## Navigation boundary
 

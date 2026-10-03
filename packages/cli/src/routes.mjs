@@ -1,4 +1,4 @@
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { exists } from './project.mjs';
 
@@ -103,4 +103,22 @@ export default function Page() {
 }
 `,
   };
+}
+
+/** The root layout files that mount the provider, per framework. */
+export const rootLayouts = (project) =>
+  project.framework === 'tanstack'
+    ? ['src/routes/__root.tsx']
+    : ['src/app/layout.tsx', 'app/layout.tsx'];
+
+/** The Next route group whose layout renders `AppShell`, such as `(app)`; plugin pages belong in it. */
+export async function shellGroup(project) {
+  if (project.framework !== 'next') return undefined;
+  const app = path.join(project.root, 'src/app');
+  for (const entry of await readdir(app, { withFileTypes: true }).catch(() => [])) {
+    if (!entry.isDirectory() || !/^\(.+\)$/.test(entry.name)) continue;
+    const layout = await readFile(path.join(app, entry.name, 'layout.tsx'), 'utf8').catch(() => '');
+    if (layout.includes('AppShell')) return entry.name;
+  }
+  return undefined;
 }

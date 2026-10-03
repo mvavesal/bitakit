@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
+import { viteConfigImport } from '@bitakit/cli';
 import {
   agentRules,
   configureProject,
@@ -13,11 +14,13 @@ import {
 
 const require = createRequire(import.meta.url);
 
+/** With the Shell, the theme script pre-paints the stored color scheme before React hydrates. */
 const root = (
   title,
+  shell,
 ) => `import { HeadContent, Scripts, Outlet, createRootRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
-import { BitaKitProvider } from '../bitakit.gen';
+${shell ? "import { ShellThemeScript } from '@bitakit/shell';\n" : ''}import { BitaKitProvider } from '../bitakit.gen';
 import appCss from '../styles.css?url';
 
 export const Route = createRootRoute({
@@ -42,7 +45,7 @@ function Document({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
-      </head>
+${shell ? '        <ShellThemeScript />\n' : ''}      </head>
       <body>
         {children}
         <Scripts />
@@ -103,7 +106,7 @@ export const tanstack = {
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { bitakit } from '@bitakit/tanstack/config';
+${viteConfigImport}
 
 export default defineConfig({
   resolve: { tsconfigPaths: true },
@@ -111,7 +114,7 @@ export default defineConfig({
 });
 `,
       'src/styles.css': projectStyles('.'),
-      'src/routes/__root.tsx': root(plan.name),
+      'src/routes/__root.tsx': root(plan.name, shell),
     };
     // Settings pages come with App Preferences, with or without the Shell frame.
     if (preferences)

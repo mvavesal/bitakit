@@ -4,8 +4,9 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createJiti } from 'jiti';
-import { generateFoundation, describeFoundation } from '../discovery/index.mjs';
-import { contributionKindSpecs } from '../discovery/entries.mjs';
+import { generateFoundation, describeFoundation } from '@bitakit/discovery';
+// Internal module: the package exports only its public entry.
+import { contributionKindSpecs } from '../../discovery/src/entries.mjs';
 import {
   FoundationRuntime,
   PluginScope,

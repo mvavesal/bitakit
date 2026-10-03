@@ -2,6 +2,10 @@
   "name": "@bitakit/better-auth",
   "version": "0.2.0",
   "type": "module",
+  "bitakit": {
+    "plugin": "./plugin",
+    "configuration": "better-auth"
+  },
   "sideEffects": false,
   "files": [
     "dist",
@@ -11,6 +15,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "default": "./dist/plugin.js"
     },
     "./organizations": {
       "types": "./dist/organizations.d.ts",

@@ -1,0 +1,31 @@
+{
+  "name": "@bitakit/discovery",
+  "version": "0.2.0",
+  "description": "Node-only BitaKit discovery: scans plugin folders and installed packages and generates the typed wiring.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "jiti": "^2.7.0",
+    "typescript": "^5.9.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/discovery"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -23,8 +23,8 @@
   },
   "dependencies": {
     "@bitakit/core": "^0.2.0",
+    "@bitakit/discovery": "^0.2.0",
     "commander": "15.0.0",
-    "jiti": "^2.7.0",
     "typescript": "^5.9.3"
   },
   "license": "MIT",

@@ -2,6 +2,9 @@
   "name": "@bitakit/next-intl",
   "version": "0.2.0",
   "type": "module",
+  "bitakit": {
+    "plugin": "./plugin"
+  },
   "sideEffects": false,
   "files": [
     "dist",
@@ -12,6 +15,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "default": "./dist/plugin.js"
     },
     "./preferences": {
       "types": "./dist/preferences.d.ts",

@@ -2,6 +2,14 @@
 export { addPlugin, addContribution, writeNewFiles, contributionKinds } from './add.mjs';
 export { buildPlugin } from './build.mjs';
 export { doctor } from './doctor.mjs';
+export {
+  bitakitConfigFile,
+  gitignoreBlock,
+  initProject,
+  nextConfigFile,
+  nextConfigImport,
+  viteConfigImport,
+} from './init.mjs';
 export { findProject, findProjectRoot, packagePluginId } from './project.mjs';
 export { appRoutes, catchAllRoute } from './routes.mjs';
 export {

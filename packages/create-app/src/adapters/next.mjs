@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
+import { nextConfigFile } from '@bitakit/cli';
 import {
   agentRules,
   configureProject,
@@ -13,14 +14,15 @@ import {
 
 const require = createRequire(import.meta.url);
 
-const layout = `import type { ReactNode } from 'react';
-import { BitaKitProvider } from '@/bitakit.gen';
+/** With the Shell, the theme script pre-paints the stored color scheme before React hydrates. */
+const layout = (shell) => `import type { ReactNode } from 'react';
+${shell ? "import { ShellThemeScript } from '@bitakit/shell';\n" : ''}import { BitaKitProvider } from '@/bitakit.gen';
 import './globals.css';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en"${shell ? ' suppressHydrationWarning' : ''}>
+${shell ? '      <head>\n        <ShellThemeScript />\n      </head>\n' : ''}      <body>
         <BitaKitProvider>{children}</BitaKitProvider>
       </body>
     </html>
@@ -80,11 +82,8 @@ export const next = {
       ? 'Open Todos in the navigation, or add a feature with npx bitakit add plugin notes.'
       : 'Edit this page, or add a feature with npx bitakit add plugin notes.';
     const files = {
-      'next.config.ts': `import { withBitaKit } from '@bitakit/next/config';
-
-export default withBitaKit({});
-`,
-      'src/app/layout.tsx': layout,
+      'next.config.ts': nextConfigFile,
+      'src/app/layout.tsx': layout(shell),
       'src/app/globals.css': projectStyles('..'),
     };
     // Settings pages come with App Preferences, with or without the Shell frame.

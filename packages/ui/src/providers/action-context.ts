@@ -9,7 +9,9 @@ export const UIContext = createContext<{
   onError: (error: unknown) => void;
   Link?: ComponentType<any>;
   pathname?: string;
-  navigate?: (href: string) => void;
+  /** Dynamic route segments supplied by the framework adapter. */
+  params?: Readonly<Record<string, string>>;
+  navigate?: (href: string, options?: { replace?: boolean }) => void;
   /** Maps control state to the prop names of the host's component library. */
   controls?: ControlAdapters;
 }>({

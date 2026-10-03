@@ -1,4 +1,4 @@
-import { generateFoundation, watchFoundation } from '@bitakit/core/discovery';
+import { generateFoundation, watchFoundation } from '@bitakit/discovery';
 export { generateFoundation };
 /** Typed identity for `bitakit.config.ts`. */
 export const defineBitaKit = (config) => config;

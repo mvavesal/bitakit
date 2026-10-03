@@ -131,7 +131,7 @@ Organization UI should have one owner in better-auth-ui. Both repository apps no
 
 ## Current discovery boundary
 
-This structure does not automatically load published npm packages. Core currently discovers local modules; packaged plugins still use their existing factories. Place plugin.config.ts only at a module root actually connected to Discovery. Do not introduce a second scanner or registry.
+This structure does not automatically load published npm packages. `@bitakit/discovery` currently discovers local modules; packaged plugins still use their existing factories. Place plugin.config.ts only at a module root actually connected to Discovery. Do not introduce a second scanner or registry.
 
 ## Migration sequence
 
@@ -163,4 +163,4 @@ Custom component ownership is recorded in [the component inventory](../../packag
 `packages/create-app` follows the same small-module rule but ships Node `.mjs` sources
 and native framework templates instead of a runtime plugin. CLI, orchestration, capability
 selection and framework adapters have separate responsibilities. Next.js and experimental TanStack Start are exposed; framework dependencies stay in
-their optional adapters. UI shares visual composition and Core shares Node discovery.
+their optional adapters. UI shares visual composition and `@bitakit/discovery` shares Node discovery.

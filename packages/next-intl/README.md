@@ -1,13 +1,26 @@
 # @bitakit/next-intl
 
-Optional next-intl integration. Call `useNextIntlPlugin()` inside the configured
-`NextIntlClientProvider` and register the returned plugin with Foundation. The adapter
-updates the existing translation service; it does not maintain a second locale store.
-The host configures request locale, supported languages and message composition.
+Optional next-intl integration. The package manifest declares `bitakit: { plugin: './plugin' }`,
+so a generated app composes `nextIntlPlugin()` without host code; render the app inside the
+host's `NextIntlClientProvider`. Its locale and messages stay authoritative: the plugin keeps no
+second locale store. The host configures the request locale, supported languages and message
+composition.
+
+`nextIntlPlugin()` takes no arguments. It provides the `i18n` translation service
+(`provides: translationService`: `translate`, `getCatalog`, `subscribe`) and the provider
+`next-intl.messages` (`src/ui/providers/messages.tsx`). The provider reads `useTranslations()`
+and `useMessages()` and publishes them into a small store the service reads. Services are
+created when the runtime mounts, after the first render, so the store belongs to the plugin
+instance, and the provider publishes in a layout effect: before the runtime mounts, and before
+paint when the locale or the messages change. The store notifies only when the translator or
+the messages changed. Until the first publish, `translate.has` is false and texts show their
+literal fallbacks.
 
 ## Source responsibilities
 
-- `src/index.ts`: reactive translator and raw `getCatalog(namespace?)` integration.
+- `src/plugin.ts` (`.`, `./plugin`): the package plugin, `nextIntlPlugin`.
+- `src/messages.ts`: the translation service and its store, no React.
+- `src/ui/providers/messages.tsx`: the provider that feeds next-intl into the store.
 - `src/preferences.ts` (`./preferences`): optional `languagePreferences` composition of
   standard App Preferences definitions, catalog section and host persistence callbacks.
 - `locales/en.json`, `locales/de.json`: this integration's own language-setting labels.

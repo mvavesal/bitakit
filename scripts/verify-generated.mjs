@@ -162,6 +162,7 @@ try {
       path.join(root, 'scripts/pack-packages.mjs'),
       packs,
       'core',
+      'discovery',
       'ui',
       'app-preferences',
       'next',

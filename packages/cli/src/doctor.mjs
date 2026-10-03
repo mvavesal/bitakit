@@ -1,14 +1,15 @@
 import { readdir, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
-import { describeFoundation } from '@bitakit/core/discovery';
+import { describeFoundation } from '@bitakit/discovery';
 import { exists, findProject } from './project.mjs';
-import { appRoutes, catchAllRoute } from './routes.mjs';
+import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
 
 /**
  * Checks a project for the problems that most often break a BitaKit app: mixed package
  * versions, duplicate Core copies, missing wiring, unreachable plugin pages and links,
- * colliding service aliases, missing styles and deprecated layouts.
+ * colliding service aliases, `requires` nobody satisfies, plugin dependency cycles, missing
+ * styles and deprecated layouts.
  * Each result: `{ status: 'ok' | 'warn' | 'error', title, details, fix }`.
  */
 export async function doctor({ cwd } = {}) {
@@ -24,7 +25,7 @@ export async function doctor({ cwd } = {}) {
       title: `${path.basename(project.configFile)} could not be loaded`,
       details: [project.configError.message],
       fix: project.legacyConfig
-        ? 'Run "npx bitakit migrate": it rewrites foundation.config.ts to bitakit.config.ts with defineBitaKit from @bitakit/core/discovery.'
+        ? 'Run "npx bitakit migrate": it rewrites foundation.config.ts to bitakit.config.ts with defineBitaKit from @bitakit/discovery.'
         : 'Fix the error above; discovery reads this file to find your plugins.',
     });
     return { project, results };
@@ -64,6 +65,8 @@ export async function doctor({ cwd } = {}) {
   results.push(checkPages(project, scanned, routes, { shell, group: await shellGroup(project) }));
   results.push(checkLinks(scanned, routes));
   results.push(checkAliases(scanned));
+  results.push(await checkRequirements(project, description, scanned));
+  results.push(...checkGraph(description));
   results.push(await checkStyles(project, description));
   results.push(checkIgnored(description), checkDeprecated(description), checkSlots(description));
   return { project, results };
@@ -220,12 +223,8 @@ async function checkWiring(project) {
           },
     );
   }
-  const layouts =
-    project.framework === 'tanstack'
-      ? ['src/routes/__root.tsx']
-      : ['src/app/layout.tsx', 'app/layout.tsx'];
   let provider = false;
-  for (const file of layouts)
+  for (const file of rootLayouts(project))
     if (/bitakit\.gen|BitaKitProvider|FoundationProvider/.test(await read(file))) provider = true;
   results.push(
     provider
@@ -252,13 +251,29 @@ async function checkWiring(project) {
   return results;
 }
 
-/** String literal values of `property` in calls such as `defineAction({ href: '/x' })`. */
+const unwrap = (node) =>
+  ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)
+    ? unwrap(node.expression)
+    : node;
+/** The string literals of a value, or of the elements of an array literal: `'a'` and `['a', 'b']`. */
+const stringsOf = (node) => {
+  const value = unwrap(node);
+  return (ts.isArrayLiteralExpression(value) ? value.elements : [value]).filter(
+    ts.isStringLiteralLike,
+  );
+};
+async function parse(root, entry) {
+  const source = await readFile(path.join(root, entry.file), 'utf8').catch(() => undefined);
+  return source === undefined
+    ? undefined
+    : ts.createSourceFile(entry.file, source, ts.ScriptTarget.Latest, true);
+}
+/** String literal values of `property` in calls such as `defineAction({ href: '/x' })`; array elements count too. */
 async function literals(root, entries, callees, property) {
   const found = [];
   for (const entry of entries) {
-    const source = await readFile(path.join(root, entry.file), 'utf8').catch(() => undefined);
-    if (!source) continue;
-    const file = ts.createSourceFile(entry.file, source, ts.ScriptTarget.Latest, true);
+    const file = await parse(root, entry);
+    if (!file) continue;
     const visit = (node) => {
       // Options may follow a factory argument: defineService(() => ..., { exposeAs: 'items' }).
       if (
@@ -268,17 +283,85 @@ async function literals(root, entries, callees, property) {
       )
         for (const argument of node.arguments.filter(ts.isObjectLiteralExpression))
           for (const item of argument.properties)
-            if (
-              ts.isPropertyAssignment(item) &&
-              item.name.getText(file) === property &&
-              ts.isStringLiteralLike(item.initializer)
-            )
-              found.push({ value: item.initializer.text, file: entry.file });
+            if (ts.isPropertyAssignment(item) && item.name.getText(file) === property)
+              for (const value of stringsOf(item.initializer))
+                found.push({ value: value.text, file: entry.file });
       ts.forEachChild(node, visit);
     };
     visit(file);
   }
   return found;
+}
+/** String literals of a top-level `export const <name> = [...]`, such as the `requires` of a provider file. */
+async function exportedLiterals(root, entries, name) {
+  const found = [];
+  for (const entry of entries) {
+    const file = await parse(root, entry);
+    for (const statement of file?.statements ?? [])
+      if (
+        ts.isVariableStatement(statement) &&
+        statement.modifiers?.some((item) => item.kind === ts.SyntaxKind.ExportKeyword)
+      )
+        for (const { name: declared, initializer } of statement.declarationList.declarations)
+          if (ts.isIdentifier(declared) && declared.text === name && initializer)
+            for (const value of stringsOf(initializer))
+              found.push({ value: value.text, file: entry.file });
+  }
+  return found;
+}
+/** Contract names of the keys core exports; other keys are read from `serviceKey('name')` in the same file. */
+const coreKeys = new Map([
+  ['authService', 'auth'],
+  ['translationService', 'i18n'],
+  ['settingsStorage', 'settings.storage'],
+]);
+/** Contract names that services register with `provides`; `unresolved` when a key's name cannot be read. */
+async function providedKeys(root, entries) {
+  const names = [];
+  let unresolved = false;
+  for (const entry of entries) {
+    const file = await parse(root, entry);
+    if (!file) continue;
+    const declared = new Map();
+    const used = [];
+    const nameOf = (node) =>
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      ['serviceKey', 'defineContract'].includes(node.expression.text) &&
+      node.arguments[0] &&
+      ts.isStringLiteralLike(node.arguments[0])
+        ? node.arguments[0].text
+        : undefined;
+    const visit = (node) => {
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+        const name = nameOf(node.initializer);
+        if (name) declared.set(node.name.text, name);
+      }
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'defineService'
+      ) {
+        // Options held in a variable cannot be read.
+        if (node.arguments.slice(1).some((argument) => !ts.isObjectLiteralExpression(argument)))
+          unresolved = true;
+        for (const argument of node.arguments.filter(ts.isObjectLiteralExpression))
+          for (const item of argument.properties)
+            if (item.name?.getText(file) === 'provides')
+              used.push(ts.isPropertyAssignment(item) ? item.initializer : item.name);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(file);
+    for (const key of used) {
+      const name = ts.isIdentifier(key)
+        ? (declared.get(key.text) ?? coreKeys.get(key.text))
+        : nameOf(key);
+      if (name) names.push(name);
+      else unresolved = true;
+    }
+  }
+  return { names, unresolved };
 }
 /** Page paths: derived from `ui/pages` file names, or the `definePage({ path })` literal of a legacy page. */
 async function pagePaths(root, module) {
@@ -297,16 +380,6 @@ const label = (module) => (module.isApp ? 'the app' : `plugin "${module.id}"`);
 const match = (routes, href) =>
   routes.filter((route) => route.pattern.test(href.replace(/\[[^\]]+\]/g, 'x')));
 
-async function shellGroup(project) {
-  if (project.framework !== 'next') return undefined;
-  const app = path.join(project.root, 'src/app');
-  for (const entry of await readdir(app, { withFileTypes: true }).catch(() => [])) {
-    if (!entry.isDirectory() || !/^\(.+\)$/.test(entry.name)) continue;
-    const layout = await readFile(path.join(app, entry.name, 'layout.tsx'), 'utf8').catch(() => '');
-    if (layout.includes('AppShell')) return entry.name;
-  }
-  return undefined;
-}
 function checkPages(project, scanned, routes, options) {
   const problems = [];
   let fix;
@@ -390,6 +463,142 @@ function checkAliases(scanned) {
         fix: 'Change one exposeAs, or drop it and use services.<plugin>.<name>.',
       }
     : { status: 'ok', title: 'Service names are unique' };
+}
+/**
+ * Every `requires` of a service, action, interceptor or provider must name something the
+ * composition provides: a service ID, an `exposeAs` alias or a `provides` contract. Local
+ * plugins are fully known, so dotted names in their namespace are checked exactly. Installed
+ * plugin packages, host `services` and keys declared in other files can provide any other name,
+ * so those are only checked when none of them exist.
+ */
+async function checkRequirements(project, description, scanned) {
+  const root = project.root;
+  const services = new Set();
+  const providers = new Set();
+  const disabled = new Map();
+  let unresolved = false;
+  const idOf = (module, entry) => (module.isApp ? entry.path : `${module.id}.${entry.path}`);
+  for (const { module, aliases } of scanned) {
+    for (const entry of module.services) services.add(idOf(module, entry));
+    for (const entry of module.providers) providers.add(idOf(module, entry));
+    // The app module carries its configured ID as a prefix only when plugin.config.ts sets one.
+    if (module.isApp)
+      for (const entry of module.services) services.add(`${module.id}.${entry.path}`);
+    for (const { value } of aliases) services.add(value);
+    const provided = await providedKeys(root, module.services);
+    provided.names.forEach((name) => services.add(name));
+    unresolved ||= provided.unresolved;
+  }
+  for (const plugin of description.plugins.filter((item) => !item.enabled))
+    for (const entry of [...plugin.services, ...plugin.providers])
+      disabled.set(`${plugin.id}.${entry.path}`, plugin.id);
+  let hosted = false;
+  for (const file of rootLayouts(project))
+    hosted ||= /\bservices\s*=/.test(await readFile(path.join(root, file), 'utf8').catch(() => ''));
+  const namespaces = new Set([description.app.id, ...description.plugins.map((item) => item.id)]);
+  const open = description.packages.length > 0 || unresolved || hosted;
+  let count = 0;
+  const problems = [];
+  for (const { module } of scanned) {
+    const found = [
+      ...(
+        await Promise.all([
+          literals(root, module.services, ['defineService'], 'requires'),
+          literals(root, module.actions, ['defineAction'], 'requires'),
+          literals(root, module.interceptors, ['defineInterceptor'], 'requires'),
+        ])
+      )
+        .flat()
+        .map((item) => ({ ...item, provider: false })),
+      ...(await exportedLiterals(root, module.providers, 'requires')).map((item) => ({
+        ...item,
+        provider: true,
+      })),
+    ];
+    for (const { value, file, provider } of found) {
+      count++;
+      if (services.has(value) || (provider && providers.has(value))) continue;
+      // Only dotted names can be IDs inside a local plugin; a flat name such as "auth" is a contract.
+      const [namespace] = value.split('.');
+      const local = value.includes('.') && namespaces.has(namespace);
+      if (!local && open) continue;
+      const owner = disabled.get(value);
+      const siblings = [...services, ...providers].filter(
+        (name) => name.split('.')[0] === namespace,
+      );
+      problems.push(
+        `${label(module)} requires "${value}" (${file}), but ${
+          owner
+            ? `plugin "${owner}", which provides it, is disabled`
+            : `no ${provider ? 'provider, ' : ''}service, alias or contract has that name`
+        }.${local && siblings.length ? ` Available in "${namespace}": ${siblings.join(', ')}.` : ''}`,
+      );
+    }
+  }
+  return problems.length
+    ? {
+        status: 'error',
+        title: 'Some required services are not provided',
+        details: problems,
+        fix: 'Correct the name, add the service, or install and enable the plugin that provides it.',
+      }
+    : {
+        status: 'ok',
+        title: !count
+          ? 'No service requirements'
+          : count === 1
+            ? 'The service requirement can be satisfied'
+            : `All ${count} service requirements can be satisfied`,
+      };
+}
+/** Plugin `dependencies` must not form a cycle, and the plugins they name must be enabled. */
+function checkGraph(description) {
+  const dependenciesOf = (plugin) =>
+    Array.isArray(plugin.dependencies) ? plugin.dependencies : [];
+  const enabled = new Map(
+    description.plugins.filter((plugin) => plugin.enabled).map((plugin) => [plugin.id, plugin]),
+  );
+  const cycles = [];
+  const state = new Map();
+  const visit = (id, trail) => {
+    if (state.get(id) === 'done') return;
+    if (state.get(id) === 'visiting') {
+      cycles.push([...trail.slice(trail.indexOf(id)), id]);
+      return;
+    }
+    state.set(id, 'visiting');
+    for (const dependency of dependenciesOf(enabled.get(id)))
+      if (enabled.has(dependency)) visit(dependency, [...trail, id]);
+    state.set(id, 'done');
+  };
+  for (const id of enabled.keys()) visit(id, []);
+  const off = new Set(
+    description.plugins.filter((plugin) => !plugin.enabled).map((plugin) => plugin.id),
+  );
+  const disabled = [...enabled.values()].flatMap((plugin) =>
+    dependenciesOf(plugin)
+      .filter((dependency) => off.has(dependency))
+      .map(
+        (dependency) =>
+          `plugin "${plugin.id}" depends on "${dependency}", which is disabled, so "${plugin.id}" fails to start.`,
+      ),
+  );
+  const results = [];
+  if (cycles.length)
+    results.push({
+      status: 'error',
+      title: 'Plugin dependencies form a cycle',
+      details: cycles.map((cycle) => cycle.join(' → ')),
+      fix: 'Break the cycle with an event, or with a shared service that both plugins can require.',
+    });
+  if (disabled.length)
+    results.push({
+      status: 'warn',
+      title: 'Enabled plugins depend on disabled plugins',
+      details: disabled,
+      fix: 'Enable the plugin in plugins.overrides of bitakit.config.ts, or remove it from the dependencies.',
+    });
+  return results.length ? results : [{ status: 'ok', title: 'Plugin dependencies are consistent' }];
 }
 async function checkStyles(project, description) {
   if (!description.styles.length) return { status: 'ok', title: 'No package styles to import' };

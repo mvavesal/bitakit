@@ -4,10 +4,12 @@ import {
   definePlugin,
   defineService,
   defineSettings,
+  getService,
   serviceKey,
   type PluginPageDefinition,
 } from '@bitakit/core';
-import { useTranslation } from '@bitakit/ui';
+import { useService, useTranslation } from '@bitakit/ui';
+import { betterAuthClient } from '@bitakit/better-auth';
 import { resolveAuthConfig } from '@better-auth-ui/core';
 import { AuthProvider, Auth, Settings, type AuthProviderProps } from '@better-auth-ui/heroui';
 import { Organization } from '@better-auth-ui/heroui/plugins/organization';
@@ -18,8 +20,13 @@ import { AccountSettingsPage } from './settings/account.js';
 /** Full native configuration, never a reduced copy of its auth options. */
 export type BetterAuthUIConfiguration = Omit<AuthProviderProps, 'children'>;
 export const betterAuthUIService = serviceKey<BetterAuthUIConfiguration>('better-auth-ui');
+/**
+ * Options from `configs/better-auth-ui.ts` (package manifest `configuration: 'better-auth-ui'`).
+ * The Better Auth client is never an option: it arrives through the `betterAuthClient` contract.
+ */
 export type BetterAuthUIOptions = {
-  provider: BetterAuthUIConfiguration;
+  /** Native `AuthProvider` options except `authClient`. */
+  provider?: Omit<BetterAuthUIConfiguration, 'authClient'>;
   /** Disable when the host already owns the shared HeroUI toast surface (for example Shell). */
   toastProvider?: boolean;
   /** Local demo content shown as the account profile while nobody is signed in. */
@@ -31,9 +38,14 @@ export type BetterAuthUIOptions = {
   authPageLayout?: ComponentType<{ children: ReactNode }>;
 };
 
-/** Ordinary Foundation plugin. Uses the host's existing Better Auth client/session. */
-export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
-  const config = resolveAuthConfig(options.provider);
+/**
+ * Ordinary Foundation plugin on the host's Better Auth client (the `better-auth-client`
+ * service). Takes no host objects, so the generated configuration can create it.
+ */
+export function betterAuthUIPlugin(options: BetterAuthUIOptions = {}) {
+  const provider = (options.provider ?? {}) as BetterAuthUIConfiguration;
+  // Paths and plugins only; the client is not needed to derive the pages.
+  const config = resolveAuthConfig(provider);
   const pages: PluginPageDefinition[] = [];
   const Layout = options.pageLayout;
   const addPage = (path: string, render: () => ReactNode, PageLayout = Layout) => {
@@ -66,7 +78,7 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
     if (config.plugins.some((plugin) => plugin.id === 'organization')) {
       for (const path of paths('organization'))
         addPage(`${config.basePaths.organization}/${path}`, () => <Organization path={path} />);
-      for (const plugin of options.provider.plugins ?? []) {
+      for (const plugin of provider.plugins ?? []) {
         for (const tab of plugin.organizationTabs ?? []) {
           addPage(`${config.basePaths.organization}/${tab.path}`, () => (
             <Organization path={tab.path} />
@@ -79,8 +91,12 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
     const t = useTranslation();
     const catalog = t.getCatalog('betterAuth');
     const locale = catalog as unknown as BetterAuthUIConfiguration['locale'];
+    // Services exist once the runtime is ready. Until then the native provider renders without
+    // a client, so the tree keeps its shape; pages and slots render only after readiness.
+    const native =
+      (useService(betterAuthUIService) as BetterAuthUIConfiguration | undefined) ?? provider;
     return (
-      <AuthProvider {...options.provider} locale={locale ?? options.provider.locale}>
+      <AuthProvider {...native} locale={locale ?? native.locale}>
         {children}
         {options.toastProvider !== false && <Toast.Provider />}
       </AuthProvider>
@@ -100,7 +116,16 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
     },
     // The contract key equals the plugin ID, so the service is an array entry: a record key
     // would make the ID `better-auth-ui.<key>`, a namespace the contract name cannot share.
-    services: [defineService(() => options.provider, { provides: betterAuthUIService })],
+    services: [
+      defineService(
+        ({ services }) => ({
+          ...provider,
+          authClient: getService(services, betterAuthClient)
+            .client as unknown as BetterAuthUIConfiguration['authClient'],
+        }),
+        { requires: [betterAuthClient], provides: betterAuthUIService },
+      ),
+    ],
     settings: defineSettings(
       {},
       {
@@ -120,3 +145,4 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
     },
   });
 }
+export default betterAuthUIPlugin;

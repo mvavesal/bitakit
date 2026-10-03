@@ -244,6 +244,8 @@ contract: browser storage by default, or one service with `provides: settingsSto
 
 - **React rendering:** the UI bindings and your visual components.
 - **Routes and navigation:** your application's router and its BitaKit adapter.
+- **Discovery:** the Node-only folder scanner and generator is `@bitakit/discovery`, so Core carries
+  no `typescript` or `jiti` dependency; `@bitakit/core/discovery` re-exports it for one release.
 - **Settings UI:** Core declares (`defineSettings`), owns and persists setting values through
   the `settings.storage` contract; the pages that show them are the App Preferences package.
 - **Email, authentication, and persistence:** optional integrations or your own services.

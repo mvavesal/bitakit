@@ -7,40 +7,49 @@ wird regulär über npm installiert. Die verworfenen shadcn-Experimente wurden e
 
 ## Install and register
 
-```tsx
-import { betterAuthUIPlugin } from '@bitakit/better-auth-ui';
+The package manifest declares
+`bitakit: { plugin: './plugin', configuration: 'better-auth-ui', dependencies: ['better-auth'] }`,
+so a generated app composes the plugin (and `@bitakit/better-auth`, which it depends on) without
+host code. The plugin takes no host objects. The Better Auth client arrives through the
+`betterAuthClient` contract of `@bitakit/better-auth` (see its README: one file,
+`src/services/better-auth-client.ts`); the options live in `src/configs/better-auth-ui.ts`:
+
+```ts
+// src/configs/better-auth-ui.ts
+import { defineConfig } from '@bitakit/core';
 import { organizationPlugin } from '@bitakit/better-auth-ui/plugins/organization';
 import { multiSessionPlugin } from '@bitakit/better-auth-ui/plugins/multi-session';
 
-const plugin = betterAuthUIPlugin({
-  provider: {
-    authClient, // the existing Better Auth client with matching client plugins
-    queryClient, // TanStack QueryClient
-    navigate: ({ to, replace }) => (replace ? router.replace(to) : router.push(to)),
-    basePaths: { auth: '/auth', settings: '/account', organization: '/organization' },
-    plugins: [organizationPlugin(), multiSessionPlugin()],
+export default defineConfig({
+  defaults: {
+    toastProvider: false, // Shell renders the HeroUI toast region
+    provider: {
+      basePaths: { auth: '/auth', settings: '/account', organization: '/organization' },
+      plugins: [organizationPlugin(), multiSessionPlugin()],
+    },
   },
 });
-// Add it to the existing Foundation configuration.
-// The host router renders PluginPage for the registered paths.
 ```
 
 Dependencies resolve through npm; React 19 is a peer dependency. Configure Better Auth on the
-server, then pass the same auth client to the UI and to the optional `betterAuthPlugin`. The UI
-plugin creates no second session and no second Foundation provider. Keep the QueryClient per
-request on the server and stable in the browser. The host owns routing, the backend URL, mail and
+server and provide the same client the `auth` service uses. The UI plugin creates no second
+session and no second Foundation provider. The host owns routing, the backend URL, mail and
 OAuth configuration and the theme.
 
-`provider` accepts the complete original `AuthProviderProps`: native plugins, locale, additional
-fields, upload callbacks, social providers and every other option stay available. There is no
-reduced copy of this API.
+`provider` accepts the original `AuthProviderProps` except `authClient`: native plugins,
+locale, additional fields, upload callbacks, social providers, `queryClient`, `navigate` and
+every other option stay available. There is no reduced copy of this API. The configuration
+service (`betterAuthUIService`) adds the client from the contract. Services exist once the
+runtime is ready; until then the native `AuthProvider` renders with the configured options and
+without a client, so the tree keeps its shape. Plugin pages and slots render only after
+readiness; render native Better Auth UI components there, not in host routes that render before.
 
 ### `betterAuthUIPlugin(options)`
 
 | Option            | Purpose                                                                                                                                                                                                                  |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `provider`        | Required. The complete native `AuthProviderProps`.                                                                                                                                                                       |
-| `toastProvider`   | `false` omits the adapter's HeroUI `Toast.Provider` when the host already renders one (for example Shell). Default `true`.                                                                                               |
+| `provider`        | Native `AuthProviderProps` without `authClient`, from `configs/better-auth-ui.ts`.                                                                                                                                       |
+| `toastProvider`   | From `configs/better-auth-ui.ts`. `false` omits the adapter's HeroUI `Toast.Provider` when the host already renders one (for example Shell). Default `true`.                                                             |
 | `pages`           | `false` registers no auth, account or organization routes, for hosts that render the exported components with their own router.                                                                                          |
 | `pageLayout`      | Optional host frame around the native account and organization pages.                                                                                                                                                    |
 | `authPageLayout`  | Frame of the authentication pages, `pageLayout` otherwise. `createBetterAuthIntegration` uses `AuthPageLayout`, the package's sign-in frame with a way back to the application; "Add account" leads to the same sign-in. |
@@ -212,13 +221,13 @@ to render inside a host frame: a level-2 heading and no page width of their own.
 
 ## Source ownership
 
-Public exports are in src/index.ts; plugin composition is in src/plugin.tsx. Upstream re-exports live under src/upstream and preserve existing public import paths. Custom organization UI lives under src/components/organizations and is exposed through `/organizations`. See [Custom UI inventory](CUSTOM_COMPONENTS.md) for ownership, retained behavior, and migration limits.
+Public exports are in src/index.ts; plugin composition is in src/plugin.tsx, whose default export is the package plugin entry (`./plugin`). Upstream re-exports live under src/upstream and preserve existing public import paths. Custom organization UI lives under src/components/organizations and is exposed through `/organizations`. See [Custom UI inventory](CUSTOM_COMPONENTS.md) for ownership, retained behavior, and migration limits.
 
 The settings pages live in `src/settings`: `account.tsx` (`AccountSettingsPage`) and `organizations.tsx` (`OrganizationSettingsPage` and the organization views it embeds). Organization actions, including the `organizations.settings` URL action, live in `src/actions/organizations.ts`. Reusable custom controls stay under components.
 
 ## Minimal host composition
 
-`createBetterAuthIntegration(options?)` creates one standard client, a QueryClient, and the existing authentication and UI plugins. Register its returned plugins through the ordinary Foundation config; Core owns provider installation and lifecycle. This helper is composition, not another registry or integration system.
+`createBetterAuthIntegration(options?)` is the manual composition for hosts without a generated configuration. It creates one standard client, a QueryClient, and the existing authentication and UI plugins, plus a `better-auth-client` plugin that provides the client (and, with `organizations`, the organization backend) through their contracts. Register its returned plugins through the ordinary Foundation config; Core owns provider installation and lifecycle. Generated hosts use the service and config files above instead.
 
 Pass `organizations: { path: false, groups: [] }` to include the existing organization
 service adapter and settings-only UI using that same client. Omitting `organizations`

@@ -1,4 +1,4 @@
-import { generateFoundation, watchFoundation } from '@bitakit/core/discovery';
+import { generateFoundation, watchFoundation } from '@bitakit/discovery';
 
 /**
  * Vite integration: runs discovery before the config is resolved and keeps regenerating in

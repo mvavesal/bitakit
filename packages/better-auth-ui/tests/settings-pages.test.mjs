@@ -15,7 +15,8 @@ import {
   useFoundation,
   useSettingsCatalog,
 } from '@bitakit/ui';
-import { organizationsPlugin } from '@bitakit/organizations';
+import { betterAuthClient } from '@bitakit/better-auth';
+import { organizationBackend, organizationsPlugin } from '@bitakit/organizations';
 import { createDemoOrganizationBackend } from '@bitakit/organizations/demo';
 import { betterAuthUIPlugin } from '../dist/index.js';
 import { organizationUIPlugin } from '../dist/organizations.js';
@@ -100,13 +101,16 @@ test('the account settings page shows profile and security when signed in, the s
   const auth = testAuth({ user: null, pending: true, error: null });
   const queryClient = new QueryClient();
   const plugin = betterAuthUIPlugin({
-    provider: { authClient, queryClient, navigate() {}, plugins: [] },
+    provider: { queryClient, navigate() {}, plugins: [] },
     toastProvider: false,
   });
   const view = await mount(
     h(
       FoundationProvider,
-      { config: { plugins: [auth.plugin, plugin] } },
+      {
+        config: { plugins: [auth.plugin, plugin] },
+        services: { [betterAuthClient]: { client: authClient } },
+      },
       h(plugin.ui.settings.component),
     ),
   );
@@ -139,7 +143,7 @@ test('the organization settings page offers members only to managers and keeps i
   const organizations = organizationUIPlugin({ path: false });
   // Better Auth UI provides the native locale the invitation dates are formatted with.
   const account = betterAuthUIPlugin({
-    provider: { authClient: createAuthClient({ baseURL: origin }), navigate() {}, plugins: [] },
+    provider: { navigate() {}, plugins: [] },
     toastProvider: false,
     pages: false,
   });
@@ -158,8 +162,10 @@ test('the organization settings page offers members only to managers and keeps i
       h(
         FoundationProvider,
         {
-          config: {
-            plugins: [organizationsPlugin(createDemoOrganizationBackend), organizations, account],
+          config: { plugins: [organizationsPlugin(), organizations, account] },
+          services: {
+            [betterAuthClient]: { client: createAuthClient({ baseURL: origin }) },
+            [organizationBackend]: createDemoOrganizationBackend(),
           },
         },
         h(Probe),

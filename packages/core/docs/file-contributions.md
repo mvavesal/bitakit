@@ -118,7 +118,7 @@ Duplicate leaves from two files are an error, never an override. Overrides live 
 `bitakit.config.ts`:
 
 ```ts
-import { defineBitaKit } from '@bitakit/core/discovery';
+import { defineBitaKit } from '@bitakit/discovery';
 
 export default defineBitaKit({
   configOverrides: { todos: { limits: { maxItems: 50 } } },
@@ -155,7 +155,7 @@ IDs are on unless `strict: false`.
 ## `bitakit.config.ts`
 
 ```ts
-import { defineBitaKit } from '@bitakit/core/discovery';
+import { defineBitaKit } from '@bitakit/discovery';
 
 export default defineBitaKit({
   directory: './src', // app module root; generated files are written here
@@ -196,9 +196,9 @@ the old `.foundation/` output is deleted. Review the diff, then run `bitakit gen
 
 ## Source responsibilities
 
-- `discovery/entries.mjs`: one file traversal, path normalizer and default-export detection for every kind.
-- `discovery/generate.mjs`: module composition, static imports, types and the generated files.
-- `discovery/migrate.mjs`: the 0.1 → 0.2 rewrite.
+- `@bitakit/discovery` `src/entries.mjs`: one file traversal, path normalizer and default-export detection for every kind.
+- `@bitakit/discovery` `src/generate.mjs`: module composition, static imports, types and the generated files.
+- `@bitakit/discovery` `src/migrate.mjs`: the 0.1 → 0.2 rewrite.
 - `src/discovered.ts`: resolves records and files into the runtime contracts.
 - `src/config-service.ts`: resolution, optional schemas and immutable scopes.
 - `src/pages.ts`: page, slot and provider normalization and path matching.

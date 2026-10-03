@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { cp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { describeModule } from '@bitakit/core/discovery';
+import { describeModule } from '@bitakit/discovery';
 import { findProject } from './project.mjs';
 
 const quote = JSON.stringify;

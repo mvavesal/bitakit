@@ -41,6 +41,7 @@ export async function createPluginPackage(plan, { run, createApp, packagesDir })
     devDependencies: {
       '@bitakit/cli': bitakitRange,
       '@bitakit/core': bitakitRange,
+      '@bitakit/discovery': bitakitRange,
       '@bitakit/ui': bitakitRange,
       '@types/react': '^19',
       typescript: '^5',
@@ -133,7 +134,7 @@ async function configurePlayground(plan, playground, id) {
   const inspector = `import { Inspector } from '@bitakit/devtools';`;
   await writeProjectFiles(playground, {
     'package.json': JSON.stringify(manifest, null, 2) + '\n',
-    'bitakit.config.ts': `import { defineBitaKit } from '@bitakit/core/discovery';
+    'bitakit.config.ts': `import { defineBitaKit } from '@bitakit/discovery';
 
 // Discover the plugin straight from ../src, so edits reload instantly.
 export default defineBitaKit({ plugins: { include: { ${JSON.stringify(id)}: '../src' } } });

@@ -3,7 +3,7 @@ title: Discovery and file conventions
 description: Let the build generate imports and types from your plugin folders.
 ---
 
-**Owner:** the Node-only `@bitakit/core/discovery` entry. Framework adapters connect it to the build. Installing Core alone does not scan folders.
+**Owner:** the Node-only `@bitakit/discovery` package. Framework adapters connect it to the build. Installing Core alone does not scan folders.
 
 ## One feature, one folder
 
@@ -67,7 +67,7 @@ Ignore `src/bitakit.gen.*` in Git. Production changes require a new build. Brows
 `bitakit.config.ts` configures discovery for the whole app:
 
 ```ts
-import { defineBitaKit } from '@bitakit/core/discovery';
+import { defineBitaKit } from '@bitakit/discovery';
 
 export default defineBitaKit({
   configOverrides: { todos: { limits: { maxItems: 50 } } },

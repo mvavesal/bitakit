@@ -7,6 +7,7 @@ shared standard visual components; Core remains independent of React and UI libr
   and configuration hooks.
 - `/actions`: `ActionProvider`, `useAction`, `useActionGroup`, `<Action>`, `ActionButton`,
   `ActionLink` and `mergeProps` for standalone action lists.
+- `/testing`: `renderWithFoundation` for component tests (see Testing).
 
 ## Provider
 
@@ -124,6 +125,30 @@ The optional `./components` entry exports `Button`, `Input`, `Field`, `Label`, `
 contain no app, Settings or Shell behavior. `./theme.css` exports the shared theme tokens and
 control geometry; generated apps import it through `src/bitakit.gen.css`.
 
+## Testing
+
+`renderWithFoundation(element, { plugins, config, services, ui })` from `@bitakit/ui/testing`
+mounts the element inside `FoundationProvider`, wrapped in `act`, and resolves after every
+plugin's `onStart`. It returns `runtime`, `container`, `events.recorded`, `rerender(element)` and
+`unmount()`. `events.recorded` lists `{ type, data }` of every event emitted while mounted,
+startup included, in the shape `mountPlugin` records. `plugins` are added to `config` (an
+existing ID is replaced in place); `services` are host services such as a fake `auth`. A failing
+start rejects with the attributed startup error and leaves nothing mounted. The helper imports
+no DOM implementation: install jsdom's `window` and `document` as globals first, as
+`tests/support.mjs` does, and pass your own `ui` when the standard primitives are not wanted.
+
+```js
+import { renderWithFoundation } from '@bitakit/ui/testing';
+
+const view = await renderWithFoundation(<PluginPage pathname="/notes" />, { plugins: [notes] });
+await act(async () => view.container.querySelector('button').click());
+assert.deepEqual(view.events.recorded, [{ type: 'notes.added', data: { title: 'Write tests' } }]);
+await view.unmount();
+```
+
+Headless services, actions and events are tested without React through `mountPlugin` from
+`@bitakit/core/testing`.
+
 ## Client authentication
 
 `useAuth` observes the registered `AuthService` and exposes its snapshot plus `signIn` and
@@ -139,6 +164,7 @@ visual dependency and does not enforce server authorization. See
 - `providers/`: `FoundationProvider`, `ActionProvider` and the shared contexts.
 - `bindings/`: keyboard shortcut registration.
 - `utils/`: `mergeProps`.
+- `testing/`: `renderWithFoundation`, the `@bitakit/ui/testing` entry (needs `react-dom`; imports no DOM).
 - `types/`: host UI contracts and React presentation typing.
 - `index.ts`, `actions/index.tsx`, `components.ts`: public exports without implementation.
 

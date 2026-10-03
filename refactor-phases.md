@@ -192,27 +192,31 @@ Done when
 
 ## Phase 5: Adapters, packages and tooling (M)
 
-Status 2026-10-03: base done (shims removed, `bitakit add` complete, config-only package
-factories for Shell, App Preferences and Quick Search). The remaining items are specified in
-`docs/handoff-phases-5-6.md` for a follow-up agent.
+Status 2026-10-03: complete. Open follow-ups are listed in `docs/handoff-phases-5-6.md`
+(the `foundation` manifest-key fallback goes with the Phase 6 sample-app rebuild).
 
 Changes
 
-- [ ] Adapter kit: `defineFramework({ router, routes })`. Next and TanStack rebuilt on it.
-      Route emission for Next first; the client catch-all stays as fallback.
-- [ ] Router contract: `navigate`, `pathname`, `params`, `subscribe`, `Link`.
-- [ ] Package plugins become zero-argument factories; host objects arrive through contracts
-      (`requires`). Done for shell, app-preferences and quick-search (options come from
-      `configs/<name>.ts`); open for better-auth, organizations, next-intl and better-auth-ui.
-      `bitakit build` covers `ui/`.
-- [ ] `create-app` and `bitakit init` write the new shape. `bitakit add` covers all kinds and
-      nested paths (done: action, service, page, interceptor, config, events, settings,
-      layout, slot, dialog, provider). `doctor` gains wiring and graph checks and `--json`.
-- [ ] Testing: typed `mountPlugin` (reads the generated maps, honours `plugin.config.ts`),
-      `renderWithFoundation`, event recorder.
-- [ ] Package hygiene: discovery moves to `@bitakit/discovery` so `typescript` and `jiti`
-      leave Core's runtime dependencies; `@bitakit/ui` declares zustand; `@bitakit/next` peer
-      range matches `@bitakit/ui`.
+- [x] Adapter kit: `defineFramework({ id, useRouter, QueryState })` in `@bitakit/ui`; Next and
+      TanStack are one call each. Route files for existing apps come from `bitakit init`; the
+      client catch-all stays the fallback.
+- [x] Router contract: `pathname`, `params`, `navigate(href, { replace })`, `Link`; values
+      follow React renders, so no `subscribe`.
+- [x] Package plugins are zero-argument factories; host objects arrive through contracts:
+      `better-auth-client` (`{ client }`) for Better Auth, `organization-backend` for
+      organizations, next-intl is a plugin with a `ui/providers` bridge, better-auth-ui reads
+      `configs/better-auth-ui.ts`; Shell, App Preferences and Quick Search read their config
+      files. Manifests declare `bitakit.dependencies`; `bitakit build` compiles `ui/`.
+- [x] `create-app` writes the new shape and `bitakit init` wires an existing Next or TanStack
+      app. `bitakit add` covers every kind and nested paths. `doctor` has wiring and graph
+      checks and `--json`.
+- [x] Testing: `mountPlugin` reads `plugin.config.ts` and types `execute` by action ID;
+      `renderWithFoundation` in `@bitakit/ui/testing` with an event recorder.
+- [x] Package hygiene: discovery lives in `@bitakit/discovery`, so `typescript` and `jiti`
+      left Core's runtime dependencies (`@bitakit/core/discovery` re-exports it for one
+      release; `@bitakit/discovery` is an optional peer of Core); `@bitakit/ui` already declares
+      zustand and the `react` peer ranges of `@bitakit/next` and `@bitakit/tanstack` match
+      `@bitakit/ui`.
 - [x] Deprecated shims removed: `compat.ts`, the object form of `defineService`, action
       `resolve`/`watch`, `publicServices`, `appExtensions`, top-level `pages`/`views`/
       `providers`, `events.watch`, `useWatchEvent`, `withFoundation`, the `generated` adapter

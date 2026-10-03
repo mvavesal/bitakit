@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { describeModule } from '../discovery/describe.mjs';
+import { createJiti } from 'jiti';
+import { describeModule } from '@bitakit/discovery';
 import {
   createRuntime,
   discoverActions,
@@ -32,20 +33,40 @@ async function packageId(directory) {
   }
 }
 
+/** The folder's `plugin.config.ts` (id, dependencies, metadata), loaded the way discovery loads it. */
+async function manifestOf(directory) {
+  const file = path.join(directory, 'plugin.config.ts');
+  const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false });
+  return readFile(file, 'utf8')
+    .then(() => jiti.import(file, { default: true }))
+    .catch((error) => {
+      if (error.code === 'ENOENT' && error.path === file) return {};
+      throw error;
+    })
+    .then((manifest) => manifest ?? {});
+}
+
 /**
  * Mounts one plugin folder headlessly for tests: services, actions, events, configs,
  * interceptors and `setup.ts`, discovered with the same conventions as apps. Files under `ui/`
  * are skipped. Files load through Node's TypeScript type stripping, so keep them free of JSX.
+ * `plugin.config.ts` of the folder supplies `id`, `dependencies` and `metadata` as in an app; the
+ * ID is `options.id`, then the manifest, the folder under `plugins/`, or the package name.
  * The returned `events.recorded` lists every event emitted while mounted.
  */
 export async function mountPlugin(directory = 'src', options = {}) {
   const module = await describeModule(path.resolve(directory));
+  const manifest = await manifestOf(module.directory);
   const id =
     options.id ??
+    manifest.id ??
     (path.basename(path.dirname(module.directory)) === 'plugins'
       ? path.basename(module.directory)
       : await packageId(module.directory));
-  if (!id) throw new Error('Pass { id } or run inside a package with a name.');
+  if (!id)
+    throw new Error(
+      'Pass { id }, set one in plugin.config.ts, or run inside a package with a name.',
+    );
   const importDefault = async (file) => (await import(pathToFileURL(file).href)).default;
   const load = (entries) =>
     Promise.all(
@@ -59,6 +80,8 @@ export async function mountPlugin(directory = 'src', options = {}) {
     );
   const plugin = {
     id,
+    dependencies: manifest.dependencies,
+    metadata: manifest.metadata,
     services: discoverServices(await load(module.services), id),
     actions: discoverActions(await load(module.actions), id),
     events: discoverEvents(await load(module.events)),

@@ -2,6 +2,13 @@
   "name": "@bitakit/better-auth-ui",
   "version": "0.2.0",
   "type": "module",
+  "bitakit": {
+    "plugin": "./plugin",
+    "configuration": "better-auth-ui",
+    "dependencies": [
+      "better-auth"
+    ]
+  },
   "sideEffects": [
     "./theme.css",
     "./styles.css",
@@ -21,6 +28,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "default": "./dist/plugin.js"
     },
     "./theme.css": "./theme.css",
     "./catalog": {

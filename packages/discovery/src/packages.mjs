@@ -9,7 +9,15 @@ import path from 'node:path';
  */
 export async function installedContributions(root, selection, jiti) {
   if (selection === false)
-    return { plugins: [], kinds: [], configurations: {}, styles: [], packages: [], slots: [] };
+    return {
+      plugins: [],
+      kinds: [],
+      configurations: {},
+      dependencies: {},
+      styles: [],
+      packages: [],
+      slots: [],
+    };
   const manifestFile = path.join(root, 'package.json');
   const manifest = await readFile(manifestFile, 'utf8')
     .then(JSON.parse)
@@ -20,6 +28,7 @@ export async function installedContributions(root, selection, jiti) {
   const plugins = [];
   const kinds = [];
   const configurations = {};
+  const dependencies = {};
   const stylesheets = [];
   const packages = [];
   const slots = [];
@@ -52,12 +61,20 @@ export async function installedContributions(root, selection, jiti) {
         throw new Error(`Invalid BitaKit export in package "${name}".`);
       return `${name}/${entry.slice(2)}`;
     };
+    const list = (value) => (value === undefined ? [] : Array.isArray(value) ? value : [value]);
     if (metadata.plugin) {
       const plugin = specifier(metadata.plugin);
       plugins.push(plugin);
       if (metadata.configuration) configurations[plugin] = metadata.configuration;
+      // Plugin IDs the package plugin depends on at runtime; the generator adds them to the plugin.
+      const ids = list(metadata.dependencies);
+      for (const id of ids)
+        if (typeof id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(id))
+          throw new Error(
+            `Invalid plugin dependency in the bitakit manifest of package "${name}".`,
+          );
+      if (ids.length) dependencies[plugin] = [...new Set(ids)];
     }
-    const list = (value) => (value === undefined ? [] : Array.isArray(value) ? value : [value]);
     if (metadata.styles || metadata.theme)
       stylesheets.push({
         name,
@@ -85,7 +102,15 @@ export async function installedContributions(root, selection, jiti) {
     }).sort())
       if (!visited.has(dependency)) queue.push({ name: dependency, from: file });
   }
-  return { plugins, kinds, configurations, styles: orderStyles(stylesheets), packages, slots };
+  return {
+    plugins,
+    kinds,
+    configurations,
+    dependencies,
+    styles: orderStyles(stylesheets),
+    packages,
+    slots,
+  };
 }
 
 /** Package styles after the styles of the packages they depend on; theme files come last. */

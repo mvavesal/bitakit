@@ -1,6 +1,6 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { loadDiscoveryConfig } from '@bitakit/core/discovery';
+import { loadDiscoveryConfig } from '@bitakit/discovery';
 
 /** The nearest package.json above `cwd`: the project root and its manifest, without reading any configuration. */
 export async function findProjectRoot(cwd = process.cwd()) {

@@ -1,1 +1,1 @@
-export { generateFoundationHost as generateFoundation } from '@bitakit/core/discovery';
+export { generateFoundationHost as generateFoundation } from '@bitakit/discovery';

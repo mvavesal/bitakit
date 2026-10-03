@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { organizationsPlugin, organizationService } from '@bitakit/organizations';
+import {
+  organizationBackend,
+  organizationsPlugin,
+  organizationService,
+} from '@bitakit/organizations';
 import { createDemoOrganizationBackend } from '@bitakit/organizations/demo';
 import { organizationUIPlugin } from '../dist/organizations.js';
 import { createActionList, FoundationRuntime, getService } from '@bitakit/core';
@@ -9,9 +13,11 @@ import BuildingIcon from 'reicon-react/icons/Building';
 test('UI uses the registered service and cleanup removes its navigation and commands', async () => {
   const actions = createActionList();
   const ui = organizationUIPlugin();
-  const runtime = new FoundationRuntime(actions, {
-    plugins: [organizationsPlugin(createDemoOrganizationBackend), ui],
-  });
+  const runtime = new FoundationRuntime(
+    actions,
+    { plugins: [organizationsPlugin(), ui] },
+    { [organizationBackend]: createDemoOrganizationBackend() },
+  );
   const stop = runtime.mount();
   const service = getService(runtime.services, organizationService);
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -39,9 +45,11 @@ test('organization settings are one section with a tabbed page and a URL action'
   );
   for (const legacy of ['pages', 'providers', 'views', 'setup'])
     assert.equal(plugin[legacy], undefined, legacy);
-  const runtime = new FoundationRuntime(actions, {
-    plugins: [organizationsPlugin(createDemoOrganizationBackend), plugin],
-  });
+  const runtime = new FoundationRuntime(
+    actions,
+    { plugins: [organizationsPlugin(), plugin] },
+    { [organizationBackend]: createDemoOrganizationBackend() },
+  );
   const stop = runtime.mount();
   // The settings section carries path and shortcut; App Preferences projects the navigation action.
   assert.equal(plugin.settings.section.path, 'organization');
@@ -70,9 +78,11 @@ test('settings-only organization integration omits its standalone page and navig
   const plugin = organizationUIPlugin({ path: false });
   assert.deepEqual(plugin.ui.pages, []);
   assert.equal(typeof plugin.ui.settings.component, 'function');
-  const runtime = new FoundationRuntime(actions, {
-    plugins: [organizationsPlugin(createDemoOrganizationBackend), plugin],
-  });
+  const runtime = new FoundationRuntime(
+    actions,
+    { plugins: [organizationsPlugin(), plugin] },
+    { [organizationBackend]: createDemoOrganizationBackend() },
+  );
   const stop = runtime.mount();
   try {
     assert.equal(actions.get('organizations.open'), undefined);

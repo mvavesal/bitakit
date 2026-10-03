@@ -6,7 +6,7 @@ another scanner.
 
 ## Responsibilities
 
-- `/config`: `withBitaKit` runs Core discovery before Next reads its configuration and keeps
+- `/config`: `withBitaKit` runs `@bitakit/discovery` before Next reads its configuration and keeps
   regenerating while files change during development.
 - The root entry: `FoundationProvider`, the shared UI provider with Next routing and query state.
 - `/actions`: connects a standalone root `ActionProvider` to the Next router and `Link`.
@@ -54,7 +54,7 @@ example in an isolated environment without the build adapter; without `config` i
 
 ## Discovery and routes
 
-`bitakit.config.ts` (optional, `defineBitaKit` from `@bitakit/core/discovery`) holds overrides:
+`bitakit.config.ts` (optional, `defineBitaKit` from `@bitakit/discovery`) holds overrides:
 plugin directory, disabled packages, config and action overrides. Each immediate directory under
 `src/plugins` is a plugin named after its folder; the app itself contributes from the same
 folders directly under `src`. Installed packages that declare `bitakit.plugin` in their
@@ -89,7 +89,7 @@ and `@bitakit/next/generated` were removed in Phase 5; use `withBitaKit` and `./
 - `providers/`: Next routing/query composition around the shared UI provider.
 - `query.ts`: public Next App Router nuqs boundary.
 - `routing/`: shared native Action navigation bindings.
-- `config.mjs`: the Next build hook around Core discovery; `cli.mjs`: deprecated generate entry.
+- `config.mjs`: the Next build hook around `@bitakit/discovery`; `cli.mjs`: deprecated generate entry.
 - `generated.ts`: deprecated fallback; the configuration now lives in `src/bitakit.gen.tsx`.
 - `index.ts`, `actions.tsx`: public provider entry points.
 

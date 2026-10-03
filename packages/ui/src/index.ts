@@ -2,6 +2,13 @@
 import './types/presentation.js';
 export * from '@bitakit/core';
 export { FoundationProvider } from './providers/foundation-provider.js';
+export {
+  defineFramework,
+  type Router,
+  type Framework,
+  type FrameworkDefinition,
+  type FrameworkProviderProps,
+} from './providers/define-framework.js';
 export type { FoundationProviderProps } from './types/provider.js';
 export { ActionMenu } from './components/action-menu.js';
 export { ActionBoundary } from './components/action-boundary.js';

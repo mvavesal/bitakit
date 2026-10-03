@@ -1,6 +1,7 @@
 'use client';
 import { QueryClient } from '@tanstack/react-query';
-import { betterAuthPlugin } from '@bitakit/better-auth';
+import { definePlugin, defineService } from '@bitakit/core';
+import { betterAuthClient, betterAuthPlugin } from '@bitakit/better-auth';
 import { createBetterAuthClient } from '@bitakit/better-auth/client';
 import {
   betterAuthUIPlugin,
@@ -16,7 +17,7 @@ import {
   betterAuthOrganizations,
   sessionOrganizationBackend,
 } from '@bitakit/better-auth/organizations';
-import { organizationsPlugin } from '@bitakit/organizations';
+import { organizationBackend, organizationsPlugin } from '@bitakit/organizations';
 import { organizationUIPlugin } from './organization-plugin.js';
 
 type Client = ReturnType<typeof createBetterAuthClient<[]>>;
@@ -27,7 +28,12 @@ export type BetterAuthIntegrationOptions = Omit<BetterAuthUIOptions, 'provider'>
   organizations?: Parameters<typeof organizationUIPlugin>[0];
 };
 
-/** Composes existing plugins; Core remains the sole service/provider registry. */
+/**
+ * Manual composition for hosts without generated configuration: the same plugins, plus one
+ * plugin that provides the client (and the organization backend) through their contracts.
+ * Generated hosts provide those in `src/services/` instead and configure the options in
+ * `configs/better-auth.ts` and `configs/better-auth-ui.ts`.
+ */
 export function createBetterAuthIntegration(options: BetterAuthIntegrationOptions = {}) {
   const { client = createBetterAuthClient(), provider = {}, organizations, ...ui } = options;
   const { redirectTo = '/', ...overrides } = provider;
@@ -48,7 +54,6 @@ export function createBetterAuthIntegration(options: BetterAuthIntegrationOption
         apiKeyPlugin({ organization: true }),
       ],
       ...overrides,
-      authClient,
       // Resolve relative callbacks against the UI origin when Auth is hosted separately.
       redirectTo:
         typeof window === 'undefined'
@@ -59,16 +64,23 @@ export function createBetterAuthIntegration(options: BetterAuthIntegrationOption
   return {
     client: authClient,
     plugins: [
-      betterAuthPlugin(authClient),
+      definePlugin({
+        id: 'better-auth-client',
+        services: [
+          defineService(() => ({ client: authClient }), { provides: betterAuthClient }),
+          ...(organizations
+            ? [
+                defineService(
+                  () => sessionOrganizationBackend(authClient, betterAuthOrganizations(authClient)),
+                  { provides: organizationBackend },
+                ),
+              ]
+            : []),
+        ],
+      }),
+      betterAuthPlugin(),
       plugin,
-      ...(organizations
-        ? [
-            organizationsPlugin(() =>
-              sessionOrganizationBackend(authClient, betterAuthOrganizations(authClient)),
-            ),
-            organizationUIPlugin(organizations),
-          ]
-        : []),
+      ...(organizations ? [organizationsPlugin(), organizationUIPlugin(organizations)] : []),
     ],
   };
 }

@@ -29,6 +29,11 @@ slow), `npm run check:css`, `npm run build:docs`. Run the ones relevant to the c
 
 ### 5.1 Adapter kit (`defineFramework`) and router contract
 
+Done 2026-10-03: `defineFramework({ id, useRouter, QueryState })` in `@bitakit/ui`; both
+adapters are one call of it; the router contract is `pathname`, `params`, `navigate(href, { replace })`
+and `Link` (no `subscribe`: values follow React renders). Route files for existing apps come
+from `bitakit init` instead of generate-time emission. The original plan follows for reference.
+
 Goal: `@bitakit/next` and `@bitakit/tanstack` share one implementation; a third framework
 needs only a router adapter.
 
@@ -48,33 +53,51 @@ needs only a router adapter.
   the fallback. Add doctor checks for both files.
 
 Files: `packages/ui/src/providers/*`, `packages/next/src/*`, `packages/tanstack/src/*`,
-`packages/core/discovery/generate.mjs` (route emission), `packages/cli/src/doctor.mjs`.
+`packages/discovery/src/generate.mjs` (route emission), `packages/cli/src/doctor.mjs`.
 
 ### 5.2 Zero-argument package plugins with contracts
 
-Goal: `packagePluginN(options)` in the generated file disappears; every package plugin is
-`definePlugin`-shaped and receives host objects through contracts.
+Done 2026-10-03: no package plugin takes a host object; the generated file composes each one
+as `packagePluginN(options.get('<configuration>', {}))`, wrapped as
+`withDependencies(…, [...])` when the manifest declares `dependencies`.
 
-- Shell, App Preferences and Quick Search already take only options from
-  `src/configs/<name>.ts`. Keep that.
-- `@bitakit/better-auth`: replace `betterAuthPlugin(client, options)` with a plugin that
-  `requires: ['auth.client']`; the host provides the Better Auth client as a service
-  (`src/services/auth-client.ts` with `provides: betterAuthClient`), and `paths`/`signIn` come
-  from `configs/better-auth.ts`.
-- `@bitakit/organizations`: the backend arrives through a contract
-  (`provides: organizationBackend`), the plugin reads it in its service factory.
-- `@bitakit/next-intl`: `useNextIntlPlugin()` becomes a provider under `ui/providers` plus a
-  service with `provides: translationService`; `languagePreferences` stays.
-- `@bitakit/better-auth-ui`: `provider` options move to `configs/better-auth-ui.ts`; the
-  `pageLayout` hooks disappear once Shell page layouts (`export const layout`) cover the
-  cases content-demo used.
-- Update `packages/core/discovery/packages.mjs` and `generate.mjs` so a package manifest may
-  declare `"bitakit": { "plugin": "./foundation", "configuration": "<name>", "dependencies": ["app-preferences"] }`
-  and the generator emits plugin `dependencies` from it (the Phase 4 item that was deferred).
-- `bitakit build` must cover `ui/` of plugin packages (JSX, `'use client'`), see
-  `packages/cli/src/build.mjs`.
+- `@bitakit/better-auth`: `betterAuthPlugin(options?: { paths?, signIn?, signOut? })`, options
+  from `configs/better-auth.ts` (manifest `plugin: './plugin'`, `configuration: 'better-auth'`).
+  The `auth` service `requires` the contract `betterAuthClient` (name `better-auth-client`,
+  type `BetterAuthClientService`, value `{ client }`); the host provides it in `src/services/better-auth-client.ts` with
+  `defineService(() => ({ client: authClient }), { provides: betterAuthClient })`. The wrapper is
+  needed: a Better Auth client is a proxy that answers `subscribe`, so the runtime would observe a
+  bare client and call it (HTTP request, non-function cleanup). Not `auth.client`: `auth` is a service leaf, and a
+  service name cannot also be a namespace (startup error). `betterAuthOrganizations` and
+  `sessionOrganizationBackend` keep taking the client; hosts call them in their backend service.
+- `@bitakit/organizations`: `organizationsPlugin()`; the service `requires`
+  `organizationBackend = serviceKey<OrganizationBackend, 'organization-backend'>('organization-backend')`
+  (not `organizations.backend`, same leaf rule). No manifest on purpose: Better Auth UI depends
+  on the package, and a manifest would install the plugin, and require a backend, in every
+  Better Auth UI host.
+- `@bitakit/next-intl`: `nextIntlPlugin()` (manifest `plugin: './plugin'`) provides `i18n`; the
+  provider `next-intl.messages` (`src/ui/providers/messages.tsx`) publishes `useTranslations()`
+  and `useMessages()` in a layout effect into a store the plugin instance owns (services exist
+  only after mount). `useNextIntlPlugin()` is removed; `languagePreferences` stays.
+- `@bitakit/better-auth-ui`: `betterAuthUIPlugin(options = {})`, manifest
+  `{ plugin: './plugin', configuration: 'better-auth-ui', dependencies: ['better-auth'] }`;
+  `provider` (without `authClient`) and `toastProvider` come from `configs/better-auth-ui.ts`.
+  The configuration service adds the client from `betterAuthClient`; the native `AuthProvider`
+  renders without a client until the runtime is ready. `pageLayout`/`authPageLayout` stay
+  options until Shell page layouts cover content-demo. `createBetterAuthIntegration` remains the
+  manual composition and adds a `better-auth-client` plugin that provides the contracts.
+- Discovery: `packages.mjs` validates `bitakit.dependencies` (plugin IDs) and returns them per
+  plugin specifier; `generate.mjs` merges them into the plugin's own `dependencies`.
+- `bitakit build` already compiles `src/ui/**/*.tsx` with the package `tsconfig.json`
+  (`jsx: react-jsx` in the scaffold), and `tsc` keeps `'use client'` prologues.
+
+Left: `apps/web` and `apps/content-demo` still call the removed signatures
+(`betterAuthPlugin(client, …)`, `organizationsPlugin(factory)`, `useNextIntlPlugin()`); Phase 6.1
+rebuilds them with the service and config files above.
 
 ### 5.3 Tooling
+
+Done 2026-10-03: `doctor` checks `requires` wiring and plugin dependency cycles or disabled dependencies (the "plugins nobody activates" report was dropped), `bitakit init` wires existing Next and TanStack apps from templates shared with `create-app`, and Shell apps render `<ShellThemeScript />` in the root layout (`preferences` without `shell` was already offered). The original plan follows for reference.
 
 - `bitakit doctor --json` (machine-readable results) and two new checks: a wiring check that
   every `requires` contract has a provider in the composition, and a graph check that reports
@@ -88,6 +111,8 @@ Goal: `packagePluginN(options)` in the generated file disappears; every package 
 
 ### 5.4 Testing helpers (`@bitakit/core/testing`, `@bitakit/ui/testing`)
 
+Done 2026-10-03: `mountPlugin` reads `plugin.config.ts` and types `execute` through `ActionId`; `renderWithFoundation` with `events.recorded` ships as `@bitakit/ui/testing` (options `plugins`, `config`, `services`, `ui`). The original plan follows for reference.
+
 - `mountPlugin` reads `plugin.config.ts` (id, dependencies, metadata) and the generated maps
   when present, so `runtime.actions.execute('todos.add')` is typed in tests.
 - `renderWithFoundation(element, { plugins, services, settings })` in `@bitakit/ui/testing`:
@@ -98,6 +123,21 @@ Goal: `packagePluginN(options)` in the generated file disappears; every package 
 
 ### 5.5 Package hygiene
 
+Done 2026-10-03 except the last item: discovery moved to `packages/discovery`
+(`@bitakit/discovery`, sources in `src/`), and `typescript` and `jiti` are no longer Core
+dependencies. `@bitakit/core/discovery` is a one-line re-export for one release, with
+`@bitakit/discovery` as an optional peer dependency (and a dev dependency) of Core.
+`@bitakit/next`, `@bitakit/tanstack` and `@bitakit/cli` depend on it and import it directly,
+`create-app` adds it to the dev dependencies of generated apps and plugin packages (next to
+`@bitakit/cli`), `bitakit init` lists it, and `scripts/pack-packages.mjs` and
+`scripts/verify-generated.mjs` pack it. `@bitakit/core/testing` stays in Core (it needs the Core
+runtime) and imports `describeModule` from `@bitakit/discovery`; it also loads `plugin.config.ts`
+with `jiti`, so `jiti` is an optional peer of Core too. `@bitakit/ui` already declares zustand and
+the `react` peer ranges of `@bitakit/next` and `@bitakit/tanstack` match `@bitakit/ui`. The
+generator is tested through Core's tests (`unified-discovery`, `integration-kinds`,
+`package-configuration`, `package-styles`), which import the package; there is no separate
+discovery test suite. The original plan follows for reference.
+
 - Move `packages/core/discovery/*.mjs` and `packages/core/testing` into a new package
   `@bitakit/discovery` so `typescript` and `jiti` leave Core's runtime dependencies. Keep
   `@bitakit/core/discovery` as a re-export for one release with `@bitakit/discovery` as an
@@ -105,11 +145,20 @@ Goal: `packagePluginN(options)` in the generated file disappears; every package 
   `@bitakit/cli`, `@bitakit/create-app`, `scripts/verify-generated.mjs` and the tests.
 - `@bitakit/ui` must declare `zustand` (it re-exports Core's store helpers); align
   `@bitakit/next` and `@bitakit/tanstack` peer ranges with `@bitakit/ui`.
-- Remove the `foundation` manifest key fallback in `packages.mjs` after the apps are rebuilt.
+- Remove the `foundation` manifest key fallback in `packages.mjs` after the apps are rebuilt
+  (still open; the file is now `packages/discovery/src/packages.mjs`).
 
 ## Phase 6: docs, AI guidance and reference apps
 
 ### 6.1 Rebuild the sample apps on the new conventions
+
+New since Phase 5: hosts provide the Better Auth client as a service
+(`src/services/better-auth-client.ts` with `provides: betterAuthClient`, value `{ client }`),
+the organizations backend as `provides: organizationBackend`, render `NextIntlClientProvider`
+above `BitaKitProvider` (the next-intl plugin is discovered from its manifest), and stop
+calling `betterAuthPlugin(client)`, `organizationsPlugin(() => backend)` and
+`useNextIntlPlugin()` by hand. Organizations has no manifest, so hosts add
+`organizationsPlugin()` and `organizationUIPlugin()` through `additionalPlugins`.
 
 Prefer replacing the hand-written settings code with the generated path:
 

@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createJiti } from 'jiti';
-import { generateFoundation, describeFoundation } from '../discovery/index.mjs';
+import { generateFoundation, describeFoundation } from '@bitakit/discovery';
 
 const coreRuntime = new URL('../dist/core.js', import.meta.url).pathname;
 
@@ -197,5 +197,49 @@ test('package metadata is validated: exports stay inside the package', async () 
     await assert.rejects(
       describeFoundation(root),
       /Invalid BitaKit export in package "@acme\/bad"/,
+    );
+  }));
+
+test('manifest dependencies join the dependencies of the generated package plugin', async () =>
+  fixture(async ({ root, put, install }) => {
+    await install(
+      '@acme/base',
+      { bitakit: { plugin: './plugin' } },
+      { 'plugin.js': factory('base') },
+    );
+    await install(
+      '@acme/addon',
+      { bitakit: { plugin: './plugin', dependencies: ['base'] } },
+      {
+        'plugin.js':
+          "export default function plugin() { return { id: 'addon', dependencies: ['base', 'shell'] }; }",
+      },
+    );
+    await put(
+      'package.json',
+      JSON.stringify({ dependencies: { '@acme/addon': '1.0.0', '@acme/base': '1.0.0' } }),
+    );
+    const plugins = await pluginIds(root);
+    assert.deepEqual(
+      plugins.map((plugin) => [plugin.id, plugin.dependencies]),
+      [
+        ['addon', ['base', 'shell']],
+        ['base', undefined],
+      ],
+    );
+    const source = await readFile(path.join(root, 'src/bitakit.gen.ts'), 'utf8');
+    assert.match(
+      source,
+      /withDependencies\(packagePlugin0\(\), \["base"\]\),\s+packagePlugin1\(\)/,
+    );
+    await install(
+      '@acme/broken',
+      { bitakit: { plugin: './plugin', dependencies: ['Not an ID'] } },
+      { 'plugin.js': factory('broken') },
+    );
+    await put('package.json', JSON.stringify({ dependencies: { '@acme/broken': '1.0.0' } }));
+    await assert.rejects(
+      generateFoundation(root, { quiet: true }),
+      /Invalid plugin dependency in the bitakit manifest of package "@acme\/broken"/,
     );
   }));

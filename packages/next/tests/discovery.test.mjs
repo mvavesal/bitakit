@@ -263,7 +263,7 @@ test('app contributions need no manifest; add, rename and delete update the impo
 test('the watcher regenerates on new and deleted files without restarting', async () =>
   fixture(
     async ({ root, put, output, generate }) => {
-      const { watchFoundation } = await import('@bitakit/core/discovery');
+      const { watchFoundation } = await import('@bitakit/discovery');
       await generate();
       const errors = [];
       const stop = watchFoundation(root, (error) => errors.push(error));

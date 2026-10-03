@@ -25,7 +25,7 @@ export async function write(root, files) {
     );
   }
 }
-/** Links a workspace package into the fixture so imports such as `@bitakit/core/discovery` resolve. */
+/** Links a workspace package into the fixture so imports such as `@bitakit/discovery` resolve. */
 export async function link(root, name, from) {
   const target = path.join(root, 'node_modules', name);
   await mkdir(path.dirname(target), { recursive: true });

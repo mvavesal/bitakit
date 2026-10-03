@@ -8,10 +8,11 @@ import {
   generateFoundation,
   migrateProject,
   watchFoundation,
-} from '@bitakit/core/discovery';
+} from '@bitakit/discovery';
 import { addContribution, addPlugin, contributionKinds } from './add.mjs';
 import { buildPlugin } from './build.mjs';
 import { doctor } from './doctor.mjs';
+import { initProject } from './init.mjs';
 import { findProject, findProjectRoot } from './project.mjs';
 
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
@@ -22,7 +23,7 @@ const created = (files) =>
 const program = new Command()
   .name('bitakit')
   .description(
-    'Add plugins and contributions to a BitaKit project, generate its wiring, and check it for problems.',
+    'Wire an app, add plugins and contributions, generate the wiring, and check a project for problems.',
   )
   .version(manifest.version);
 
@@ -77,6 +78,31 @@ for (const kind of contributionKinds)
       created(result.created);
       console.log('');
     });
+
+program
+  .command('init')
+  .description(
+    'Wire an existing Next.js or TanStack Start app: bitakit.config.ts, the config wrapper or Vite plugin, the provider, the catch-all route and .gitignore.',
+  )
+  .action(async () => {
+    const { written, skipped, install } = await initProject();
+    if (written.length) {
+      console.log('\nWritten:');
+      for (const { file, created } of written)
+        console.log(`  ${styleText('green', created ? '+' : '~')} ${relative(file)}`);
+    }
+    if (skipped.length) {
+      console.log('\nSkipped:');
+      for (const { file, reason } of skipped)
+        console.log(
+          `  ${styleText('yellow', '-')} ${relative(file)} ${styleText('dim', `(${reason})`)}`,
+        );
+    }
+    if (!written.length) console.log('\nNothing to write: the app is already wired.');
+    if (install.length)
+      console.log(`\nInstall the packages the wiring imports:\n  npm install ${install.join(' ')}`);
+    console.log('\nThen run "npx bitakit generate" and "npx bitakit doctor".\n');
+  });
 
 program
   .command('generate')

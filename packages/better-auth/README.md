@@ -1,56 +1,91 @@
 # @bitakit/better-auth
 
-Optionales Foundation-Plugin für einen bereits konfigurierten Better-Auth-Client.
-`betterAuthPlugin(client, { signOut? })` liefert ein normales Plugin für die Foundation-Liste.
-Es stellt den allgemeinen `authService` bereit: Sitzung, Änderungen und Abmelden.
+Optional BitaKit plugin for an existing, configured Better Auth client. It provides the general
+`auth` service (session snapshot, changes, sign-out) on the client's session atom. It has no
+sign-in UI and is no replacement for server-side permission checks; organizations and e-mail
+hooks are separate optional entry points of the same package.
 
-Die Foundation übernimmt Beobachtung und Cleanup. Der Client und die Serverkonfiguration
-bleiben beim Host. Die Basis-Anbindung implementiert keine Anmeldeoberfläche; Organisationen und E-Mail-Hooks
-sind separate optionale Einstiegspunkte desselben Pakets. Es darf nicht als vollständiges Auth-Setup
-oder Ersatz für serverseitige Rechteprüfungen verstanden werden.
+## Install and provide the client
 
-## Organisationsanbindung
+The package manifest declares `bitakit: { plugin: './plugin', configuration: 'better-auth' }`,
+so a generated app composes the plugin without host code. The plugin takes no host objects:
+the client arrives through the `betterAuthClient` contract (`better-auth-client`). Provide it
+once in the app:
 
-`@bitakit/better-auth/organizations` exportiert `betterAuthOrganizations(client)`.
-Es implementiert den allgemeinen Organisationsvertrag mit den SDK-Methoden des bereits
-konfigurierten Organization-Clients, einschließlich paginierter Mitgliederlisten.
-Die UI kommt optional aus `@bitakit/better-auth-ui/organizations`.
+```ts
+// src/services/better-auth-client.ts
+import { defineService } from '@bitakit/core';
+import { betterAuthClient } from '@bitakit/better-auth';
+import { authClient } from '../lib/auth-client';
 
-Die aktuelle UI-Berechtigungsprojektion unterstützt die Standardrollen owner/admin/member.
-Ein deaktiviertes Mitglied wird beim Laden abgewiesen. Eigene Rollen benötigen eine
-angepasste Fähigkeitenprojektion. Backend-Policies und Suspension-Hooks bleiben Pflicht;
-der Client-Adapter ist keine Sicherheitsgrenze. Eine bestehende Web-App wird nicht automatisch migriert.
+export default defineService(() => ({ client: authClient }), { provides: betterAuthClient });
+```
 
-## E-Mail (Server)
+The client is wrapped in `{ client }`: a Better Auth client answers every property, `subscribe`
+included, so the runtime would observe a bare client as a service and call it. Without that
+service, startup fails with a named error. The contract is not called
+`auth.client`: `auth` is the authentication service itself and cannot also be a namespace.
 
-`@bitakit/better-auth/email` exportiert `betterAuthEmail(emailService, { invitationURL })`.
-Das liefert die Better-Auth-Callbacks `sendVerificationEmail`, `sendResetPassword` und
-`sendInvitationEmail`. Die ersten beiden gehören in die jeweiligen Auth-Optionen,
-der dritte in die Organization-Plugin-Konfiguration. Der Host bestimmt seine echte
-Einladungsroute. Texte sind derzeit deutsche Standardtexte; für andere Templates können
-Host-Callbacks denselben E-Mail-Service direkt verwenden.
+Options live in `src/configs/better-auth.ts`:
 
-Die Callbacks hängen ausschließlich vom allgemeinen E-Mail-Vertrag ab, nicht von Nodemailer.
-Sie werden nicht automatisch in eine bereits erzeugte Server-Auth-Instanz injiziert.
+```ts
+export default defineConfig({
+  defaults: { paths: { signIn: '/login', afterSignIn: '/', afterSignOut: '/' } },
+});
+```
 
-### Organisationsverwaltung
+`betterAuthPlugin(options?)` accepts `{ paths?, signIn?, signOut? }`. `paths` are validated
+when the configuration is created. An optional `signIn(options)` delegates a native login
+flow; without it, `useAuth().signIn()` opens `paths.signIn`. `signOut` replaces the client's
+sign-out; use the shared UI hook for post-logout navigation instead of redirecting inside it.
+Manual composition passes the same options and provides the client through
+`createRuntime(config, { services: { [betterAuthClient]: { client: authClient } } })`, the
+`FoundationProvider` `services` prop or any plugin service with `provides: betterAuthClient`.
 
-`betterAuthOrganizations(client)` unterstützt native Erstellung mit anschließendem Aktivieren, Profiländerung, Logo, Website-Metadata und Löschen. Die vorhandenen serverseitigen Better-Auth-Regeln gelten weiterhin. Optional können explizite Server-Erweiterungen diese Operationen übernehmen. `sessionOrganizationBackend(client, authenticated, signedOut)` trennt einen ausdrücklich lokalen Demo-Einstieg von echten Konten; Fehler des echten Backends werden nie mit Demo-Daten beantwortet. Host-Apps komponieren nur die Adapter, die Logik bleibt im Paket. Ohne Einladungserweiterung gilt die serverseitige Standardlaufzeit; Mitgliedssperren benötigen eine explizite Erweiterung.
+See the [client authentication guide](../core/docs/auth.md) for `AuthBoundary`, safe return
+destinations and a provider adapter template.
+
+## Organizations
+
+`@bitakit/better-auth/organizations` exports `betterAuthOrganizations(client, extensions?)`, the
+general organization backend on the SDK methods of a client configured with Better Auth's
+organization plugin (including paginated member lists, native creation and activation, profile,
+logo, website metadata and deletion). Explicit server extensions may take over operations;
+member suspension needs one. `sessionOrganizationBackend(client, authenticated, signedOut)`
+separates an explicit local demo entry from real accounts; failures of the real backend are
+never answered with demo data. Provide the result as the `organizationBackend` contract of
+`@bitakit/organizations`:
+
+```ts
+// src/services/organization-backend.ts
+export default defineService(
+  () => sessionOrganizationBackend(authClient, betterAuthOrganizations(authClient)),
+  { provides: organizationBackend },
+);
+```
+
+The UI permission projection supports the standard roles owner/admin/member; a disabled member
+is rejected when loading. Backend policies and suspension hooks remain mandatory; the client
+adapter is not a security boundary. The UI comes from `@bitakit/better-auth-ui/organizations`.
+
+## E-mail (server)
+
+`@bitakit/better-auth/email` exports `betterAuthEmail(emailService, { invitationURL })`, the
+Better Auth callbacks `sendVerificationEmail`, `sendResetPassword` and `sendInvitationEmail`.
+The first two belong in the auth options, the third in the organization plugin configuration.
+The host decides its real invitation route. They depend only on the general e-mail contract,
+not on Nodemailer, and are never injected into an existing server auth instance.
 
 ## Standard browser client
 
-`createBetterAuthClient` from `@bitakit/better-auth/client` creates the shared browser client with organization/teams, multi-session, API key, and two-factor extensions. These are client capabilities, not server activation: the server must configure the matching native extensions. Native client options such as baseURL are supported; plugins supplied to this helper append additional client extensions. Use the native createAuthClient and existing betterAuthPlugin directly for a different preset.
+`createBetterAuthClient` from `@bitakit/better-auth/client` creates the shared browser client
+with organization/teams, multi-session, API key and two-factor extensions. These are client
+capabilities, not server activation: the server must configure the matching extensions.
+Native client options such as `baseURL` are supported; `plugins` append further extensions.
 
-The main headless adapter entry remains separate from this browser-only subpath.
+## Source responsibilities
 
-## Shared client navigation
-
-Pass application-owned `paths: { signIn, afterSignIn, afterSignOut }` as the second
-argument to `betterAuthPlugin`. An optional `signIn(options)` delegates a native login
-flow; without it, `useAuth().signIn()` opens the configured application login page.
-The existing `signOut` override remains supported. Use the shared UI hook for configured
-post-logout navigation; avoid also redirecting inside the override.
-
-See the [client authentication guide](../core/docs/auth.md) for configuration,
-`AuthBoundary`, safe return destinations and a provider adapter template. Available since
-0.1.0. Native server configuration and login UI remain external.
+- `src/index.ts`: the `auth` service on the client session, `betterAuthClient`, `betterAuthPlugin`.
+- `src/plugin.ts` (`./plugin`): the package plugin entry the manifest names.
+- `src/organizations.ts`, `src/organization-session.ts` (`./organizations`): organization backend.
+- `src/email.ts` (`./email`), `src/client.ts` (`./client`).

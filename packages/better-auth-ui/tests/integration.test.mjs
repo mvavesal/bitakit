@@ -12,13 +12,13 @@ import { createOTP } from '@better-auth/utils/otp';
 import { base32 } from '@better-auth/utils/base32';
 import { organizationPlugin } from '@better-auth-ui/heroui/plugins/organization';
 import { createActionList, FoundationRuntime } from '@bitakit/core';
+import { betterAuthClient } from '@bitakit/better-auth';
 import UserIcon from 'reicon-react/icons/User';
 
 test('Foundation plugin uses native paths, keeps full provider options and declares its account settings page', () => {
   const authClient = createAuthClient({ baseURL: 'http://localhost:9999' });
   const plugin = betterAuthUIPlugin({
     provider: {
-      authClient,
       navigate: () => {},
       plugins: [organizationPlugin(), twoFactorPlugin()],
       basePaths: { auth: '/auth', settings: '/account', organization: '/organization' },
@@ -42,7 +42,13 @@ test('Foundation plugin uses native paths, keeps full provider options and decla
   assert.equal(typeof plugin.ui.settings.component, 'function');
   for (const legacy of ['pages', 'providers', 'views', 'setup'])
     assert.equal(plugin[legacy], undefined, legacy);
-  const runtime = new FoundationRuntime(createActionList(), { plugins: [plugin] });
+  // The client is a service the host provides; the factory takes no host objects.
+  assert.ok(betterAuthUIPlugin().ui.pages.some((page) => page.path === '/auth/sign-in'));
+  const runtime = new FoundationRuntime(
+    createActionList(),
+    { plugins: [plugin] },
+    { [betterAuthClient]: { client: authClient } },
+  );
   const cleanup = runtime.mount();
   assert.equal(runtime.services['better-auth-ui'].authClient, authClient);
   assert.equal(runtime.services['better-auth-ui'].additionalFields[0].name, 'department');
@@ -249,27 +255,36 @@ test('standard composition shares one client between auth service and UI and pre
   );
   assert.deepEqual(
     integration.plugins.map((plugin) => plugin.id),
-    ['better-auth', 'better-auth-ui', 'organizations', 'organizations-ui'],
+    ['better-auth-client', 'better-auth', 'better-auth-ui', 'organizations', 'organizations-ui'],
   );
   const { organizationService } = await import('@bitakit/organizations');
   assert.ok(getService(runtime.services, organizationService));
   dispose();
 });
 
-test('native toast surface can be omitted without changing the native auth provider', () => {
-  const client = createAuthClient({ baseURL: 'http://localhost:9999' });
-  const config = { authClient: client, navigate() {}, plugins: [] };
+test('native toast surface can be omitted without changing the native auth provider', async () => {
+  const { FoundationProvider } = await import('@bitakit/ui');
+  const config = { navigate() {}, plugins: [], redirectTo: '/contents' };
   for (const enabled of [true, false]) {
     const plugin = betterAuthUIPlugin({ provider: config, toastProvider: enabled });
     const Provider = plugin.ui.providers[0].component;
     let result;
-    // Inspect the composed element within a React render so its translation hook runs normally.
+    // Inspect the composed element within a React render so its hooks run normally.
     function CompositionProbe() {
       result = Provider({ children: 'content' });
       return null;
     }
-    renderToStaticMarkup(createElement(CompositionProbe));
-    assert.equal(result.props.authClient, client);
+    renderToStaticMarkup(
+      createElement(
+        FoundationProvider,
+        { config: { plugins: [] } },
+        createElement(CompositionProbe),
+      ),
+    );
+    // Before the runtime is ready (here: server rendering) the configured options apply and the
+    // client is not there yet; the tree keeps its shape when it arrives.
+    assert.equal(result.props.redirectTo, '/contents');
+    assert.equal(result.props.authClient, undefined);
     assert.equal(result.props.children[0], 'content');
     assert.equal(Boolean(result.props.children[1]), enabled);
   }

@@ -1,38 +1,18 @@
 'use client';
-import {
-  StandardFoundationProvider,
-  type StandardFoundationProviderProps,
-} from '@bitakit/ui/components';
+import { defineFramework, type FrameworkProviderProps } from '@bitakit/ui';
 import { useActionNavigation } from '../routing/use-action-navigation.js';
 import { QueryProvider } from '../query.js';
 
-export type NextFoundationProviderProps = StandardFoundationProviderProps & {
-  /** Disable only when an outer QueryProvider already owns query state. */
-  queryState?: boolean;
-};
+export type NextFoundationProviderProps = FrameworkProviderProps;
 
 /**
- * Connects Next routing and query state to the shared UI runtime. The generated
- * `BitaKitProvider` in `src/bitakit.gen.tsx` passes the discovered configuration; use this
- * directly only with an explicit `config`.
+ * Next routing and query state on the shared runtime. The generated `BitaKitProvider` in
+ * `src/bitakit.gen.tsx` passes the discovered configuration; use this directly only with an
+ * explicit `config`.
  */
-export function FoundationProvider({
-  config,
-  actionOptions,
-  queryState = true,
-  ...props
-}: NextFoundationProviderProps) {
-  const navigation = useActionNavigation();
-  if (!config)
-    throw new Error(
-      "FoundationProvider needs a configuration. Use <BitaKitProvider> from './bitakit.gen', or pass config={createBitaKitConfig()}.",
-    );
-  const content = (
-    <StandardFoundationProvider
-      {...props}
-      config={config}
-      actionOptions={{ ...navigation, ...actionOptions }}
-    />
-  );
-  return queryState ? <QueryProvider>{content}</QueryProvider> : content;
-}
+export const next = defineFramework({
+  id: 'next',
+  useRouter: useActionNavigation,
+  QueryState: QueryProvider,
+});
+export const FoundationProvider = next.FoundationProvider;

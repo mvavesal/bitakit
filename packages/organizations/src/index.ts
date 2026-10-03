@@ -4,7 +4,7 @@ export {
   type OrganizationService,
   type OrganizationSnapshot,
 } from './services/organizations.js';
-export { organizationService, organizationsPlugin } from './plugin.js';
+export { organizationBackend, organizationService, organizationsPlugin } from './plugin.js';
 export {
   organizationGroups,
   type OrganizationContext,

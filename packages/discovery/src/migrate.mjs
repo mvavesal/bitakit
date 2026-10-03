@@ -42,7 +42,7 @@ export async function migrateProject(root, { dryRun = false } = {}) {
     const source = await readFile(legacyConfig, 'utf8');
     const rewritten = source
       .replace(/\bdefineFoundation\b/g, 'defineBitaKit')
-      .replace(/@bitakit\/next\/config'/g, "@bitakit/core/discovery'");
+      .replace(/@bitakit\/next\/config'/g, "@bitakit/discovery'");
     await apply(
       {
         kind: 'rename',

@@ -203,3 +203,62 @@ export default defineAction({ execute: ({ services }) => services.shell.theme.na
       });
     },
   ));
+
+test('mountPlugin reads id, dependencies and metadata from plugin.config.ts, so { id } is optional', () =>
+  project(
+    {
+      'package.json': JSON.stringify({ name: 'demo', type: 'module' }),
+      'src/plugins/ledger/plugin.config.ts': `export default { id: 'books', dependencies: ['shell'], metadata: { name: 'Ledger' } };
+`,
+      'src/plugins/ledger/services/entries.ts': `import { defineService } from '@bitakit/core';
+export default defineService(({ services }) => ({ theme: () => services.shell.theme.name }));
+`,
+      'src/plugins/ledger/actions/theme.ts': `import { defineAction } from '@bitakit/core';
+export default defineAction({ execute: ({ services }) => services.books.entries.theme() });
+`,
+      'src/plugins/ledger/setup.ts': `import { scopePlugins, type Setup } from '@bitakit/core';
+const setup: Setup = ({ app, services }) => {
+  (services as any).log.plugins = scopePlugins(app).map(({ id, metadata }) => ({ id, metadata }));
+};
+export default setup;
+`,
+    },
+    async (root) => {
+      const shell = definePlugin({
+        id: 'shell',
+        services: { theme: defineService(() => ({ name: 'dark' })) },
+      });
+      const log = {};
+      const directory = path.join(root, 'src/plugins/ledger');
+      const plugin = await mountPlugin(directory, { plugins: [shell], services: { log } });
+      try {
+        assert.equal(plugin.id, 'books', 'the manifest ID wins over the folder name');
+        assert.equal((await plugin.execute('theme')).value, 'dark');
+        assert.equal((await plugin.execute('books.theme')).value, 'dark');
+        assert.deepEqual(
+          log.plugins.map((item) => item.id),
+          ['shell', 'books'],
+          'the declared dependency starts first',
+        );
+        assert.deepEqual(log.plugins[1].metadata, { name: 'Ledger' });
+      } finally {
+        plugin.stop();
+      }
+      const explicit = await mountPlugin(directory, {
+        id: 'ledger',
+        plugins: [shell],
+        services: { log },
+      });
+      try {
+        assert.equal(explicit.id, 'ledger', 'an explicit ID still wins');
+      } finally {
+        explicit.stop();
+      }
+      await assert.rejects(mountPlugin(directory, { services: { log } }), (error) => {
+        assert.ok(isFoundationStartupError(error));
+        assert.equal(error.plugin, 'books');
+        assert.match(error.message, /Plugin "books" depends on "shell", which is not installed/);
+        return true;
+      });
+    },
+  ));

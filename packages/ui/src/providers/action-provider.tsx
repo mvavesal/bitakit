@@ -14,9 +14,10 @@ export type ActionProviderProps = {
   actions?: ActionList;
   /** @deprecated Use `actions`. */
   list?: ActionList;
-  navigate?: (href: string) => void;
+  navigate?: (href: string, options?: { replace?: boolean }) => void;
   Link?: ComponentType<any>;
   pathname?: string;
+  params?: Readonly<Record<string, string>>;
   onError?: (error: unknown) => void;
   interceptors?: readonly ActionInterceptor[];
   shortcuts?: false | ActionShortcutOptions;
@@ -29,6 +30,7 @@ export function ActionProvider({
   navigate = browserNavigate,
   Link,
   pathname,
+  params,
   onError = console.error,
   interceptors = noInterceptors,
   shortcuts = defaultShortcuts,
@@ -47,7 +49,7 @@ export function ActionProvider({
   );
   return (
     <ActionContext.Provider value={current}>
-      <UIContext.Provider value={{ onError, Link, pathname, navigate, controls }}>
+      <UIContext.Provider value={{ onError, Link, pathname, params, navigate, controls }}>
         {children}
       </UIContext.Provider>
     </ActionContext.Provider>

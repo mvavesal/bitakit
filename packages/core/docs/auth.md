@@ -9,16 +9,15 @@ with the provider and application server.
 ## Better Auth and external paths
 
 ```ts
-import { betterAuthPlugin } from '@bitakit/better-auth';
-
-const authPlugin = betterAuthPlugin(client, {
-  paths: {
-    signIn: '/account/login',
-    afterSignIn: '/customers',
-    afterSignOut: '/',
+// src/configs/better-auth.ts — options of the discovered @bitakit/better-auth plugin
+export default defineConfig({
+  defaults: {
+    paths: { signIn: '/account/login', afterSignIn: '/customers', afterSignOut: '/' },
   },
 });
-// Add authPlugin to the existing FoundationProvider plugin list.
+
+// src/services/better-auth-client.ts — the client arrives through a contract
+export default defineService(() => ({ client }), { provides: betterAuthClient });
 ```
 
 Paths are application-owned, safe root-relative URLs. No routes are created.

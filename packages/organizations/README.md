@@ -2,11 +2,28 @@
 
 Provider-independent organization contracts, service, and local demo backend. This package has no UI implementation and no Better Auth dependency.
 
+`organizationsPlugin()` takes no arguments. Its service reads the data source from the
+`organizationBackend` contract (`organization-backend`), which the host provides once, created
+for each mount:
+
 ```ts
-import { organizationsPlugin } from '@bitakit/organizations';
+// src/services/organization-backend.ts
+import { defineService } from '@bitakit/core';
+import { organizationBackend } from '@bitakit/organizations';
 import { betterAuthOrganizations } from '@bitakit/better-auth/organizations';
-const organizations = organizationsPlugin(() => betterAuthOrganizations(authClient));
+import { authClient } from '../lib/auth-client';
+
+export default defineService(() => betterAuthOrganizations(authClient), {
+  provides: organizationBackend,
+});
 ```
+
+Tests and local demos provide `createDemoOrganizationBackend()` from `/demo` the same way, or
+pass it as `services: { [organizationBackend]: createDemoOrganizationBackend() }`. Without a
+backend, startup fails with a named error. The contract is not called `organizations.backend`:
+`organizations` is the service itself and cannot also be a namespace. The package has no
+`bitakit` manifest, so it is never installed implicitly; compose `organizationsPlugin()`
+explicitly, for example through `additionalPlugins` of the generated `BitaKitProvider`.
 
 Consumers access the shared `organizationService` key. The service handles subscriptions, stale-response protection, context invalidation, and disposal; the backend owns final authorization. Existing membership suspension and tenant isolation checks remain intact.
 

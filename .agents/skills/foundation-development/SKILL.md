@@ -66,7 +66,7 @@ src/layouts/<name>.tsx     app layouts; pages opt in with `export const layout =
 - The app module uses the same folders directly under `src/` with the ID `app` and
   unprefixed IDs. App-owned routes stay native framework routes; plugin pages render
   through the generated catch-all with `<PluginPage />`.
-- `bitakit.config.ts` (`defineBitaKit` from `@bitakit/core/discovery`) holds host overrides:
+- `bitakit.config.ts` (`defineBitaKit` from `@bitakit/discovery`) holds host overrides:
   `configOverrides`, `actions.overrides`, `plugins.overrides/include/autoEnable`, `packages`,
   `interceptors.enabled`, `slots`, `strict`, `kinds`. Integration kinds live under
   `contributions/<folder>/` of each module; `settings/`, `providers/` and similar names are
@@ -98,8 +98,13 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   missing service fails with a named error either way. `provides` registers a contract
   alias (`defineContract<T>('auth')`), and the instance must satisfy the contract; a key
   created as `serviceKey<T, 'notifications'>('notifications')` carries its literal name and
-  types `services.notifications` in every host. `exposeAs` is deliberate flattening only.
-  Async work goes in `onStart` (awaited before `ready`), cleanup in `onStop`.
+  types `services.notifications` in every host. A contract name must not sit under an existing
+  service name (`auth.client` fails while `auth` is a service; use `better-auth-client`).
+  Host objects reach package plugins as services (`provides`), never as factory arguments; a
+  Proxy client whose `subscribe` is not an observable must be wrapped (`{ client }`) because
+  the runtime observes everything with `subscribe`. Services exist only after mount, so a UI
+  provider keeps its tree shape until the runtime is ready. `exposeAs` is deliberate
+  flattening only. Async work goes in `onStart` (awaited before `ready`), cleanup in `onStop`.
 - **Actions** have one shape. Presentation fields (`title`, `description`, `tooltip`, `icon`,
   `variant`, `href`, `enabled`, `visible`, `checked`, `value`) take a value or a function of
   `{ input, services, config, settings, app }`, evaluated per binding input and on store or
@@ -155,7 +160,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 - One `FoundationProvider` with `config`, `additionalPlugins` (merge by ID, replace only
   when explicit), `controls` (prop-name adapters), `notify`, `services`, `isolateFailures`.
   The generated `BitaKitProvider` passes the discovered config; the framework adapters add
-  navigation and query state. Pending is passed as a prop, never a swapped label.
+  navigation and query state through `defineFramework({ id, useRouter, QueryState })`, whose
+  router contract is `pathname`, `params`, `navigate(href, { replace })` and `Link`
+  (`useFoundationNavigation()` reads it). Pending is passed as a prop, never a swapped label.
 - Removed: `ActionBinding`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`,
   `ActionGroupBinding`, `ActionMenuView`, `useRegisterAction(s)`, `app.optional.services`.
 - Renderers read live snapshots and groups through the bindings; no copied action state,
@@ -181,7 +188,10 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   are opaque. `@bitakit/ui` holds generic bindings and the optional `./components` entry
   with standard shadcn/Radix Vega primitives that inherit host theme tokens; no Shell,
   Settings or app behavior there. Framework routing and nuqs adapters live only in
-  `@bitakit/next` and `@bitakit/tanstack`. Core discovery is Node-only.
+  `@bitakit/next` and `@bitakit/tanstack`. Discovery is Node-only and lives in
+  `@bitakit/discovery`, which carries `typescript` and `jiti` so Core does not;
+  `@bitakit/core/discovery` is a one-release re-export (optional peer). Internal code imports
+  `@bitakit/discovery` directly.
 - Optional packages are ordinary plugins (Better Auth, next-intl, organizations, email,
   nodemailer, Shell, App Preferences, Quick Search, devtools). No second integration
   lifecycle, registry, provider bootstrap, session store or preference store. Contracts via
@@ -230,10 +240,12 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   renders it; a navigation action opens a real page as a native link; disabling a plugin
   removes every contribution and cleanup runs; language, form state and organization
   switches survive where affected.
-- Headless tests: `mountPlugin(directory, { id, plugins, services, configOverrides })` from
-  `@bitakit/core/testing` discovers one plugin folder like an app, awaits `ready`, records
-  events and releases everything on failure. Keep services, actions, events, configs and
-  `setup.ts` free of JSX and guarded against browser-only APIs.
+- Headless tests: `mountPlugin(directory, { id?, plugins, services, configOverrides })` from
+  `@bitakit/core/testing` discovers one plugin folder like an app (the ID comes from
+  `plugin.config.ts` or the folder), awaits `ready`, records events, types `execute` by action
+  ID and releases everything on failure. React tests use `renderWithFoundation(element, { plugins, services })`
+  from `@bitakit/ui/testing` (jsdom supplied by the test, events recorded). Keep services,
+  actions, events, configs and `setup.ts` free of JSX and guarded against browser-only APIs.
 - Chain: `npm test` (every package), `npm run check` (web typecheck and lint),
   `npm run verify:generated` (packed packages, every generated shape, install, types, build,
   browser smoke), `bitakit doctor` in generated apps, `npm run build:docs` for the docs site.
@@ -243,8 +255,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   build is not a visual check; package or DOM tests are not a full-host check.
 - Tests must still cover the real user path after a UI rebuild. Browser tests use isolated
   Better Auth memory data, never shared accounts; keep test keys out of logs and screenshots.
-- Doctor is the place for wiring checks; add a check when a confirmed integration mistake
-  can be detected mechanically.
+- Doctor is the place for wiring checks (missing providers for `requires`, plugin dependency
+  cycles, undeclared slots, unreachable pages); add a check when a confirmed integration
+  mistake can be detected mechanically. `bitakit init` wires an existing Next or TanStack app.
 
 ## Deprecation policy
 

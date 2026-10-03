@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createOrganizationService,
+  organizationBackend,
   organizationsPlugin,
   organizationService,
 } from '../dist/index.js';
 import { createDemoOrganizationBackend } from '../dist/demo.js';
-import { createActionList, FoundationRuntime, getService } from '@bitakit/core';
+import { createRuntime, getService } from '@bitakit/core';
 
 test('organization switching isolates invitations, validates roles and protects owners', async () => {
   const service = createOrganizationService(createDemoOrganizationBackend());
@@ -140,4 +141,24 @@ test('website validation blocks invalid create and update before backend writes'
     'https://example.com',
   );
   service.dispose();
+});
+
+test('the plugin reads its backend from the organization-backend contract', async () => {
+  assert.equal(organizationBackend, 'organization-backend');
+  assert.throws(
+    () => createRuntime({ plugins: [organizationsPlugin()] }).mount(),
+    /requires service "organization-backend"/,
+  );
+  const runtime = createRuntime(
+    { plugins: [organizationsPlugin()] },
+    { services: { [organizationBackend]: createDemoOrganizationBackend() } },
+  );
+  const stop = runtime.mount();
+  try {
+    const service = getService(runtime.services, organizationService);
+    await service.refresh();
+    assert.ok(service.getSnapshot().organizations.length > 0);
+  } finally {
+    stop();
+  }
 });

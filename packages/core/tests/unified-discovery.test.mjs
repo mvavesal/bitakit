@@ -23,8 +23,9 @@ import {
   defineBitaKit,
   watchFoundation,
   migrateProject,
-} from '../discovery/index.mjs';
-import { discoverEntries } from '../discovery/entries.mjs';
+} from '@bitakit/discovery';
+// Internal module: the package exports only its public entry.
+import { discoverEntries } from '../../discovery/src/entries.mjs';
 import {
   discoverActions,
   discoverServices,
@@ -1144,13 +1145,13 @@ test('migrateProject rewrites the 0.1 layout; a dry run only reports the same ch
         2,
       ),
     );
-    // The rewritten config imports @bitakit/core/discovery; a stub stands in for the installed package.
+    // The rewritten config imports @bitakit/discovery; a stub stands in for the installed package.
     await put(
-      'node_modules/@bitakit/core/package.json',
-      JSON.stringify({ name: '@bitakit/core', exports: { './discovery': './discovery.mjs' } }),
+      'node_modules/@bitakit/discovery/package.json',
+      JSON.stringify({ name: '@bitakit/discovery', exports: { '.': './index.mjs' } }),
     );
     await put(
-      'node_modules/@bitakit/core/discovery.mjs',
+      'node_modules/@bitakit/discovery/index.mjs',
       'export const defineBitaKit = (config) => config;',
     );
     await put('.gitignore', 'node_modules/\n.foundation/\nfoundation-env.d.ts\n');
@@ -1253,7 +1254,7 @@ test('migrateProject rewrites the 0.1 layout; a dry run only reports the same ch
     ]);
     assert.equal(
       after['bitakit.config.ts'],
-      "import { defineBitaKit } from '@bitakit/core/discovery';\nexport default defineBitaKit({});\n",
+      "import { defineBitaKit } from '@bitakit/discovery';\nexport default defineBitaKit({});\n",
     );
     assert.equal(
       after['src/app/layout.tsx'],
@@ -1546,4 +1547,12 @@ test('root app setup follows dependencies and cleans up before them', () => {
   assert.deepEqual(events, ['shell', 'app']);
   dispose();
   assert.deepEqual(events, ['shell', 'app', 'app cleanup', 'shell cleanup']);
+});
+
+test('the @bitakit/core/discovery subpath re-exports @bitakit/discovery', async () => {
+  const discovery = await import('@bitakit/discovery');
+  const viaCore = await import('@bitakit/core/discovery');
+  assert.deepEqual(Object.keys(viaCore).sort(), Object.keys(discovery).sort());
+  assert.equal(viaCore.generateFoundation, discovery.generateFoundation);
+  assert.equal(viaCore.describeModule, discovery.describeModule);
 });

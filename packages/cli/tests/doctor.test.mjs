@@ -280,3 +280,123 @@ test('doctor reports a configuration that cannot be loaded instead of crashing',
   assert.equal(notice.status, 'warn');
   assert.match(notice.fix, /bitakit migrate/);
 });
+
+const service = (options = '{}', body = '() => ({})') =>
+  `import { defineService } from '@bitakit/core';\nexport default defineService(${body}, ${options});\n`;
+
+test('doctor checks that every requires entry names a service, an alias, a contract or a provider', async (t) => {
+  const root = await project(
+    nextApp({
+      'bitakit.config.ts':
+        'export default { plugins: { overrides: { archive: { enabled: false } } } };\n',
+      'src/plugins/todos/services/items.ts': service("{ exposeAs: 'todo-items' }"),
+      'src/plugins/todos/services/stats.ts': service(
+        "{ requires: ['todos.items', 'todos.itmes'] }",
+      ),
+      'src/plugins/todos/actions/open.ts':
+        "import { defineAction } from '@bitakit/core';\nexport default defineAction({ title: 'Open', requires: ['todos.items', 'todos.gone'], execute: () => {} });\n",
+      // A local plugin named like a contract does not turn the flat name "auth" into one of its IDs.
+      'src/plugins/auth/plugin.config.ts': 'export default {};\n',
+      'src/plugins/notes/services/feed.ts': service(
+        "{ requires: ['todo-items', 'archive.store', 'billing.invoices', 'auth'] }",
+      ),
+      'src/plugins/notes/ui/providers/query.tsx':
+        "export default () => null;\nexport const requires = ['notes.feed', 'notes.missing'];\n",
+      'src/plugins/archive/services/store.ts': service(),
+    }),
+    t,
+  );
+  let { results } = await doctor({ cwd: root });
+  const wiring = find(results, /required services are not provided/);
+  assert.equal(wiring.status, 'error');
+  // Names in a local namespace are checked exactly, also against disabled plugins. "billing.invoices"
+  // is not local and the installed Shell package could provide it, so it passes.
+  assert.deepEqual(wiring.details, [
+    'plugin "notes" requires "archive.store" (src/plugins/notes/services/feed.ts), but plugin "archive", which provides it, is disabled.',
+    'plugin "notes" requires "notes.missing" (src/plugins/notes/ui/providers/query.tsx), but no provider, service, alias or contract has that name. Available in "notes": notes.feed, notes.query.',
+    'plugin "todos" requires "todos.itmes" (src/plugins/todos/services/stats.ts), but no service, alias or contract has that name. Available in "todos": todos.items, todos.stats.',
+    'plugin "todos" requires "todos.gone" (src/plugins/todos/actions/open.ts), but no service, alias or contract has that name. Available in "todos": todos.items, todos.stats.',
+  ]);
+  assert.match(wiring.fix, /enable the plugin that provides it/);
+
+  await write(root, {
+    'src/plugins/todos/services/stats.ts': service("{ requires: ['todos.items'] }"),
+    'src/plugins/todos/actions/open.ts':
+      "import { defineAction } from '@bitakit/core';\nexport default defineAction({ title: 'Open', requires: ['todos.items'], execute: () => {} });\n",
+    'src/plugins/notes/services/feed.ts': service(
+      "{ requires: ['todo-items', 'billing.invoices', 'auth'] }",
+    ),
+    'src/plugins/notes/ui/providers/query.tsx':
+      "export default () => null;\nexport const requires = ['notes.feed'];\n",
+  });
+  ({ results } = await doctor({ cwd: root }));
+  assert.equal(status(results, /All 6 service requirements can be satisfied/), 'ok');
+
+  // Without installed plugin packages every name is checked; provided keys satisfy requirements.
+  const bare = await project(
+    nextApp({
+      'package.json': {
+        name: 'bare',
+        dependencies: { next: '16.0.0', '@bitakit/core': '^0.2.0' },
+      },
+      'src/plugins/pay/services/gateway.ts':
+        "import { defineService, serviceKey } from '@bitakit/core';\nconst payments = serviceKey<{}, 'payments'>('payments');\nexport default defineService(() => ({}), { provides: payments });\n",
+      'src/plugins/shop/services/cart.ts': service(
+        "{ requires: ['payments', 'pay.gateway', 'auth', 'billing.invoices'] }",
+      ),
+    }),
+    t,
+  );
+  ({ results } = await doctor({ cwd: bare }));
+  assert.deepEqual(find(results, /required services are not provided/).details, [
+    'plugin "shop" requires "auth" (src/plugins/shop/services/cart.ts), but no service, alias or contract has that name.',
+    'plugin "shop" requires "billing.invoices" (src/plugins/shop/services/cart.ts), but no service, alias or contract has that name.',
+  ]);
+  // A contract the app registers through the core key satisfies "auth"; a key whose name lives in
+  // another file could provide anything, so the remaining names can no longer be judged.
+  await write(bare, {
+    'src/plugins/pay/services/session.ts':
+      "import { authService, defineService } from '@bitakit/core';\nexport default defineService(() => ({}), { provides: authService });\n",
+    'src/plugins/pay/services/other.ts':
+      "import { defineService } from '@bitakit/core';\nimport { other } from '../keys';\nexport default defineService(() => ({}), { provides: other });\n",
+  });
+  ({ results } = await doctor({ cwd: bare }));
+  assert.equal(status(results, /All 4 service requirements can be satisfied/), 'ok');
+});
+
+test('doctor reports plugin dependency cycles and enabled plugins that depend on disabled ones', async (t) => {
+  const manifest = (dependencies) =>
+    `export default { dependencies: ${JSON.stringify(dependencies)} };\n`;
+  const root = await project(
+    nextApp({
+      'bitakit.config.ts':
+        'export default { plugins: { overrides: { e: { enabled: false } } } };\n',
+      'src/plugins/a/plugin.config.ts': manifest(['b']),
+      'src/plugins/b/plugin.config.ts': manifest(['c']),
+      'src/plugins/c/plugin.config.ts': manifest(['a']),
+      // Installed plugin packages are not part of the local graph.
+      'src/plugins/d/plugin.config.ts': manifest(['e', 'shell']),
+      'src/plugins/e/plugin.config.ts': manifest([]),
+    }),
+    t,
+  );
+  let { results } = await doctor({ cwd: root });
+  const cycle = find(results, /Plugin dependencies form a cycle/);
+  assert.equal(cycle.status, 'error');
+  assert.deepEqual(cycle.details, ['a → b → c → a']);
+  assert.match(cycle.fix, /event, or with a shared service/);
+  const disabled = find(results, /Enabled plugins depend on disabled plugins/);
+  assert.equal(disabled.status, 'warn');
+  assert.deepEqual(disabled.details, [
+    'plugin "d" depends on "e", which is disabled, so "d" fails to start.',
+  ]);
+  assert.match(disabled.fix, /plugins\.overrides of bitakit\.config\.ts/);
+
+  await write(root, {
+    'bitakit.config.ts': 'export default {};\n',
+    'src/plugins/c/plugin.config.ts': manifest([]),
+  });
+  ({ results } = await doctor({ cwd: root }));
+  assert.equal(status(results, /Plugin dependencies are consistent/), 'ok');
+  assert.equal(find(results, /form a cycle|disabled plugins/), undefined);
+});

@@ -1,8 +1,8 @@
 # @bitakit/tanstack
 
 Optional React TanStack Router/Start host adapter. Install this **instead of** the Next
-adapter. Core owns runtime, actions, services and discovery; UI owns shared React
-composition and standard visuals. The adapter connects native routing and nuqs without
+adapter. Core owns runtime, actions and services, `@bitakit/discovery` owns discovery; UI owns shared
+React composition and standard visuals. The adapter connects native routing and nuqs without
 another runtime, router, registry or query-state store.
 
 ## Integration
@@ -58,7 +58,7 @@ is separate from host-adapter correctness; this preset is not a minimal bundle-s
 
 - `src/providers`: router-scoped composition and query adapter.
 - `src/routing`: native Link and navigation bindings.
-- `src/config.mjs`: the Vite plugin around Core discovery and its development lifecycle.
+- `src/config.mjs`: the Vite plugin around `@bitakit/discovery` and its development lifecycle.
 - `src/cli.mjs`: deprecated shared Node discovery entry; use `bitakit generate`.
 - `src/generated.ts`: deprecated fallback; the configuration lives in `src/bitakit.gen.tsx`.
 

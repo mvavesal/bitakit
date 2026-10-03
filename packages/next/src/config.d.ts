@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next';
-import type { DiscoveryConfig, GenerateResult } from '@bitakit/core/discovery';
-export type { DiscoveryConfig } from '@bitakit/core/discovery';
+import type { DiscoveryConfig, GenerateResult } from '@bitakit/discovery';
+export type { DiscoveryConfig } from '@bitakit/discovery';
 export function defineBitaKit(config: DiscoveryConfig): DiscoveryConfig;
 /** @deprecated Use defineBitaKit. */
 export function defineFoundation(config: DiscoveryConfig): DiscoveryConfig;

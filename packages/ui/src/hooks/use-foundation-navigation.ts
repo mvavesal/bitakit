@@ -8,9 +8,10 @@ import { UIContext } from '../providers/action-context.js';
  */
 export function useFoundationNavigation(): {
   pathname?: string;
+  params?: Readonly<Record<string, string>>;
   Link?: ComponentType<any>;
-  navigate?: (href: string) => void;
+  navigate?: (href: string, options?: { replace?: boolean }) => void;
 } {
-  const { pathname, Link, navigate } = useContext(UIContext);
-  return { pathname, Link, navigate };
+  const { pathname, params, Link, navigate } = useContext(UIContext);
+  return { pathname, params, Link, navigate };
 }

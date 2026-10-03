@@ -440,8 +440,12 @@ export async function generateFoundation(root, { quiet = false } = {}) {
   );
   const packageFactories = installed.plugins.map((entry, index) => {
     const configPath = installed.configurations?.[entry];
-    return `packagePlugin${index}(${configPath ? `options.get(${quote(configPath)}, {})` : ''})`;
+    const call = `packagePlugin${index}(${configPath ? `options.get(${quote(configPath)}, {})` : ''})`;
+    // Manifest `dependencies` join the ones the plugin declares itself.
+    const dependencies = installed.dependencies?.[entry];
+    return dependencies?.length ? `withDependencies(${call}, ${quote(dependencies)})` : call;
   });
+  const dependent = installed.plugins.some((entry) => installed.dependencies?.[entry]?.length);
   const configOverrides = Object.fromEntries(
     Object.entries(config.configOverrides ?? {}).filter(
       ([id]) => !pluginIds.has(id) || enabledModuleIds.has(id),
@@ -520,7 +524,16 @@ declare module '@bitakit/core' {
   interface SlotMap { ${slotNames.map((name) => `${quote(name)}: true;`).join(' ')} }
 ${strict ? '  interface ActionMapOptions { strict: true }\n' : ''}}
 
-/** Everything discovery found, as one runtime configuration. Create it once per runtime. */
+${
+  dependent
+    ? `/** A package plugin with the plugin dependencies its manifest declares (\`bitakit.dependencies\`). */
+function withDependencies<P extends { dependencies?: readonly string[] }>(plugin: P, ids: string[]) {
+  return { ...plugin, dependencies: [...new Set([...(plugin.dependencies ?? []), ...ids])] };
+}
+
+`
+    : ''
+}/** Everything discovery found, as one runtime configuration. Create it once per runtime. */
 export function createBitaKitConfig() {
   const appConfig = ${appConfigExpression};
   const configOverrides: Record<string, Record<string, unknown>> = ${quote(configOverrides)};

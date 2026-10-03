@@ -222,6 +222,11 @@ export default definePlugin({
 });
 ```
 
+Package plugins take no host objects: a host provides them as services under a contract
+(`src/services/better-auth-client.ts` → `defineService(() => ({ client }), { provides: betterAuthClient })`,
+`organization-backend` for organizations) and configures them in `configs/<name>.ts`. A
+package manifest may declare `"bitakit": { "plugin", "configuration", "styles", "slots", "dependencies" }`.
+
 ## Startup
 
 - `createRuntime(config, { actions, services })`, `runtime.mount()` returns `stop`;
@@ -248,7 +253,14 @@ const sections = useSettingsCatalog();                                     // se
 const navigation = useNavigation(['navigation']);                          // bound groups + pathname, Link, isActive
 const badges = useSlot('app-bar.end');                                     // components plugins placed in a slot
 <FoundationProvider config={bitakit} controls={{ button: (s) => ({ isDisabled: !s.enabled }) }} dialogs={{ sheet: SheetFrame }} />
+const { pathname, params, navigate, Link } = useFoundationNavigation(); // the router contract
 ```
+
+Framework adapters are one call: `defineFramework({ id, useRouter, QueryState })` returns the
+`FoundationProvider` that feeds the host router (`pathname`, `params`, `navigate(href, { replace })`,
+`Link`) and the query-state adapter into the runtime. `@bitakit/next` and `@bitakit/tanstack`
+are two such calls; a third framework needs only a router hook. Values follow React renders,
+so there is no separate subscription API.
 
 Removed: `ActionBinding`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`,
 `ActionGroupBinding`, `ActionMenuView`, `useWatchEvent`, `useFoundationReady`,

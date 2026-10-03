@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { generateFoundation, describeFoundation } from '../discovery/index.mjs';
+import { generateFoundation, describeFoundation } from '@bitakit/discovery';
 
 async function fixture(run) {
   const root = await realpath(await mkdtemp(path.join(tmpdir(), 'bitakit-styles-')));

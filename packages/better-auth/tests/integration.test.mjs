@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FoundationRuntime, createActionList } from '@bitakit/core';
-import { betterAuthPlugin } from '../dist/index.js';
+import { createRuntime } from '@bitakit/core';
+import { betterAuthClient, betterAuthPlugin } from '../dist/index.js';
 
 test('Better Auth accepts external navigation paths and an optional native login delegate', async () => {
   const paths = { signIn: '/account/login', afterSignIn: '/workspace', afterSignOut: '/' };
@@ -19,13 +19,16 @@ test('Better Auth accepts external navigation paths and an optional native login
       return { error: null };
     },
   };
-  const plugin = betterAuthPlugin(client, {
+  const plugin = betterAuthPlugin({
     paths,
     signIn: async (options) => {
       requests.push(options);
     },
   });
-  const runtime = new FoundationRuntime(createActionList(), { plugins: [plugin] });
+  const runtime = createRuntime(
+    { plugins: [plugin] },
+    { services: { [betterAuthClient]: { client } } },
+  );
   const stop = runtime.mount();
   try {
     assert.deepEqual(runtime.services.auth.paths, paths);
@@ -36,7 +39,15 @@ test('Better Auth accepts external navigation paths and an optional native login
     stop();
   }
   assert.throws(
-    () => betterAuthPlugin(client, { paths: { ...paths, signIn: '//evil.test' } }),
+    () => betterAuthPlugin({ paths: { ...paths, signIn: '//evil.test' } }),
     /root-relative/,
+  );
+});
+
+test('Better Auth requires the host client through the better-auth-client contract', () => {
+  assert.equal(betterAuthClient, 'better-auth-client');
+  assert.throws(
+    () => createRuntime({ plugins: [betterAuthPlugin()] }).mount(),
+    /requires service "better-auth-client"/,
   );
 });
