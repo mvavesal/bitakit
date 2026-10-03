@@ -30,6 +30,18 @@ async function contributionsOf(
   }
   const events = list.find((file) => file === path.join(base, 'events.ts'));
   result.events = events ? [{ path: '', file: relative(events) }] : [];
+  const settings = list.find((file) => file === path.join(base, 'settings.ts'));
+  result.settings = settings ? [{ path: '', file: relative(settings) }] : [];
+  const settingsPage = list.find((file) => file === path.join(base, 'ui', 'settings', 'page.tsx'));
+  if (settingsPage) result.settingsPage = relative(settingsPage);
+  if (app)
+    result.layouts = list
+      .filter(
+        (file) =>
+          path.dirname(file) === path.join(base, 'layouts') &&
+          /^[a-z][a-z0-9-]*\.tsx$/.test(path.basename(file)),
+      )
+      .map((file) => ({ name: path.basename(file, '.tsx'), file: relative(file) }));
   return result;
 }
 
@@ -108,6 +120,14 @@ export async function describeFoundation(root) {
     packages: installed.plugins,
     installedPackages: installed.packages,
     styles: installed.styles ?? [],
+    /** Slot names layouts render: `@bitakit/ui`'s app bar, package manifests and `bitakit.config.ts`. */
+    slots: [
+      ...new Set([
+        ...(installed.packages.includes('@bitakit/ui') ? ['app-bar.end'] : []),
+        ...(installed.slots ?? []),
+        ...(config.slots ?? []),
+      ]),
+    ],
     warnings,
   };
 }

@@ -1,13 +1,6 @@
 'use client';
-import { useTranslation } from '@bitakit/ui';
-import { useSyncExternalStore, type ComponentType } from 'react';
-import { authService, getService } from '@bitakit/core';
-import { useFoundation } from '@bitakit/ui';
-import {
-  SettingsSection,
-  type AppPreferences,
-  type SectionOptions,
-} from '@bitakit/app-preferences/core';
+import type { ComponentType } from 'react';
+import { useAuth as useFoundationAuth, useTranslation } from '@bitakit/ui';
 import {
   ActiveSessions,
   ChangeEmail,
@@ -16,49 +9,33 @@ import {
   UserProfile,
 } from '@better-auth-ui/heroui';
 import { useAuth } from '@better-auth-ui/react';
-import UserIcon from 'reicon-react/icons/User';
-import ShieldIcon from 'reicon-react/icons/Shield';
+import { PageHeader } from '../components/ui/index.js';
 
-export type AccountSettingsOptions = {
-  catalog: AppPreferences;
-  category?: SectionOptions['category'];
-  /** Optional host demo content, never treated as an authenticated account. */
+export type AccountSettingsPageProps = {
+  /** Optional local demo profile shown while nobody is signed in; never treated as an account. */
   profileFallback?: ComponentType;
 };
 
-function AccountContent({
-  profile,
-  fallback: Fallback,
-}: {
-  profile?: boolean;
-  fallback?: ComponentType;
-}) {
+function SignInPrompt() {
   const translateUI = useTranslation();
-  const auth = getService(useFoundation().runtime.services, authService);
-  const session = useSyncExternalStore(auth.subscribe, auth.getSnapshot, auth.getSnapshot);
   const config = useAuth();
-  if (session.pending)
-    return (
-      <p role="status">
-        {translateUI('foundationUI.account.checkingSignin', undefined, 'Checking sign-in…')}
-      </p>
-    );
-  if (!session.user)
-    return profile && Fallback ? (
-      <Fallback />
-    ) : (
-      <p>
-        {translateUI(
-          'foundationUI.account.signInToAccessTheseAccountSettings',
-          undefined,
-          'Sign in to access these account settings.',
-        )}{' '}
-        <a className="underline" href={`${config.basePaths.auth}/${config.viewPaths.auth.signIn}`}>
-          {translateUI('foundationUI.account.logIn', undefined, 'Log in')}
-        </a>
-      </p>
-    );
-  if (profile) return <UserProfile />;
+  return (
+    <p>
+      {translateUI(
+        'foundationUI.account.signInToAccessTheseAccountSettings',
+        undefined,
+        'Sign in to access these account settings.',
+      )}{' '}
+      <a className="underline" href={`${config.basePaths.auth}/${config.viewPaths.auth.signIn}`}>
+        {translateUI('foundationUI.account.logIn', undefined, 'Log in')}
+      </a>
+    </p>
+  );
+}
+
+/** Email, password, linked accounts, two-factor authentication and sessions, as configured upstream. */
+function SecurityContent() {
+  const config = useAuth();
   const ChangeEmailCard =
     config.plugins.find((plugin) => plugin.cardOverrides?.account?.changeEmail)?.cardOverrides
       ?.account?.changeEmail ?? ChangeEmail;
@@ -86,29 +63,46 @@ function AccountContent({
   );
 }
 
-/** Plugin-owned account pages, separate from the upstream component showcase. */
-export function accountSettingsSections(options: AccountSettingsOptions) {
-  const category = options.category ?? { id: 'personal', title: 'My account', order: 0 };
-  return [
-    new SettingsSection({
-      id: 'profile',
-      title: 'Profile',
-      description: 'Your profile picture and personal details.',
-      category,
-      icon: UserIcon,
-      pluginId: 'better-auth-ui',
-      showHeader: false,
-      component: () => <AccountContent profile fallback={options.profileFallback} />,
-    }),
-    new SettingsSection({
-      id: 'security',
-      title: 'Security',
-      description:
-        'Email, password, two-factor authentication, linked accounts and active sessions.',
-      category,
-      icon: ShieldIcon,
-      pluginId: 'better-auth-ui',
-      component: () => <AccountContent />,
-    }),
-  ];
+/**
+ * The plugin's account settings page: the profile, then security. The host's settings frame
+ * renders the page title and navigation, so both parts start at heading level 2.
+ */
+export function AccountSettingsPage({ profileFallback: Fallback }: AccountSettingsPageProps) {
+  const translateUI = useTranslation();
+  const session = useFoundationAuth();
+  if (session.pending)
+    return (
+      <p role="status">
+        {translateUI('foundationUI.account.checkingSignin', undefined, 'Checking sign-in…')}
+      </p>
+    );
+  if (!session.user && !Fallback) return <SignInPrompt />;
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-10">
+      <section className="flex min-w-0 flex-col gap-6">
+        <PageHeader
+          level={2}
+          title={translateUI('foundationUI.account.profile', undefined, 'Profile')}
+          subtitle={translateUI(
+            'foundationUI.account.yourProfilePictureAndPersonalDetails',
+            undefined,
+            'Your profile picture and personal details.',
+          )}
+        />
+        {session.user ? <UserProfile /> : Fallback && <Fallback />}
+      </section>
+      <section className="flex min-w-0 flex-col gap-6">
+        <PageHeader
+          level={2}
+          title={translateUI('foundationUI.account.security', undefined, 'Security')}
+          subtitle={translateUI(
+            'foundationUI.account.emailPasswordTwoFactorAuthenticationLinkedAccountsAndActiveSessions',
+            undefined,
+            'Email, password, two-factor authentication, linked accounts and active sessions.',
+          )}
+        />
+        {session.user ? <SecurityContent /> : <SignInPrompt />}
+      </section>
+    </div>
+  );
 }

@@ -1,13 +1,19 @@
 'use client';
 import { createElement, type ComponentType, type ReactNode } from 'react';
-import { definePlugin, provideService, serviceKey, type PluginPageDefinition } from '@bitakit/core';
+import {
+  definePlugin,
+  defineService,
+  defineSettings,
+  serviceKey,
+  type PluginPageDefinition,
+} from '@bitakit/core';
 import { useTranslation } from '@bitakit/ui';
-import { SettingsSection, type AppPreferences } from '@bitakit/app-preferences/core';
-import { resolveAuthConfig, type SettingsView } from '@better-auth-ui/core';
+import { resolveAuthConfig } from '@better-auth-ui/core';
 import { AuthProvider, Auth, Settings, type AuthProviderProps } from '@better-auth-ui/heroui';
 import { Organization } from '@better-auth-ui/heroui/plugins/organization';
-import { accountSettingsSections, type AccountSettingsOptions } from './settings/account.js';
 import { Toast } from '@heroui/react';
+import UserIcon from 'reicon-react/icons/User';
+import { AccountSettingsPage } from './settings/account.js';
 
 /** Full native configuration, never a reduced copy of its auth options. */
 export type BetterAuthUIConfiguration = Omit<AuthProviderProps, 'children'>;
@@ -16,19 +22,13 @@ export type BetterAuthUIOptions = {
   provider: BetterAuthUIConfiguration;
   /** Disable when the host already owns the shared HeroUI toast surface (for example Shell). */
   toastProvider?: boolean;
-  /** Native account pages owned and registered by this plugin. */
-  accountSettings?: AccountSettingsOptions;
+  /** Local demo content shown as the account profile while nobody is signed in. */
+  profileFallback?: ComponentType;
   /** False for hosts that render exported components with their own router. */
   pages?: boolean;
   pageLayout?: ComponentType<{ children: ReactNode }>;
   /** Separate authentication pages from optional demo/catalog layouts. */
   authPageLayout?: ComponentType<{ children: ReactNode }>;
-  /** Explicit opt-in: prevents duplicate organization/account settings ownership. */
-  settings?: {
-    catalog: AppPreferences;
-    section: string;
-    entries: readonly { id: string; title: string; view: SettingsView }[];
-  };
 };
 
 /** Ordinary Foundation plugin. Uses the host's existing Better Auth client/session. */
@@ -75,9 +75,6 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
       }
     }
   }
-  for (const entry of options.settings?.entries ?? []) {
-    addPage(`/settings/${entry.id}`, () => <Settings view={entry.view} hideNav />);
-  }
   function Provider({ children }: { children: ReactNode }) {
     const t = useTranslation();
     const catalog = t.getCatalog('betterAuth');
@@ -89,6 +86,9 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
       </AuthProvider>
     );
   }
+  function AccountSettings() {
+    return <AccountSettingsPage profileFallback={options.profileFallback} />;
+  }
   return definePlugin({
     id: 'better-auth-ui',
     metadata: {
@@ -98,28 +98,25 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions) {
       homepage: 'https://better-auth-ui.com',
       license: 'MIT',
     },
-    providers: [{ id: 'better-auth-ui', component: Provider }],
-    services: [provideService(betterAuthUIService, { create: () => options.provider })],
-    pages,
-    setup({ app }) {
-      if (options.accountSettings) {
-        for (const section of accountSettingsSections(options.accountSettings)) {
-          app.own(options.accountSettings.catalog.add(section).remove);
-        }
-      }
-      for (const entry of options.settings?.entries ?? []) {
-        const registration = options.settings!.catalog.add(
-          new SettingsSection({
-            id: entry.id,
-            title: entry.title,
-            pluginId: 'better-auth-ui',
-            showHeader: false,
-            component: () => <Settings view={entry.view} hideNav />,
-          }),
-          { section: options.settings!.section },
-        );
-        app.own(() => registration.remove());
-      }
+    // The contract key equals the plugin ID, so the service is an array entry: a record key
+    // would make the ID `better-auth-ui.<key>`, a namespace the contract name cannot share.
+    services: [defineService(() => options.provider, { provides: betterAuthUIService })],
+    settings: defineSettings(
+      {},
+      {
+        title: 'Account',
+        description:
+          'Profile, email, password, two-factor authentication, linked accounts and active sessions.',
+        icon: UserIcon,
+        category: 'account',
+        order: 0,
+        path: 'account',
+      },
+    ),
+    ui: {
+      providers: [{ id: 'better-auth-ui', component: Provider }],
+      pages,
+      settings: { component: AccountSettings },
     },
   });
 }

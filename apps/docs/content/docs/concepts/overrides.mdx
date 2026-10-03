@@ -89,12 +89,12 @@ The service keeps its ID `todos.clock` and gains the alias `services.tools.clock
 `BitaKitProvider` accepts `additionalPlugins`: an entry with an existing ID replaces that plugin in place, a new ID appends. Use it to pass a configured instance of a package plugin instead of its discovered default:
 
 ```tsx
-<BitaKitProvider additionalPlugins={[appPreferencesPlugin({ storage })]}>
+<BitaKitProvider additionalPlugins={[shellPlugin({ groups: ['navigation', 'account'] })]}>
   {children}
 </BitaKitProvider>
 ```
 
-Keep the array stable across renders. The lower-level `plugins` prop still means replacement, not append.
+Keep the array stable across renders. The lower-level `plugins` prop still means replacement, not append. Persisting settings on a server needs no replaced plugin: one service with `provides: settingsStorage` fulfils the `settings.storage` contract for every plugin's settings.
 
 ## Understand replacement versus addition
 

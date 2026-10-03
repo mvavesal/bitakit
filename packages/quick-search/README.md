@@ -18,7 +18,7 @@ Search finds places to go, nothing else. Each result is a link and shows its typ
 | -------- | ------------------------------------------------------------------ | ------- |
 | Pages    | Links to pages of the app, and other navigation links              | on      |
 | Settings | Pages of the Settings catalog                                      | on      |
-| Plugins  | One result per plugin, opening its view in Shell's plugin overview | off     |
+| Plugins  | One result per plugin, opening its entry on the Plugins settings page | off     |
 
 Commands, dialogs and forms (Actions without a URL) never appear, so search never runs an Action. Hidden Actions and internal helpers never appear either, and disabled or pending links cannot be selected.
 
@@ -39,13 +39,13 @@ export default defineConfig({
 
 Each switch only affects its own type: turning plugin results off never hides a plugin's pages or settings, and turning settings off keeps pages. The same file accepts `title`, `placeholder`, `empty` and `shortcut` (`false` disables Mod+K).
 
-Plugin results need Shell's plugin overview (`shellPlugin({ pluginManagement: true })`), which publishes one link per plugin to `/settings/plugins?plugin=<id>`. They follow that page's visibility, so people who cannot see the overview do not see plugin results either.
+Plugin results need App Preferences, whose Plugins settings page publishes one link per plugin (`settings.plugins.<id>`, `/settings/plugins?plugin=<id>`). Without that package no plugin results exist.
 
 ## How results are built
 
 Results are the current, visible URL Actions of the app's single ActionList; there is no second search registry and no stored search state. Each result is a real link (`ActionLink`), so modified clicks still open new tabs, and unsafe URLs are never shown. When several Actions lead to the same place, search shows one result: it prefers the one with a keyboard shortcut and keeps the most specific type. Action groups supply the headings and extra keywords. Results appear and disappear with their plugins.
 
-Types and owners come from existing registrations through `runtime.destinationOf(action)`. A settings page belongs to the plugin that contributed its section. Another path of the app is a page of the plugin whose page path matches, otherwise of the plugin that contributed the link. External links have no type. Integrations that project their own registrations into the ActionList, such as the Settings catalog and Shell's plugin overview, mark them with `destinationMetadata({ kind, plugin })`; developers never declare destinations.
+Types and owners come from existing registrations through `runtime.destinationOf(action)`. A settings page belongs to the plugin that contributed its section. Another path of the app is a page of the plugin whose page path matches, otherwise of the plugin that contributed the link. External links have no type. Integrations that project their own registrations into the ActionList, such as App Preferences' settings pages and plugin entries, mark them with `destinationMetadata({ kind, plugin })`; developers never declare destinations.
 
 ## Without package discovery
 

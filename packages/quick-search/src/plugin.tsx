@@ -1,6 +1,6 @@
 'use client';
 import '../styles.css';
-import { defineDialogAction, definePlugin } from '@bitakit/core';
+import { defineAction, definePlugin } from '@bitakit/core';
 import SearchIcon from 'reicon-react/icons/Search';
 import { QuickSearchTrigger } from './trigger.js';
 import { SearchResults, type QuickSearchResults } from './search-results.js';
@@ -25,23 +25,25 @@ export function quickSearchPlugin(options: QuickSearchOptions = {}) {
   const shortcut = options.shortcut ?? 'Mod+K';
   return definePlugin({
     id: 'quick-search',
-    views: [{ slot: 'app-bar.end', component: QuickSearchTrigger }],
+    ui: { slots: [{ slot: 'app-bar.end', component: QuickSearchTrigger }] },
     actions: [
-      defineDialogAction({
+      defineAction({
         id: quickSearchActionId,
         title,
-        size: 'wide',
         icon: SearchIcon,
         shortcut: shortcut ? { keys: shortcut } : undefined,
-        render: ({ close }) => (
-          <SearchResults
-            close={close}
-            label={title}
-            placeholder={options.placeholder ?? 'Search pages…'}
-            empty={options.empty ?? 'No results found.'}
-            results={options.results}
-          />
-        ),
+        dialog: {
+          size: 'wide',
+          component: ({ close }: { close: () => void }) => (
+            <SearchResults
+              close={close}
+              label={title}
+              placeholder={options.placeholder ?? 'Search pages…'}
+              empty={options.empty ?? 'No results found.'}
+              results={options.results}
+            />
+          ),
+        },
       }),
     ],
   });

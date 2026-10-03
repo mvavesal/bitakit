@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "noEmit": true, "rootDir": "." },
-  "include": ["src", "tests/notification-types.ts", "examples"]
+  "include": ["src", "tests/types.tsx", "examples"]
 }

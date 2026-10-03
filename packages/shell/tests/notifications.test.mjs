@@ -1,125 +1,122 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mount, settle } from './support.mjs';
+import { createElement as h, act } from 'react';
 import { toast } from '@heroui/react';
-import { FoundationRuntime, createActionList } from '@bitakit/core';
-import { createAppPreferences, createMemoryStorage } from '@bitakit/app-preferences/core';
-import { appPreferencesPlugin } from '@bitakit/app-preferences/foundation';
-import { shellPlugin, notificationPreferences } from '../dist/index.js';
+import {
+  FoundationProvider,
+  FoundationRuntime,
+  createActionList,
+  createMemorySettingsStorage,
+  createTranslationPlugin,
+  defineAction,
+  definePlugin,
+  useFoundation,
+} from '@bitakit/ui';
+import { shellPlugin, notificationService, useNotifications } from '../dist/index.js';
 
-function mount(notifications) {
-  const settings = createAppPreferences({ storage: createMemoryStorage() });
-  const runtime = new FoundationRuntime(createActionList(), {
-    plugins: [appPreferencesPlugin({ settings }), shellPlugin({ notifications })],
-  });
-  return { settings, runtime, stop: runtime.mount() };
-}
+const visible = () =>
+  toast.getQueue().visibleToasts.map((item) => [item.content.title, item.content.variant]);
 
-test('public notification service uses the native HeroUI queue and is disposed with Shell', async () => {
+test('the service uses the HeroUI queue, translates through i18n and stops with the runtime', async () => {
   toast.clear();
-  const { runtime, stop, settings } = mount(true);
-  await settings.activate({ userId: 'notifications-test' });
+  const translation = createTranslationPlugin((key, values) =>
+    key === 'files.saved' ? `Saved ${values?.name}` : key === 'files.details' ? 'Details' : key,
+  );
+  const runtime = new FoundationRuntime(
+    createActionList(),
+    { plugins: [translation, shellPlugin()] },
+    { 'settings.storage': createMemorySettingsStorage() },
+  );
+  const stop = runtime.mount();
+  await runtime.ready;
   const service = runtime.app.services.notifications;
-  const first = service.show('Saved', { type: 'success', duration: 0 });
-  const second = service.show('Retry', { type: 'error', duration: 0 });
+  assert.equal(service, runtime.app.services.shell.notifications, 'one instance, two names');
+  assert.equal(runtime.app.has(notificationService), true);
+  const saved = service.show('files.saved', {
+    type: 'success',
+    duration: 0,
+    values: { name: 'Ada' },
+  });
+  service.show('Plain text', { type: 'error', description: 'files.details', duration: 0 });
   const native = toast.info('Native source', { timeout: 0 });
-  const queue = toast.getQueue().visibleToasts;
-  assert.deepEqual(
-    queue.map((item) => item.content.title),
-    ['Native source', 'Retry', 'Saved'],
+  assert.deepEqual(visible(), [
+    ['Native source', 'accent'],
+    ['Plain text', 'danger'],
+    ['Saved Ada', 'success'],
+  ]);
+  assert.equal(
+    toast.getQueue().visibleToasts.find((item) => item.content.title === 'Plain text').content
+      .description,
+    'Details',
   );
-  assert.deepEqual(
-    queue.map((item) => item.content.variant),
-    ['accent', 'danger', 'success'],
-  );
-  service.dismiss(first);
-  assert.ok(!toast.getQueue().visibleToasts.some((item) => item.key === first));
-  service.dismiss(second);
+  service.dismiss(saved);
+  assert.ok(!toast.getQueue().visibleToasts.some((item) => item.key === saved));
   toast.close(native);
-  await settings.set(notificationPreferences.fields.placement, 'top end');
-  assert.equal(settings.get(notificationPreferences.fields.placement).value, 'top end');
-  assert.ok(settings.getSection('shell-notifications'));
   stop();
   assert.equal(runtime.app.has('notifications'), false);
   assert.throws(() => service.show('Late'), /no longer active/);
   toast.clear();
 });
 
-test('developers replace the same public service through the existing lifecycle', () => {
-  const messages = [];
-  let disposed = 0;
-  const implementation = {
-    show(message, options) {
-      messages.push([message, options]);
-      return 'custom';
-    },
-    dismiss() {},
-  };
-  const { runtime, settings, stop } = mount({
-    toastProvider: false,
-    service: {
-      create: () => implementation,
-      dispose: (service) => {
-        assert.equal(service, implementation);
-        disposed++;
-      },
+test('one toast region shows action feedback and native toasts at the placement setting', async () => {
+  toast.clear();
+  const files = definePlugin({
+    id: 'files',
+    actions: {
+      upload: defineAction({
+        title: 'Upload',
+        failure: 'Upload failed',
+        execute() {
+          throw new Error('offline');
+        },
+      }),
+      save: defineAction({ title: 'Save', success: 'Saved', execute() {} }),
     },
   });
-  assert.equal(runtime.app.services.notifications.show('Custom', { type: 'info' }), 'custom');
-  assert.equal(messages.length, 1);
-  assert.equal(messages[0][0], 'Custom');
-  assert.equal(messages[0][1].type, 'info');
-  assert.equal(messages[0][1].description, undefined);
-  assert.equal(
-    settings.getSection('shell-notifications'),
-    undefined,
-    'native position UI is absent for an external provider',
-  );
-  stop();
-  assert.equal(disposed, 1);
-});
-
-test('notifications remain optional and configured native position supplies the reset default', async () => {
-  const disabled = mount(false);
-  assert.equal(disabled.runtime.app.has('notifications'), false);
-  disabled.stop();
-  const { settings, runtime, stop } = mount({ placement: 'top start' });
-  const section = settings.getSection('shell-notifications');
-  const field = section.fields[0];
-  await settings.activate({ userId: 'defaults' });
-  assert.equal(settings.get(field).value, 'top start');
-  await settings.set(field, 'bottom end');
-  await settings.reset(field);
-  assert.equal(settings.get(field).value, 'top start');
-  assert.ok(runtime.app.services.notifications);
-  stop();
-});
-
-test('notification boundary translates title and description for replacement renderers', async () => {
-  const { translatedNotifications } = await import('../dist/services/notifications.js');
-  const { createTranslationPlugin } = await import('@bitakit/core');
-  const calls = [];
-  const original = {
-    show: (...args) => {
-      calls.push(args);
-      return 7;
-    },
-    dismiss() {},
+  const config = { plugins: [shellPlugin(), files] };
+  const services = {
+    'settings.storage': createMemorySettingsStorage({ 'shell.toasts': 'top start' }),
   };
-  let disposed;
-  const translation = createTranslationPlugin((key, values) => `${key}:${values.name}`);
-  const definition = translatedNotifications({
-    create: () => original,
-    dispose: (value) => {
-      disposed = value;
-    },
-  });
-  const service = definition.create({ services: { i18n: translation.translation }, config: {} });
-  assert.equal(service.show('saved', { description: 'details', values: { name: 'Ada' } }), 7);
-  assert.equal(calls[0][0], 'saved:Ada');
-  assert.equal(calls[0][1].description, 'details:Ada');
-  translation.update((key) => `new:${key}`);
-  service.show('saved');
-  assert.equal(calls[1][0], 'new:saved');
-  definition.dispose(service);
-  assert.equal(disposed, original);
+  let runtime;
+  let notifications;
+  function Probe() {
+    runtime = useFoundation().runtime;
+    notifications = useNotifications();
+    return null;
+  }
+  const view = await mount(h(FoundationProvider, { config, services }, h(Probe)));
+  try {
+    await settle();
+    assert.equal(notifications, runtime.app.services.notifications, 'useNotifications');
+    await act(async () => {
+      await runtime.actions.execute('files.upload').catch(() => {});
+      await runtime.actions.execute('files.save');
+      toast.info('Native source', { timeout: 0 });
+    });
+    assert.equal(document.querySelectorAll('[data-slot="toast-region"]').length, 1);
+    assert.deepEqual(visible(), [
+      ['Native source', 'accent'],
+      ['Saved', 'success'],
+      ['Upload failed', 'danger'],
+    ]);
+    const region = document.querySelector('[data-slot="toast-region"]');
+    assert.match(region.textContent, /Upload failed/);
+    assert.match(region.textContent, /Native source/);
+    assert.ok(region.classList.contains('toast-region--top-start'), region.className);
+    await act(() => runtime.settings.set('shell.toasts', 'bottom end'));
+    const moved = document.querySelector('[data-slot="toast-region"]');
+    assert.ok(moved.classList.contains('toast-region--bottom-end'), moved.className);
+    assert.ok(
+      [...document.querySelectorAll('[data-slot="toast"]')].every(
+        (item) => item.getAttribute('data-placement') === 'bottom end',
+      ),
+    );
+  } finally {
+    await act(async () => toast.clear());
+    await view.unmount();
+  }
+  runtime.notify('After unmount', 'failure');
+  assert.deepEqual(visible(), [], 'unmounting removes the notifier');
+  assert.equal(document.querySelectorAll('[data-slot="toast-region"]').length, 0);
 });

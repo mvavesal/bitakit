@@ -34,6 +34,11 @@ import type {
 } from './definitions.js';
 import type { Events } from './events/types.js';
 import { PluginScope, assignScopeModule } from './scope.js';
+import { SettingsStore, type SettingEntry } from './settings/store.js';
+import { createSettingsAccess, type SettingsAccess } from './settings/access.js';
+import { createLocalSettingsStorage, type SettingsStorage } from './settings/storage.js';
+import { isSettingsDefinition, type SettingSpec } from './settings/define.js';
+import type { AuthService } from './contracts.js';
 import { createServices, type Observable } from './services.js';
 import { createFoundationApp } from './app/access.js';
 import type { FoundationApp } from './app/types.js';
@@ -135,6 +140,8 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
         );
     if (module.publicServices)
       deprecated('publicServices', 'Use exposeAs or provides on the service definition.');
+    if (module.settings !== undefined && !isSettingsDefinition(module.settings))
+      throw new Error('settings must be declared with defineSettings({ ... }) in settings.ts.');
     return {
       ...module,
       id,
@@ -219,6 +226,11 @@ export class FoundationRuntime implements ContributionHost {
   readonly configuration: ConfigService;
   readonly modules: readonly NormalizedPlugin[];
   readonly groups: Map<string, ActionGroup>;
+  /** The owner of setting values; `useSetting` and the `settings` contexts read from it. */
+  readonly settings: SettingsStore;
+  /** Typed handles under plugin namespaces, the `settings` every context receives. */
+  readonly settingsAccess: SettingsAccess;
+  private defaultStorage?: SettingsStorage;
   private readonly appId: string;
   private readonly order: readonly NormalizedPlugin[];
   private readonly names: ServiceNames;
@@ -287,6 +299,12 @@ export class FoundationRuntime implements ContributionHost {
         }
       }
     this.names = new ServiceNames(this.serviceEntries(), this.appId);
+    try {
+      this.settings = new SettingsStore(this.settingEntries(), () => this.storage());
+      this.settingsAccess = createSettingsAccess(this.settings);
+    } catch (error) {
+      throw attributed(error, this.appId, 'Settings', this.appId);
+    }
     this.app = createFoundationApp(this);
     try {
       this.configuration = new ConfigService(
@@ -296,7 +314,12 @@ export class FoundationRuntime implements ContributionHost {
     } catch (error) {
       throw attributed(error, this.appId, 'Configuration', this.appId);
     }
-    validatePluginPages(this.modules);
+    validatePluginPages(
+      this.modules,
+      new Set(
+        Object.keys(this.modules.find((module) => module.id === this.appId)?.ui?.layouts ?? {}),
+      ),
+    );
     const groups = config.groups ?? [];
     const duplicate = groups.find((id, index) => groups.indexOf(id) !== index);
     if (duplicate) throw new Error(`Action group "${duplicate}" is listed twice in groups.`);
@@ -322,6 +345,52 @@ export class FoundationRuntime implements ContributionHost {
         entries.push({ id: key as string, aliases: [alias], plugin: module.id });
     }
     return entries;
+  }
+  private settingEntries(): SettingEntry[] {
+    const entries: SettingEntry[] = [];
+    for (const module of this.modules)
+      for (const [name, spec] of Object.entries(
+        (module.settings?.settings ?? {}) as Record<string, SettingSpec<any>>,
+      ))
+        entries.push({
+          key: module.id === this.appId ? name : `${module.id}.${name}`,
+          plugin: module.id,
+          name,
+          spec,
+        });
+    return entries;
+  }
+  /** The `settings.storage` contract when a service provides it, otherwise browser storage. */
+  private storage(): SettingsStorage {
+    const name = 'settings.storage';
+    if (this.hasService(name))
+      return this.container!.services[this.names.key(name)] as SettingsStorage;
+    return (this.defaultStorage ??= createLocalSettingsStorage());
+  }
+  /**
+   * Loads settings for the identity the `auth` contract reports. Runs after setup and whenever
+   * an observed service changes, so no extra subscription is needed; without authentication the
+   * anonymous device identity applies. Never blocks readiness.
+   */
+  private syncIdentity() {
+    if (!this.container) return;
+    const auth = this.hasService('auth')
+      ? (this.container.services[this.names.key('auth')] as Partial<AuthService>)
+      : undefined;
+    const snapshot = typeof auth?.getSnapshot === 'function' ? auth.getSnapshot() : undefined;
+    if (snapshot?.pending) return;
+    const next = {
+      userId: snapshot?.user?.id,
+      organizationId: snapshot?.organizationId ?? undefined,
+    };
+    const current = this.settings.currentIdentity;
+    if (
+      this.settings.isActive &&
+      next.userId === current.userId &&
+      next.organizationId === current.organizationId
+    )
+      return;
+    void this.settings.activate(next);
   }
   /** Every name (ID and aliases) that resolves to a container key. */
   private aliasesOf(id: string): readonly string[] {
@@ -545,6 +614,7 @@ export class FoundationRuntime implements ContributionHost {
         sourceOf: (definition) => contributionSource(definition),
       },
       (definition) => definition.id!,
+      this.settingsAccess,
     );
     // Contexts exist only after the container does; readiness is the public facade's concern.
     this.view = this.names.tree(this.container.services);
@@ -568,9 +638,32 @@ export class FoundationRuntime implements ContributionHost {
           .filter((plugin) => plugin.id !== this.appId)
           .map((plugin) => Object.freeze({ id: plugin.id, metadata: plugin.metadata })),
       );
+      const composedModules = Object.freeze(
+        plugins.map((plugin) =>
+          Object.freeze({
+            id: plugin.id,
+            app: plugin.id === this.appId,
+            metadata: plugin.metadata,
+            settings: plugin.settings,
+            ui: plugin.ui,
+          }),
+        ),
+      );
+      const translation = Object.freeze({
+        translate: this.translator(),
+        text: (key: string | undefined, fallback: string, values?: MessageValues) =>
+          this.text(key, fallback, values),
+        subscribe: this.subscribeTranslations,
+      });
       for (const plugin of plugins) {
         const scope = new PluginScope(this.actions, this.groups);
-        assignScopeModule(scope, { id: plugin.id, app: plugin.id === this.appId }, composed);
+        assignScopeModule(
+          scope,
+          { id: plugin.id, app: plugin.id === this.appId },
+          composed,
+          composedModules,
+          translation,
+        );
         this.scopes.push(scope);
       }
       this.installContributions(plugins);
@@ -578,7 +671,7 @@ export class FoundationRuntime implements ContributionHost {
         for (const contribution of plugin.actions)
           this.install(this.scopes[index], contribution, plugin.id, moduleEvents.get(plugin.id)!);
       });
-      this.observe(this.container.observed);
+      this.observe(new Set([...this.container.observed, this.settings]));
       plugins.forEach((plugin, index) => {
         const scope = this.scopes[index];
         try {
@@ -588,6 +681,7 @@ export class FoundationRuntime implements ContributionHost {
           throw this.attribute(error, plugin.id, 'Setup');
         }
       });
+      this.syncIdentity();
     } catch (error) {
       this.unmount();
       throw error;
@@ -782,7 +876,9 @@ export class FoundationRuntime implements ContributionHost {
     for (const source of observed)
       this.extensionCleanups.push(
         source.subscribe(() => {
-          if (this.container) this.actions.refresh();
+          if (!this.container) return;
+          this.actions.refresh();
+          this.syncIdentity();
         }),
       );
     if (observed.size) this.actions.refresh();
@@ -792,6 +888,7 @@ export class FoundationRuntime implements ContributionHost {
     this.startController?.abort();
     this.startController = undefined;
     this.setReady(false);
+    this.settings.deactivate();
     const errors: unknown[] = [];
     for (const cleanup of this.extensionCleanups.splice(0).reverse()) {
       try {

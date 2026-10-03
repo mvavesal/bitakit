@@ -136,7 +136,11 @@
     "account": {
       "checkingSignin": "Checking sign-in…",
       "signInToAccessTheseAccountSettings": "Sign in to access these account settings.",
-      "logIn": "Log in"
+      "logIn": "Log in",
+      "profile": "Profile",
+      "yourProfilePictureAndPersonalDetails": "Your profile picture and personal details.",
+      "security": "Security",
+      "emailPasswordTwoFactorAuthenticationLinkedAccountsAndActiveSessions": "Email, password, two-factor authentication, linked accounts and active sessions."
     },
     "organizations": {
       "reload": "Reload",
@@ -150,7 +154,10 @@
       "informationAboutYourWorkspace": "Information about your workspace.",
       "identifier": "Identifier:",
       "website": "Website:",
-      "youCanViewTheseDetailsButCannotEditThem": "You can view these details but cannot edit them."
+      "youCanViewTheseDetailsButCannotEditThem": "You can view these details but cannot edit them.",
+      "profile": "Profile",
+      "membersAndInvitations": "Members and invitations",
+      "invitationsForMe": "Invitations for me"
     },
     "auth_page_layout": {
       "backToApplication": "Back to application"
@@ -227,35 +234,9 @@
     },
     "enable": {
       "title": "Unsuspend"
-    }
-  },
-  "settings": {
-    "sections": {
-      "profile": {
-        "title": "Profile",
-        "description": "Your profile picture and personal details."
-      },
-      "security": {
-        "title": "Security",
-        "description": "Email, password, two-factor authentication, linked accounts and active sessions."
-      },
-      "organization": {
-        "title": "Organization profile"
-      },
-      "members": {
-        "title": "Members"
-      },
-      "invitations": {
-        "title": "Invitations"
-      },
-      "organization-members": {
-        "title": "Members and invitations",
-        "description": "Manage members and sent invitations for the active organization."
-      },
-      "received-invitations": {
-        "title": "Invitations for me",
-        "description": "Invitations to join other organizations."
-      }
+    },
+    "settings": {
+      "title": "Organization settings"
     }
   },
   "plugins": {
@@ -265,6 +246,18 @@
     "organizations-ui": {
       "name": "Organization management",
       "description": "Members, invitations and organization profile."
+    }
+  },
+  "better-auth-ui": {
+    "settings": {
+      "title": "Account",
+      "description": "Profile, email, password, two-factor authentication, linked accounts and active sessions."
+    }
+  },
+  "organizations-ui": {
+    "settings": {
+      "title": "Organization",
+      "description": "Profile, members and invitations of the active organization."
     }
   }
 }

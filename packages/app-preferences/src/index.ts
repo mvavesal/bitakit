@@ -1,18 +1,29 @@
 'use client';
-export * from './core.js';
-export * from './react/provider.js';
-export * from './react/use-setting.js';
-export * from './react/messages.js';
-export * from './react/ui-context.js';
-export { useSettingsItems, DefaultFieldView } from './react/items.js';
-export * from './renderers/registry.js';
-export * from './renderers/builders.js';
-export type * from './renderers/types.js';
-export { builtInRenderers } from './renderers/defaults.js';
-export * from './components/controls.js';
-export * from './components/views.js';
-export * from './components/setting-binding.js';
-export * from './components/setting-select.js';
-export * from './components/setting-toggle.js';
-export * from './components/setting-input.js';
-export * from './components/settings-panel.js';
+export { SettingsRoute, type SettingsRouteProps } from './components/settings-route.js';
+export { SettingsShell, type SettingsShellProps } from './components/settings-shell.js';
+export {
+  SettingsNavigation,
+  type SettingsNavigationProps,
+} from './components/settings-navigation.js';
+export { SettingsPage, type SettingsPageProps } from './components/settings-page.js';
+export {
+  SettingsSectionPage,
+  type SettingsSectionPageProps,
+} from './components/settings-section-page.js';
+export { SettingsFields, type SettingsFieldsProps } from './components/settings-fields.js';
+export { SettingField, type SettingFieldProps } from './components/setting-field.js';
+export {
+  SwitchControl,
+  SelectControl,
+  RadioControl,
+  CardsControl,
+  TextControl,
+  TextareaControl,
+  NumberControl,
+  controlFor,
+  type SettingControlProps,
+} from './components/controls.js';
+export { SettingsOverview, type SettingsOverviewProps } from './components/settings-overview.js';
+export { PluginsOverview } from './components/plugins-overview.js';
+export { settingsCategories, type SettingsCategory } from './categories.js';
+export type { SettingsCatalogSection, SettingsCatalogField } from '@bitakit/ui';

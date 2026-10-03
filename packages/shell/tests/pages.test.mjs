@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mount, click } from './support.mjs';
 import { JSDOM } from 'jsdom';
-import { createElement as h, act } from 'react';
+import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { createRoot } from 'react-dom/client';
 import { NotFoundPage, ErrorPage, LoadingPage, AccessDeniedPage } from '../dist/pages.js';
+import * as root from '../dist/index.js';
 
-test('page states render without providers, sidebar, or router and preserve semantic headings', () => {
+test('page states render without providers, sidebar or router and keep semantic headings', () => {
   for (const Component of [NotFoundPage, ErrorPage, LoadingPage, AccessDeniedPage]) {
+    assert.equal(root[Component.name], Component, `${Component.name} is a root export`);
     const html = renderToStaticMarkup(
       h(Component, { title: 'Custom title', description: 'Custom description' }),
     );
@@ -21,27 +23,21 @@ test('page states render without providers, sidebar, or router and preserve sema
     for (const icon of doc.querySelectorAll('svg'))
       assert.equal(icon.getAttribute('aria-hidden'), 'true');
   }
+  const defaults = new JSDOM(renderToStaticMarkup(h(NotFoundPage))).window.document;
+  assert.equal(defaults.querySelector('[role="heading"]').textContent, 'Page not found');
   const loading = new JSDOM(renderToStaticMarkup(h(LoadingPage))).window.document;
   assert.equal(loading.querySelector('[role="status"]').getAttribute('aria-busy'), 'true');
 });
 
 test('error retry calls the host callback and actions remain host-owned', async () => {
-  const dom = new JSDOM('<html><body></body></html>');
-  globalThis.window = dom.window;
-  globalThis.document = dom.window.document;
-  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-  const host = document.createElement('div'),
-    root = createRoot(host);
   let resets = 0;
+  const view = await mount(h(ErrorPage, { reset: () => resets++ }, h('a', { href: '/' }, 'Home')));
   try {
-    await act(async () =>
-      root.render(h(ErrorPage, { reset: () => resets++ }, h('a', { href: '/' }, 'Home'))),
-    );
-    await act(async () => host.querySelector('button').click());
+    await click(view.container.querySelector('button'));
     assert.equal(resets, 1);
-    assert.equal(host.querySelector('a').getAttribute('href'), '/');
-    assert.equal(host.querySelector('button').type, 'button');
+    assert.equal(view.container.querySelector('a').getAttribute('href'), '/');
+    assert.equal(view.container.querySelector('button').type, 'button');
   } finally {
-    await act(async () => root.unmount());
+    await view.unmount();
   }
 });

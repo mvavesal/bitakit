@@ -219,11 +219,33 @@ with the service, the component or the runtime.
 See [events](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/docs/events.md) for
 payload typing, cancelable events, errors and async handlers.
 
+## Settings
+
+```ts
+// src/plugins/todos/settings.ts — no React, shared with the server later
+import { defineSettings, setting } from '@bitakit/core';
+
+export default defineSettings(
+  {
+    pageSize: setting({ default: 20, control: 'number', label: 'Items per page' }),
+    showDone: setting({ default: true, scope: 'device' }),
+  },
+  { title: 'Todos', category: 'general' },
+);
+```
+
+Keys are `<plugin>.<name>`; every context reads and writes them through typed handles
+(`settings.todos.pageSize.get()`, `set()`, `subscribe()`), React through `useSetting`. The
+runtime owns the values, follows the `auth` contract for the user and organization identity,
+re-evaluates action presentation on changes and persists through the `settings.storage`
+contract: browser storage by default, or one service with `provides: settingsStorage`.
+
 ## What belongs outside Core?
 
 - **React rendering:** the UI bindings and your visual components.
 - **Routes and navigation:** your application's router and its BitaKit adapter.
-- **Settings:** the separate App Preferences package.
+- **Settings UI:** Core declares (`defineSettings`), owns and persists setting values through
+  the `settings.storage` contract; the pages that show them are the App Preferences package.
 - **Email, authentication, and persistence:** optional integrations or your own services.
 
 Plugins are trusted application code. Core is not a sandbox or a remote plugin marketplace.

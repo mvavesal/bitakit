@@ -26,11 +26,12 @@ export function PluginPage({
     ? createElement(page.component as never, { key: page.key, params: page.params })
     : fallback;
 }
-/** The current plugin page, its parameters and layout name; undefined outside plugin pages. */
+/**
+ * The current plugin page, its parameters and layout name; undefined outside plugin pages.
+ * Pages are static, so layouts can read this before the runtime is ready.
+ */
 export function useCurrentPage(pathname?: string) {
   const { runtime } = useFoundation();
   const navigation = useFoundationNavigation();
-  const ready = useFoundationReady();
-  if (!ready) return undefined;
   return findPluginPage(runtime.modules, pathname ?? navigation.pathname ?? '/');
 }

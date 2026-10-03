@@ -1,2 +1,3 @@
 'use client';
-export { shellPlugin as default, shellPlugin, type ShellOptions } from './plugin.js';
+export { shellPlugin as default, shellPlugin } from './plugin.js';
+export type { ShellOptions } from './options.js';

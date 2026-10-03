@@ -37,9 +37,10 @@
 
 ## Settings and theme
 
-- Settings live independently in `packages/app-preferences`; app sections are registered through `settings/standard-settings.ts`. The Settings catalog is the sole section registry. Do not reintroduce SettingsAction as the settings source or add a plugin loader.
-- AppPreferences owns confirmed theme/locale values and persistence. Settings fields use package controls/useSetting directly; optional ThemeAction/LocaleAction forward writes and subscribe to the same values. Preserve the theme store only as the DOM/system-theme/cache adapter, not a second authoritative preference store.
-- Preserve the intercepted Settings dialog under `app/app-preview`: opening settings must retain the mounted studio and its unsaved state. Use `SettingsLink` inside shared settings content (replace in dialog, normal navigation on direct pages). Direct Settings loads use a safe internal studio link; never trust a return URL or assume history is internal.
+- Settings are declared once per plugin in `settings.ts` with `defineSettings({ name: setting({ default, schema?, scope?, control?, options? }) }, { title, category, order, path, shortcut })`; keys are `<plugin>.<name>` (plain names for the app). Core's runtime store is the only owner of confirmed values; read and write through `settings.<plugin>.<name>` in services and actions and `useSetting(key)` in React. No second value store, section registry, renderer registry or forwarding action (`theme.set`, `locale.set`).
+- Persistence is the `settings.storage` contract (browser storage by default; one host service with `provides: settingsStorage` for a server). Server storage re-reads the trusted `settings.ts` files and applies its own access rules; client declarations grant no persistence access. Identity follows the `auth` contract.
+- `@bitakit/app-preferences` renders a generated page per plugin under `/settings` (`SettingsRoute`, `SettingsShell`, `SettingField`, controls) and projects pages into URL actions; `ui/settings/page.tsx` replaces a plugin's page. Shell owns appearance settings (`shell.mode`, `shell.layout`, `shell.preset`, `shell.density`, `shell.corners`, `shell.toasts`) and applies them to `<html>`; theme presets are CSS under `[data-theme-preset="<id>"]`.
+- The sample apps (`apps/web`, `apps/content-demo`) still carry their pre-Phase-4 settings catalog and are rebuilt in Phase 6; do not extend that catalog.
 
 ## Authentication and organizations
 
@@ -65,7 +66,7 @@
 
 - UI translations live in `apps/web/locales/en.json` and `de.json`, organized by feature namespaces. Use next-intl for client/server translations and locale-aware formatting; keep matching keys in both catalogs. Plugins ship their own catalogs in `locales/<lang>.json` under their namespace; discovery merges them into `src/bitakit.gen.messages.json`.
 - Locale is a validated browser cookie, resolved by `src/i18n/request.ts`. Keep existing paths/intercepted Settings routes. Do not duplicate locale in a second store or add URL locale prefixes without a product requirement.
-- Language settings write through AppPreferences; the optional root `locale.set` action forwards to the same setting. The server validates and saves the preference. Preserve mounted application state on language changes. User-authored content and historical sample content are not translated automatically.
+- The interface language is a setting (`defineSettings`, for example `language.locale` from `@bitakit/next-intl/preferences`); the host's `settings.storage` service validates and saves it. Preserve mounted application state on language changes. User-authored content and historical sample content are not translated automatically.
 
 ## Action and Settings organization
 
@@ -74,8 +75,7 @@
 - Use `<Action id input kind>` from `@bitakit/ui` to bind any control, `ActionButton`/`ActionLink` as sugar, `useAction` with its prop getters for custom controls and `useActionGroup` for menus and navigation. Disabled/hidden/pending guards and execution belong to the package. Do not recreate the removed `ActionBinding`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`, `ActionGroupBinding`, `ActionMenuView` or `useRegisterActions`.
 - Read service state with `useServiceState(name, selector, fallback)` and `useService`; observe events with `useEvent`; check availability with `app.has(name)` instead of the removed `app.optional.services`.
 - Keep the package in small focused files. Core exports are separate from implementation; class state, registration, execution, lifecycle, React hooks and components have explicit modules.
-- `src/components/settings/base` provides reusable settings shells, routing, navigation and discovery. Built-in content and its contribution belong together in `src/settings/sections/<section>`. Add each contribution to `settings/standard-settings.ts`; do not edit base components to add sections.
-- Trusted extra settings contributions use the SettingsSection/AppPreferences contract. Register plugin pages under existing sections and retain cleanup handles. Storage definitions must also be registered on the server; UI registration alone grants no persistence access.
+- Settings pages are generated from `defineSettings`; a plugin that needs custom content adds `ui/settings/page.tsx`. Hosts mount `SettingsRoute` from `@bitakit/app-preferences` (or compose `SettingsShell` and `SettingsPage`) instead of writing settings shells, navigation or section registries.
 
 ## BitaKit-Entwicklungsleitfaden
 

@@ -1,7 +1,10 @@
 /** Only capabilities with a working starter integration are offered. */
 export const features = {
-  preferences: { label: 'App Preferences (settings storage)', requires: [] },
-  shell: { label: 'App Shell (navigation, layout and settings pages)', requires: ['preferences'] },
+  preferences: { label: 'App Preferences (settings pages for every plugin)', requires: [] },
+  shell: {
+    label: 'App Shell (navigation frame, layouts and appearance)',
+    requires: ['preferences'],
+  },
   'quick-search': { label: 'Quick Search (⌘K)', requires: ['shell'] },
 };
 

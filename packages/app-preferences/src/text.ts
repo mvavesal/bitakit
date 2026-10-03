@@ -1,41 +1,89 @@
-import type { LocalizedText } from './types.js';
+import { fallbackTitle, resolveText, type Translator } from '@bitakit/core';
 
-/** A translator in the shape next-intl and the Foundation i18n service already provide. */
-export type SettingsTranslator = ((key: string) => string) & { has?: (key: string) => boolean };
+export type MessageValues = Readonly<Record<string, string | number>>;
+type Message = string | ((values: MessageValues) => string);
 
-export function localizedKey(text: LocalizedText | undefined) {
-  return typeof text === 'object' ? text.key : undefined;
+/**
+ * The English texts this package renders. Catalogs translate them under
+ * `app-preferences.ui.<key>`; `locales/en.json` repeats them for hosts with a translator.
+ */
+export const defaultMessages = {
+  settings: 'Settings',
+  back: 'Back to app',
+  navigation: 'Settings navigation',
+  toggleNavigation: 'Toggle settings navigation',
+  breadcrumb: 'Breadcrumb',
+  skip: 'Skip to settings',
+  search: 'Search settings',
+  searchPlaceholder: 'Search settings…',
+  clearSearch: 'Clear search',
+  noResults: 'No settings found',
+  noResultsHint: 'Try another search term.',
+  resetSearch: 'Reset search',
+  results: ({ count }) => (count === 1 ? '1 section found' : `${count} sections found`),
+  unavailable: 'This settings page is not available.',
+  noFields: 'This section has no settings.',
+  saving: 'Saving…',
+  readOnly: 'You cannot change this setting.',
+  reset: 'Reset {label} to default',
+  loadFailed: 'This setting could not be loaded: {error}',
+  saveFailed: 'The change could not be saved: {error}',
+  unsupported: 'This setting cannot be changed here.',
+  plugins: 'Plugins',
+  searchPlugins: 'Search plugins',
+  searchPluginsPlaceholder: 'Search plugins…',
+  clearPluginSearch: 'Clear plugin search',
+  noPlugins: 'No plugins found.',
+  author: 'By {author}',
+  backToPlugins: 'Back to plugins',
+  pluginUnavailable: 'Plugin unavailable',
+  pluginUnavailableHint: 'This plugin is not installed.',
+  aboutPlugin: 'About this plugin',
+  noDescription: 'No description is available for this plugin.',
+  pluginSettings: 'Settings',
+  noPluginSettings: 'This plugin has no settings.',
+  openSettings: 'Open settings',
+  information: 'Information',
+  version: 'Version',
+  unspecified: 'Not specified',
+  license: 'License',
+  website: 'Website',
+  projectWebsite: 'Project website',
+  support: 'Support',
+  supportLink: 'Get help and report issues',
+} satisfies Record<string, Message>;
+export type MessageKey = keyof typeof defaultMessages;
+
+/** Replaces `{name}` placeholders; unknown placeholders stay as they are. */
+export function fill(text: string, values?: MessageValues): string {
+  if (!values) return text;
+  return text.replace(/\{(\w+)\}/g, (match, name: string) =>
+    Object.hasOwn(values, name) ? String(values[name]) : match,
+  );
 }
-export function localizedFallback(text: LocalizedText | undefined) {
-  return typeof text === 'object' ? text.fallback : text;
+export function messageKey(key: MessageKey): string {
+  return `app-preferences.ui.${key}`;
 }
-
-/** Resolves an explicit key first, then an optional conventional key, then the fallback text. */
-export function resolveLocalized(
-  translate: SettingsTranslator | undefined,
-  keys: readonly (string | undefined)[],
-  fallback: string,
+/** The English text with its values filled in, used when no translation exists. */
+export function defaultMessage(key: MessageKey, values?: MessageValues): string {
+  const message: Message = defaultMessages[key];
+  return typeof message === 'function' ? message(values ?? {}) : fill(message, values);
+}
+/** A package text through a translator, for code without React such as plugin setup. */
+export function message(
+  translate: Translator | undefined,
+  key: MessageKey,
+  values?: MessageValues,
 ): string {
-  if (!translate) return fallback;
-  for (const key of keys) {
-    if (!key) continue;
-    if (translate.has && !translate.has(key)) continue;
-    try {
-      const value = translate(key);
-      if (typeof value === 'string' && value && value !== key) return value;
-    } catch {
-      // A missing translation must never break a settings page.
-    }
-  }
-  return fallback;
+  const fallback = defaultMessage(key, values);
+  return translate ? resolveText(translate, messageKey(key), fallback, values) : fallback;
 }
 
-/** "pageSize" → "Page size"; used when a definition declares no title. */
-export function humanize(name: string) {
-  const words = name
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[-_.]+/g, ' ')
-    .trim()
-    .toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
+export function categoryTitleKey(id: string): string {
+  return `settings.categories.${id}.title`;
+}
+/** A category title through a translator; the ID in title case without a translation. */
+export function categoryTitle(id: string, translate?: Translator): string {
+  const fallback = fallbackTitle({ id });
+  return translate ? resolveText(translate, categoryTitleKey(id), fallback) : fallback;
 }

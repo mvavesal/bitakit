@@ -1,7 +1,7 @@
 {
   "name": "@bitakit/shell",
   "version": "0.2.0",
-  "description": "Optional theme-aware application shell with sidebar and navbar layouts.",
+  "description": "Application frame for BitaKit apps: navigation layouts, slots, appearance settings and notifications.",
   "type": "module",
   "sideEffects": [
     "./styles.css"
@@ -18,45 +18,29 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./styles.css": "./styles.css",
-    "./settings": {
-      "types": "./dist/settings.d.ts",
-      "default": "./dist/settings.js"
-    },
-    "./definitions": {
-      "types": "./dist/definitions.d.ts",
-      "default": "./dist/definitions.js"
-    },
-    "./sidebar": {
-      "types": "./dist/sidebar.d.ts",
-      "default": "./dist/sidebar.js"
-    },
-    "./package.json": "./package.json",
     "./foundation": {
       "types": "./dist/foundation.d.ts",
       "default": "./dist/foundation.js"
     },
-    "./locales/*.json": "./locales/*.json",
     "./pages": {
       "types": "./dist/pages.d.ts",
       "default": "./dist/pages.js"
-    }
+    },
+    "./styles.css": "./styles.css",
+    "./locales/*.json": "./locales/*.json",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && tsc -p tsconfig.test.json && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@heroui/react": "^3.2.6",
-    "@heroui/styles": "^3.2.6",
-    "@bitakit/app-preferences": "^0.2.0",
     "@bitakit/core": "^0.2.0",
     "@bitakit/ui": "^0.2.0",
+    "@heroui/react": "^3.2.6",
+    "@heroui/styles": "^3.2.6",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
-    "colorjs.io": "^0.7.1",
-    "nuqs": "2.10.1",
-    "radix-ui": "^1.6.7",
     "reicon-react": "1.2.5",
     "zod": "^4.6.5"
   },
@@ -69,10 +53,15 @@
     "jsdom": "^27.4.0",
     "typescript": "^5"
   },
-  "foundation": {
+  "bitakit": {
     "plugin": "./foundation",
     "configuration": "shell",
-    "styles": "./styles.css"
+    "styles": "./styles.css",
+    "slots": [
+      "app-bar.end",
+      "sidebar.header",
+      "sidebar.footer"
+    ]
   },
   "license": "MIT",
   "repository": {

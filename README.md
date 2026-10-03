@@ -188,7 +188,7 @@ is optional.
 | ------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | A clean feature structure | `@bitakit/core`                                                               | Plugins, services, actions, events, configs and interceptors — Node or browser |
 | React and your framework  | `@bitakit/ui` · `@bitakit/next` or `@bitakit/tanstack`                        | `<Action>`, hooks, build-time discovery and typed IDs                          |
-| An application frame      | `@bitakit/shell` · `@bitakit/app-preferences`                                 | Layout, navigation, settings pages and saved preferences                       |
+| An application frame      | `@bitakit/shell` · `@bitakit/app-preferences`                                 | Layout, navigation, generated settings pages and appearance                    |
 | Fast navigation           | `@bitakit/quick-search`                                                       | ⌘K search across your app's navigation                                         |
 | Users and teams           | `@bitakit/better-auth` · `@bitakit/better-auth-ui` · `@bitakit/organizations` | Authentication, account screens and organizations                              |
 | More languages            | `@bitakit/next-intl`                                                          | Translations and a language preference                                         |

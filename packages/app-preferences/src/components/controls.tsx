@@ -1,57 +1,89 @@
 'use client';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { SettingControlProps, TypeControlProps } from '../renderers/types.js';
-import { Checkbox } from './ui/checkbox.js';
-import { Switch } from './ui/switch.js';
+import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from 'react';
+import type { SettingControl } from '@bitakit/core';
+import type { SettingsCatalogField, SettingsCatalogOption } from '@bitakit/ui';
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle,
+  Input,
+} from '@bitakit/ui/components';
+import { sameValue } from '../same.js';
+import { iconOf } from './icon.js';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
-import { Input } from './ui/input.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.js';
+import { Switch } from './ui/switch.js';
 import { Textarea } from './ui/textarea.js';
-import { Field, FieldLabel, FieldContent, FieldTitle, FieldDescription } from './ui/field.js';
 
-function described(props: SettingControlProps) {
-  return {
-    'aria-labelledby': props.labelId,
-    'aria-describedby': props.describedBy,
-    'aria-invalid': props.error ? true : undefined,
-    'aria-busy': props.pending || undefined,
-  } as const;
-}
-export function CheckboxControl(props: TypeControlProps<'boolean'>) {
-  return (
-    <Checkbox
-      id={props.id}
-      checked={props.value}
-      disabled={props.disabled}
-      onCheckedChange={(value) => void props.setValue(value === true)}
-      {...described(props)}
-    />
-  );
-}
-export function SwitchControl(props: TypeControlProps<'boolean'>) {
+/**
+ * What every setting control receives. Controls render a value and report a new one; values,
+ * validation, pending state and persistence stay with the runtime's settings store.
+ */
+export type SettingControlProps<T = unknown> = {
+  field: SettingsCatalogField;
+  /** ID of the focusable element, or of the group for radios and cards. */
+  id: string;
+  value: T;
+  onChange(value: T): void;
+  disabled: boolean;
+  /** IDs of the elements that describe the control: description and feedback. */
+  describedBy?: string;
+};
+
+const optionIndex = (options: readonly SettingsCatalogOption[], value: unknown) =>
+  options.findIndex((option) => sameValue(option.value, value));
+const select = (
+  options: readonly SettingsCatalogOption[],
+  onChange: (value: unknown) => void,
+  index: string,
+) => {
+  const option = options[Number(index)];
+  if (option) onChange(option.value);
+};
+
+export function SwitchControl({
+  id,
+  value,
+  onChange,
+  disabled,
+  describedBy,
+}: SettingControlProps<boolean>) {
   return (
     <Switch
-      id={props.id}
-      checked={props.value}
-      disabled={props.disabled}
-      onCheckedChange={(value) => void props.setValue(value)}
-      {...described(props)}
+      id={id}
+      checked={value === true}
+      disabled={disabled}
+      aria-describedby={describedBy}
+      onCheckedChange={(checked) => onChange(checked === true)}
     />
   );
 }
-export function SelectControl(props: TypeControlProps<'choice'>) {
+
+/** Option values may be any JSON value; the list positions serve as the string values Radix needs. */
+export function SelectControl({
+  field,
+  id,
+  value,
+  onChange,
+  disabled,
+  describedBy,
+}: SettingControlProps<unknown>) {
+  const options = field.options ?? [];
+  const selected = optionIndex(options, value);
   return (
     <Select
-      value={props.value}
-      disabled={props.disabled}
-      onValueChange={(value) => void props.setValue(value)}
+      value={selected < 0 ? '' : String(selected)}
+      disabled={disabled}
+      onValueChange={(index) => select(options, onChange, index)}
     >
-      <SelectTrigger id={props.id} {...described(props)}>
+      <SelectTrigger id={id} aria-describedby={describedBy} className="max-w-full">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {props.options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
+        {options.map((option, index) => (
+          <SelectItem key={index} value={String(index)}>
             {option.label}
           </SelectItem>
         ))}
@@ -60,127 +92,89 @@ export function SelectControl(props: TypeControlProps<'choice'>) {
   );
 }
 
-/** Standard Field cards place selection at the trailing edge; plain choices keep it leading. */
+/** Radios and cards share one radio group; cards place the selection at the trailing edge. */
 function Choices({
-  props,
+  field,
+  id,
+  value,
+  onChange,
+  disabled,
+  describedBy,
   cards,
-  multiple = false,
-}: {
-  props: TypeControlProps<'choice'> | TypeControlProps<'multi-choice'>;
-  cards: boolean;
-  multiple?: boolean;
-}) {
-  const columns = props.presentation.columns;
-  const horizontal = props.presentation.orientation === 'horizontal';
-  const className = columns
-    ? 'grid gap-3 sm:[grid-template-columns:var(--preferences-columns)]'
-    : horizontal
-      ? 'flex flex-wrap gap-3'
-      : 'grid gap-3';
-  const style = columns
-    ? ({ '--preferences-columns': `repeat(${columns}, minmax(0, 1fr))` } as CSSProperties)
-    : undefined;
-  const items = props.options.map((option, index) => {
-    const id = `${props.id}-${index}`;
-    const checked = multiple
-      ? (props.value as readonly string[]).includes(option.value)
-      : props.value === option.value;
-    const descriptionId = option.description ? `${id}-description` : undefined;
-    const control = multiple ? (
-      <Checkbox
-        id={id}
-        checked={checked}
-        disabled={props.disabled}
-        aria-describedby={descriptionId}
-        aria-labelledby={`${id}-label`}
-        onCheckedChange={(value) => {
-          const values = props.value as readonly string[];
-          void (props as TypeControlProps<'multi-choice'>).setValue(
-            value === true
-              ? [...values, option.value]
-              : values.filter((item) => item !== option.value),
-          );
-        }}
-      />
-    ) : (
-      <RadioGroupItem
-        id={id}
-        value={option.value}
-        aria-describedby={descriptionId}
-        aria-labelledby={`${id}-label`}
-      />
-    );
-    const content = (
-      <FieldContent>
-        {option.icon && <option.icon className="size-5 shrink-0" aria-hidden />}
-        {cards ? (
-          <FieldTitle id={`${id}-label`}>{option.label}</FieldTitle>
-        ) : (
-          <FieldLabel id={`${id}-label`} htmlFor={id}>
-            {option.label}
-          </FieldLabel>
-        )}
-        {option.description && (
-          <FieldDescription id={descriptionId}>{option.description}</FieldDescription>
-        )}
-      </FieldContent>
-    );
-    const field = (
-      <Field
-        orientation="horizontal"
-        data-checked={checked ? '' : undefined}
-        data-disabled={props.disabled || undefined}
-      >
-        {!cards && control}
-        {content}
-        {cards && control}
-      </Field>
-    );
-    return cards ? (
-      <FieldLabel
-        key={option.value}
-        htmlFor={id}
-        className={horizontal && !columns ? 'flex-1' : undefined}
-      >
-        {field}
-      </FieldLabel>
-    ) : (
-      <div key={option.value}>{field}</div>
-    );
-  });
-  const shared = { id: props.id, className, style, ...described(props) };
-  return multiple ? (
-    <div role="group" {...shared}>
-      {items}
-    </div>
-  ) : (
+}: SettingControlProps<unknown> & { cards: boolean }) {
+  const options = field.options ?? [];
+  const selected = optionIndex(options, value);
+  return (
     <RadioGroup
-      {...shared}
-      value={props.value as string}
-      disabled={props.disabled}
-      orientation={horizontal ? 'horizontal' : 'vertical'}
-      onValueChange={(value) => void (props as TypeControlProps<'choice'>).setValue(value)}
+      id={id}
+      value={selected < 0 ? '' : String(selected)}
+      disabled={disabled}
+      aria-label={field.label}
+      aria-describedby={describedBy}
+      onValueChange={(index) => select(options, onChange, index)}
+      className={cards ? 'sm:grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))]' : undefined}
     >
-      {items}
+      {options.map((option, index) => {
+        const itemId = `${id}-${index}`;
+        const labelId = `${itemId}-label`;
+        const descriptionId = option.description ? `${itemId}-description` : undefined;
+        const Icon = iconOf(option.icon);
+        const control = (
+          <RadioGroupItem
+            id={itemId}
+            value={String(index)}
+            aria-labelledby={labelId}
+            aria-describedby={descriptionId}
+          />
+        );
+        const content = (
+          <FieldContent>
+            {Icon && <Icon className="size-5 shrink-0" aria-hidden="true" />}
+            {cards ? (
+              <FieldTitle id={labelId}>{option.label}</FieldTitle>
+            ) : (
+              <FieldLabel id={labelId} htmlFor={itemId}>
+                {option.label}
+              </FieldLabel>
+            )}
+            {option.description && (
+              <FieldDescription id={descriptionId}>{option.description}</FieldDescription>
+            )}
+          </FieldContent>
+        );
+        const item = (
+          <Field
+            orientation="horizontal"
+            data-checked={index === selected || undefined}
+            data-disabled={disabled || undefined}
+          >
+            {!cards && control}
+            {content}
+            {cards && control}
+          </Field>
+        );
+        return cards ? (
+          <FieldLabel key={index} htmlFor={itemId}>
+            {item}
+          </FieldLabel>
+        ) : (
+          <div key={index}>{item}</div>
+        );
+      })}
     </RadioGroup>
   );
 }
-export function RadioControl(props: TypeControlProps<'choice'>) {
-  return <Choices props={props} cards={false} />;
+export function RadioControl(props: SettingControlProps<unknown>) {
+  return <Choices {...props} cards={false} />;
 }
-export function CardsControl(props: TypeControlProps<'choice'>) {
-  return <Choices props={props} cards />;
-}
-export function MultiChoiceControl(props: TypeControlProps<'multi-choice'>) {
-  return <Choices props={props} multiple cards={false} />;
-}
-export function MultiCardsControl(props: TypeControlProps<'multi-choice'>) {
-  return <Choices props={props} multiple cards />;
+/** Options as selectable cards with their icon and description. */
+export function CardsControl(props: SettingControlProps<unknown>) {
+  return <Choices {...props} cards />;
 }
 
 /**
- * Local edit draft; commits on blur or Enter and restores the confirmed value on Escape. It follows
- * the confirmed value only, so a rejected input stays visible for correction.
+ * A local edit draft: commits on blur or Enter and restores the confirmed value on Escape. It
+ * follows only the confirmed value, so a rejected entry stays visible for correction.
  */
 function useDraft(value: string) {
   const [draft, setDraft] = useState(value);
@@ -190,78 +184,132 @@ function useDraft(value: string) {
   }, [value]);
   return { draft, setDraft, editing };
 }
-function TextInput({ props, multiline }: { props: TypeControlProps<'text'>; multiline: boolean }) {
-  const { draft, setDraft, editing } = useDraft(props.confirmedValue);
+function TextInput({
+  id,
+  value,
+  onChange,
+  disabled,
+  describedBy,
+  multiline,
+}: SettingControlProps<string> & { multiline: boolean }) {
+  const confirmed = typeof value === 'string' ? value : '';
+  const { draft, setDraft, editing } = useDraft(confirmed);
   const commit = () => {
     editing.current = false;
-    if (draft !== props.confirmedValue) void props.setValue(draft);
+    if (draft !== confirmed) onChange(draft);
   };
   const shared = {
-    id: props.id,
+    id,
     value: draft,
-    disabled: props.disabled,
+    disabled,
+    'aria-describedby': describedBy,
     onFocus: () => {
       editing.current = true;
     },
-    onChange: (event: { target: { value: string } }) => setDraft(event.target.value),
+    onChange: (event: { target: { value: string } }) => {
+      editing.current = true;
+      setDraft(event.target.value);
+    },
     onBlur: commit,
-    onKeyDown: (event: {
-      key: string;
-      metaKey?: boolean;
-      ctrlKey?: boolean;
-      preventDefault(): void;
-    }) => {
+    onKeyDown: (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         editing.current = false;
-        setDraft(props.confirmedValue);
+        setDraft(confirmed);
       } else if (event.key === 'Enter' && (!multiline || event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         commit();
       }
     },
-    ...described(props),
   };
-  if (multiline) return <Textarea {...shared} rows={3} />;
-  return <Input type="text" {...shared} />;
+  return multiline ? <Textarea {...shared} rows={3} /> : <Input type="text" {...shared} />;
 }
-export function TextControl(props: TypeControlProps<'text'>) {
-  return <TextInput props={props} multiline={false} />;
+/** Single-line text; commits on blur or Enter. */
+export function TextControl(props: SettingControlProps<string>) {
+  return <TextInput {...props} multiline={false} />;
 }
-export function TextareaControl(props: TypeControlProps<'text'>) {
-  return <TextInput props={props} multiline />;
+/** Multi-line text; commits on blur or Ctrl/Cmd+Enter. */
+export function TextareaControl(props: SettingControlProps<string>) {
+  return <TextInput {...props} multiline />;
 }
-export function NumberControl(props: TypeControlProps<'number'>) {
-  const { draft, setDraft, editing } = useDraft(String(props.confirmedValue));
+/** Commits finite numbers on blur or Enter; an empty or unreadable entry restores the value. */
+export function NumberControl({
+  id,
+  value,
+  onChange,
+  disabled,
+  describedBy,
+}: SettingControlProps<number>) {
+  const confirmed = typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
+  const { draft, setDraft, editing } = useDraft(confirmed);
   const commit = () => {
     editing.current = false;
-    const next = draft.trim() ? Number(draft) : Number.NaN;
-    if (next !== props.confirmedValue) void props.setValue(next);
+    const next = Number(draft.trim());
+    if (!draft.trim() || !Number.isFinite(next)) setDraft(confirmed);
+    else if (next !== value) onChange(next);
   };
   return (
     <Input
       type="number"
       inputMode="decimal"
-      id={props.id}
+      id={id}
       value={draft}
-      min={props.presentation.min}
-      max={props.presentation.max}
-      step={props.presentation.step}
-      disabled={props.disabled}
+      disabled={disabled}
+      aria-describedby={describedBy}
       onFocus={() => {
         editing.current = true;
       }}
-      onChange={(event: { target: { value: string } }) => setDraft(event.target.value)}
+      onChange={(event: { target: { value: string } }) => {
+        editing.current = true;
+        setDraft(event.target.value);
+      }}
       onBlur={commit}
-      onKeyDown={(event: { key: string; preventDefault(): void }) => {
+      onKeyDown={(event: KeyboardEvent) => {
         if (event.key === 'Escape') {
           editing.current = false;
-          setDraft(String(props.confirmedValue));
+          setDraft(confirmed);
         } else if (event.key === 'Enter') {
           event.preventDefault();
           commit();
         }
       }}
-      {...described(props)}
     />
   );
+}
+
+const controls: Readonly<Record<SettingControl, ComponentType<SettingControlProps<any>>>> = {
+  switch: SwitchControl,
+  select: SelectControl,
+  radio: RadioControl,
+  cards: CardsControl,
+  text: TextControl,
+  textarea: TextareaControl,
+  number: NumberControl,
+};
+/** Controls whose label names a group rather than one focusable element. */
+export const groupControls: ReadonlySet<ComponentType<SettingControlProps<any>>> = new Set([
+  RadioControl,
+  CardsControl,
+]);
+/** Controls that keep their own edit draft; they receive confirmed values only. */
+export const draftControls: ReadonlySet<ComponentType<SettingControlProps<any>>> = new Set([
+  TextControl,
+  TextareaControl,
+  NumberControl,
+]);
+
+/**
+ * The control for a field: `spec.control` when declared, otherwise inferred from the value:
+ * boolean → switch, options → select, number → number, string → text. Undefined when no
+ * standard control fits; a custom settings page renders those.
+ */
+export function controlFor(
+  field: SettingsCatalogField,
+): ComponentType<SettingControlProps<any>> | undefined {
+  const { spec } = field;
+  if (spec.control) return controls[spec.control];
+  if (typeof spec.default === 'boolean') return SwitchControl;
+  if (field.options?.length) return SelectControl;
+  if (typeof spec.default === 'number') return NumberControl;
+  if (typeof spec.default === 'string') return TextControl;
+  return undefined;
 }

@@ -142,40 +142,53 @@ Done when
 
 ## Phase 4: Settings and Shell (L)
 
+Status 2026-10-03: packages done (Core, UI, app-preferences, Shell, better-auth-ui,
+next-intl, quick-search, CLI, create-app); the sample apps are left for the Phase 6 rebuild.
+
 Changes
 
-- [ ] `defineSettings` per plugin: `schema`, `default`, `scope: 'user' | 'organization' |
-'device'`, optional `label` and `render`. Keys are `<plugin>.<name>`.
-- [ ] One read/write API: `settings.<plugin>.<key>.get() / set() / subscribe()` and
-      `useSetting(key)`. Generated settings sections from the definitions;
-      `ui/settings/page.tsx` replaces a plugin's section.
-- [ ] Storage is a `settings.storage` contract; browser storage is the default; a host
-      provides a server-backed service in one file.
-- [ ] Shell split into headless hooks (`useNavigation`, `useSlot`, `useSettingsCatalog`,
+- [x] `defineSettings` per plugin: `setting({ default, schema?, scope: 'user' | 'organization' |
+      'device', label?, control?, options? })` in an isomorphic `settings.ts`. Keys are
+      `<plugin>.<name>`; app settings keep plain names. The runtime owns values
+      (`SettingsStore`), identity follows the `auth` contract.
+- [x] One read/write API: `settings.<plugin>.<name>.get() / set() / subscribe()` in every
+      context and `useSetting(key)` in React. Generated settings pages from the declarations
+      (`useSettingsCatalog`, App Preferences renders them); `ui/settings/page.tsx` replaces a
+      plugin's page; sections take `title`, `category`, `order`, `path`, `shortcut`.
+- [x] Storage is the `settings.storage` contract; browser storage is the default; a host
+      provides a server-backed service in one file (`provides: settingsStorage`).
+- [x] Shell split into headless hooks (`useNavigation`, `useSlot`, `useSettingsCatalog`,
       `useNotifications`, `useCurrentPage`) and compound `AppShell.*` components with a
       `components` override map.
-- [ ] Declared `slots` (Shell and `bitakit.config.ts`) generate `SlotMap`. `doctor` warns when
-      a view targets a slot no layout renders.
-- [ ] Layouts discovered from `src/layouts/<name>.tsx`; pages choose with
-      `export const layout = 'admin'`; `blank` renders nothing around the page.
-- [ ] Shell options via a schema in `configs/shell.ts`; features derive from contributions
-      instead of booleans (`appearance`, `pluginManagement`). Notifications are a service.
-- [ ] Theme: generated token file `src/app/theme.css`; appearance settings (`mode`, `preset`,
-      `density`) owned by Shell; presets declared in a package manifest as CSS.
-- [ ] Package manifests declare plugin `dependencies`; discovery activates transitive plugin
-      packages.
+- [x] Declared `slots` (package manifests `bitakit.slots` and `bitakit.config.ts`) generate
+      `SlotMap`. `doctor` warns when a slot file targets a slot no layout declares.
+- [x] Layouts discovered from `src/layouts/<name>.tsx`; pages choose with
+      `export const layout = 'admin'`; `blank` renders nothing around the page; unknown
+      names fail at startup with attribution.
+- [x] Shell options via a schema (`shellOptions`, `{ groups, presets }`); features derive from
+      contributions; the boolean switches are gone. Notifications are an always-on service.
+- [x] Theme: appearance settings (`mode`, `layout`, `preset`, `density`, `corners`, `toasts`)
+      owned by Shell and applied to `<html>` (`dark`, `data-theme-preset`, `data-density`,
+      `data-shell-corners`); presets are CSS the host or a package ships, listed in
+      `configs/shell.ts`. `ShellThemeScript` pre-paints the color scheme.
+- [ ] Package manifests declare plugin `dependencies` (transitive activation already follows npm
+      dependencies; an explicit manifest field is deferred to Phase 5).
+- [x] Dialog frames: `dialog: { component, kind, size }`; hosts register frames through
+      `FoundationProvider` `dialogs` and decide the appearance.
 
 Removes
 
-- [ ] `SettingsSection`, `defineSettingsSection`, the `settings` / `settings.sections` /
-      `settings.renderers` kinds, `theme.set` and `locale.set` as a second write path, the
-      hand-written settings link in the demo plugin, the 84 lines of option plumbing in the
-      Shell factory.
+- [x] `SettingsSection`, `defineSettingsSection`, the `settings` / `settings.sections` /
+      `settings.renderers` kinds, the App Preferences store and renderer registry, the Shell
+      option plumbing, `@bitakit/shell/settings|definitions|sidebar`.
+- [ ] `theme.set` and `locale.set` in `apps/web` and the demo plugin's hand-written settings link
+      go with the Phase 6 rebuild of the sample apps.
 
 Done when
 
-- A custom layout written only with the hooks renders every plugin contribution, and
-  `apps/web` no longer contains a settings catalog.
+- A custom layout written only with the hooks renders every plugin contribution (Shell test
+  `app-shell.test.mjs`), and the generated apps verify end to end (`verify:generated`).
+  `apps/web` still contains its pre-Phase-4 settings catalog until the Phase 6 rebuild.
 
 ## Phase 5: Adapters, packages and tooling (M)
 

@@ -16,6 +16,7 @@ import type {
 } from '../definitions.js';
 import type { Events } from '../events/types.js';
 import type { ContributionHost, OpenableDefinition, Override } from './host.js';
+import { isThenable, validate, validateSync } from '../schema.js';
 
 export type Registration = {
   id: string;
@@ -52,36 +53,7 @@ export function cap(presentation: ActionPresentation, override: Override): Actio
   };
 }
 
-const isThenable = (value: unknown): value is PromiseLike<unknown> =>
-  !!value && typeof (value as PromiseLike<unknown>).then === 'function';
-const invalid = (issues: readonly { message: string }[]) =>
-  new Error(`Invalid input: ${issues.map((issue) => issue.message).join('; ')}`);
-/** Undefined when the schema validates asynchronously; execution then awaits `validate`. */
-function validateSync<T>(
-  schema: InputSchema<T> | undefined,
-  input: unknown,
-): { ok: true; value: T } | { ok: false; error: Error } | undefined {
-  if (!schema) return undefined;
-  try {
-    if ('parse' in schema) return { ok: true, value: schema.parse(input) };
-    const result = schema['~standard'].validate(input);
-    if (isThenable(result)) return undefined;
-    if ('issues' in (result as object))
-      return {
-        ok: false,
-        error: invalid((result as { issues: readonly { message: string }[] }).issues),
-      };
-    return { ok: true, value: (result as { value: T }).value };
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error : new Error(String(error)) };
-  }
-}
-async function validate<T>(schema: InputSchema<T>, input: unknown): Promise<T> {
-  if ('parse' in schema) return schema.parse(input);
-  const result = await schema['~standard'].validate(input);
-  if ('issues' in result) throw invalid(result.issues);
-  return result.value;
-}
+// Validation helpers are shared with settings.
 
 /**
  * The one adapter: static fields register as-is, function-valued fields are evaluated per
@@ -107,6 +79,7 @@ export function adaptAction(
     input,
     services: host.services,
     config,
+    settings: host.app.settings,
     app: host.app,
   });
   const evaluate = <V>(value: Dynamic<unknown, V>, input: unknown): V =>
@@ -168,6 +141,7 @@ export function adaptAction(
               input,
               services: host.services,
               config,
+              settings: host.app.settings,
               app: host.app,
               events,
             };

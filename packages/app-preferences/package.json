@@ -2,8 +2,8 @@
   "name": "@bitakit/app-preferences",
   "version": "0.2.0",
   "type": "module",
-  "foundation": {
-    "discovery": "./discovery",
+  "description": "The BitaKit settings UI: generated settings pages, field controls, navigation and the settings route.",
+  "bitakit": {
     "plugin": "./foundation",
     "styles": "./styles.css"
   },
@@ -14,8 +14,6 @@
     "dist",
     "README.md",
     "styles.css",
-    "discovery.mjs",
-    "discovery.d.ts",
     "locales"
   ],
   "exports": {
@@ -24,58 +22,35 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./core": {
-      "types": "./dist/core.d.ts",
-      "default": "./dist/core.js"
-    },
-    "./actions": {
-      "types": "./dist/actions.d.ts",
-      "default": "./dist/actions.js"
-    },
     "./foundation": {
-      "types": "./dist/foundation/index.d.ts",
-      "default": "./dist/foundation/index.js"
-    },
-    "./discovery": {
-      "types": "./discovery.d.ts",
-      "default": "./discovery.mjs"
+      "types": "./dist/foundation.d.ts",
+      "default": "./dist/foundation.js"
     },
     "./styles.css": "./styles.css",
     "./locales/*.json": "./locales/*.json"
   },
   "scripts": {
     "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
-    "test": "npm run build && node --test tests/*.test.mjs"
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@bitakit/core": "^0.2.0",
+    "@bitakit/ui": "^0.2.0",
+    "class-variance-authority": "^0.7.1",
+    "cn": "^0.3.0",
+    "nuqs": "2.10.1",
+    "radix-ui": "^1.6.7",
+    "reicon-react": "1.2.5"
   },
   "peerDependencies": {
-    "@bitakit/core": "^0.2.0",
-    "@bitakit/ui": "^0.2.0",
-    "react": "^18.3.0 || ^19.0.0"
+    "react": "^19.0.0"
   },
   "devDependencies": {
-    "@bitakit/core": "^0.2.0",
-    "@bitakit/ui": "^0.2.0",
     "@types/react": "^19",
     "jsdom": "^27.0.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "typescript": "^5"
-  },
-  "peerDependenciesMeta": {
-    "@bitakit/core": {
-      "optional": true
-    },
-    "@bitakit/ui": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "radix-ui": "^1.6.7",
-    "class-variance-authority": "^0.7.1",
-    "cn": "^0.3.0",
-    "reicon-react": "1.2.5",
-    "@standard-schema/spec": "^1.0.0",
-    "zod": "^4.6.5"
   },
   "license": "MIT",
   "repository": {

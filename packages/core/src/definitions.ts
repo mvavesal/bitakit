@@ -3,6 +3,8 @@ import type { EventsDefinition } from './events/define.js';
 import type { Store } from './store.js';
 import type { ConfigContext, ConfigValues, ConfigDefinition } from './config-service.js';
 import type { AuthService, TranslationService } from './contracts.js';
+import type { SettingsAccess } from './settings/access.js';
+import type { SettingsDefinition } from './settings/define.js';
 import type { PresentationType } from './presentation.js';
 import type {
   ActionContext,
@@ -36,6 +38,8 @@ export type ServiceContext = {
   services: Services;
   config: ConfigContext;
   events: Events;
+  /** Typed setting handles: `settings.todos.pageSize.get()`. */
+  settings: SettingsAccess;
   /** Observable state; actions and `useServiceState` follow it automatically. */
   store<T>(initial: T): Store<T>;
   /** Awaited in dependency order before the app is ready. */
@@ -65,10 +69,20 @@ export type LegacyServiceDefinition<T = unknown> = {
   create(context: { services: Services; config: ConfigContext; events: Events }): T;
   dispose?: (instance: T) => void;
 };
-export function defineService<T, const Options extends ServiceOptions = {}>(
-  create: (context: ServiceContext) => T,
-  options?: Options & { provides?: ServiceKey<NoInfer<T>> },
-): ServiceDefinition<T> & Options;
+/** The instance type a contract key demands. */
+type ContractOf<Key> = Key extends ServiceKey<infer Contract, string> ? Contract : unknown;
+/**
+ * With `provides`, the factory's instance must satisfy the contract; the constraint is checked
+ * after inference, so a destructured context parameter still infers the instance type.
+ */
+export function defineService<
+  const Options extends ServiceOptions & { provides: ServiceKey<any> },
+  T extends ContractOf<Options['provides']>,
+>(create: (context: ServiceContext) => T, options: Options): ServiceDefinition<T> & Options;
+export function defineService<
+  T,
+  const Options extends ServiceOptions & { provides?: undefined } = {},
+>(create: (context: ServiceContext) => T, options?: Options): ServiceDefinition<T> & Options;
 /** @deprecated Pass the factory as the first argument. */
 export function defineService<T>(definition: LegacyServiceDefinition<T>): ServiceDefinition<T>;
 export function defineService<T>(
@@ -103,6 +117,7 @@ export type PresentationContext<Input = unknown> = {
   input: Input;
   services: Services;
   config: ConfigContext;
+  settings: SettingsAccess;
   app: FoundationApp;
 };
 /** A value, or a function of the current input and services; functions re-run on service changes. */
@@ -110,12 +125,29 @@ export type Dynamic<Input, Value> = Value | ((context: PresentationContext<Input
 export type ExecuteContext<Input = unknown> = ActionContext<Input> & {
   services: Services;
   config: ConfigContext;
+  settings: SettingsAccess;
   app: FoundationApp;
   events: Events;
   /** Aborts when the registration is disposed, or when a newer `latest` run supersedes this one. */
   signal: AbortSignal;
 };
 export type Concurrency = 'exclusive' | 'per-input' | 'latest';
+export type DialogSpec = {
+  component: PresentationType<'component'>;
+  /** A frame the host registered under `dialogs`; `dialog` is the default frame. */
+  kind?: string;
+  size?: 'default' | 'wide';
+};
+/** The dialog of an action in object form, whichever way it was declared. */
+export function dialogOf(
+  spec: Pick<ActionSpecInput<any, any>, 'dialog' | 'dialogSize'>,
+): DialogSpec | undefined {
+  const dialog = spec.dialog;
+  if (!dialog) return undefined;
+  if (typeof dialog === 'object' && dialog !== null && 'component' in dialog)
+    return { size: spec.dialogSize, ...(dialog as DialogSpec) };
+  return { component: dialog as PresentationType<'component'>, size: spec.dialogSize };
+}
 /** zod, valibot and friends: `parse`, or Standard Schema `~standard.validate`. */
 export type InputSchema<T> =
   | { parse(input: unknown): T }
@@ -166,8 +198,12 @@ export type ActionSpecInput<Input = unknown, Result = unknown> = {
   concurrencyKey?: (input: Input) => string;
   /** Ask before running; declining skips with reason "cancelled". */
   confirm?: Dynamic<Input, Confirmation | string | false | undefined>;
-  /** Opens this component in the host dialog instead of running `execute`. */
-  dialog?: PresentationType<'component'>;
+  /**
+   * Opens this component in the host dialog instead of running `execute`. The object form
+   * names the host frame (`kind`, for example `sheet`) and the size; the host decides the look.
+   */
+  dialog?: PresentationType<'component'> | DialogSpec;
+  /** @deprecated Use `dialog: { component, size }`. */
   dialogSize?: 'default' | 'wide';
   execute?: (context: ExecuteContext<Input>) => Result | Promise<Result>;
   success?: Feedback<{ result: Awaited<Result>; input: Input; services: Services }>;
@@ -228,10 +264,15 @@ export type ProviderDefinition = {
   component: PresentationType<'provider'>;
   requires?: readonly string[];
 };
+/** `ui/settings/page.tsx`: replaces the generated settings page of the plugin. */
+export type PluginSettingsPage = { component: PresentationType<'component'> };
 export type PluginUI = {
   pages?: readonly PluginPageDefinition[];
   slots?: readonly PluginView[];
   providers?: readonly ProviderDefinition[];
+  settings?: PluginSettingsPage;
+  /** App only: `src/layouts/<name>.tsx`; pages choose one with `export const layout = '<name>'`. */
+  layouts?: Readonly<Record<string, PresentationType<'component'>>>;
 };
 /** Public display information only; package authors remain the source of truth. */
 export type PluginMetadata = {
@@ -267,6 +308,7 @@ export type Plugin = {
   services?: readonly ServiceDefinition<any>[] | Readonly<Record<string, ServiceDefinition<any>>>;
   actions?: readonly ActionSpec<any, any>[] | Readonly<Record<string, ActionSpec<any, any>>>;
   events?: EventsDefinition<any>;
+  settings?: SettingsDefinition<any>;
   config?: ConfigValues | ConfigDefinition;
   interceptors?: readonly InterceptorSpec[];
   setup?: Setup;

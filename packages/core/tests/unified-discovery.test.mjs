@@ -127,6 +127,15 @@ test('the generated file wires app and plugins: nested services, typed events, c
     );
     await put('src/configs/shell.ts', `export default { title: 'Demo' };`);
     await put(
+      'src/settings.ts',
+      `
+      import { defineSettings, setting } from '@bitakit/core';
+      export default defineSettings({
+        theme: setting({ default: 'system', options: [{ value: 'light' }, { value: 'dark' }, { value: 'system' }] }),
+      });
+    `,
+    );
+    await put(
       'src/plugins/todos/plugin.config.ts',
       `export default { metadata: { name: 'Todos' } };`,
     );
@@ -183,6 +192,17 @@ test('the generated file wires app and plugins: nested services, typed events, c
         deleting: event<{ id: number }>({ cancelable: true }),
       });
     `,
+    );
+    await put(
+      'src/plugins/todos/settings.ts',
+      `
+      import { defineSettings, setting } from '@bitakit/core';
+      export default defineSettings({ pageSize: setting({ default: 20 }) }, { title: 'Todos' });
+    `,
+    );
+    await put(
+      'src/plugins/todos/ui/settings/page.tsx',
+      `export default function TodoSettings() { return null; }`,
     );
     await put(
       'src/plugins/todos/configs/limits.ts',
@@ -279,6 +299,10 @@ test('the generated file wires app and plugins: nested services, typed events, c
     assert.match(source, /pluginProvider\(module\d+, "todos\.query"\)/);
     assert.match(source, /events: discoverEvents\(\[file\d+\]\)/);
     assert.match(source, /discoveredFile\(entry\d+, "", "src\/plugins\/todos\/events\.ts"\)/);
+    assert.match(source, /settings: discoverSettings\(\[file\d+\]\)/);
+    assert.match(source, /settings: pluginSettingsPage\(module\d+\)/);
+    assert.match(source, /DiscoveredSettingsEntry<typeof file\d+, "">/);
+    assert.match(source, /DiscoveredSettingsEntry<typeof file\d+, "todos">/);
     assert.match(source, /id: "todos", metadata: \{"name":"Todos"\}, dependencies: \[\]/);
     assert.match(
       source,
@@ -305,6 +329,12 @@ test('the generated file wires app and plugins: nested services, typed events, c
       const same: Date = services.todos.clock.now();
       const max: number = app.config.todos.limits.maxItems;
       const title: string = app.config.app.shell.title;
+      const size: number = app.settings.todos.pageSize.get();
+      app.settings.theme.set('dark');
+      // @ts-expect-error Setting values follow settings.ts.
+      app.settings.theme.set('blue');
+      // @ts-expect-error Unknown settings are not part of completion.
+      app.settings.todos.unknown;
       app.actions.todos.add.execute('title').then((outcome) => {
         if (outcome.status === 'completed') { const value: string = outcome.value; void value; }
       });
@@ -328,7 +358,7 @@ test('the generated file wires app and plugins: nested services, typed events, c
       // @ts-expect-error Unknown services are not part of completion.
       app.services.documents;
       const ids: string[] = config.plugins.map((plugin) => plugin.id);
-      void [count, added, now, same, max, title, allowed, wrong, ids];
+      void [count, added, now, same, max, title, size, allowed, wrong, ids];
     `,
     );
     assert.deepEqual(typeErrors([result.generated, consumer], root), []);
@@ -343,6 +373,10 @@ test('the generated file wires app and plugins: nested services, typed events, c
     );
     const [todos] = config.plugins;
     assert.deepEqual(todos.metadata, { name: 'Todos' });
+    assert.equal(todos.settings.settings.pageSize.default, 20);
+    assert.deepEqual(todos.settings.section, { title: 'Todos' });
+    assert.equal(typeof todos.ui.settings.component, 'function');
+    assert.equal(config.settings.settings.theme.default, 'system');
     assert.deepEqual(
       todos.ui.pages.map(({ path: pagePath, layout }) => ({ path: pagePath, layout })),
       [
@@ -858,7 +892,7 @@ test('the app module namespaces its contributions, declares events and selects i
     );
     assert.match(
       source,
-      /events: discoverEvents\(\[file\d+\]\),\s+services: discoverServices\(\[file\d+\], "app"\),\s+actions: discoverActions\(\[file\d+, file\d+\], "app"\)/,
+      /events: discoverEvents\(\[file\d+\]\),\s+settings: discoverSettings\(\[\]\),\s+services: discoverServices\(\[file\d+\], "app"\),\s+actions: discoverActions\(\[file\d+, file\d+\], "app"\)/,
     );
     assert.match(source, /type DiscoveredEvents = DiscoveredEventsEntry<typeof file\d+, "app">/);
     assert.match(
@@ -1070,6 +1104,7 @@ test('describeFoundation and describeModule summarize modules, packages and warn
       'packages',
       'installedPackages',
       'styles',
+      'slots',
       'warnings',
     ]);
     assert.equal(description.root, root);
@@ -1087,6 +1122,8 @@ test('describeFoundation and describeModule summarize modules, packages and warn
       configs: [{ path: 'shell', file: 'src/configs/shell.ts' }],
       interceptors: [{ path: 'log', file: 'src/interceptors/log.ts' }],
       events: [{ path: '', file: 'src/events.ts' }],
+      settings: [],
+      layouts: [],
     });
     assert.deepEqual(description.plugins, [
       {
@@ -1105,9 +1142,11 @@ test('describeFoundation and describeModule summarize modules, packages and warn
         configs: [],
         interceptors: [],
         events: [],
+        settings: [],
       },
     ]);
     assert.deepEqual(description.packages, ['@acme/shell/plugin']);
+    assert.deepEqual(description.slots, []);
     assert.deepEqual(description.installedPackages, ['@acme/shell']);
     assert.deepEqual(description.styles, ['@acme/shell/styles.css']);
     expectWarnings(description.warnings, [
@@ -1125,6 +1164,7 @@ test('describeFoundation and describeModule summarize modules, packages and warn
       'pages',
       'providers',
       'services',
+      'settings',
       'setup',
       'slots',
       'warnings',

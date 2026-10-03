@@ -10,7 +10,9 @@ concept. See [refactor-phases.md](../refactor-phases.md) for sequencing and
 - **Service**: behavior and state. ID `<plugin>.<file>`, reached as `services.<plugin>.<file>`.
 - **Action**: an operation with presentation (title, enabled, pending). ID `<plugin>.<file>`.
 - **Event**: a typed notification. Name `<plugin>.<name>`, declared once in `events.ts`.
-- **Config**: build-time, immutable developer input. Settings (user values) come in Phase 4.
+- **Config**: build-time, immutable developer input.
+- **Setting**: a user, organization or device value. Key `<plugin>.<name>`, declared once in
+  `settings.ts`; the runtime owns the value, a storage contract persists it.
 - **Interceptor**: observes or gates actions, or observes service methods.
 - **Contract**: a typed service key any plugin may provide (`auth`, `i18n`, `email`).
 - **UI**: everything under `ui/`: pages, slots, dialogs, providers. React only.
@@ -24,6 +26,7 @@ src/plugins/todos/
 ├── services/items.ts         defineService   → services.todos.items
 ├── actions/add.ts            defineAction    → todos.add
 ├── events.ts                 defineEvents    → todos.changed
+├── settings.ts               defineSettings  → settings.todos.pageSize
 ├── configs/limits.ts         defineConfig    → app.config.todos.limits
 ├── interceptors/audit.ts     defineInterceptor
 ├── setup.ts                  plugin setup (optional)
@@ -34,7 +37,9 @@ src/plugins/todos/
     ├── pages/tasks/[id].tsx  /todos/tasks/:id
     ├── slots/app-bar.end.tsx component placed in slot "app-bar.end"
     ├── dialogs/rename.tsx    dialog opened by an action
+    ├── settings/page.tsx     replaces the generated settings page of the plugin
     └── providers/query.tsx   React provider wrapped around the app
+src/layouts/admin.tsx         app layout; a page opts in with `export const layout = 'admin'`
 ```
 
 Folders only. `actions/x.ts` is the one spelling; `actions.x.ts` and `x.action.ts` are
@@ -69,8 +74,10 @@ export default defineService(
 
 - The factory receives one context object. Options are optional.
 - `requires` is an optional startup check; a missing service fails lazily with a named error
-  either way. `provides` registers the instance under a contract key. `exposeAs` adds an
-  alias in `services` (for deliberate flattening only).
+  either way. `provides` registers the instance under a contract key; the instance must satisfy
+  the contract. A key created as `serviceKey<T, 'notifications'>('notifications')` carries its
+  literal name, so `services.notifications` is typed wherever the plugin is installed.
+  `exposeAs` adds an alias in `services` (for deliberate flattening only).
 - Anything a service exposes with `subscribe(listener)` is observed; `store()` is the
   built-in way to get that.
 
@@ -96,13 +103,16 @@ export default defineAction({
 ```
 
 - Navigation: `defineAction({ title: 'Todos', href: '/todos', groups: ['navigation'] })`.
-- Dialog: `defineAction({ title: 'Rename', dialog: RenameDialog, dialogSize: 'wide' })`; the
-  component receives `{ input, close, services }`.
+- Dialog: `defineAction({ title: 'Rename', dialog: RenameDialog })` or
+  `dialog: { component: RenameDialog, kind: 'sheet', size: 'wide' }`; the component receives
+  `{ input, close, services }`. The action names a frame `kind`; the host registers frames on
+  `FoundationProvider` (`dialogs={{ sheet: SheetFrame }}`) and decides the appearance.
+  `dialogSize` is deprecated.
 - Presentation fields that accept a function: `title`, `description`, `tooltip`, `enabled`,
   `visible`, `checked`, `value`, `variant`, `href`. The function context is
-  `{ input, services, config, app }`. `icon` is static, because a component cannot be told
-  apart from a presentation function.
-- `execute` context: `{ input, services, config, app, events, signal, id, get, update }`.
+  `{ input, services, config, settings, app }`. `icon` is static, because a component cannot
+  be told apart from a presentation function.
+- `execute` context: `{ input, services, config, settings, app, events, signal, id, get, update }`.
   Sync or async. Pending is set only when a promise is returned.
 - Without a schema, type the input explicitly: `defineAction<string>({ ... })` (result is
   then `unknown`). With a schema, input and result are inferred.
@@ -145,6 +155,39 @@ config.action.get('defaultTitle', 'Untitled'); // configs/actions/<action>.ts
 
 Overrides: `bitakit.config.ts` → `configOverrides: { todos: { limits: { maxItems: 50 } } }`.
 
+## Settings
+
+```ts
+// src/plugins/todos/settings.ts — isomorphic, no React
+export default defineSettings(
+  {
+    pageSize: setting({ schema: z.number().int().min(5).max(100), default: 20 }),
+    theme: setting({ default: 'system', options: [{ value: 'light' }, { value: 'dark' }, { value: 'system' }], control: 'cards' }),
+    compact: setting({ default: false, scope: 'device', label: 'Compact rows' }),
+  },
+  { title: 'Todos', category: 'general', order: 5 }, // section of the generated settings page
+);
+
+settings.todos.pageSize.get(); // in services, actions, interceptors, app.settings
+await settings.todos.pageSize.set(50); // 'saved' | 'superseded' | 'cancelled'
+settings.todos.pageSize.subscribe(listener);
+const { value, ready, writable, pending, error, set, reset } = useSetting('todos.pageSize');
+```
+
+- Keys are `<plugin>.<name>`; app settings keep the plain name (`settings.theme`). Types come
+  from the schema, the option values or the default, and land in the generated `SettingsMap`.
+- `scope`: `user` (default), `organization` or `device`. The runtime follows the `auth`
+  contract (`user.id`, `organizationId`) and reloads values when the identity changes.
+- Persistence is the `settings.storage` contract: browser storage by default; a host provides
+  a server-backed service in one file: `defineService(() => ({ load, save, loadMany?, reset? }), { provides: settingsStorage })`.
+  Storage receives `{ scope, userId, organizationId }` and returns `{ value, writable }`.
+- Every plugin with settings gets a generated page under `/settings/<plugin>` (fields by
+  `control`, inferred from the value when omitted); `ui/settings/page.tsx` replaces it.
+  Translation keys: `<plugin>.settings.<name>.label|description`, `<plugin>.settings.<name>.options.<value>.label|description`,
+  `<plugin>.settings.title|description`.
+- Presentation re-evaluates on setting changes like on store changes. Values are confirmed
+  values: a failed write keeps the previous value and reports `error`.
+
 ## Interceptor
 
 ```ts
@@ -172,9 +215,10 @@ export default definePlugin({
   actions: { add: addAction },
   events: todosEvents,
   config: { limits },                            // a record: the schema lands at app.config.todos.limits
+  settings: todosSettings,
   interceptors: [audit],
   setup: ({ app, services }) => () => {},
-  ui: { pages: [...], slots: [...], providers: [...] },
+  ui: { pages: [...], slots: [...], providers: [...], settings: { component: TodosSettingsPage } },
 });
 ```
 
@@ -199,7 +243,11 @@ const items = useServiceState('todos.items', (s) => s.items);            // reac
 const service = useService('todos.items');                               // the instance
 useEvent('todos.changed', handler);
 const nav = useActionGroup('navigation');
-<FoundationProvider config={bitakit} controls={{ button: (s) => ({ isDisabled: !s.enabled }) }} />
+const { value, set } = useSetting('todos.pageSize');                       // confirmed value, writes through the runtime
+const sections = useSettingsCatalog();                                     // sections for a settings UI
+const navigation = useNavigation(['navigation']);                          // bound groups + pathname, Link, isActive
+const badges = useSlot('app-bar.end');                                     // components plugins placed in a slot
+<FoundationProvider config={bitakit} controls={{ button: (s) => ({ isDisabled: !s.enabled }) }} dialogs={{ sheet: SheetFrame }} />
 ```
 
 Removed: `ActionBinding`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`,
@@ -208,9 +256,12 @@ Removed: `ActionBinding`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`
 
 ## Generated files
 
-`src/bitakit.gen.tsx` (config, `BitaKitProvider`, type augmentations), `src/bitakit.gen.css`
-(package styles), `src/bitakit.gen.messages.json` (plugin locales). Configured in
-`bitakit.config.ts`. Gitignore `src/bitakit.gen.*`.
+`src/bitakit.gen.tsx` (config, `BitaKitProvider`, type augmentations: `ServiceMap`, `ActionMap`,
+`EventMap`, `SettingsMap`, `ConfigMap`, `SlotMap`), `src/bitakit.gen.css` (package styles),
+`src/bitakit.gen.messages.json` (plugin locales). Configured in `bitakit.config.ts`. Gitignore
+`src/bitakit.gen.*`. `SlotMap` collects the slots installed layouts declare in their package
+manifest (`bitakit.slots`) plus `slots` from `bitakit.config.ts`; `doctor` warns when a slot
+file targets a slot nobody renders. App layouts come from `src/layouts/<name>.tsx`.
 
 ## Compatibility until Phase 5
 

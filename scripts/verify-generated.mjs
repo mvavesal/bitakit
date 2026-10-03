@@ -33,7 +33,7 @@ const app = (framework, sample) => ({
     ? [
         ['/', 'Welcome'],
         ['/todos', 'Todos', addItem],
-        ['/settings', 'Theme'],
+        ['/settings', 'Appearance'],
         ['/missing', 'Page not found'],
       ]
     : [

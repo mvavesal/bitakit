@@ -66,7 +66,7 @@ export function createBetterAuthIntegration(options: BetterAuthIntegrationOption
             organizationsPlugin(() =>
               sessionOrganizationBackend(authClient, betterAuthOrganizations(authClient)),
             ),
-            organizationUIPlugin({ settings: ui.accountSettings?.catalog, ...organizations }),
+            organizationUIPlugin(organizations),
           ]
         : []),
     ],

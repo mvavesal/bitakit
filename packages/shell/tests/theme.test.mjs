@@ -1,70 +1,165 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { JSDOM } from 'jsdom';
-import Color from 'colorjs.io';
-import { createAppPreferences } from '@bitakit/app-preferences/core';
-import { themePreferences } from '../dist/definitions.js';
-import { bindThemePreferences, primaryForeground } from '../dist/theme/projection.js';
+import { mount, settle, setMedia, deferred } from './support.mjs';
+import { createElement as h, act } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { FoundationProvider, createMemorySettingsStorage, useFoundation } from '@bitakit/ui';
+import { shellPlugin, ShellThemeScript } from '../dist/index.js';
 
-const fields = themePreferences.fields;
+const root = document.documentElement;
+const snapshot = () => ({
+  dark: root.classList.contains('dark'),
+  colorScheme: root.style.colorScheme,
+  density: root.getAttribute('data-density'),
+  corners: root.getAttribute('data-shell-corners'),
+  preset: root.getAttribute('data-theme-preset'),
+});
+function resetRoot() {
+  root.removeAttribute('class');
+  root.removeAttribute('style');
+  for (const name of ['data-density', 'data-shell-corners', 'data-theme-preset'])
+    root.removeAttribute(name);
+}
 
-test('custom primary colors choose readable foregrounds and reject malformed storage values', () => {
-  for (const color of [
-    '#000000',
-    '#ffffff',
-    '#2563eb',
-    '#7c3aed',
-    '#059669',
-    '#e11d48',
-    '#ea580c',
-    '#808080',
-  ]) {
-    assert.ok(new Color(color).contrastWCAG21(primaryForeground(color)) >= 4.5);
-    assert.equal(fields.primary.parse(color), color);
+async function mountShell(plugin, services) {
+  let runtime;
+  function Probe() {
+    runtime = useFoundation().runtime;
+    return null;
   }
-  assert.throws(() => fields.primary.parse('url(unsafe)'));
+  const view = await mount(
+    h(FoundationProvider, { config: { plugins: [plugin] }, services }, h(Probe)),
+  );
+  return { view, runtime: () => runtime };
+}
+
+test('the theme provider projects confirmed settings onto <html> and restores the host values', async () => {
+  resetRoot();
+  // The state the pre-paint script and the host left before hydration.
+  root.classList.add('dark');
+  root.style.colorScheme = 'dark';
+  root.setAttribute('data-density', 'host');
+  const gate = deferred();
+  const memory = createMemorySettingsStorage({
+    'shell.mode': 'light',
+    'shell.density': 'compact',
+    'shell.corners': 'square',
+    'shell.preset': 'ocean',
+  });
+  const storage = {
+    load: async (key, context) => {
+      await gate.promise;
+      return memory.load(key, context);
+    },
+    save: (key, value, context) => memory.save(key, value, context),
+  };
+  const { view, runtime } = await mountShell(shellPlugin({ presets: [{ id: 'ocean' }] }), {
+    'settings.storage': storage,
+  });
+  try {
+    await settle();
+    assert.deepEqual(
+      snapshot(),
+      { dark: true, colorScheme: 'dark', density: 'host', corners: null, preset: null },
+      'values that are not loaded leave the document unchanged',
+    );
+    gate.resolve();
+    await settle();
+    assert.deepEqual(snapshot(), {
+      dark: false,
+      colorScheme: 'light',
+      density: 'compact',
+      corners: 'square',
+      preset: 'ocean',
+    });
+
+    await act(() => runtime().settings.set('shell.mode', 'system'));
+    assert.equal(snapshot().dark, false, 'system follows a light preference');
+    await setMedia({ dark: true });
+    assert.deepEqual([snapshot().dark, snapshot().colorScheme], [true, 'dark']);
+    await setMedia({ dark: false });
+    assert.deepEqual([snapshot().dark, snapshot().colorScheme], [false, 'light']);
+    await act(() => runtime().settings.set('shell.mode', 'dark'));
+    assert.deepEqual([snapshot().dark, snapshot().colorScheme], [true, 'dark']);
+    await act(() => runtime().settings.set('shell.density', 'comfortable'));
+    await act(() => runtime().settings.set('shell.corners', 'round'));
+    await act(() => runtime().settings.set('shell.preset', 'default'));
+    assert.deepEqual(
+      [snapshot().density, snapshot().corners, snapshot().preset],
+      ['comfortable', 'round', 'default'],
+    );
+    await act(() => runtime().settings.set('shell.mode', 'light'));
+  } finally {
+    await view.unmount();
+  }
+  assert.deepEqual(
+    snapshot(),
+    { dark: true, colorScheme: 'dark', density: 'host', corners: null, preset: null },
+    'unmounting restores what the host had',
+  );
+  resetRoot();
 });
 
-test('theme projection follows confirmed writes and restores host tokens on disposal', async () => {
-  const dom = new JSDOM('<html style="--primary: blue"><body></body></html>');
-  const root = dom.window.document.documentElement;
-  let finish;
-  const settings = createAppPreferences({
-    definitions: themePreferences.settings,
-    storage: {
-      async load() {
-        return { writable: true };
-      },
-      async save() {
-        await new Promise((resolve) => {
-          finish = resolve;
-        });
-      },
-    },
+test('without presets the provider leaves data-theme-preset alone; defaults apply once loaded', async () => {
+  resetRoot();
+  const { view } = await mountShell(shellPlugin(), {
+    'settings.storage': createMemorySettingsStorage(),
   });
-  await settings.activate({ userId: 'test' });
-  const stop = bindThemePreferences(settings, root);
-  const write = settings.set(fields.primary, '#ffffff');
-  assert.equal(
-    root.style.getPropertyValue('--primary'),
-    'blue',
-    'pending values do not change the theme',
-  );
-  finish();
-  await write;
-  assert.equal(root.style.getPropertyValue('--primary'), '#ffffff');
-  assert.equal(root.style.getPropertyValue('--primary-foreground'), '#000000');
-  const cornerWrite = settings.set(fields.corners, 'square');
-  finish();
-  await cornerWrite;
-  assert.equal(root.getAttribute('data-shell-corners'), 'square');
-  stop();
-  assert.equal(root.style.getPropertyValue('--primary'), 'blue');
-  assert.equal(root.style.getPropertyValue('--primary-foreground'), '');
-  assert.equal(root.hasAttribute('data-shell-corners'), false);
-  const later = settings.set(fields.primary, '#2563eb');
-  finish();
-  await later;
-  assert.equal(root.style.getPropertyValue('--primary'), 'blue', 'subscriptions are released');
-  dom.window.close();
+  try {
+    await settle();
+    assert.deepEqual(snapshot(), {
+      dark: false,
+      colorScheme: 'light',
+      density: 'comfortable',
+      corners: 'default',
+      preset: null,
+    });
+  } finally {
+    await view.unmount();
+  }
+  assert.deepEqual(snapshot(), {
+    dark: false,
+    colorScheme: '',
+    density: null,
+    corners: null,
+    preset: null,
+  });
+});
+
+test('the pre-paint script reads the value the runtime stores in browser storage', async () => {
+  resetRoot();
+  localStorage.clear();
+  // Default storage: no settings.storage service, so the runtime writes to localStorage.
+  const { view, runtime } = await mountShell(shellPlugin());
+  try {
+    await settle();
+    await act(() => runtime().settings.set('shell.mode', 'dark'));
+  } finally {
+    await view.unmount();
+  }
+  assert.equal(localStorage.getItem('bitakit.settings.device/shell.mode'), '"dark"');
+  const markup = renderToStaticMarkup(h(ShellThemeScript, { nonce: 'n0nce' }));
+  assert.match(markup, /^<script nonce="n0nce">/);
+  const code = /<script[^>]*>([\s\S]*)<\/script>/.exec(markup)[1];
+  const run = () => new Function(code)();
+
+  resetRoot();
+  run();
+  assert.deepEqual([snapshot().dark, snapshot().colorScheme], [true, 'dark']);
+  localStorage.setItem('bitakit.settings.device/shell.mode', '"light"');
+  run();
+  assert.deepEqual([snapshot().dark, snapshot().colorScheme], [false, 'light']);
+  localStorage.setItem('bitakit.settings.device/shell.mode', '"system"');
+  await setMedia({ dark: true });
+  run();
+  assert.equal(snapshot().dark, true, 'system follows the color-scheme preference');
+  localStorage.removeItem('bitakit.settings.device/shell.mode');
+  run();
+  assert.equal(snapshot().dark, true, 'no stored value means system');
+  localStorage.setItem('bitakit.settings.device/shell.mode', '{broken');
+  await setMedia({ dark: false });
+  run();
+  assert.deepEqual([snapshot().dark, snapshot().colorScheme], [false, 'light']);
+  localStorage.clear();
+  resetRoot();
 });

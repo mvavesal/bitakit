@@ -136,7 +136,11 @@
     "account": {
       "checkingSignin": "Anmeldung wird geprüft …",
       "signInToAccessTheseAccountSettings": "Für diese Kontoeinstellungen benötigst du eine echte Anmeldung.",
-      "logIn": "Anmelden"
+      "logIn": "Anmelden",
+      "profile": "Profil",
+      "yourProfilePictureAndPersonalDetails": "Dein Profilbild und deine persönlichen Angaben.",
+      "security": "Sicherheit",
+      "emailPasswordTwoFactorAuthenticationLinkedAccountsAndActiveSessions": "E-Mail-Adresse, Passwort, Zwei-Faktor-Authentifizierung, verknüpfte Konten und aktive Sitzungen."
     },
     "organizations": {
       "reload": "Erneut laden",
@@ -150,7 +154,10 @@
       "informationAboutYourWorkspace": "Informationen zu deinem Arbeitsbereich.",
       "identifier": "Kennung:",
       "website": "Website:",
-      "youCanViewTheseDetailsButCannotEditThem": "Du kannst diese Angaben ansehen, aber nicht bearbeiten."
+      "youCanViewTheseDetailsButCannotEditThem": "Du kannst diese Angaben ansehen, aber nicht bearbeiten.",
+      "profile": "Profil",
+      "membersAndInvitations": "Mitglieder und Einladungen",
+      "invitationsForMe": "Einladungen an mich"
     },
     "auth_page_layout": {
       "backToApplication": "Zurück zur Anwendung"
@@ -227,35 +234,9 @@
     },
     "enable": {
       "title": "Entsperren"
-    }
-  },
-  "settings": {
-    "sections": {
-      "profile": {
-        "title": "Profil",
-        "description": "Dein Profilbild und deine persönlichen Angaben."
-      },
-      "security": {
-        "title": "Sicherheit",
-        "description": "E-Mail-Adresse, Passwort, Zwei-Faktor-Authentifizierung, verknüpfte Konten und aktive Sitzungen."
-      },
-      "organization": {
-        "title": "Organisationsprofil"
-      },
-      "members": {
-        "title": "Mitglieder"
-      },
-      "invitations": {
-        "title": "Einladungen"
-      },
-      "organization-members": {
-        "title": "Mitglieder und Einladungen",
-        "description": "Mitglieder und versendete Einladungen der aktiven Organisation verwalten."
-      },
-      "received-invitations": {
-        "title": "Einladungen an mich",
-        "description": "Einladungen, anderen Organisationen beizutreten."
-      }
+    },
+    "settings": {
+      "title": "Organisationseinstellungen"
     }
   },
   "plugins": {
@@ -265,6 +246,18 @@
     "organizations-ui": {
       "name": "Organisationsverwaltung",
       "description": "Mitglieder, Einladungen und Organisationsprofil."
+    }
+  },
+  "better-auth-ui": {
+    "settings": {
+      "title": "Konto",
+      "description": "Profil, E-Mail-Adresse, Passwort, Zwei-Faktor-Authentifizierung, verknüpfte Konten und aktive Sitzungen."
+    }
+  },
+  "organizations-ui": {
+    "settings": {
+      "title": "Organisation",
+      "description": "Profil, Mitglieder und Einladungen der aktiven Organisation."
     }
   }
 }

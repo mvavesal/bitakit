@@ -1,7 +1,7 @@
 'use client';
 import type { ComponentProps, ReactNode } from 'react';
 import ChevronExpandYIcon from 'reicon-react/icons/ChevronExpandY';
-import { SidebarMenuButton } from '@bitakit/shell/sidebar';
+import { SidebarMenuButton } from '@bitakit/ui/components';
 /** Shared account/workspace trigger, matching the original sidebar interaction. */
 export function SidebarIdentity({
   avatar,

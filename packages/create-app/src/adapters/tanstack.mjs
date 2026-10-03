@@ -87,6 +87,7 @@ export const tanstack = {
   },
   async configure(plan) {
     const shell = plan.features.includes('shell');
+    const preferences = plan.features.includes('preferences');
     await configureProject(plan, {
       packages: ['tanstack', ...plan.features.map((feature) => optionalPackages[feature])],
       dependencies: { '@tanstack/react-router': '1.170.40', '@tanstack/react-start': '1.168.59' },
@@ -112,6 +113,14 @@ export default defineConfig({
       'src/styles.css': projectStyles('.'),
       'src/routes/__root.tsx': root(plan.name),
     };
+    // Settings pages come with App Preferences, with or without the Shell frame.
+    if (preferences)
+      files['src/routes/settings.$.tsx'] =
+        `import { createFileRoute } from '@tanstack/react-router';
+import { SettingsRoute } from '@bitakit/app-preferences';
+
+export const Route = createFileRoute('/settings/$')({ component: SettingsRoute });
+`;
     if (shell)
       Object.assign(files, {
         'src/configs/shell.ts': shellConfig,
@@ -134,11 +143,6 @@ import { NotFoundPage } from '@bitakit/shell/pages';
 export const Route = createFileRoute('/_app/$')({
   component: () => <PluginPage fallback={<NotFoundPage />} />,
 });
-`,
-        'src/routes/settings.$.tsx': `import { createFileRoute } from '@tanstack/react-router';
-import { SettingsRoute } from '@bitakit/shell';
-
-export const Route = createFileRoute('/settings/$')({ component: SettingsRoute });
 `,
       });
     else

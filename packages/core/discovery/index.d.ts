@@ -78,6 +78,12 @@ export type DescribedModule = {
   actions: DescribedEntry[];
   services: DescribedEntry[];
   events: DescribedEntry[];
+  /** The module's `settings.ts`, when present. */
+  settings: DescribedEntry[];
+  /** `ui/settings/page.tsx`, when present. */
+  settingsPage?: string;
+  /** App module only: `src/layouts/<name>.tsx`. */
+  layouts?: { name: string; file: string }[];
   pages: DescribedEntry[];
   slots: DescribedEntry[];
   providers: DescribedEntry[];
@@ -96,6 +102,8 @@ export type FoundationDescription = {
   /** Names of installed packages with BitaKit metadata. */
   installedPackages: string[];
   styles: string[];
+  /** Slot names installed layouts render, plus `slots` from bitakit.config.ts. */
+  slots: string[];
   warnings: string[];
 };
 export function describeFoundation(root: string): Promise<FoundationDescription>;

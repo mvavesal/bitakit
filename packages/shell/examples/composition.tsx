@@ -1,83 +1,64 @@
+'use client';
 /**
- * Implemented API example: two fixed variants, no layout registry.
- * AppLogo, Search and AccountMenu represent application-owned components.
+ * Custom layouts for the Shell. AppLogo and AccountMenu stand for application-owned
+ * components. Use a layout from a client layout file, for example `src/layouts/focus.tsx`,
+ * which plugin pages select with `export const layout = 'focus'`.
  */
 import type { ReactNode } from 'react';
-import { AppShell, verticalLayout, type ShellLayout, type ShellLayoutProps } from '@bitakit/shell';
-import {
-  AppBar,
-  ActionNavigationMenu,
-  ActionSidebarNavigation,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarFooter,
-} from '@bitakit/ui/components';
+import { Action, useNavigation, useSlot, type SlotEntry } from '@bitakit/ui';
+import { AppBar } from '@bitakit/ui/components';
+import { AppShell } from '@bitakit/shell';
 
-/** Compose a custom sidebar from standard primitives and existing Action bindings. */
-function StudioSidebar({ brand, account, ...navigation }: ShellLayoutProps) {
+declare function AppLogo(): ReactNode;
+declare function AccountMenu(): ReactNode;
+
+/** Compound parts: the Shell sidebar and content area, without a top bar. */
+export function FocusLayout({ children }: { children: ReactNode }) {
   return (
-    <Sidebar side="left" variant="inset">
-      <SidebarHeader>{brand}</SidebarHeader>
-      <SidebarContent>
-        <nav aria-label="Main navigation">
-          <ActionSidebarNavigation {...navigation} />
-        </nav>
-      </SidebarContent>
-      <SidebarFooter>{account}</SidebarFooter>
-    </Sidebar>
-  );
-}
-
-/** Place navigation beneath the App Bar; center accepts any React content too. */
-function StudioAppBar({ brand, account, header, ...navigation }: ShellLayoutProps) {
-  return (
-    <AppBar
-      left={brand}
-      center={header}
-      right={account}
-      bottom={
-        <nav aria-label="Main navigation">
-          <ActionNavigationMenu {...navigation} />
-        </nav>
-      }
-    />
-  );
-}
-
-// Define components outside render so React can retain their identity.
-const layouts = {
-  sidebar: { ...verticalLayout, Navigation: StudioSidebar },
-  navbar: { Navigation: StudioAppBar },
-} satisfies Partial<Record<'sidebar' | 'navbar', ShellLayout>>;
-
-/** AppShell owns the stable content area; overrides customize only surrounding UI. */
-export function Application({
-  children,
-  brand,
-  account,
-  search,
-}: {
-  children: ReactNode;
-  brand: ReactNode;
-  account: ReactNode;
-  search: ReactNode;
-}) {
-  return (
-    <AppShell
-      layouts={layouts}
-      brand={brand}
-      account={account}
-      header={search}
-      groups={['navigation']}
-    >
-      {children}
+    <AppShell>
+      <AppShell.Sidebar header={<AppLogo />} footer={<AccountMenu />} />
+      <AppShell.Content>{children}</AppShell.Content>
     </AppShell>
   );
 }
 
-// Omitting layouts uses both standard arrangements.
-// Supplying only sidebar or navbar leaves the other variant unchanged.
-// App Preferences remains the owner of the selected sidebar/navbar value.
-// Each override has a Navigation component and optional content-area Header.
-// Arbitrary content wrappers are intentionally excluded to preserve mounted page state.
+const contributions = (entries: readonly SlotEntry[]) =>
+  entries.map(({ key, component: Contribution }) => <Contribution key={key} />);
+
+/** Hooks only: every navigation action and slot contribution in the app's own arrangement. */
+export function MinimalLayout({ children }: { children: ReactNode }) {
+  const { groups, isActive } = useNavigation();
+  const header = useSlot('sidebar.header');
+  const footer = useSlot('sidebar.footer');
+  return (
+    <>
+      {/* AppBar renders the app-bar.end slot itself. */}
+      <AppBar
+        left={
+          <>
+            <AppLogo />
+            {contributions(header)}
+          </>
+        }
+        center={
+          <nav aria-label="Main navigation">
+            {groups
+              .flatMap((group) => group.items)
+              .map((item) => (
+                // An empty child receives the action's icon and title.
+                <Action key={item.id} id={item}>
+                  {item.href === undefined ? (
+                    <button type="button" />
+                  ) : (
+                    <a aria-current={isActive(item.href) ? 'page' : undefined} />
+                  )}
+                </Action>
+              ))}
+          </nav>
+        }
+        right={contributions(footer)}
+      />
+      <main>{children}</main>
+    </>
+  );
+}

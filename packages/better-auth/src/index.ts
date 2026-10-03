@@ -49,8 +49,13 @@ export function betterAuthPlugin(
       const session = sessionAtom.get();
       if (session !== previous) {
         previous = session;
+        // The active organization scopes organization settings; only the organization plugin sets it.
+        const active = (
+          session.data?.session as { activeOrganizationId?: string | null } | undefined
+        )?.activeOrganizationId;
         snapshot = {
           user: session.data?.user ?? null,
+          organizationId: active ?? null,
           pending: session.isPending,
           error: session.error,
         };

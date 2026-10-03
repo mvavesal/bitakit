@@ -66,6 +66,7 @@ export const next = {
   },
   async configure(plan) {
     const shell = plan.features.includes('shell');
+    const preferences = plan.features.includes('preferences');
     await configureProject(plan, {
       packages: ['next', ...plan.features.map((feature) => optionalPackages[feature])],
       scripts: {
@@ -86,6 +87,15 @@ export default withBitaKit({});
       'src/app/layout.tsx': layout,
       'src/app/globals.css': projectStyles('..'),
     };
+    // Settings pages come with App Preferences, with or without the Shell frame.
+    if (preferences)
+      files['src/app/settings/[[...section]]/page.tsx'] = `'use client';
+import { SettingsRoute } from '@bitakit/app-preferences';
+
+export default function Page() {
+  return <SettingsRoute />;
+}
+`;
     if (shell)
       Object.assign(files, {
         'src/configs/shell.ts': shellConfig,
@@ -104,13 +114,6 @@ import { NotFoundPage } from '@bitakit/shell/pages';
 
 export default function Page() {
   return <PluginPage fallback={<NotFoundPage />} />;
-}
-`,
-        'src/app/settings/[[...section]]/page.tsx': `'use client';
-import { SettingsRoute } from '@bitakit/shell';
-
-export default function Page() {
-  return <SettingsRoute />;
 }
 `,
       });

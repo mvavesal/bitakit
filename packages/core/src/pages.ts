@@ -3,15 +3,29 @@ import type {
   PluginPageDefinition,
   PluginView,
   ProviderDefinition,
+  PluginSettingsPage,
 } from './definitions.js';
 import type { PresentationType } from './presentation.js';
 import { FoundationStartupError } from './startup-error.js';
 
 /** Exact, canonical paths only. Routers remain responsible for dynamic parameters. */
-export function validatePluginPages(plugins: readonly Pick<Plugin, 'id' | 'pages'>[]) {
+export function validatePluginPages(
+  plugins: readonly Pick<Plugin, 'id' | 'pages'>[],
+  layouts: ReadonlySet<string> = new Set(),
+) {
   const owners = new Map<string, string>();
   for (const plugin of plugins) {
     for (const page of plugin.pages ?? []) {
+      if (
+        page.layout &&
+        page.layout !== 'app' &&
+        page.layout !== 'blank' &&
+        !layouts.has(page.layout)
+      )
+        throw new FoundationStartupError(
+          `Page ${page.path} of plugin "${plugin.id}" names layout "${page.layout}", but src/layouts/${page.layout}.tsx does not exist.${layouts.size ? ` Known layouts: ${[...layouts].join(', ')}.` : ''} Use "app", "blank" or an existing layout.`,
+          plugin.id,
+        );
       if (
         !/^\/(?:(?:[a-zA-Z0-9_-]+|\[[a-zA-Z0-9_-]+\])(?:\/(?:[a-zA-Z0-9_-]+|\[[a-zA-Z0-9_-]+\]))*)?$/.test(
           page.path,
@@ -86,6 +100,17 @@ export function pluginSlot(module: Exported<unknown>, slot: string): PluginView 
   const value = module.default as PluginView | PresentationType<'component'>;
   if (value && typeof value === 'object' && 'component' in value) return value as PluginView;
   return { slot, component: value as PresentationType<'component'>, order: module.order };
+}
+/** A layout from `src/layouts/<name>.tsx`: the default export wraps pages that name it. */
+export function pluginLayout(module: Exported<unknown>): PresentationType<'component'> {
+  return module.default as PresentationType<'component'>;
+}
+/** The settings page from `ui/settings/page.tsx`; it replaces the generated page of the plugin. */
+export function pluginSettingsPage(module: Exported<unknown>): PluginSettingsPage {
+  const value = module.default as PluginSettingsPage | PresentationType<'component'>;
+  if (value && typeof value === 'object' && 'component' in value)
+    return value as PluginSettingsPage;
+  return { component: value as PresentationType<'component'> };
 }
 /** A React provider from `ui/providers/<name>.tsx`. */
 export function pluginProvider(module: Exported<unknown>, id: string): ProviderDefinition {

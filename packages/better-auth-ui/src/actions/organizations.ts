@@ -8,20 +8,13 @@ import RoleIcon from 'reicon-react/icons/ArrowUp3';
 import DemoteIcon from 'reicon-react/icons/ArrowDown3';
 import CancelIcon from 'reicon-react/icons/Xmark';
 import SendIcon from 'reicon-react/icons/Send';
-import BuildingIcon from 'reicon-react/icons/Building';
 import {
   OrganizationDialog,
   ConfirmOrganizationAction,
 } from '../components/organizations/organization-dialog.js';
 import { createElement } from 'react';
 import { InviteDialog } from '../components/organizations/invite-dialog.js';
-import {
-  defineAction,
-  defineDialogAction,
-  defineURLAction,
-  getService,
-  type Contribution,
-} from '@bitakit/core';
+import { defineAction, getService, type Contribution, type Services } from '@bitakit/core';
 import { organizationService } from '@bitakit/organizations';
 import { organizationGroups } from '@bitakit/organizations';
 import type { OrganizationService } from '@bitakit/organizations';
@@ -37,6 +30,8 @@ const ids = {
   disable: 'organizations.disable',
   enable: 'organizations.enable',
 };
+/** URL segment of the `organizations-ui` settings section, rendered under `/settings/<path>`. */
+export const organizationSettingsPath = 'organization';
 function context(input: unknown): {
   organizationId?: string | null;
   memberId?: string;
@@ -50,6 +45,55 @@ function context(input: unknown): {
     invitationId: typeof value.invitationId === 'string' ? value.invitationId : undefined,
   };
 }
+const organizations = (services: Services) => getService(services, organizationService);
+const idle = ({ services }: { services: Services }) =>
+  !organizations(services).getSnapshot().pending;
+
+/** Props the host dialog passes to an action's dialog component. */
+type DialogProps = { input: unknown; close(): void; services: Services };
+function CreateOrganization({ services, close }: DialogProps) {
+  return createElement(OrganizationDialog, { service: organizations(services), close });
+}
+function EditOrganization({ services, input, close }: DialogProps) {
+  return createElement(OrganizationDialog, {
+    service: organizations(services),
+    organizationId: context(input).organizationId,
+    close,
+  });
+}
+function DeleteOrganization({ services, input, close }: DialogProps) {
+  return createElement(ConfirmOrganizationAction, {
+    service: organizations(services),
+    organizationId: context(input).organizationId ?? null,
+    close,
+  });
+}
+function RemoveMember({ services, input, close }: DialogProps) {
+  return createElement(ConfirmOrganizationAction, {
+    service: organizations(services),
+    organizationId: context(input).organizationId ?? null,
+    memberId: context(input).memberId,
+    close,
+  });
+}
+const changeRole = (targetRole: 'admin' | 'member') =>
+  function ChangeRole({ services, input, close }: DialogProps) {
+    return createElement(ConfirmOrganizationAction, {
+      service: organizations(services),
+      organizationId: context(input).organizationId ?? null,
+      memberId: context(input).memberId,
+      targetRole,
+      close,
+    });
+  };
+function InviteMember({ services, input, close }: DialogProps) {
+  return createElement(InviteDialog, {
+    service: organizations(services),
+    organizationId: context(input).organizationId ?? null,
+    close,
+  });
+}
+
 export function organizationActions(options: {
   path?: string | false;
   groups?: readonly string[];
@@ -61,126 +105,85 @@ export function organizationActions(options: {
         title: operation === 'accept' ? 'Accept' : 'Decline',
         icon: operation === 'accept' ? AcceptIcon : CancelIcon,
         groups: [organizationGroups.incoming],
-        watch: [organizationService],
-        resolve: (input, { services }) => {
-          const service = getService(services, organizationService);
-          const state = service.getSnapshot();
-          return {
-            enabled: !state.pending,
-            visible:
-              service.capabilities.invitations &&
-              !!state.incomingInvitations?.some(
+        enabled: idle,
+        visible: ({ input, services }) => {
+          const service = organizations(services);
+          return (
+            !!service.capabilities.invitations &&
+            !!service
+              .getSnapshot()
+              .incomingInvitations?.some(
                 (item) => item.id === context(input).invitationId && item.status === 'pending',
-              ),
-          };
+              )
+          );
         },
         execute: ({ services, input }) =>
-          getService(services, organizationService)[operation](context(input).invitationId ?? ''),
+          organizations(services)[operation](context(input).invitationId ?? ''),
         success: operation === 'accept' ? 'Invitation accepted.' : 'Invitation declined.',
       }),
     ),
     ...(options.path === false
       ? []
       : [
-          defineURLAction({
+          defineAction({
             id: ids.page,
             title: 'Organizations',
             href: options.path ?? '/organizations',
             groups: options.groups ?? ['navigation'],
           }),
         ]),
-    defineDialogAction({
+    defineAction({
       id: ids.create,
       groups: [],
       title: 'Create organization',
-      render: ({ services, close }) =>
-        createElement(OrganizationDialog, {
-          service: getService(services, organizationService),
-          close,
-        }),
+      dialog: CreateOrganization,
     }),
-    defineDialogAction({
+    defineAction({
       id: 'organizations.edit',
       title: 'Edit organization',
       groups: [organizationGroups.management],
-      render: ({ services, input, close }) =>
-        createElement(OrganizationDialog, {
-          service: getService(services, organizationService),
-          organizationId: context(input).organizationId,
-          close,
-        }),
+      dialog: EditOrganization,
     }),
-    defineDialogAction({
+    defineAction({
       id: 'organizations.delete',
       title: 'Delete organization',
       groups: [organizationGroups.danger],
-      render: ({ services, input, close }) =>
-        createElement(ConfirmOrganizationAction, {
-          service: getService(services, organizationService),
-          organizationId: context(input).organizationId ?? null,
-          close,
-        }),
+      dialog: DeleteOrganization,
     }),
-    defineDialogAction({
+    defineAction({
       id: ids.remove,
       icon: RemoveIcon,
       title: 'Remove',
       groups: [organizationGroups.member],
-      watch: [organizationService],
-      resolve: (input, { services }) => {
-        const state = getService(services, organizationService).getSnapshot();
+      enabled: idle,
+      visible: ({ input, services }) => {
+        const state = organizations(services).getSnapshot();
         const member = state.members.find((item) => item.id === context(input).memberId);
-        return {
-          enabled: !state.pending,
-          visible: state.canManage && !!member && !member.role.split(',').includes('owner'),
-        };
+        return state.canManage && !!member && !member.role.split(',').includes('owner');
       },
-      render: ({ services, input, close }) =>
-        createElement(ConfirmOrganizationAction, {
-          service: getService(services, organizationService),
-          organizationId: context(input).organizationId ?? null,
-          memberId: context(input).memberId,
-          close,
-        }),
+      dialog: RemoveMember,
     }),
     ...(['admin', 'member'] as const).map((targetRole) =>
-      defineDialogAction({
+      defineAction({
         id: `organizations.${targetRole === 'admin' ? 'promote' : 'demote'}`,
         title: targetRole === 'admin' ? 'Make administrator' : 'Make member',
         icon: targetRole === 'admin' ? RoleIcon : DemoteIcon,
         groups: [organizationGroups.member],
-        watch: [organizationService],
-        resolve: (input, { services }) => {
-          const state = getService(services, organizationService).getSnapshot();
+        enabled: idle,
+        visible: ({ input, services }) => {
+          const state = organizations(services).getSnapshot();
           const member = state.members.find((item) => item.id === context(input).memberId);
-          return {
-            enabled: !state.pending,
-            visible:
-              state.canManage && member?.role === (targetRole === 'admin' ? 'member' : 'admin'),
-          };
+          return state.canManage && member?.role === (targetRole === 'admin' ? 'member' : 'admin');
         },
-        render: ({ services, input, close }) =>
-          createElement(ConfirmOrganizationAction, {
-            service: getService(services, organizationService),
-            organizationId: context(input).organizationId ?? null,
-            memberId: context(input).memberId,
-            targetRole,
-            close,
-          }),
+        dialog: changeRole(targetRole),
       }),
     ),
-    defineDialogAction({
+    defineAction({
       id: ids.invite,
-      size: 'wide',
       groups: [organizationGroups.members],
       title: 'Invite member',
       icon: UserAddIcon,
-      render: ({ services, input, close }) =>
-        createElement(InviteDialog, {
-          service: getService(services, organizationService),
-          organizationId: context(input).organizationId ?? null,
-          close,
-        }),
+      dialog: { component: InviteMember, size: 'wide' },
     }),
     ...(
       [
@@ -215,8 +218,10 @@ export function organizationActions(options: {
         string,
         (service: OrganizationService, input: unknown) => Promise<void>,
       ][]
-    ).map(([id, title, run]) =>
-      defineAction({
+    ).map(([id, title, run]) => {
+      const administrative = id !== ids.select && id !== ids.retry;
+      const suspension = id === ids.disable || id === ids.enable;
+      return defineAction({
         id,
         title,
         icon:
@@ -240,30 +245,29 @@ export function organizationActions(options: {
                 ? organizationGroups.invitation
                 : organizationGroups.member,
         ],
-        watch: [organizationService],
-        resolve: (input, { services }) => {
-          const state = getService(services, organizationService).getSnapshot();
-          const row = context(input);
-          const member = state.members.find((item) => item.id === row.memberId);
-          const administrative = id !== ids.select && id !== ids.retry;
-          const suspension = id === ids.disable || id === ids.enable;
+        enabled: ({ services }) => {
+          const state = organizations(services).getSnapshot();
+          return !state.pending && (!administrative || state.canManage);
+        },
+        visible: ({ input, services }) => {
+          const service = organizations(services);
+          const state = service.getSnapshot();
+          const member = state.members.find((item) => item.id === context(input).memberId);
           const suspensionVisible =
             !suspension ||
-            (getService(services, organizationService).capabilities.suspension &&
+            (!!service.capabilities.suspension &&
               member?.id !== state.viewerMemberId &&
               Boolean(member?.disabled) === (id === ids.enable));
-          return {
-            enabled: !state.pending && (!administrative || state.canManage),
-            visible:
-              suspensionVisible &&
-              (!administrative ||
-                (state.canManage &&
-                  (!(id === ids.remove || suspension) ||
-                    (!!member && !member.role.split(',').includes('owner'))))),
-          };
+          return (
+            suspensionVisible &&
+            (!administrative ||
+              (state.canManage &&
+                (!(id === ids.remove || suspension) ||
+                  (!!member && !member.role.split(',').includes('owner')))))
+          );
         },
         execute: ({ services, input }) => {
-          const service = getService(services, organizationService);
+          const service = organizations(services);
           if (
             id !== ids.select &&
             id !== ids.retry &&
@@ -273,7 +277,7 @@ export function organizationActions(options: {
           return run(service, input);
         },
         success: false,
-      }),
-    ),
+      });
+    }),
   ];
 }

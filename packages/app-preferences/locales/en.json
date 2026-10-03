@@ -1,18 +1,69 @@
 {
-  "settings": {
-    "messages": {
+  "app-preferences": {
+    "settings": {
+      "title": "Plugins",
+      "description": "Installed plugins and their settings."
+    },
+    "ui": {
+      "settings": "Settings",
+      "back": "Back to app",
+      "navigation": "Settings navigation",
+      "toggleNavigation": "Toggle settings navigation",
+      "breadcrumb": "Breadcrumb",
+      "skip": "Skip to settings",
+      "search": "Search settings",
+      "searchPlaceholder": "Search settings…",
+      "clearSearch": "Clear search",
+      "noResults": "No settings found",
+      "noResultsHint": "Try another search term.",
+      "resetSearch": "Reset search",
+      "results": "{count, plural, one {# section found} other {# sections found}}",
+      "unavailable": "This settings page is not available.",
+      "noFields": "This section has no settings.",
       "saving": "Saving…",
-      "loading": "Loading…",
-      "loadFailed": "This setting could not be loaded.",
-      "saveFailed": "The change could not be saved. Please try again.",
-      "invalid": "Enter a valid value.",
       "readOnly": "You cannot change this setting.",
-      "reset": "Reset to default",
-      "unregistered": "Setting \"{key}\" is referenced but not registered.",
-      "configuration": "Settings configuration error",
-      "empty": "This section has no settings.",
-      "navigation": "Settings sections",
-      "unavailable": "This settings section is not available."
+      "reset": "Reset {label} to default",
+      "loadFailed": "This setting could not be loaded: {error}",
+      "saveFailed": "The change could not be saved: {error}",
+      "unsupported": "This setting cannot be changed here.",
+      "plugins": "Plugins",
+      "searchPlugins": "Search plugins",
+      "searchPluginsPlaceholder": "Search plugins…",
+      "clearPluginSearch": "Clear plugin search",
+      "noPlugins": "No plugins found.",
+      "author": "By {author}",
+      "backToPlugins": "Back to plugins",
+      "pluginUnavailable": "Plugin unavailable",
+      "pluginUnavailableHint": "This plugin is not installed.",
+      "aboutPlugin": "About this plugin",
+      "noDescription": "No description is available for this plugin.",
+      "pluginSettings": "Settings",
+      "noPluginSettings": "This plugin has no settings.",
+      "openSettings": "Open settings",
+      "information": "Information",
+      "version": "Version",
+      "unspecified": "Not specified",
+      "license": "License",
+      "website": "Website",
+      "projectWebsite": "Project website",
+      "support": "Support",
+      "supportLink": "Get help and report issues"
+    }
+  },
+  "settings": {
+    "categories": {
+      "general": { "title": "General" },
+      "appearance": { "title": "Appearance" },
+      "account": { "title": "Account" },
+      "organization": { "title": "Organization" },
+      "plugins": { "title": "Plugins" },
+      "administration": { "title": "Administration" }
+    }
+  },
+  "plugins": {
+    "app-preferences": {
+      "name": "App Preferences",
+      "description": "Settings pages, setting controls and their navigation."
     }
   }
 }

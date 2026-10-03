@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext } from 'react';
 import type { FoundationRuntime, AuthService } from '@bitakit/core';
-import type { FoundationUI, FoundationLabels } from '../types/ui.js';
+import type { DialogFrame, FoundationUI, FoundationLabels } from '../types/ui.js';
 export type SignOutIntent = { service: AuthService; completed: boolean; fromPath: string } | null;
 export const FoundationContext = createContext<{
   runtime: FoundationRuntime;
@@ -9,6 +9,7 @@ export const FoundationContext = createContext<{
   signOutIntent?: SignOutIntent;
   setSignOutIntent?: (intent: SignOutIntent) => void;
   ui: FoundationUI;
+  dialogs?: Readonly<Record<string, DialogFrame>>;
   labels: FoundationLabels;
   notify(message: string, kind: 'success' | 'failure'): unknown;
 } | null>(null);

@@ -1,44 +1,48 @@
 'use client';
-import { useTranslation } from '@bitakit/ui';
-import { useSyncExternalStore } from 'react';
-import { getService, type Setup } from '@bitakit/core';
-import { useFoundation } from '@bitakit/ui';
+import { Suspense, useSyncExternalStore } from 'react';
+import { cn } from 'cn';
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
+import { getService } from '@bitakit/core';
+import { useFoundation, useServiceState, useTranslation } from '@bitakit/ui';
 import {
   organizationService,
   organizationGroups,
   isOrganizationWebsite,
+  type OrganizationSnapshot,
 } from '@bitakit/organizations';
 import {
-  SettingsSection,
-  type AppPreferences,
-  type SectionOptions,
-} from '@bitakit/app-preferences/core';
-import BuildingIcon from 'reicon-react/icons/Building';
-import UsersIcon from 'reicon-react/icons/Users';
-import SendIcon from 'reicon-react/icons/Send';
-import { Alert, AlertDescription } from '../components/ui/index.js';
-import { Button } from '../components/ui/index.js';
-import {
+  Alert,
+  AlertDescription,
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Button,
   Item,
   ItemContent,
-  ItemTitle,
   ItemDescription,
   ItemMedia,
+  ItemTitle,
+  PageHeader,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from '../components/ui/index.js';
-import { PageHeader } from '../components/ui/index.js';
-import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/index.js';
 import { OrganizationDialog } from '../components/organizations/organization-dialog.js';
 import { GroupActions } from '../components/organizations/group-actions.js';
 import { OrganizationsPage } from '../components/organizations/pages.js';
 import { IncomingInvitations } from '../components/organizations/incoming-invitations.js';
 
-export function OrganizationMembersSettings() {
-  return <OrganizationsPage />;
+/** `embedded`: rendered inside a host frame that owns the page title and width. */
+type ViewProps = { embedded?: boolean };
+
+export function OrganizationMembersSettings({ embedded }: ViewProps) {
+  return <OrganizationsPage embedded={embedded} />;
 }
-export function OrganizationInvitationsSettings() {
-  return <OrganizationsPage />;
+export function OrganizationInvitationsSettings({ embedded }: ViewProps) {
+  return <OrganizationsPage embedded={embedded} />;
 }
-export function OrganizationSettings() {
+export function OrganizationSettings({ embedded = false }: ViewProps) {
   const translateUI = useTranslation();
   const service = getService(useFoundation().runtime.services, organizationService);
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
@@ -79,8 +83,9 @@ export function OrganizationSettings() {
       </p>
     );
   return (
-    <section className="mx-auto flex w-full max-w-4xl flex-col gap-7">
+    <section className={cn('flex w-full flex-col gap-7', !embedded && 'mx-auto max-w-4xl')}>
       <PageHeader
+        level={embedded ? 2 : 1}
         title={
           state.canManage
             ? translateUI(
@@ -175,66 +180,91 @@ export function OrganizationSettings() {
   );
 }
 
-/** Registers the existing catalog sections and owns their role subscription cleanup. */
-export function registerOrganizationSettings(
-  options: {
-    settings?: AppPreferences;
-    settingsCategory?: SectionOptions['category'];
-    invitationsCategory?: SectionOptions['category'];
-  },
-  { app, services }: Parameters<Setup>[0],
-) {
-  if (options.settings) {
-    const catalog = options.settings;
-    const service = getService(services, organizationService);
-    for (const section of [
-      new SettingsSection({
-        pluginId: 'organizations-ui',
-        id: 'organization',
-        navigation: { id: 'organizations.settings', shortcut: 'Alt+Shift+O' },
-        icon: BuildingIcon,
-        title: 'Organization profile',
-        component: OrganizationSettings,
-        category: { id: 'organization', title: 'Organization' },
-      }),
-      new SettingsSection({
-        pluginId: 'organizations-ui',
-        id: 'organization-members',
-        icon: UsersIcon,
-        title: 'Members and invitations',
-        visible: service.getSnapshot().canManage,
-        description: 'Manage members and sent invitations for the active organization.',
-        component: OrganizationMembersSettings,
-        category: { id: 'organization', title: 'Organization' },
-      }),
-      new SettingsSection({
-        pluginId: 'organizations-ui',
-        id: 'received-invitations',
-        icon: SendIcon,
-        title: 'Invitations for me',
-        description: 'Invitations to join other organizations.',
-        component: IncomingInvitations,
-        category: { id: 'organization', title: 'Organization' },
-      }),
-    ])
-      app.own(
-        options.settings.add(
-          new SettingsSection({
-            ...section,
-            showHeader: false,
-            category:
-              section.id === 'received-invitations'
-                ? (options.invitationsCategory ?? options.settingsCategory ?? section.category)
-                : (options.settingsCategory ?? section.category),
-          }),
-        ).remove,
-      );
-    app.own(
-      service.subscribe(() => {
-        const visible = service.getSnapshot().canManage;
-        if (catalog.getSection('organization-members')?.visible !== visible)
-          catalog.updateSection('organization-members', { visible });
-      }),
-    );
-  }
+const organizationTabs = ['profile', 'members', 'invitations'] as const;
+const organizationTab = parseAsStringLiteral(organizationTabs).withDefault('profile');
+
+function Loading() {
+  const translateUI = useTranslation();
+  return (
+    <p role="status">
+      {translateUI(
+        'foundationUI.organizations.loadingOrganizations',
+        undefined,
+        'Loading organizations…',
+      )}
+    </p>
+  );
+}
+function OrganizationSettingsTabs() {
+  const translateUI = useTranslation();
+  const [tab, setTab] = useQueryState('tab', organizationTab);
+  // Undefined until the runtime is ready; the views below read the service directly.
+  const canManage = useServiceState(
+    organizationService,
+    (state) => (state as OrganizationSnapshot).canManage,
+    undefined,
+  );
+  if (canManage === undefined) return <Loading />;
+  const selected = tab === 'members' && !canManage ? 'profile' : tab;
+  return (
+    <Tabs value={selected} onValueChange={(value) => void setTab(organizationTab.parse(value))}>
+      {/* On narrow screens the bar scrolls instead of the page; the padding keeps the line
+          indicator below the active tab inside the scroll area. */}
+      <div className="overflow-x-auto pb-1">
+        <TabsList
+          variant="line"
+          aria-label={translateUI(
+            'foundationUI.organizations.organizationSettings',
+            undefined,
+            'Organization settings',
+          )}
+        >
+          <TabsTrigger value="profile">
+            {translateUI('foundationUI.organizations.profile', undefined, 'Profile')}
+          </TabsTrigger>
+          {canManage && (
+            <TabsTrigger value="members">
+              {translateUI(
+                'foundationUI.organizations.membersAndInvitations',
+                undefined,
+                'Members and invitations',
+              )}
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="invitations">
+            {translateUI(
+              'foundationUI.organizations.invitationsForMe',
+              undefined,
+              'Invitations for me',
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value="profile">
+        <OrganizationSettings embedded />
+      </TabsContent>
+      {canManage && (
+        <TabsContent value="members">
+          <OrganizationMembersSettings embedded />
+        </TabsContent>
+      )}
+      <TabsContent value="invitations">
+        <IncomingInvitations embedded />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+/**
+ * The plugin's settings page: the organization profile, its members and sent invitations
+ * (only for members who can manage it) and the invitations addressed to the viewer. The host's
+ * settings frame renders the page title and navigation; the selected tab is URL state (`tab`).
+ */
+export function OrganizationSettingsPage() {
+  // Search parameters suspend during static rendering, so the URL-backed part has a boundary.
+  return (
+    <Suspense fallback={<Loading />}>
+      <OrganizationSettingsTabs />
+    </Suspense>
+  );
 }

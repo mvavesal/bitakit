@@ -25,6 +25,8 @@ export type ActionProps<Id extends ActionId = ActionId> = {
   pending?: ReactNode;
   /** One element to bind, or a function receiving the control. */
   children: ReactElement | ((control: ActionControl<Id>) => ReactNode);
+  /** Anything else (for example props a parent `asChild` slot injects) is merged into the child. */
+  [prop: string]: unknown;
 };
 
 /**
@@ -40,6 +42,7 @@ export function Action<Id extends ActionId>({
   onExecuted,
   pending,
   children,
+  ...injected
 }: ActionProps<Id>) {
   const control = useAction(id, input);
   const { Link } = useContext(UIContext);
@@ -69,6 +72,7 @@ export function Action<Id extends ActionId>({
         {control.title}
       </>
     );
+  const own = mergeProps(injected, child.props) as Record<string, unknown>;
   const element =
     resolved === 'link' &&
     child.type === 'a' &&
@@ -78,13 +82,13 @@ export function Action<Id extends ActionId>({
     !control.disabled
       ? cloneElement(
           <Link />,
-          mergeProps(generated, child.props) as Record<string, unknown>,
+          mergeProps(generated, own) as Record<string, unknown>,
           content,
           control.pending ? pending : null,
         )
       : cloneElement(
           child,
-          mergeProps(generated, child.props) as Record<string, unknown>,
+          mergeProps(generated, own) as Record<string, unknown>,
           content,
           control.pending ? pending : null,
         );

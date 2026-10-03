@@ -8,8 +8,8 @@ BitaKit is the product name. Published on npm under `@bitakit/` (0.1.x).
 | [ui](ui/README.md)                           | React providers, reactive bindings and optional standard themed components          |
 | [next](next/README.md)                       | Next.js routing, nuqs adapter and build integration                                 |
 | [tanstack](tanstack/README.md)               | Experimental TanStack Router/Start integration                                      |
-| [app-preferences](app-preferences/README.md) | Settings definitions, catalog, confirmed values and persistence                     |
-| [shell](shell/README.md)                     | Application layout, navigation surfaces and settings presentation                   |
+| [app-preferences](app-preferences/README.md) | Settings UI: generated pages, controls, the settings route and plugin overview      |
+| [shell](shell/README.md)                     | Application frame: compound AppShell, layouts, slots, notifications, appearance     |
 | [quick-search](quick-search/README.md)       | Search across public Actions and an optional App Bar contribution                   |
 | [next-intl](next-intl/README.md)             | Translation integration and optional language preferences                           |
 | [better-auth](better-auth/README.md)         | Authentication/organization integration and server mail hooks                       |
@@ -45,8 +45,8 @@ product text and intentional overrides, rather than copies of every plugin's mes
 - `@bitakit/ui/actions`: reactive Action bindings.
 - `@bitakit/ui/components`: optional standard visual components.
 
-There is one root ActionList. Settings uses its own catalog and confirmed-value store;
-optional Actions forward writes to that same source of truth. No second plugin registry,
+There is one root ActionList. Setting values live in Core's settings store and reach every
+context as typed handles; App Preferences only renders them. No second plugin registry,
 preference store or authentication session store is required in the host.
 
 ## Development and release status

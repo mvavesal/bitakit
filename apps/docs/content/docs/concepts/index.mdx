@@ -25,7 +25,8 @@ These guides describe BitaKit 0.2, the next release in this repository. Start wi
 | Interceptors                | `@bitakit/core`                        | Observe or gate actions and observe service calls             |
 | React bindings              | `@bitakit/ui`                          | Bind controls to actions and pages to service state           |
 | Routing and build discovery | `@bitakit/next` or `@bitakit/tanstack` | Connects the host framework and generates `src/bitakit.gen.*` |
-| Preferences                 | `@bitakit/app-preferences`             | Owns confirmed user settings and persistence                  |
+| Settings                    | `@bitakit/core`                        | `defineSettings` declares them; the runtime owns and persists values |
+| Settings pages              | `@bitakit/app-preferences`             | Renders every plugin's settings under `/settings`             |
 
 A plugin is a runtime definition, not necessarily an npm package. One package can supply several plugins or just shared contracts. See the [package and plugin guides](/docs/packages).
 

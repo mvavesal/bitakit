@@ -1,43 +1,25 @@
 'use client';
-export { SettingsShell } from './settings/shell.js';
-export { SettingsOverview } from './settings/overview.js';
-export { ShellSettings } from './settings/layout.js';
-export { shellLayout, shellTheme, shellPreferences } from './settings/appearance.js';
 export {
-  shellRenderers,
-  ThemeCards,
-  LayoutCards,
-  AppearanceSection,
-} from './settings/renderers.js';
-export { SettingsPage } from './settings/page.js';
-export { SettingsRoute } from './settings/route.js';
-export { PluginSettingsOverview } from './settings/overview.js';
-export { settingsCategories } from './settings/categories.js';
-export { shellPlugin, type ShellOptions } from './plugin.js';
-export { shellService } from './services/shell.js';
-export { AppShell, useShellLayout } from './components/app-shell.js';
-
-export { themePreferences } from './settings/theme.js';
-export {
-  verticalLayout,
-  horizontalLayout,
-  type ShellLayout,
-  type ShellLayouts,
-  type ShellLayoutProps,
-} from './layouts/defaults.js';
-export type { AppShellProps } from './components/app-shell.js';
-
-export { notificationPreferences, type NotificationPlacement } from './settings/notifications.js';
-
+  AppShell,
+  useShellLayout,
+  type AppShellProps,
+  type AppShellComponents,
+  type AppShellSidebarProps,
+  type AppShellTopBarProps,
+  type AppShellContentProps,
+  type NavigationItemProps,
+} from './components/app-shell.js';
+export type { ShellLayout, NotificationPlacement } from './appearance.js';
+export { useNotifications } from './ui/use-notifications.js';
 export {
   notificationService,
   type NotificationId,
-  type NotificationService,
   type NotificationOptions,
+  type NotificationService,
 } from './services/notifications.js';
-
-export type { NotificationLayout } from './providers/notifications.js';
-
+export { ShellThemeScript } from './ui/providers/theme.js';
+export { shellPlugin } from './plugin.js';
+export { shellOptions, type ShellOptions, type ShellPreset } from './options.js';
 export {
   NotFoundPage,
   ErrorPage,

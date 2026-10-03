@@ -67,6 +67,7 @@ function FoundationRuntimeProvider({
   interceptors,
   providers,
   ui = standardFoundationUI,
+  dialogs,
   translate,
   labels: labelOverrides,
   notify,
@@ -207,7 +208,15 @@ function FoundationRuntimeProvider({
     <>
       {healthy ? (
         <FoundationContext.Provider
-          value={{ runtime, ui, labels, notify: notify ?? ignore, signOutIntent, setSignOutIntent }}
+          value={{
+            runtime,
+            ui,
+            dialogs,
+            labels,
+            notify: notify ?? ignore,
+            signOutIntent,
+            setSignOutIntent,
+          }}
         >
           {(attempt.selected.providers ?? []).reduceRight<ReactNode>(
             (content, provider) =>

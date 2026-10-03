@@ -1,12 +1,17 @@
 'use client';
 import { createElement, useSyncExternalStore } from 'react';
+import { dialogOf } from '@bitakit/core';
 import { useAction, useActions } from '../hooks/use-action.js';
 import { useFoundation } from '../providers/foundation-context.js';
 import { useDialogFocus } from '../hooks/use-dialog-focus.js';
+import type { DialogFrameProps } from '../types/ui.js';
 
-/** Renders the dialog of the action that opened one; the host supplies the dialog primitives. */
+/**
+ * Renders the dialog of the action that opened one. The action names a frame kind; the host
+ * supplies frames through `dialogs`, and the default kind uses the host dialog primitives.
+ */
 export function DialogHost() {
-  const { runtime, ui } = useFoundation();
+  const { runtime, ui, dialogs } = useFoundation();
   const state = useSyncExternalStore(
     runtime.subscribe,
     runtime.getSnapshot,
@@ -19,15 +24,39 @@ export function DialogHost() {
   const action = current ?? snapshots[state.definition.id];
   if (!action?.visible) return null;
   const definition = state.definition;
+  const dialog = dialogOf(definition)!;
+  const kind = dialog.kind ?? 'dialog';
+  const Frame = dialogs?.[kind] ?? (kind === 'dialog' ? undefined : dialogs?.dialog);
+  const content = action.enabled
+    ? createElement(dialog.component as never, {
+        input: state.input,
+        close: runtime.close,
+        services: runtime.services,
+        key: String(state.token.description ?? ''),
+      })
+    : null;
+  const frame: DialogFrameProps = {
+    open: true,
+    onOpenChange: (open) => {
+      if (!open) runtime.close();
+    },
+    kind,
+    size: dialog.size,
+    title: action.title,
+    description: action.description,
+    actionId: definition.id,
+    onCloseAutoFocus: restoreFocus,
+    children: content,
+  };
+  if (Frame) return createElement(Frame, frame);
+  if (kind !== 'dialog')
+    console.warn(
+      `[bitakit] Action "${definition.id}" opens a "${kind}" dialog, but no frame of that kind is registered on FoundationProvider; the default dialog is used.`,
+    );
   return (
-    <ui.Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) runtime.close();
-      }}
-    >
+    <ui.Dialog open onOpenChange={frame.onOpenChange}>
       <ui.DialogContent
-        size={definition.dialogSize}
+        size={dialog.size}
         aria-describedby={action.description ? `${definition.id}-description` : undefined}
         onCloseAutoFocus={restoreFocus}
       >
@@ -39,14 +68,7 @@ export function DialogHost() {
             </ui.DialogDescription>
           )}
         </ui.DialogHeader>
-        {action.enabled
-          ? createElement(definition.dialog as never, {
-              input: state.input,
-              close: runtime.close,
-              services: runtime.services,
-              key: String(state.token.description ?? ''),
-            })
-          : null}
+        {content}
       </ui.DialogContent>
     </ui.Dialog>
   );

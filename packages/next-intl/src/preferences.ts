@@ -1,44 +1,47 @@
-import { definePlugin } from '@bitakit/core';
 import {
-  SelectSetting,
-  defineSettingsSection,
-  type SectionOptions,
+  definePlugin,
+  defineSettings,
+  setting,
+  type SettingsContext,
   type SettingsStorage,
-} from '@bitakit/app-preferences/core';
+} from '@bitakit/core';
 
-/** Declares language selection through the existing preferences catalog and standard controls. */
+/** Declares the interface language as a setting; the generated settings page renders it. */
 export function languagePreferences<T extends string>(options: {
   locales: readonly { value: T; label: string }[];
   defaultLocale: T;
-  category?: SectionOptions['category'];
+  /** Settings category of the generated page; defaults to `general`. */
+  category?: string;
 }) {
-  const setting = new SelectSetting<T>({
-    key: 'language.locale',
-    title: 'Language',
-    titleKey: 'language.label',
-    defaultValue: options.defaultLocale,
-    scope: 'user',
-    options: options.locales,
-    presentation: { variant: 'select' },
-  });
+  const key = 'language.locale';
+  const locales = new Set<string>(options.locales.map((locale) => locale.value));
   const plugin = definePlugin({
     id: 'language',
-    dependencies: ['app-preferences'],
-    contributions: {
-      settings: [setting],
-      'settings.sections': [
-        defineSettingsSection({
-          id: 'language',
-          title: { key: 'language.title', fallback: 'Language' },
-          description: { key: 'language.description', fallback: 'Choose your interface language.' },
-          category: options.category,
-          settings: [setting],
+    metadata: { name: 'Language', description: 'Interface language.' },
+    settings: defineSettings(
+      {
+        locale: setting({
+          default: options.defaultLocale,
+          options: options.locales,
+          control: 'select',
+          label: 'Language',
         }),
-      ],
-    },
+      },
+      {
+        title: 'Language',
+        description: 'Choose your interface language.',
+        category: options.category ?? 'general',
+        order: -8,
+      },
+    ),
   });
+  const parse = (value: unknown): T => {
+    if (typeof value !== 'string' || !locales.has(value))
+      throw new Error(`Unsupported locale "${String(value)}".`);
+    return value as T;
+  };
   return {
-    setting,
+    key,
     plugin,
     /** Routes only the language key to host persistence; other settings keep their storage. */
     storage(
@@ -50,20 +53,18 @@ export function languagePreferences<T extends string>(options: {
       },
     ): SettingsStorage {
       return {
-        load: (key, context) =>
-          key === setting.key
+        load: (name, context) =>
+          name === key
             ? persistence.load().then((value) => ({ value, writable: true }))
-            : base.load(key, context),
-        save: (key, value, context) =>
-          key === setting.key
-            ? persistence.save(setting.parse(value))
-            : base.save(key, value, context),
+            : base.load(name, context),
+        save: (name, value, context) =>
+          name === key ? persistence.save(parse(value)) : base.save(name, value, context),
         ...(base.reset
           ? {
-              reset: (key: string, context: Parameters<SettingsStorage['load']>[1]) =>
-                key === setting.key
+              reset: (name: string, context: SettingsContext) =>
+                name === key
                   ? persistence.reset().then((value) => ({ value, writable: true }))
-                  : base.reset!(key, context),
+                  : base.reset!(name, context),
             }
           : {}),
       };

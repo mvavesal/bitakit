@@ -12,14 +12,10 @@ import { createOTP } from '@better-auth/utils/otp';
 import { base32 } from '@better-auth/utils/base32';
 import { organizationPlugin } from '@better-auth-ui/heroui/plugins/organization';
 import { createActionList, FoundationRuntime } from '@bitakit/core';
-import { createAppPreferences, SettingsSection } from '@bitakit/app-preferences/core';
+import UserIcon from 'reicon-react/icons/User';
 
-test('Foundation plugin uses native paths, keeps full provider options and cleans settings', () => {
+test('Foundation plugin uses native paths, keeps full provider options and declares its account settings page', () => {
   const authClient = createAuthClient({ baseURL: 'http://localhost:9999' });
-  const catalog = createAppPreferences({
-    storage: { load: async () => ({ value: undefined, writable: true }), save: async () => {} },
-  });
-  catalog.add(new SettingsSection({ id: 'account', title: 'Account' }));
   const plugin = betterAuthUIPlugin({
     provider: {
       authClient,
@@ -29,23 +25,28 @@ test('Foundation plugin uses native paths, keeps full provider options and clean
       socialProviders: ['google', 'github'],
       additionalFields: [{ name: 'department', type: 'string', label: 'Department' }],
     },
-    settings: {
-      catalog,
-      section: 'account',
-      entries: [{ id: 'auth-security', title: 'Security', view: 'security' }],
-    },
   });
-  assert.ok(plugin.pages.some((p) => p.path === '/auth/accept-invitation'));
-  assert.ok(plugin.pages.some((p) => p.path === '/auth/two-factor'));
-  assert.ok(plugin.pages.some((p) => p.path === '/organization/people'));
-  assert.ok(plugin.pages.some((p) => p.path === '/settings/auth-security'));
+  const paths = plugin.ui.pages.map((page) => page.path);
+  assert.ok(paths.includes('/auth/accept-invitation'));
+  assert.ok(paths.includes('/auth/two-factor'));
+  assert.ok(paths.includes('/account/security'));
+  assert.ok(paths.includes('/organization/people'));
+  assert.ok(!paths.some((path) => path.startsWith('/settings/')), 'settings pages are not routes');
+  // One settings section: an empty declaration that carries the presentation, and its page.
+  assert.deepEqual(plugin.settings.settings, {});
+  assert.equal(plugin.settings.section.title, 'Account');
+  assert.equal(plugin.settings.section.category, 'account');
+  assert.equal(plugin.settings.section.order, 0);
+  assert.equal(plugin.settings.section.path, 'account', 'the account page has its own path');
+  assert.equal(plugin.settings.section.icon, UserIcon);
+  assert.equal(typeof plugin.ui.settings.component, 'function');
+  for (const legacy of ['pages', 'providers', 'views', 'setup'])
+    assert.equal(plugin[legacy], undefined, legacy);
   const runtime = new FoundationRuntime(createActionList(), { plugins: [plugin] });
   const cleanup = runtime.mount();
   assert.equal(runtime.services['better-auth-ui'].authClient, authClient);
   assert.equal(runtime.services['better-auth-ui'].additionalFields[0].name, 'department');
-  assert.ok(catalog.getSection('auth-security'));
   cleanup();
-  assert.equal(catalog.getSection('auth-security'), undefined);
 });
 
 test('real Better Auth flows in isolated memory: login, profile, org, invitation, reset, sessions', async () => {
@@ -236,7 +237,16 @@ test('standard composition shares one client between auth service and UI and pre
   const auth = getService(runtime.services, authService);
   assert.equal(auth.getSnapshot().user, null);
   assert.equal(typeof auth.subscribe, 'function');
-  assert.equal(integration.plugins.flatMap((plugin) => plugin.providers ?? []).length, 1);
+  assert.equal(integration.plugins.flatMap((plugin) => plugin.ui?.providers ?? []).length, 1);
+  assert.deepEqual(
+    integration.plugins
+      .filter((plugin) => plugin.ui?.settings)
+      .map((plugin) => [plugin.id, plugin.settings.section.path ?? plugin.id]),
+    [
+      ['better-auth-ui', 'account'],
+      ['organizations-ui', 'organization'],
+    ],
+  );
   assert.deepEqual(
     integration.plugins.map((plugin) => plugin.id),
     ['better-auth', 'better-auth-ui', 'organizations', 'organizations-ui'],
@@ -251,7 +261,7 @@ test('native toast surface can be omitted without changing the native auth provi
   const config = { authClient: client, navigate() {}, plugins: [] };
   for (const enabled of [true, false]) {
     const plugin = betterAuthUIPlugin({ provider: config, toastProvider: enabled });
-    const Provider = plugin.providers[0].component;
+    const Provider = plugin.ui.providers[0].component;
     let result;
     // Inspect the composed element within a React render so its translation hook runs normally.
     function CompositionProbe() {

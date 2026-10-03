@@ -2,6 +2,8 @@ import type { AuthPaths, AuthSignInOptions } from './auth-navigation.js';
 import type { Translator } from './definitions.js';
 export type AuthSnapshot = {
   user: { id: string; name?: string; email?: string } | null;
+  /** The active organization, when the provider tracks one; scopes organization settings. */
+  organizationId?: string | null;
   pending: boolean;
   error: unknown;
 };

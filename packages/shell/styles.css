@@ -5,8 +5,6 @@
 @import '@bitakit/ui/styles.css';
 @source "./dist";
 
-@import '@bitakit/app-preferences/styles.css';
-
 /* HeroUI muted denotes text; Foundation muted denotes a surface. */
 .toast__description {
   color: var(--muted-foreground);

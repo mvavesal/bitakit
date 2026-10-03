@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { FoundationConfig, FoundationOverrides, Plugin, Translator } from '@bitakit/core';
 import type { ActionProviderProps } from '../providers/action-provider.js';
 import type { ControlAdapters } from '../hooks/use-action.js';
-import type { FoundationLabels, FoundationUI } from './ui.js';
+import type { DialogFrame, FoundationLabels, FoundationUI } from './ui.js';
 
 /** The one provider. Standard visuals and labels apply unless a host supplies its own. */
 export type FoundationProviderProps = FoundationOverrides & {
@@ -11,6 +11,8 @@ export type FoundationProviderProps = FoundationOverrides & {
   /** Plugins added to the configuration; an entry with an existing ID replaces that plugin in place. */
   additionalPlugins?: readonly Plugin[];
   ui?: FoundationUI;
+  /** Frames for `dialog: { kind }` beyond the default dialog, for example `{ sheet: SheetFrame }`. */
+  dialogs?: Readonly<Record<string, DialogFrame>>;
   labels?: Partial<FoundationLabels>;
   translate?: Translator;
   notify?: (message: string, kind: 'success' | 'failure') => unknown;

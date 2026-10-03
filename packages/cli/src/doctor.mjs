@@ -65,7 +65,7 @@ export async function doctor({ cwd } = {}) {
   results.push(checkLinks(scanned, routes));
   results.push(checkAliases(scanned));
   results.push(await checkStyles(project, description));
-  results.push(checkIgnored(description), checkDeprecated(description));
+  results.push(checkIgnored(description), checkDeprecated(description), checkSlots(description));
   return { project, results };
 }
 
@@ -430,6 +430,30 @@ function checkIgnored(description) {
     title: `${plural(ignored.length, 'file')} in contribution folders ${ignored.length === 1 ? 'is' : 'are'} ignored by discovery`,
     details: ignored,
     fix: 'Add a default export to each file, or prefix helper files with "-" so discovery skips them on purpose.',
+  };
+}
+/** A slot file nobody renders is a silent no-op; layouts declare the slots they render. */
+function checkSlots(description) {
+  const declared = new Set(description.slots ?? []);
+  const problems = [];
+  for (const module of [description.app, ...description.plugins])
+    for (const slot of module.slots ?? [])
+      if (!declared.has(slot.path))
+        problems.push(
+          `${slot.file} targets slot "${slot.path}", which no installed layout declares.`,
+        );
+  if (!problems.length)
+    return {
+      status: 'ok',
+      title: declared.size
+        ? `Slot files target declared slots (${[...declared].join(', ')})`
+        : 'No layout slots are declared',
+    };
+  return {
+    status: 'warn',
+    title: `${plural(problems.length, 'slot file')} target${problems.length === 1 ? 's' : ''} an undeclared slot`,
+    details: problems,
+    fix: 'Use a slot the layout renders, or list the slot under "slots" in bitakit.config.ts when your own layout renders it.',
   };
 }
 function checkDeprecated(description) {

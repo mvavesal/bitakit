@@ -51,7 +51,7 @@ This tree lists responsibilities, not mandatory directories. Create a path only 
 | Package         | Responsibility                                                                         |
 | --------------- | -------------------------------------------------------------------------------------- |
 | core            | Runtime, Discovery, Actions, and Config; independent of Auth providers                 |
-| app-preferences | Mutable user preferences, rendering and persistence                                    |
+| app-preferences | Settings pages and controls for every plugin's `defineSettings`                        |
 | ui              | Generic React bindings; no visual component library                                    |
 | next            | Next.js integration                                                                    |
 | next-intl       | Translation integration                                                                |

@@ -20,11 +20,11 @@
     "./locales/*.json": "./locales/*.json"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.0",
-    "@bitakit/app-preferences": "^0.2.0"
+    "@bitakit/core": "^0.2.0"
   },
   "peerDependencies": {
     "react": "^18.3.0 || ^19.0.0",

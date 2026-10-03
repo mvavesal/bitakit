@@ -3,11 +3,11 @@ import { useTranslation } from '@bitakit/ui';
 import { MemberRoleIcon, MemberStatusIcon } from './people-icons.js';
 import { Alert, AlertDescription } from '../ui/index.js';
 import { PageHeader } from '../ui/index.js';
-import { type AppPreferences } from '@bitakit/app-preferences/core';
 import { IncomingInvitations } from './incoming-invitations.js';
 import { usePeopleFilters, PeopleFilters, PeoplePagination } from './people-filters.js';
 import { Tabs, TabsList, TabsTrigger } from '../ui/index.js';
 import { useSyncExternalStore } from 'react';
+import { cn } from 'cn';
 import { getService } from '@bitakit/core';
 import { useFoundation } from '@bitakit/ui';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/index.js';
@@ -45,7 +45,13 @@ function InvitationActions({
 export function OrganizationsPage({
   demo = false,
   view,
-}: { demo?: boolean; settings?: AppPreferences; view?: 'current' | 'pending' } = {}) {
+  embedded = false,
+}: {
+  demo?: boolean;
+  view?: 'current' | 'pending';
+  /** Rendered inside a host frame that owns the page title and width. */
+  embedded?: boolean;
+} = {}) {
   const translateUI = useTranslation();
   const roleLabel = (role: string) =>
     role
@@ -76,10 +82,11 @@ export function OrganizationsPage({
   const invitations = allInvitations.slice(offset, offset + filters.pageSize);
   return (
     <section
-      className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6"
+      className={cn('flex w-full min-w-0 flex-col gap-6', !embedded && 'mx-auto max-w-5xl')}
       aria-busy={state.pending}
     >
       <PageHeader
+        level={embedded ? 2 : 1}
         title={
           view === 'pending'
             ? translateUI('foundationUI.pages.invitations', undefined, 'Invitations')

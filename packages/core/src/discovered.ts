@@ -11,6 +11,7 @@ import {
   type LegacyServiceDefinition,
 } from './definitions.js';
 import { resolveContribution } from './conventions.js';
+import type { ContractName } from './service-key.js';
 import { defineInterceptor, type InterceptorSpec } from './interceptors/define.js';
 import {
   isEventsDefinition,
@@ -24,6 +25,11 @@ import {
   type ConfigValues,
   type ConfigDefinition,
 } from './config-service.js';
+import {
+  isSettingsDefinition,
+  type SettingsDefinition,
+  type SettingsOf,
+} from './settings/define.js';
 
 export type DiscoveredFile<T = unknown, P extends string = string> = {
   value: T;
@@ -139,6 +145,18 @@ export function discoverEvents(files: readonly DiscoveredFile[]): EventsDefiniti
     throw new Error(`${file.source} must default-export defineEvents({ ... }).`);
   return file.value;
 }
+/** The one `settings.ts` of a module. */
+export function discoverSettings(files: readonly DiscoveredFile[]): SettingsDefinition | undefined {
+  if (!files.length) return undefined;
+  if (files.length > 1)
+    throw new Error(
+      `A module declares its settings in one file: ${files.map((file) => file.source).join(', ')}`,
+    );
+  const [file] = files;
+  if (!isSettingsDefinition(file.value))
+    throw new Error(`${file.source} must default-export defineSettings({ ... }).`);
+  return file.value;
+}
 /** File assembly rejects overlapping leaves; intentional overrides happen later in ConfigService. */
 export function discoverConfig(files: readonly DiscoveredFile[]): ConfigValues | ConfigDefinition {
   const schemaRoot = files.find((file) => !file.path && isConfigDefinition(file.value));
@@ -223,9 +241,14 @@ type ServiceInstance<T> = T extends { create: (...args: any[]) => infer R }
     ? R
     : never;
 type ServiceId<T, P extends string> = T extends { id: infer Id extends string } ? Id : P;
-type ServiceAlias<T, R> = T extends { exposeAs: infer A extends string }
+type ServiceAlias<T, R> = (T extends { exposeAs: infer A extends string }
   ? { readonly [K in A]: R }
-  : {};
+  : {}) &
+  (T extends { provides: infer Key }
+    ? string extends ContractName<Key>
+      ? {}
+      : { readonly [K in ContractName<Key>]: R }
+    : {});
 type ServiceTree<T, P extends string> = [ServiceInstance<T>] extends [never]
   ? T extends object
     ? UnionToIntersection<
@@ -243,6 +266,9 @@ export type DiscoveredEventsEntry<F, Module extends string> =
   F extends DiscoveredFile<infer T, any> ? EventsOf<T, Module> : {};
 export type DiscoveredCancelableEntry<F, Module extends string> =
   F extends DiscoveredFile<infer T, any> ? CancelableOf<T, Module> : {};
+/** `SettingsMap` entries of one `settings.ts`; pass '' as Module for the app. */
+export type DiscoveredSettingsEntry<F, Module extends string> =
+  F extends DiscoveredFile<infer T, any> ? SettingsOf<T, Module> : {};
 
 type ConfigOutput<T> =
   T extends ConfigDefinition<infer V>

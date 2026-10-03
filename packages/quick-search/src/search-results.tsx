@@ -14,7 +14,7 @@ export type QuickSearchResults = {
   pages?: boolean;
   /** Pages of the Settings catalog. Default: true. */
   settings?: boolean;
-  /** Plugins, linked to their view in Shell's plugin overview (`pluginManagement`). Default: false. */
+  /** Plugins, linked to their entry on the Plugins settings page of App Preferences. Default: false. */
   plugins?: boolean;
 };
 const defaults: Required<QuickSearchResults> = { pages: true, settings: true, plugins: false };

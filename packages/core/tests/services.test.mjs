@@ -231,7 +231,9 @@ test('a service factory receives one context object and may read its dependencie
   });
   const stop = runtime.mount();
   try {
-    assert.deepEqual(seen, [['config', 'events', 'onStart', 'onStop', 'services', 'store']]);
+    assert.deepEqual(seen, [
+      ['config', 'events', 'onStart', 'onStop', 'services', 'settings', 'store'],
+    ]);
     assert.equal(runtime.services.todos.stats.limit, 3);
     assert.equal(runtime.services.todos.stats.count(), 0);
   } finally {

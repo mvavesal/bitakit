@@ -6,7 +6,9 @@ import {
   configFile,
   eventsFile,
   interceptorFile,
+  layoutFile,
   pageFile,
+  settingsFile,
   pluginFiles,
   serviceFile,
   titleOf,
@@ -50,7 +52,18 @@ export async function addPlugin(name, { cwd, minimal = false } = {}) {
   return { project, root, created, title: titleOf(name), path: minimal ? undefined : `/${name}` };
 }
 
-export const contributionKinds = ['action', 'service', 'page', 'interceptor', 'config', 'events'];
+export const contributionKinds = [
+  'action',
+  'service',
+  'page',
+  'interceptor',
+  'config',
+  'events',
+  'settings',
+  'layout',
+];
+/** Declared once per plugin, in one root file. */
+const singleFile = { events: 'events.ts', settings: 'settings.ts' };
 
 /**
  * `bitakit add <kind> <plugin>/<name>` in an app, or `<name>` in a plugin package. Nested names
@@ -61,10 +74,20 @@ export async function addContribution(kind, target, { cwd } = {}) {
   if (!contributionKinds.includes(kind))
     throw new Error(`Unknown kind "${kind}". Use ${contributionKinds.join(', ')}.`);
   const project = await configuredProject(cwd);
-  const example =
-    kind === 'events'
-      ? 'bitakit add events notes'
-      : `bitakit add ${kind} notes/${target || 'archive'}`;
+  if (kind === 'layout') {
+    if (project.kind !== 'app')
+      throw new Error('Layouts belong to the app: run "bitakit add layout <name>" inside an app.');
+    if (!target) throw new Error('Name the layout, for example "bitakit add layout admin".');
+    validateName(target, 'layout name');
+    const created = await writeNewFiles(project.appDirectory, {
+      [`layouts/${target}.tsx`]: layoutFile(target),
+    });
+    return { project, created, id: target, path: undefined };
+  }
+  const single = Object.hasOwn(singleFile, kind);
+  const example = single
+    ? `bitakit add ${kind} notes`
+    : `bitakit add ${kind} notes/${target || 'archive'}`;
   let plugin;
   let name = target ?? '';
   let moduleRoot;
@@ -72,13 +95,13 @@ export async function addContribution(kind, target, { cwd } = {}) {
     plugin = project.pluginId;
     moduleRoot = project.moduleRoot;
     // The package is the plugin; naming it is allowed but not needed.
-    if (kind === 'events' && name === plugin) name = '';
+    if (single && name === plugin) name = '';
   } else {
     const slash = name.indexOf('/');
     [plugin, name] =
       slash >= 0
         ? [name.slice(0, slash), name.slice(slash + 1)]
-        : kind === 'events'
+        : single
           ? [name, '']
           : [undefined, name];
     if (!plugin) throw new Error(`Name the plugin too, for example "${example}".`);
@@ -89,10 +112,10 @@ export async function addContribution(kind, target, { cwd } = {}) {
         `Plugin "${plugin}" does not exist. Create it with "bitakit add plugin ${plugin}".`,
       );
   }
-  if (kind === 'events') {
+  if (single) {
     if (name)
       throw new Error(
-        `Events are declared once per plugin in events.ts: run "bitakit add events${project.kind === 'plugin' ? '' : ` ${plugin}`}" without a further name.`,
+        `${kind === 'events' ? 'Events' : 'Settings'} are declared once per plugin in ${singleFile[kind]}: run "bitakit add ${kind}${project.kind === 'plugin' ? '' : ` ${plugin}`}" without a further name.`,
       );
   } else {
     if (!name) throw new Error(`Name the ${kind}, for example "${example}".`);
@@ -112,12 +135,13 @@ export async function addContribution(kind, target, { cwd } = {}) {
     interceptor: () => ({ [`interceptors/${name}.ts`]: interceptorFile(plugin, name) }),
     config: () => ({ [`configs/${name}.ts`]: configFile(dotted) }),
     events: () => ({ 'events.ts': eventsFile(plugin) }),
+    settings: () => ({ 'settings.ts': settingsFile(plugin) }),
   }[kind];
   const created = await writeNewFiles(moduleRoot, files());
   return {
     project,
     created,
-    id: kind === 'events' ? `${plugin}.*` : `${plugin}.${dotted}`,
+    id: single ? `${plugin}.*` : `${plugin}.${dotted}`,
     path: kind === 'page' ? pagePath : undefined,
   };
 }

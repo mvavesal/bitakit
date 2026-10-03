@@ -5,7 +5,7 @@ Bibliothek **`@better-auth-ui/heroui` (1.7.26)**. Keine Registry-Kopien, kein ve
 Quellcode, keine nachgeschriebenen Formulare oder Package-Patches. Die Bibliothek
 wird regulär über npm installiert. Die verworfenen shadcn-Experimente wurden entfernt.
 
-## Installieren und registrieren
+## Install and register
 
 ```tsx
 import { betterAuthUIPlugin } from '@bitakit/better-auth-ui';
@@ -14,41 +14,68 @@ import { multiSessionPlugin } from '@bitakit/better-auth-ui/plugins/multi-sessio
 
 const plugin = betterAuthUIPlugin({
   provider: {
-    authClient, // bestehender Better-Auth-Client mit passenden Client-Plugins
+    authClient, // the existing Better Auth client with matching client plugins
     queryClient, // TanStack QueryClient
     navigate: ({ to, replace }) => (replace ? router.replace(to) : router.push(to)),
     basePaths: { auth: '/auth', settings: '/account', organization: '/organization' },
     plugins: [organizationPlugin(), multiSessionPlugin()],
   },
 });
-// In die bestehende Foundation-Konfiguration aufnehmen.
-// Der Host-Router rendert PluginPage für die registrierten Pfade.
+// Add it to the existing Foundation configuration.
+// The host router renders PluginPage for the registered paths.
 ```
 
-Die Abhängigkeiten werden über npm aufgelöst; React19 ist eine Peer-Abhängigkeit.
-Serverseitig Better Auth konfigurieren, dann denselben Auth-Client an UI und optionalen
-`betterAuthPlugin` übergeben. Das UI-Plugin erzeugt keine zweite Sitzung und keinen
-zweiten Foundation-Provider. QueryClient serverseitig pro Request, im Browser stabil
-halten. Der Host besitzt Routing, Backend-URL, Mail-/OAuth-Konfiguration und Theme.
+Dependencies resolve through npm; React 19 is a peer dependency. Configure Better Auth on the
+server, then pass the same auth client to the UI and to the optional `betterAuthPlugin`. The UI
+plugin creates no second session and no second Foundation provider. Keep the QueryClient per
+request on the server and stable in the browser. The host owns routing, the backend URL, mail and
+OAuth configuration and the theme.
 
-`provider` akzeptiert die vollständigen originalen `AuthProviderProps`: native
-Plugins, Locale, zusätzliche Felder, Upload-Callbacks, Social Providers und weitere
-Optionen bleiben zugänglich. Es gibt keine reduzierte Kopie dieser API.
+`provider` accepts the complete original `AuthProviderProps`: native plugins, locale, additional
+fields, upload callbacks, social providers and every other option stay available. There is no
+reduced copy of this API.
 
-- Root exportiert alle öffentlichen Hauptkomponenten direkt weiter: Auth, SignIn,
-  SignUp, SignOut, AuthRedirect, ForgotPassword, ResetLinkSent, ResetPassword,
-  VerifyEmail, Settings, Profil/Sicherheit, UserAvatar, UserButton, UserView usw.
-- `/plugins` exportiert alle originalen Erweiterungen/Komponenten; `/plugins/<name>`
-  erhält die offiziellen Unterpfade (Organisation, MultiSession, SSO, Billing usw.).
-- `/email` exportiert die originalen Mailvorlagen.
-- `pages: false` erlaubt eigene Host-Seiten statt automatischer Auth-/Settings-/Org-Routen.
-- `pageLayout` liefert den optionalen Host-Rahmen.
-- `betterAuthUIService` ist der typisierte Foundation-Service für die Konfiguration.
-- `settings: { catalog, section, entries: [{ id, title, view }] }` registriert auf
-  Wunsch vorhandene native Ansichten im bestehenden Settings-Katalog. Cleanup
-  entfernt die Beiträge. Keine parallele doppelte Organisationsverwaltung registrieren.
+### `betterAuthUIPlugin(options)`
 
-Details und Exporte: [CATALOG.md](CATALOG.md).
+| Option            | Purpose                                                                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `provider`        | Required. The complete native `AuthProviderProps`.                                                                                                                                                                       |
+| `toastProvider`   | `false` omits the adapter's HeroUI `Toast.Provider` when the host already renders one (for example Shell). Default `true`.                                                                                               |
+| `pages`           | `false` registers no auth, account or organization routes, for hosts that render the exported components with their own router.                                                                                          |
+| `pageLayout`      | Optional host frame around the native account and organization pages.                                                                                                                                                    |
+| `authPageLayout`  | Frame of the authentication pages, `pageLayout` otherwise. `createBetterAuthIntegration` uses `AuthPageLayout`, the package's sign-in frame with a way back to the application; "Add account" leads to the same sign-in. |
+| `profileFallback` | Local demo content the account settings page shows as the profile while nobody is signed in. It is never treated as an authenticated account.                                                                            |
+
+The plugin always contributes its account settings page; see
+[Settings integration](#settings-integration). The former `accountSettings` and `settings`
+(catalog registration) options are removed.
+
+### `organizationUIPlugin(options)` from `@bitakit/better-auth-ui/organizations`
+
+| Option   | Purpose                                                                                                                          |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `path`   | Path of the standalone management page, `/organizations` by default. `false` omits the page and its `organizations.open` action. |
+| `groups` | Groups of the `organizations.open` navigation action; `['navigation']` by default.                                               |
+| `demo`   | Marks the standalone page as a local demo with sample data.                                                                      |
+
+The plugin always contributes its organization settings page. The former `settings`,
+`settingsCategory` and `invitationsCategory` options and the plugin pages under `/settings/...`
+are removed.
+
+### Entry points
+
+- The root entry re-exports every public main component of the library: Auth, SignIn, SignUp,
+  SignOut, AuthRedirect, ForgotPassword, ResetLinkSent, ResetPassword, VerifyEmail, Settings,
+  profile and security cards, UserAvatar, UserButton, UserView and more, plus
+  `AccountSettingsPage`.
+- `/plugins` re-exports every original extension and component; `/plugins/<name>` keeps the
+  official subpaths (organization, multi-session, SSO, billing and so on).
+- `/email` re-exports the original email templates.
+- `/organizations` exports `organizationUIPlugin`, `OrganizationSettingsPage`, the organization
+  views and `OrganizationSwitcher`.
+- `betterAuthUIService` is the typed contract of the configuration (`services['better-auth-ui']`).
+
+Details and exports: [CATALOG.md](CATALOG.md).
 
 ## Zentrales Theme
 
@@ -114,7 +141,8 @@ npm run test:e2e --workspace @bitakit/content-demo -- better-auth-ui.spec.ts
 ```
 
 Package-Tests prüfen Foundation-Lebenszyklus, native API-Weitergabe, Exporte und
-isolierte echte Better-Auth-Abläufe. Browserprüfungen verwenden die echten importierten
+isolierte echte Better-Auth-Abläufe. `tests/settings-pages.test.mjs` renders both settings pages
+in jsdom against an isolated in-memory Better Auth handler and the demo organization backend. Browserprüfungen verwenden die echten importierten
 Komponenten und einen isolierten echten Better-Auth-Handler statt erfundener Antworten.
 
 Offizielle API und Lizenz bleiben bei der Abhängigkeit:
@@ -148,37 +176,64 @@ Native Styles werden über `@bitakit/better-auth-ui/styles.css` aus der installi
 
 Der Styles-Einstieg registriert zusätzlich die eigenen ausgelieferten Klassen und lädt die notwendigen Core-Styles. Keine Monorepo-Scanpfade im Host erforderlich.
 
-### Plugin-eigene Kontoeinstellungen
+## Settings integration
 
-`accountSettings: { catalog }` aktiviert Profil und Sicherheit im Settings-Katalog. Das Plugin besitzt Inhalte, Icons, Kategorienzuordnung und Cleanup. Profil zeigt persönliche Angaben; Sicherheit enthält E-Mail, Passwort, verknüpfte Konten und Sitzungen. Kontenwechsel bleibt im Kontomenü, API keys remain available through native package routes; the Content Demo component showcase has been removed. Optional: `category` und `profileFallback` für einen ausdrücklich lokalen Demo-Einstieg. Die App benötigt keine eigenen Settings-Seiten.
+Each plugin contributes exactly one settings section: an empty `defineSettings({}, section)`
+declaration that carries the presentation, plus one settings page (`ui.settings`, the equivalent
+of `ui/settings/page.tsx`). `useSettingsCatalog()` from `@bitakit/ui` derives the sections and
+App Preferences renders each page under `/settings/<path>` inside its own frame. The pages
+therefore render no page title, frame or navigation of their own; their parts start at heading
+level 2. Nothing is registered at runtime, so there is nothing to clean up.
 
-`authPageLayout: AuthPageLayout` verwendet den paket-eigenen Anmelderahmen mit Rückkehr zur Anwendung. `pageLayout` wraps native account and organization content; Content Demo uses its existing workspace shell. Auch „Konto hinzufügen“ führt damit zur regulären Anmeldung.
+| Plugin             | Section      | Path                                       | Category, order    |
+| ------------------ | ------------ | ------------------------------------------ | ------------------ |
+| `better-auth-ui`   | Account      | `/settings/better-auth-ui` (the plugin ID) | `account`, 0       |
+| `organizations-ui` | Organization | `/settings/organization`                   | `organization`, 10 |
+
+- **Account** (`AccountSettingsPage`): the native profile (`UserProfile`), then security: email,
+  password, linked accounts, two-factor authentication and active sessions, as the provider
+  configuration enables them. While the session loads it shows "Checking sign-in…"; signed out it
+  shows a sign-in link. With `profileFallback`, a signed-out visitor sees that content as the
+  profile and the sign-in link under security. Account switching stays in the account menu; API
+  keys remain available through the native package routes.
+- **Organization** (`OrganizationSettingsPage`): tabs for the profile, members and sent
+  invitations (offered only to members who can manage the active organization) and the
+  invitations addressed to the viewer. The selected tab is URL state through nuqs:
+  `?tab=profile|members|invitations`, where the default `profile` leaves the URL clean. The page
+  needs the host's nuqs adapter and wraps its URL-backed part in `Suspense`. The URL action
+  `organizations.settings` (Alt+Shift+O) opens it.
+
+Sections cannot be hidden at runtime; role-dependent content is handled inside the page. Titles
+and descriptions translate through `<plugin>.settings.title` and `<plugin>.settings.description`
+(`better-auth-ui.settings.*` and `organizations-ui.settings.*` in this package's catalogs). Hosts
+that render settings themselves can use the exported pages directly. The organization views
+(`OrganizationSettings`, `OrganizationMembersSettings`, `OrganizationsPage`) accept `embedded`
+to render inside a host frame: a level-2 heading and no page width of their own.
 
 ## Source ownership
 
 Public exports are in src/index.ts; plugin composition is in src/plugin.tsx. Upstream re-exports live under src/upstream and preserve existing public import paths. Custom organization UI lives under src/components/organizations and is exposed through `/organizations`. See [Custom UI inventory](CUSTOM_COMPONENTS.md) for ownership, retained behavior, and migration limits.
 
-Organization settings components and catalog registration live in `src/settings/organizations.tsx`; account settings live in `src/settings/account.tsx`. Reusable custom controls stay under components.
+The settings pages live in `src/settings`: `account.tsx` (`AccountSettingsPage`) and `organizations.tsx` (`OrganizationSettingsPage` and the organization views it embeds). Organization actions, including the `organizations.settings` URL action, live in `src/actions/organizations.ts`. Reusable custom controls stay under components.
 
 ## Minimal host composition
 
 `createBetterAuthIntegration(options?)` creates one standard client, a QueryClient, and the existing authentication and UI plugins. Register its returned plugins through the ordinary Foundation config; Core owns provider installation and lifecycle. This helper is composition, not another registry or integration system.
 
 Pass `organizations: { path: false, groups: [] }` to include the existing organization
-service adapter and settings-only UI using that same client. The organization catalog
-defaults to `accountSettings.catalog` and may be overridden. Omitting `organizations`
+service adapter and settings-only UI using that same client. Omitting `organizations`
 retains the previous auth/UI-only composition. No server plugin, secret or database
 configuration is changed by this client option. `src/integration.ts` owns this composition;
 the organization service and UI retain their existing package ownership.
 
-Host options are optional UI/provider customizations. The returned client is the same instance used by the shared auth service and UI; reuse it for organization adapters. A supplied client replaces client construction. Provider plugins explicitly replace the standard UI extension list, including an empty list. Account settings remain an explicit catalog integration. The standard native UI extensions match the standard browser client: organizations/teams, multi-session, API keys, and two-factor.
+Host options are optional UI/provider customizations. The returned client is the same instance used by the shared auth service and UI; reuse it for organization adapters. A supplied client replaces client construction. Provider plugins explicitly replace the standard UI extension list, including an empty list. The standard native UI extensions match the standard browser client: organizations/teams, multi-session, API keys, and two-factor.
 
 Relative redirectTo values resolve against the browser UI origin so a separate Auth server does not receive the post-login navigation. Hosts may supply their router's navigate function; the default uses browser navigation. Server routes, credentials, database adapters, and server extension activation remain explicit and server-only.
 
 ```ts
 const authentication = createBetterAuthIntegration({
   provider: { redirectTo: '/contents', navigate },
-  accountSettings: { catalog: settings },
+  organizations: { path: false, groups: [] },
 });
 // Compose authentication.plugins in the existing Foundation provider.
 ```
@@ -189,7 +244,7 @@ Content Demo now keeps only its locale, paths, social providers, layout, and dem
 
 This visual package owns its required controls under src/components/ui and declares their library dependencies. It does not import application source or require host-components registration. Generic action execution bindings come from @bitakit/ui. The application supplies central CSS theme tokens; this package does not create another theme store.
 
-For a minimal host, `organizationUIPlugin({ path: false, settings })` contributes organization Settings and commands without registering a standalone management page or its navigation Action. Omitting `path` preserves the existing default page.
+For a minimal host, `organizationUIPlugin({ path: false })` contributes the organization settings page and commands without registering a standalone management page or its navigation Action. Omitting `path` preserves the existing default page.
 
 ### Shared notification surface
 

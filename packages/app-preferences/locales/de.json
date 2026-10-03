@@ -1,18 +1,69 @@
 {
-  "settings": {
-    "messages": {
+  "app-preferences": {
+    "settings": {
+      "title": "Plugins",
+      "description": "Installierte Erweiterungen und ihre Einstellungen."
+    },
+    "ui": {
+      "settings": "Einstellungen",
+      "back": "Zurück zur App",
+      "navigation": "Einstellungsnavigation",
+      "toggleNavigation": "Einstellungsnavigation umschalten",
+      "breadcrumb": "Brotkrümelnavigation",
+      "skip": "Zu den Einstellungen",
+      "search": "Einstellungen durchsuchen",
+      "searchPlaceholder": "Einstellungen durchsuchen …",
+      "clearSearch": "Suche löschen",
+      "noResults": "Keine Einstellungen gefunden",
+      "noResultsHint": "Versuche einen anderen Suchbegriff.",
+      "resetSearch": "Suche zurücksetzen",
+      "results": "{count, plural, one {# Bereich gefunden} other {# Bereiche gefunden}}",
+      "unavailable": "Diese Einstellungsseite ist nicht verfügbar.",
+      "noFields": "Dieser Bereich enthält keine Einstellungen.",
       "saving": "Wird gespeichert …",
-      "loading": "Wird geladen …",
-      "loadFailed": "Diese Einstellung konnte nicht geladen werden.",
-      "saveFailed": "Die Änderung konnte nicht gespeichert werden. Bitte versuche es erneut.",
-      "invalid": "Bitte gib einen gültigen Wert ein.",
       "readOnly": "Du kannst diese Einstellung nicht ändern.",
-      "reset": "Auf Standard zurücksetzen",
-      "unregistered": "Die Einstellung „{key}“ wird verwendet, ist aber nicht registriert.",
-      "configuration": "Konfigurationsfehler",
-      "empty": "Dieser Bereich enthält keine Einstellungen.",
-      "navigation": "Einstellungsbereiche",
-      "unavailable": "Dieser Einstellungsbereich ist nicht verfügbar."
+      "reset": "{label} auf Standard zurücksetzen",
+      "loadFailed": "Diese Einstellung konnte nicht geladen werden: {error}",
+      "saveFailed": "Die Änderung konnte nicht gespeichert werden: {error}",
+      "unsupported": "Diese Einstellung kann hier nicht geändert werden.",
+      "plugins": "Plugins",
+      "searchPlugins": "Plugins durchsuchen",
+      "searchPluginsPlaceholder": "Plugins durchsuchen …",
+      "clearPluginSearch": "Plugin-Suche löschen",
+      "noPlugins": "Keine Plugins gefunden.",
+      "author": "Von {author}",
+      "backToPlugins": "Zurück zu Plugins",
+      "pluginUnavailable": "Plugin nicht verfügbar",
+      "pluginUnavailableHint": "Dieses Plugin ist nicht installiert.",
+      "aboutPlugin": "Über dieses Plugin",
+      "noDescription": "Für dieses Plugin ist noch keine Beschreibung hinterlegt.",
+      "pluginSettings": "Einstellungen",
+      "noPluginSettings": "Dieses Plugin bietet keine eigenen Einstellungen.",
+      "openSettings": "Einstellungen öffnen",
+      "information": "Informationen",
+      "version": "Version",
+      "unspecified": "Nicht angegeben",
+      "license": "Lizenz",
+      "website": "Website",
+      "projectWebsite": "Projektwebsite",
+      "support": "Support",
+      "supportLink": "Hilfe und Fehler melden"
+    }
+  },
+  "settings": {
+    "categories": {
+      "general": { "title": "Allgemein" },
+      "appearance": { "title": "Darstellung" },
+      "account": { "title": "Konto" },
+      "organization": { "title": "Organisation" },
+      "plugins": { "title": "Plugins" },
+      "administration": { "title": "Verwaltung" }
+    }
+  },
+  "plugins": {
+    "app-preferences": {
+      "name": "App-Einstellungen",
+      "description": "Einstellungsseiten, Einstellungselemente und ihre Navigation."
     }
   }
 }

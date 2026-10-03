@@ -65,6 +65,7 @@ test('execute receives one context: input, services, config, app, events, signal
       'id',
       'input',
       'services',
+      'settings',
       'signal',
       'update',
     ]);

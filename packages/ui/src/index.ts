@@ -19,5 +19,14 @@ export { usePluginConfig } from './hooks/use-plugin-config.js';
 export { useTranslation, type Translate } from './hooks/use-translation.js';
 export { useEvent, useWatchEvent } from './hooks/use-event.js';
 export { useService, useServiceState } from './hooks/use-service.js';
+export { useSetting, type UseSettingResult } from './hooks/use-setting.js';
+export {
+  useSettingsCatalog,
+  type SettingsCatalogSection,
+  type SettingsCatalogField,
+  type SettingsCatalogOption,
+} from './hooks/use-settings-catalog.js';
+export { useSlot, type SlotEntry } from './hooks/use-slot.js';
+export { useNavigation, type Navigation } from './hooks/use-navigation.js';
 export { useAuth } from './hooks/use-auth.js';
 export { AuthBoundary, type AuthBoundaryProps } from './components/auth-boundary.js';

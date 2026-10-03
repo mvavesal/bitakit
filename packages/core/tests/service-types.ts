@@ -25,10 +25,8 @@ const outbox = defineService(
     exposeAs: 'messaging.mail',
   },
 );
-defineService(() => ({ send: async () => 123 }), {
-  // @ts-expect-error A provider must implement the declared contract.
-  provides: mail,
-});
+// @ts-expect-error A provider must implement the declared contract.
+defineService(() => ({ send: async () => 123 }), { provides: mail });
 const typed: ServiceDefinition<{
   send(input: { to: string }): Promise<{ id: string }>;
   drafts: string[];
@@ -124,3 +122,42 @@ const exposed: Stored['clock'] = stored;
 // @ts-expect-error The alias does not replace the ID.
 type Wrong = Stored['plugin.clock'];
 void [typed, result, titles, sent, aliased, now, drafts, ready, has, one, exposed];
+
+// A factory with a destructured context and a contract alias infers the instance type.
+import type { ServiceKey as ContractKey } from '../src/service-key.js';
+type Same<A, B> =
+  (<X>() => X extends A ? 1 : 2) extends <X>() => X extends B ? 1 : 2 ? true : false;
+type Check<Condition extends true> = Condition;
+type Notifications = { show(message: string): void };
+const notificationsContract = serviceKey<Notifications>('notifications');
+const notifications = defineService(
+  ({ services }) => ({ show: (message: string) => void [services, message], extra: 1 }),
+  { provides: notificationsContract },
+);
+type _PlainName = Check<Same<typeof notificationsContract, ContractKey<Notifications, string>>>;
+type _RichInstance = Check<Same<ReturnType<typeof notifications.create>['extra'], number>>;
+// @ts-expect-error The instance must satisfy the contract it provides.
+defineService(({ services }) => ({ other: services }), { provides: notificationsContract });
+// A contract declared with its literal name types the alias in the service map.
+const namedContract = serviceKey<Notifications, 'notifications'>('notifications');
+type _LiteralName = Check<Same<typeof namedContract, ContractKey<Notifications, 'notifications'>>>;
+const shell = definePlugin({
+  id: 'shell',
+  services: {
+    toasts: defineService(
+      () => ({
+        show(message: string): void {
+          void message;
+        },
+      }),
+      { provides: namedContract },
+    ),
+  },
+});
+type ShellServices = PublicServicesOf<[typeof shell]>;
+type _Alias = Check<Same<ShellServices['notifications']['show'], (message: string) => void>>;
+type _Own = Check<Same<ShellServices['shell.toasts']['show'], (message: string) => void>>;
+type PlainAliasPlugins = [{ id: 'x'; services: { a: typeof notifications } }];
+// @ts-expect-error A plain string contract name adds no alias to the map.
+type _NoPlainAlias = PublicServicesOf<PlainAliasPlugins>['notifications'];
+void [notifications, shell];

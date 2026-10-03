@@ -1,6 +1,7 @@
 import { EventService, createEventScope } from './events/service.js';
 import { ConfigService, type ConfigContext } from './config-service.js';
 import type { ServiceDefinition, Services } from './definitions.js';
+import type { SettingsAccess } from './settings/access.js';
 import type { ServiceNames } from './service-names.js';
 import { FoundationStartupError, isFoundationStartupError, moduleLabel } from './startup-error.js';
 import { createStore, isObservable, isStore } from './store.js';
@@ -33,6 +34,7 @@ export function createServices(
   events: EventService = new EventService(),
   scope?: ServiceScope,
   idOf: (definition: ServiceDefinition<any>) => string = (definition) => definition.id!,
+  settings: SettingsAccess = Object.freeze({}) as SettingsAccess,
 ) {
   let active = true;
   const pending = new Map<string, ServiceDefinition<any>>();
@@ -97,6 +99,7 @@ export function createServices(
             events: eventScope.events,
             services: view,
             config: configFor(definition),
+            settings,
             store: (initial) => {
               const store = createStore(initial);
               observed.add(store);

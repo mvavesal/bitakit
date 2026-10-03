@@ -54,8 +54,8 @@ export {
 export { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from './item.js';
 export { PageHeader } from './page-header.js';
 export { Popover, PopoverContent, PopoverTrigger } from './popover.js';
-export { useSidebar } from '@bitakit/shell/sidebar';
+export { useSidebar } from '@bitakit/ui/components';
 export { SidebarIdentity } from './sidebar-identity.js';
 export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table.js';
-export { Tabs, TabsList, TabsTrigger } from './tabs.js';
+export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs.js';
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip.js';

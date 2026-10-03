@@ -60,7 +60,7 @@ toolbars and row actions; `ActionMenu` renders a group with the host menu compon
 `ActionBoundary` gates children on an action's availability. `useActions()` lists public
 snapshots.
 
-## Read services and events
+## Read services, settings and events
 
 ```tsx
 const items = useServiceState('todos.items', (state) => state.items, []); // reactive
@@ -68,7 +68,17 @@ const service = useService('todos.items'); // the instance
 useEvent('todos.changed', (event) => {
   /* event.data */
 });
+const pageSize = useSetting('todos.pageSize'); // { value, ready, writable, pending, error, set, reset }
 ```
+
+`useSetting(key)` reads one setting the runtime owns and writes through it; the value is the
+confirmed value, `disabled` covers not loaded, read-only and saving. Layout and settings
+hosts use `useSettingsCatalog()` (sections derived from every plugin's `settings.ts` and
+`ui/settings/page.tsx`), `useNavigation(groups)` (bound navigation groups plus the router's
+pathname, link and `isActive`), `useSlot(name)` (components plugins placed in a slot) and
+`useCurrentPage()` (the current plugin page with its `layout` name). Dialog actions name a
+frame kind (`dialog: { component, kind: 'sheet' }`); register frames on `FoundationProvider`
+through `dialogs={{ sheet: SheetFrame }}`.
 
 `useServiceState(name, selector?, fallback?)` subscribes to the store a service exposes as
 `state` (or a `subscribe`/`getSnapshot` pair) and returns the fallback until the runtime is
@@ -126,7 +136,7 @@ visual dependency and does not enforce server authorization. See
 ## Source organization
 
 - `components/`: `<Action>`, `ActionButton`, `ActionLink`, `ActionMenu`, `ActionBoundary`, dialog hosts, plugin pages and slots, standard primitives under `components/primitives`.
-- `hooks/`: `useAction`, `useActionGroup`, `useService`, `useServiceState`, `useEvent`, `useFoundationApp`, `usePluginConfig`, `useTranslation`, `useAuth`.
+- `hooks/`: `useAction`, `useActionGroup`, `useService`, `useServiceState`, `useSetting`, `useSettingsCatalog`, `useNavigation`, `useSlot`, `useEvent`, `useFoundationApp`, `usePluginConfig`, `useTranslation`, `useAuth`.
 - `providers/`: `FoundationProvider`, `ActionProvider` and the shared contexts.
 - `bindings/`: keyboard shortcut registration.
 - `utils/`: `mergeProps`.

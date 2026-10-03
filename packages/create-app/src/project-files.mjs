@@ -65,8 +65,8 @@ import type { ShellOptions } from '@bitakit/shell';
 // Shell options: https://github.com/mvavesal/bitakit/tree/main/packages/shell
 export default defineConfig({
   defaults: {
-    // Settings → Appearance: color scheme, navigation layout and theme.
-    appearance: true,
+    // Action groups shown in the navigation; theme presets are CSS under [data-theme-preset="<id>"].
+    groups: ['navigation'],
   } satisfies ShellOptions,
 });
 `;
@@ -97,6 +97,7 @@ ${plan.sample ? '\nThe `todos` plugin in `src/plugins/todos` is a working sample
 | \`src/plugins/<name>/services\` | Data and behavior (\`defineService\`), reached as \`services.<name>.<file>\` |
 | \`src/plugins/<name>/actions\` | Operations for buttons, menus and links (\`defineAction\`), ID \`<name>.<file>\` |
 | \`src/plugins/<name>/events.ts\` | Typed events (\`defineEvents\`), named \`<name>.<event>\` |
+| \`src/plugins/<name>/settings.ts\` | User settings (\`defineSettings\`), keys \`<name>.<setting>\`, with a generated page under \`/settings\` |
 | \`src/plugins/<name>/ui/pages\` | Pages; the file path is the URL (\`ui/pages/index.tsx\` → \`/<name>\`) |
 | \`src/plugins/<name>/ui/slots\` | Components placed in layout slots (\`ui/slots/app-bar.end.tsx\`) |
 | \`${routes}\` | Your own routes, as usual for the framework |
@@ -125,12 +126,16 @@ time; there is no registry, provider or import list to edit. One concept, one wa
     be functions: \`enabled: ({ services, input }) => ...\`. \`href\` makes a link, \`dialog\` opens a dialog,
     \`groups: ['navigation']\` adds it to the app navigation.
   - \`events.ts\`: \`defineEvents({ changed: event<Payload>() })\`, emitted and observed as \`<name>.changed\`.
+  - \`settings.ts\`: \`defineSettings({ pageSize: setting({ default: 20 }) })\`, read as \`settings.<name>.pageSize.get()\`
+    in services and actions and \`useSetting('<name>.pageSize')\` in React. Settings get a generated page under
+    \`/settings\`; \`ui/settings/page.tsx\` replaces it. Persistence is the \`settings.storage\` contract (browser by default).
   - \`ui/pages/<path>.tsx\`: a page component; the file path is the URL. \`ui/slots/<slot>.tsx\`: a component
     placed in a layout slot. Everything under \`ui/\` is React; nothing else may import React.
 - In React: \`useServiceState('<name>.<file>', (state) => ...)\` for reactive data,
   \`<Action id="<name>.<file>" input={...}><Button /></Action>\` to bind any control, \`useEvent('<name>.changed', fn)\`.
 - Create files with the CLI: \`npx bitakit add plugin <name>\`,
-  \`npx bitakit add action|service|page|interceptor|config|events <name>/<file>\`.
+  \`npx bitakit add action|service|page|interceptor|config <name>/<file>\`, \`npx bitakit add events|settings <name>\`.
+- App layouts live in \`src/layouts/<name>.tsx\`; a page opts in with \`export const layout = '<name>'\` (\`'blank'\` for none).
 - After changes run \`npx bitakit doctor\` and \`npm run typecheck\`.
 - App-owned routes stay native framework routes in \`${routes}\`.
 - Use the standard components from \`@bitakit/ui/components\` and the app theme; do not restyle them locally.

@@ -53,15 +53,23 @@ for (const kind of contributionKinds)
   add
     .command(kind)
     .argument(
-      kind === 'events' ? '[plugin]' : '<target>',
-      kind === 'events'
-        ? 'the plugin that declares the events; omit it inside a plugin package'
-        : `"<plugin>/<name>" in an app (nested names allowed), or "<name>" inside a plugin package`,
+      kind === 'events' || kind === 'settings'
+        ? '[plugin]'
+        : kind === 'layout'
+          ? '<name>'
+          : '<target>',
+      kind === 'events' || kind === 'settings'
+        ? `the plugin that declares the ${kind}; omit it inside a plugin package`
+        : kind === 'layout'
+          ? 'the layout name; pages choose it with export const layout'
+          : `"<plugin>/<name>" in an app (nested names allowed), or "<name>" inside a plugin package`,
     )
     .description(
-      kind === 'events'
-        ? 'Create the events.ts of a plugin.'
-        : `Create a ${kind} file. Its ID comes from the file path.`,
+      kind === 'events' || kind === 'settings'
+        ? `Create the ${kind}.ts of a plugin.`
+        : kind === 'layout'
+          ? 'Create src/layouts/<name>.tsx of the app.'
+          : `Create a ${kind} file. Its ID comes from the file path.`,
     )
     .action(async (target) => {
       const result = await addContribution(kind, target);

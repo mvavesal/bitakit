@@ -1,28 +1,22 @@
 'use client';
 import UsersIcon from 'reicon-react/icons/Users';
-import { type AppPreferences, type SectionOptions } from '@bitakit/app-preferences/core';
-import { definePlugin, type Plugin } from '@bitakit/core';
-import { organizationActions } from './actions/organizations.js';
-import { IncomingInvitations } from './components/organizations/incoming-invitations.js';
+import BuildingIcon from 'reicon-react/icons/Building';
+import { definePlugin, defineSettings, type Plugin } from '@bitakit/core';
+import { organizationActions, organizationSettingsPath } from './actions/organizations.js';
 import { OrganizationsPage } from './components/organizations/pages.js';
-import {
-  OrganizationSettings,
-  OrganizationMembersSettings,
-  registerOrganizationSettings,
-} from './settings/organizations.js';
+import { OrganizationSettingsPage } from './settings/organizations.js';
+
+export type OrganizationUIOptions = {
+  /** Path of the standalone management page; false omits the page and its navigation action. */
+  path?: string | false;
+  /** Groups of the standalone page's navigation action; `navigation` by default. */
+  groups?: readonly string[];
+  /** Marks the standalone page as a local demo with sample data. */
+  demo?: boolean;
+};
 
 /** UI and navigation are optional; all toolbars render public extension groups. */
-export function organizationUIPlugin(
-  options: {
-    /** False omits the standalone management page while retaining Settings contributions. */
-    path?: string | false;
-    groups?: readonly string[];
-    demo?: boolean;
-    settings?: AppPreferences;
-    settingsCategory?: SectionOptions['category'];
-    invitationsCategory?: SectionOptions['category'];
-  } = {},
-): Plugin {
+export function organizationUIPlugin(options: OrganizationUIOptions = {}): Plugin {
   return definePlugin({
     id: 'organizations-ui',
     metadata: {
@@ -31,23 +25,31 @@ export function organizationUIPlugin(
       description: 'Members, invitations and organization profile.',
     },
     dependencies: ['organizations'],
-    pages: [
-      { path: '/settings/organization', component: OrganizationSettings },
-      { path: '/settings/organization-members', component: OrganizationMembersSettings },
-      { path: '/settings/organization-invitations', component: OrganizationMembersSettings },
-      { path: '/settings/received-invitations', component: IncomingInvitations },
-      ...(options.path === false
-        ? []
-        : [
-            {
-              path: options.path ?? '/organizations',
-              component: () => <OrganizationsPage demo={options.demo} />,
-            },
-          ]),
-    ],
+    settings: defineSettings(
+      {},
+      {
+        title: 'Organization',
+        description: 'Profile, members and invitations of the active organization.',
+        icon: BuildingIcon,
+        category: 'organization',
+        order: 10,
+        path: organizationSettingsPath,
+        // The settings navigation action of this section carries the shortcut.
+        shortcut: 'Alt+Shift+O',
+      },
+    ),
     actions: organizationActions(options),
-    setup(context) {
-      registerOrganizationSettings(options, context);
+    ui: {
+      settings: { component: OrganizationSettingsPage },
+      pages:
+        options.path === false
+          ? []
+          : [
+              {
+                path: options.path ?? '/organizations',
+                component: () => <OrganizationsPage demo={options.demo} />,
+              },
+            ],
     },
   });
 }

@@ -2,6 +2,7 @@
 import { useAuth } from '@better-auth-ui/react';
 import { useTranslation } from '@bitakit/ui';
 import { useSyncExternalStore } from 'react';
+import { cn } from 'cn';
 import { parseAsString, useQueryState } from 'nuqs';
 import { useFoundation } from '@bitakit/ui';
 import { getService } from '@bitakit/core';
@@ -44,7 +45,8 @@ function InvitationDate({ value }: { value?: string }) {
     </time>
   );
 }
-export function IncomingInvitations() {
+/** `embedded`: rendered inside a host frame that owns the page title and width. */
+export function IncomingInvitations({ embedded = false }: { embedded?: boolean }) {
   const translateUI = useTranslation();
   const service = getService(useFoundation().runtime.services, organizationService);
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
@@ -60,8 +62,9 @@ export function IncomingInvitations() {
       .includes(search.trim().toLocaleLowerCase()),
   );
   return (
-    <section className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6">
+    <section className={cn('flex w-full min-w-0 flex-col gap-6', !embedded && 'mx-auto max-w-5xl')}>
       <PageHeader
+        level={embedded ? 2 : 1}
         title={translateUI(
           'foundationUI.incoming_invitations.invitationsForMe',
           undefined,

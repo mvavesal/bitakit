@@ -43,6 +43,7 @@ src/plugins/<id>/
 ├── services/<file>.ts     defineService   → services.<id>.<file>
 ├── actions/<file>.ts      defineAction    → <id>.<file>
 ├── events.ts              defineEvents    → <id>.<name>
+├── settings.ts            defineSettings  → settings.<id>.<name>
 ├── configs/<file>.ts      defineConfig    → app.config.<id>.<file>
 ├── interceptors/<file>.ts defineInterceptor
 ├── setup.ts               optional; `({ app, services }) => cleanup?`
@@ -52,7 +53,9 @@ src/plugins/<id>/
     ├── pages/<path>.tsx   /<id>/<path>; [param] segments; `export const layout`
     ├── slots/<slot>.tsx   component in slot "<slot>"; `export const order`
     ├── dialogs/<name>.tsx components an action opens with `dialog`
+    ├── settings/page.tsx  replaces the generated settings page of the plugin
     └── providers/<name>.tsx React provider; `export const requires`
+src/layouts/<name>.tsx     app layouts; pages opt in with `export const layout = '<name>'`
 ```
 
 - The folder name is the plugin ID. Folders only: `actions.x.ts` and `x.action.ts` are
@@ -82,6 +85,7 @@ src/plugins/<id>/
 defineService(({ services, config, events, store, onStart, onStop }) => instance, { requires, provides, exposeAs });
 defineAction({ title, enabled, visible, icon, href, input, execute, dialog, confirm, concurrency, success, failure, groups, shortcut, ... });
 defineEvents({ changed: event<Payload>(), deleting: event<P>({ cancelable: true }) });
+defineSettings({ pageSize: setting({ default: 20, schema?, scope?, label?, control?, options? }) }, { title, category, order, path });
 defineInterceptor({ action: 'todos.*', before, after, onError, order, scope }) | defineInterceptor({ service, method, before, after, onError });
 defineConfig({ schema?, defaults? });
 definePlugin({ id, dependencies, services: { name }, actions: { name }, events, config, interceptors, setup, ui: { pages, slots, providers } });
@@ -92,15 +96,19 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   re-evaluates function-valued action fields and feeds `useServiceState`. Services never
   notify by hand. `requires` is an optional startup check that also orders creation; a
   missing service fails with a named error either way. `provides` registers a contract
-  alias (`defineContract<T>('auth')`); `exposeAs` is deliberate flattening only. Async
-  work goes in `onStart` (awaited before `ready`), cleanup in `onStop`.
+  alias (`defineContract<T>('auth')`), and the instance must satisfy the contract; a key
+  created as `serviceKey<T, 'notifications'>('notifications')` carries its literal name and
+  types `services.notifications` in every host. `exposeAs` is deliberate flattening only.
+  Async work goes in `onStart` (awaited before `ready`), cleanup in `onStop`.
 - **Actions** have one shape. Presentation fields (`title`, `description`, `tooltip`, `icon`,
   `variant`, `href`, `enabled`, `visible`, `checked`, `value`) take a value or a function of
-  `{ input, services, config, app }`, evaluated per binding input and on store changes.
-  `input` schemas (zod, valibot, Standard Schema) type, validate and disable while invalid.
-  `execute({ input, services, config, app, events, signal, id, get, update })` is sync or
-  async; pending is set only when a promise is returned. `href` is navigation, `dialog`
-  opens a component (`{ input, close, services }`), never both with `execute`. `confirm`
+  `{ input, services, config, settings, app }`, evaluated per binding input and on store or
+  setting changes. `input` schemas (zod, valibot, Standard Schema) type, validate and
+  disable while invalid. `execute({ input, services, config, settings, app, events, signal,
+  id, get, update })` is sync or async; pending is set only when a promise is returned.
+  `href` is navigation, `dialog` opens a component (`{ input, close, services }`), never both
+  with `execute`; `dialog: { component, kind, size }` names a host frame, and hosts register
+  frames through `FoundationProvider` `dialogs` to decide the appearance. `confirm`
   routes through the host confirmation; `concurrency` is `exclusive` | `per-input` |
   `latest`. Removed and not to be reintroduced: `resolve`, `watch`, `events`/`onEvent`,
   `setup`, `initialState`, `state`, `dependsOn`, `conventions`, `configPath`,
@@ -114,7 +122,15 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 - **Config** is immutable developer input, one file per subtree under `configs/`
   (`configs/actions/<action>.ts` is that action's scope), overridden in `bitakit.config.ts`.
   `config.plugin.get(path, fallback)`, `config.action.get(...)`, `app.config.<plugin>...`.
-  User preferences belong to App Preferences (Phase 4 `defineSettings`).
+- **Settings** are user, organization or device values declared once per plugin in
+  `settings.ts`; keys are `<plugin>.<name>` (plain names for the app). Every context reads
+  and writes them through `settings.<plugin>.<name>.get()/set()/subscribe()`, React through
+  `useSetting(key)`. The runtime owns the values (`runtime.settings`), follows the `auth`
+  contract for the identity, re-evaluates presentation on changes and persists through the
+  `settings.storage` contract (browser storage by default; a server storage is one service
+  with `provides: settingsStorage`). Generated pages render every plugin's settings under
+  `/settings/<plugin>`; `ui/settings/page.tsx` replaces a plugin's page. Never keep a second
+  value store, section registry or renderer registry.
 - **Interceptors** target `action` or `service`, never both in one definition. Plugin
   interceptors are plugin-local unless `scope: 'global'`; app interceptors are global
   unless `scope: 'plugin'`. `before` returning `false` cancels; service hooks only observe.
@@ -133,7 +149,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `ActionMenu`, `ActionBoundary`, `PluginSlot`, `PluginPage` (passes `params`).
 - `useServiceState(name, selector?, fallback?)` is the one way to read service state;
   `useService(name)` the instance; `useEvent(name, handler)` the bus; `app.has(name)` for
-  availability. Readiness is handled inside the hooks.
+  availability; `useSetting(key)` one setting; `useSettingsCatalog()` the sections of a
+  settings UI; `useNavigation(groups)` and `useSlot(name)` the data layouts render;
+  `useCurrentPage()` the page and its `layout` name. Readiness is handled inside the hooks.
 - One `FoundationProvider` with `config`, `additionalPlugins` (merge by ID, replace only
   when explicit), `controls` (prop-name adapters), `notify`, `services`, `isolateFailures`.
   The generated `BitaKitProvider` passes the discovered config; the framework adapters add
@@ -170,11 +188,13 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   lifecycle, registry, provider bootstrap, session store or preference store. Contracts via
   `defineContract`/`provides`/`requires`; optional services are not declared as installed by
   global types alone.
-- Settings: `AppPreferences` is the only owner of confirmed values; the Settings catalog is
-  the only section registry; the renderer service is the only renderer registry.
-  Persisted definitions are registered on client and trusted server; UI registration grants
-  no persistence access. Shell owns appearance/layout, standalone pages and the HeroUI
-  notification surface (`app.services.notifications`).
+- Settings: Core's `SettingsStore` is the only owner of confirmed values; sections derive
+  from `defineSettings` declarations and `ui/settings/page.tsx`; `@bitakit/app-preferences`
+  renders them and projects them into URL actions; nothing else registers sections or
+  renderers. A server storage re-reads the isomorphic `settings.ts` files it trusts; client
+  declarations grant no persistence access. Shell owns the app frame (compound `AppShell`,
+  hooks, layouts, slots), its appearance settings and the HeroUI notification surface
+  (`app.services.notifications`).
 - Better Auth, Better Auth UI and other upstream libraries are used unmodified through
   public exports and configuration: no vendored copies, patches, private imports or fragile
   DOM selectors. Server authorization, sessions and roles stay with the provider; browser UI

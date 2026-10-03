@@ -4,7 +4,7 @@ import { useTranslation } from '@bitakit/ui';
 import SearchIcon from 'reicon-react/icons/SearchNormal';
 import WarningIcon from 'reicon-react/icons/Warning';
 import LockIcon from 'reicon-react/icons/Lock';
-import { Button } from './ui/index.js';
+import { Button } from '@bitakit/ui/components';
 import {
   Empty,
   EmptyContent,

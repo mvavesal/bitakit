@@ -102,7 +102,14 @@ export async function generateFoundation(root, { quiet = false } = {}) {
     );
     return name;
   };
-  const types = { services: [], actions: [], events: [], cancelable: [], configs: [] };
+  const types = {
+    services: [],
+    actions: [],
+    events: [],
+    cancelable: [],
+    settings: [],
+    configs: [],
+  };
   const fileEntries = (entries) =>
     entries.map((entry) => {
       const imported = importFile(entry.file);
@@ -125,6 +132,9 @@ export async function generateFoundation(root, { quiet = false } = {}) {
         types.events.push(`DiscoveredEventsEntry<typeof ${name}, ${quote(moduleId)}>`);
         types.cancelable.push(`DiscoveredCancelableEntry<typeof ${name}, ${quote(moduleId)}>`);
       }
+    if (kind === 'settings')
+      for (const name of names)
+        types.settings.push(`DiscoveredSettingsEntry<typeof ${name}, ${quote(moduleId)}>`);
     if (kind === 'configs')
       types.configs.push(
         `${quote(moduleId)}: ${names.map((name) => `DiscoveredConfigEntry<typeof ${name}>`).join(' & ') || '{}'};`,
@@ -135,9 +145,26 @@ export async function generateFoundation(root, { quiet = false } = {}) {
       interceptors: 'discoverInterceptors',
       configs: 'discoverConfig',
       events: 'discoverEvents',
+      settings: 'discoverSettings',
     }[kind];
     const extra = kind === 'actions' || kind === 'services' ? `, ${quote(moduleId)}` : '';
     return `${fn}([${names.join(', ')}]${extra})`;
+  };
+  /** `src/layouts/<name>.tsx` of the app: layouts pages choose with `export const layout`. */
+  const layoutFiles = (moduleFiles, base) =>
+    moduleFiles
+      .filter(
+        (file) =>
+          path.dirname(file) === path.join(base, 'layouts') &&
+          /^[a-z][a-z0-9-]*\.tsx$/.test(path.basename(file)),
+      )
+      .map((file) => ({ name: path.basename(file, '.tsx'), file }));
+  /** `ui/settings/page.tsx` replaces the generated settings page of a module. */
+  const settingsPage = (moduleFiles, base) => {
+    const file = moduleFiles.find(
+      (entry) => entry === path.join(base, 'ui', 'settings', 'page.tsx'),
+    );
+    return file ? `pluginSettingsPage(${importFile(file, true)})` : undefined;
   };
   /** UI entries import the module namespace so `layout`, `order` and `requires` exports travel along. */
   const emitUI = (kind, entries, moduleId, isApp) =>
@@ -238,6 +265,18 @@ export async function generateFoundation(root, { quiet = false } = {}) {
       .filter((file) => file === path.join(appRoot, 'events.ts'))
       .map((file) => ({ file, path: [], source: relativeTo(file) })),
     appId,
+  );
+  // App settings keep their plain names, so the type module is '' here.
+  const appSettings = emit(
+    'settings',
+    appFiles
+      .filter((file) => file === path.join(appRoot, 'settings.ts'))
+      .map((file) => ({ file, path: [], source: relativeTo(file) })),
+    '',
+  );
+  const appSettingsPage = settingsPage(appFiles, appRoot);
+  const appLayouts = layoutFiles(appFiles, appRoot).map(
+    ({ name, file }) => `${quote(name)}: pluginLayout(${importFile(file, true)})`,
   );
   const appConfigExpression = emit('configs', await appEntries('configs'), appId);
   let interceptorEntries = await appEntries('interceptors');
@@ -357,6 +396,7 @@ export async function generateFoundation(root, { quiet = false } = {}) {
     if (!enabled) continue;
     enabledModuleIds.add(manifest.id);
     const eventsFile = moduleFiles.find((file) => file === path.join(base, 'events.ts'));
+    const settingsFile = moduleFiles.find((file) => file === path.join(base, 'settings.ts'));
     const setupFiles = await resolveEntry('setup', 'setup.ts');
     const actions = emit('actions', await entriesFor('actions'), manifest.id);
     const services = emit('services', await entriesFor('services'), manifest.id);
@@ -365,6 +405,12 @@ export async function generateFoundation(root, { quiet = false } = {}) {
       eventsFile ? [{ file: eventsFile, path: [], source: relativeTo(eventsFile) }] : [],
       manifest.id,
     );
+    const settings = emit(
+      'settings',
+      settingsFile ? [{ file: settingsFile, path: [], source: relativeTo(settingsFile) }] : [],
+      manifest.id,
+    );
+    const pluginSettingsPage = settingsPage(moduleFiles, base);
     const pluginConfig = emit('configs', await entriesFor('configs'), manifest.id);
     const pluginInterceptors = emit('interceptors', await entriesFor('interceptors'), manifest.id);
     const pages = emitUI('pages', await entriesFor('pages'), manifest.id, false);
@@ -376,7 +422,7 @@ export async function generateFoundation(root, { quiet = false } = {}) {
       manifest.id,
     );
     definitions.push(
-      `{ id: ${quote(manifest.id)}, metadata: ${quote(metadata)}, dependencies: ${quote(manifest.dependencies ?? [])}, events: ${events}, actions: ${actions}, services: ${services}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}] }, setup: ${setup}, contributions: ${pluginContributions} }`,
+      `{ id: ${quote(manifest.id)}, metadata: ${quote(metadata)}, dependencies: ${quote(manifest.dependencies ?? [])}, events: ${events}, settings: ${settings}, actions: ${actions}, services: ${services}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${pluginSettingsPage ? `, settings: ${pluginSettingsPage}` : ''} }, setup: ${setup}, contributions: ${pluginContributions} }`,
     );
     for (const file of await resolveEntry('locales', 'locales')) {
       if (!file.endsWith('.json')) continue;
@@ -407,6 +453,7 @@ export async function generateFoundation(root, { quiet = false } = {}) {
   const slotNames = [
     ...new Set([
       ...(installed.packages.includes('@bitakit/ui') ? ['app-bar.end'] : []),
+      ...(installed.slots ?? []),
       ...(config.slots ?? []),
     ]),
   ];
@@ -420,24 +467,36 @@ export async function generateFoundation(root, { quiet = false } = {}) {
     types.services.length && 'type DiscoveredServiceEntry',
     types.events.length && 'type DiscoveredEventsEntry',
     types.cancelable.length && 'type DiscoveredCancelableEntry',
+    types.settings.length && 'type DiscoveredSettingsEntry',
     types.configs.some((entry) => entry.includes('DiscoveredConfigEntry')) &&
       'type DiscoveredConfigEntry',
     installed.plugins.length && 'type PublicServicesOf',
+    installed.plugins.length && 'type PublicSettingsOf',
   ].filter(Boolean);
-  const body = [...definitions, appPages.join(''), appSlots.join(''), appProviders.join('')].join(
-    '\n',
-  );
-  const helpers = ['pluginPage', 'pluginSlot', 'pluginProvider'].filter((helper) =>
-    body.includes(`${helper}(`),
-  );
+  const body = [
+    ...definitions,
+    appPages.join(''),
+    appSlots.join(''),
+    appProviders.join(''),
+    appSettingsPage ?? '',
+    appLayouts.join(''),
+  ].join('\n');
+  const helpers = [
+    'pluginPage',
+    'pluginSlot',
+    'pluginProvider',
+    'pluginSettingsPage',
+    'pluginLayout',
+  ].filter((helper) => body.includes(`${helper}(`));
+  const usesFiles = imports.some((line) => line.includes('discoveredFile('));
   const content = `${generatedHeader}
 ${provider ? "'use client';\n" : ''}import {
-  discoveredFile,
-  discoverActions,
+${usesFiles ? '  discoveredFile,\n' : ''}  discoverActions,
   discoverServices,
   discoverInterceptors,
   discoverConfig,
   discoverEvents,
+  discoverSettings,
 ${helpers.map((helper) => `  ${helper},\n`).join('')}${configured ? '  ConfigService,\n' : ''}  type FoundationConfig,
 ${typeImports.map((item) => `  ${item},`).join('\n')}
 } from '@bitakit/core';
@@ -448,7 +507,8 @@ type DiscoveredServices = ${intersect(types.services)};
 type DiscoveredActions = ${intersect(types.actions)};
 type DiscoveredEvents = ${intersect(types.events)};
 type DiscoveredCancelable = ${intersect(types.cancelable)};
-${installed.plugins.length ? `type InstalledPlugins = [${installed.plugins.map((_, index) => `ReturnType<typeof packagePlugin${index}>`).join(', ')}];\ntype InstalledServices = PublicServicesOf<InstalledPlugins>;` : 'type InstalledServices = {};'}
+type DiscoveredSettings = ${intersect(types.settings)};
+${installed.plugins.length ? `type InstalledPlugins = [${installed.plugins.map((_, index) => `ReturnType<typeof packagePlugin${index}>`).join(', ')}];\ntype InstalledServices = PublicServicesOf<InstalledPlugins>;\ntype InstalledSettings = PublicSettingsOf<InstalledPlugins>;` : 'type InstalledServices = {};\ntype InstalledSettings = {};'}
 ${[...kindTypes.values()].map(({ kind, index, entries }) => `type KindMap${index} = ${entries.join(' & ')};\ndeclare module ${specifier(kind.from)} { interface ${kind.types.map} extends KindMap${index} {} }`).join('\n')}
 declare module '@bitakit/core' {
   interface ServiceMap extends DiscoveredServices, InstalledServices {}
@@ -456,6 +516,7 @@ declare module '@bitakit/core' {
   interface ActionMap extends DiscoveredActions {}
   interface EventMap extends DiscoveredEvents {}
   interface CancelableEventMap extends DiscoveredCancelable {}
+  interface SettingsMap extends DiscoveredSettings, InstalledSettings {}
   interface ConfigMap {
     ${types.configs.join('\n    ')}
   }
@@ -475,10 +536,11 @@ ${configured ? `  const options = new ConfigService([{ id: ${quote(appId)}, conf
     config: appConfig,
     configOverrides,
     events: ${appEvents},
+    settings: ${appSettings},
     services: ${appServices},
     actions: ${appActions},
     interceptors: ${appInterceptors},
-    ui: { pages: [${appPages.join(', ')}], slots: [${appSlots.join(', ')}], providers: [${appProviders.join(', ')}] },
+    ui: { pages: [${appPages.join(', ')}], slots: [${appSlots.join(', ')}], providers: [${appProviders.join(', ')}]${appSettingsPage ? `, settings: ${appSettingsPage}` : ''}${appLayouts.length ? `, layouts: { ${appLayouts.join(', ')} }` : ''} },
     setup: ${appSetup},
     contributions: ${appContributions},
     plugins: [

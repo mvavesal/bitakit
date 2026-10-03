@@ -4,12 +4,12 @@ import path from 'node:path';
 
 /**
  * Reads opt-in metadata (`bitakit` in package.json, `foundation` as the older name) from direct
- * dependencies and, transitively, from the plugin packages they depend on, so installing
- * `@bitakit/shell` also activates `@bitakit/app-preferences`. Never imports client code in Node.
+ * dependencies and, transitively, from the plugin packages they depend on, so a plugin package
+ * activates the plugin packages it depends on. Never imports client code in Node.
  */
 export async function installedContributions(root, selection, jiti) {
   if (selection === false)
-    return { plugins: [], kinds: [], configurations: {}, styles: [], packages: [] };
+    return { plugins: [], kinds: [], configurations: {}, styles: [], packages: [], slots: [] };
   const manifestFile = path.join(root, 'package.json');
   const manifest = await readFile(manifestFile, 'utf8')
     .then(JSON.parse)
@@ -22,6 +22,7 @@ export async function installedContributions(root, selection, jiti) {
   const configurations = {};
   const stylesheets = [];
   const packages = [];
+  const slots = [];
   const visited = new Set();
   const queue = Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies })
     .sort()
@@ -64,6 +65,12 @@ export async function installedContributions(root, selection, jiti) {
         styles: list(metadata.styles).map(specifier),
         theme: list(metadata.theme).map(specifier),
       });
+    // Layout packages declare the slots they render, so SlotMap and doctor know them.
+    for (const slot of list(metadata.slots)) {
+      if (typeof slot !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$/.test(slot))
+        throw new Error(`Invalid slot name in the bitakit manifest of package "${name}".`);
+      if (!slots.includes(slot)) slots.push(slot);
+    }
     if (metadata.discovery) {
       const discover = await jiti.import(
         createRequire(from).resolve(specifier(metadata.discovery)),
@@ -78,7 +85,7 @@ export async function installedContributions(root, selection, jiti) {
     }).sort())
       if (!visited.has(dependency)) queue.push({ name: dependency, from: file });
   }
-  return { plugins, kinds, configurations, styles: orderStyles(stylesheets), packages };
+  return { plugins, kinds, configurations, styles: orderStyles(stylesheets), packages, slots };
 }
 
 /** Package styles after the styles of the packages they depend on; theme files come last. */

@@ -4,6 +4,7 @@ import { organizationsPlugin, organizationService } from '@bitakit/organizations
 import { createDemoOrganizationBackend } from '@bitakit/organizations/demo';
 import { organizationUIPlugin } from '../dist/organizations.js';
 import { createActionList, FoundationRuntime, getService } from '@bitakit/core';
+import BuildingIcon from 'reicon-react/icons/Building';
 
 test('UI uses the registered service and cleanup removes its navigation and commands', async () => {
   const actions = createActionList();
@@ -22,36 +23,53 @@ test('UI uses the registered service and cleanup removes its navigation and comm
   await assert.rejects(service.refresh(), /disposed/);
 });
 
-test('member settings navigation follows organization role and cleans up on unmount', async () => {
-  const { AppPreferences } = await import('@bitakit/app-preferences/core');
-  const settings = new AppPreferences({ read: async () => null, write: async () => {} });
-  const runtime = new FoundationRuntime(createActionList(), {
-    plugins: [
-      organizationsPlugin(createDemoOrganizationBackend),
-      organizationUIPlugin({ settings }),
-    ],
+test('organization settings are one section with a tabbed page and a URL action', async () => {
+  const actions = createActionList();
+  const plugin = organizationUIPlugin();
+  assert.deepEqual(plugin.settings.settings, {});
+  assert.equal(plugin.settings.section.title, 'Organization');
+  assert.equal(plugin.settings.section.category, 'organization');
+  assert.equal(plugin.settings.section.order, 10);
+  assert.equal(plugin.settings.section.path, 'organization');
+  assert.equal(plugin.settings.section.icon, BuildingIcon);
+  assert.equal(typeof plugin.ui.settings.component, 'function');
+  assert.deepEqual(
+    plugin.ui.pages.map((page) => page.path),
+    ['/organizations'],
+  );
+  for (const legacy of ['pages', 'providers', 'views', 'setup'])
+    assert.equal(plugin[legacy], undefined, legacy);
+  const runtime = new FoundationRuntime(actions, {
+    plugins: [organizationsPlugin(createDemoOrganizationBackend), plugin],
   });
   const stop = runtime.mount();
+  // The settings section carries path and shortcut; App Preferences projects the navigation action.
+  assert.equal(plugin.settings.section.path, 'organization');
+  assert.equal(plugin.settings.section.shortcut, 'Alt+Shift+O');
+  assert.equal(actions.get('organizations.settings'), undefined);
+  // Role-dependent actions follow the service without a manual subscription.
   const service = getService(runtime.services, organizationService);
-  assert.equal(settings.getSection('organization-members').visible, false);
   await service.refresh();
-  assert.equal(settings.getSection('organization-members').visible, true);
+  const input = { organizationId: 'studio', memberId: 'studio-member' };
+  assert.equal(actions.resolve('organizations.remove', input).visible, true);
+  assert.equal(actions.resolve('organizations.promote', input).visible, true);
+  assert.equal(actions.resolve('organizations.demote', input).visible, false);
   await service.accept('demo-incoming');
   await service.setActive('partner');
-  assert.equal(settings.getSection('organization-members').visible, false);
-  assert.equal(settings.getSection('organization').visible, true);
-  assert.equal(settings.getSection('received-invitations').visible, true);
-  await service.setActive('studio');
-  assert.equal(settings.getSection('organization-members').visible, true);
+  // The viewer is a plain member of the partner organization: no member management.
+  const partner = { organizationId: 'partner', memberId: 'partner-member' };
+  assert.equal(service.getSnapshot().canManage, false);
+  assert.equal(actions.resolve('organizations.remove', partner).visible, false);
+  assert.equal(actions.resolve('organizations.promote', partner).visible, false);
   stop();
-  assert.equal(settings.getSection('organization-members'), undefined);
+  assert.equal(actions.get('organizations.create'), undefined);
 });
 
 test('settings-only organization integration omits its standalone page and navigation', () => {
   const actions = createActionList();
   const plugin = organizationUIPlugin({ path: false });
-  assert.ok(plugin.pages.length > 0);
-  assert.ok(plugin.pages.every((page) => page.path.startsWith('/settings/')));
+  assert.deepEqual(plugin.ui.pages, []);
+  assert.equal(typeof plugin.ui.settings.component, 'function');
   const runtime = new FoundationRuntime(actions, {
     plugins: [organizationsPlugin(createDemoOrganizationBackend), plugin],
   });

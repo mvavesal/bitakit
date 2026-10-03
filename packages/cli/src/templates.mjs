@@ -210,6 +210,28 @@ export default defineEvents({
 `;
 }
 
+export function settingsFile(plugin) {
+  return `import { defineSettings, setting } from '@bitakit/core';
+
+// Keys are prefixed with the plugin ID: read and write as settings.${plugin}.<name> or useSetting('${plugin}.<name>').
+// A generated page under /settings shows every setting; ui/settings/page.tsx replaces it.
+export default defineSettings({
+  pageSize: setting({ default: 20, control: 'number', label: 'Items per page' }),
+});
+`;
+}
+
+export function layoutFile(name) {
+  const component = `${pascalOf(name)}Layout`;
+  return `import type { ReactNode } from 'react';
+
+// Pages choose this layout with: export const layout = '${name}';
+export default function ${component}({ children }: { children: ReactNode }) {
+  return <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-4 md:p-6">{children}</div>;
+}
+`;
+}
+
 export function interceptorFile(plugin, name) {
   return `import { defineInterceptor } from '@bitakit/core';
 

@@ -1,16 +1,26 @@
 import type { ServiceDefinition } from './definitions.js';
 
 declare const serviceType: unique symbol;
+declare const serviceName: unique symbol;
 /**
  * A stable runtime name carrying a TypeScript contract. Share it between the plugin that
  * provides a service and the plugins that use it. The phantom is contravariant, so a richer
- * instance may satisfy a narrower contract.
+ * instance may satisfy a narrower contract. Created as `serviceKey<T, 'name'>('name')`, the
+ * key also carries its literal name, which types `services.name` in the generated maps.
  */
-export type ServiceKey<T> = string & { readonly [serviceType]: (value: T) => void };
+export type ServiceKey<T, Name extends string = string> = Name & {
+  readonly [serviceType]: (value: T) => void;
+  readonly [serviceName]?: Name;
+};
+/** The literal name a key carries, or `string` for keys created without one. */
+export type ContractName<Key> = Key extends { readonly [serviceName]?: infer Name extends string }
+  ? Name
+  : string;
 
-export function serviceKey<T>(id: string): ServiceKey<T> {
+/** The literal name travels with the key, so `provides: notificationService` types `services.notifications`. */
+export function serviceKey<T, const Name extends string = string>(id: Name): ServiceKey<T, Name> {
   if (!id.trim()) throw new Error('A service key must not be empty.');
-  return id as ServiceKey<T>;
+  return id as ServiceKey<T, Name>;
 }
 /** Alias with the vocabulary of the docs: a contract is a typed service key. */
 export const defineContract = serviceKey;

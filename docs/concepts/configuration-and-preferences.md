@@ -6,8 +6,8 @@ Application configuration and user preferences answer different questions.
 | --------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
 | Who chooses it? | The developer or deployment.                          | The user, within options the app exposes.                     |
 | Example         | Plugin defaults and selected capabilities.            | Theme or language.                                            |
-| Owner           | `defineConfig` files and `bitakit.config.ts`.         | The separate App Preferences package.                         |
-| UI              | No settings screen is created by configuration alone. | Catalog sections and controls can expose registered settings. |
+| Owner           | `defineConfig` files and `bitakit.config.ts`.         | `defineSettings` in `settings.ts`; the Core runtime owns the values. |
+| UI              | No settings screen is created by configuration alone. | App Preferences generates a page per plugin under `/settings`. |
 
 ## Application configuration
 
@@ -22,16 +22,19 @@ credentials stay in the server's configuration and its appropriate integration.
 
 ## User preferences
 
-App Preferences owns registered preference values and their configured persistence.
-Its settings catalog describes sections and fields. Optional feature plugins can
-contribute settings to that catalog rather than each building an unrelated settings
-system. Core itself does not implement a settings UI.
+A plugin declares its settings once in `settings.ts` with `defineSettings({ name: setting({ default, schema?, scope? }) })`.
+Keys are `<plugin>.<name>`; every service and action reads and writes them through typed
+handles (`settings.todos.pageSize.get()`, `set()`, `subscribe()`), React through `useSetting`.
+The Core runtime owns the confirmed values, follows the `auth` contract for the user and
+organization identity and persists through the `settings.storage` contract: browser storage
+by default, or one host service with `provides: settingsStorage`. App Preferences renders a
+generated page per plugin; `ui/settings/page.tsx` replaces it. Core itself renders nothing.
 
 "Out of the box" depends on what the application installs and configures. The selected
 framework provider and optional visual packages compose supported defaults; installing
 Core alone does not create settings pages, a database, or persistent user accounts.
-Server-backed persistence requires server-side registration and access controls as well
-as the visible field.
+Server-backed persistence is a storage service that re-reads the trusted `settings.ts` files
+on the server and applies its own access rules; a client declaration grants no persistence.
 
 Start with [App Preferences](../../packages/app-preferences/README.md),
 [the package map](../../packages/README.md), or

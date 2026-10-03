@@ -46,7 +46,8 @@ try {
   const compile = async (imports) =>
     (
       await postcss([tailwind({ base: dir })]).process(
-        `@import 'tailwindcss';\n${imports.map((name) => `@import '${name}';`).join('\n')}\n`,
+        // One dark: utility makes the variant observable even when no package source uses it.
+        `@import 'tailwindcss';\n@source inline("dark:bg-muted");\n${imports.map((name) => `@import '${name}';`).join('\n')}\n`,
         { from: path.join(dir, 'app.css') },
       )
     ).css;
