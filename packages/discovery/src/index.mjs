@@ -12,4 +12,4 @@ export const defineFoundation = defineBitaKit;
 export { generateFoundationHost } from './host.mjs';
 export { describeFoundation, describeModule } from './describe.mjs';
 export { migrateProject } from './migrate.mjs';
-export { stylePrelude, cssImports, resolveStylesheet, validatePackageStyles } from './styles.mjs';
+export { styleLayers, stylePrelude, cssImports, resolveStylesheet, validatePackageStyles } from './styles.mjs';

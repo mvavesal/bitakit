@@ -225,7 +225,7 @@ async function checkWiring(project) {
   }
   let provider = false;
   for (const file of rootLayouts(project))
-    if (/bitakit\.gen|BitaKitProvider|FoundationProvider/.test(await read(file))) provider = true;
+    if (await mountsProvider(path.join(project.root, file), project.root)) provider = true;
   results.push(
     provider
       ? { status: 'ok', title: 'The root layout mounts the BitaKit provider' }
@@ -249,6 +249,44 @@ async function checkWiring(project) {
       fix: 'Rename it to bitakit.config.ts and use defineBitaKit (npx bitakit migrate).',
     });
   return results;
+}
+
+/** Follow statically rendered local wrappers; an unused import or comment is not a mount. */
+async function mountsProvider(file, root, seen = new Set()) {
+  if (seen.has(file)) return false;
+  seen.add(file);
+  const code = await readFile(file, 'utf8').catch(() => '');
+  const tree = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const imports = new Map();
+  const rendered = new Set();
+  for (const statement of tree.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    const from = statement.moduleSpecifier.text;
+    const clause = statement.importClause;
+    if (clause?.name) imports.set(clause.name.text, { from, name: 'default' });
+    if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings))
+      for (const binding of clause.namedBindings.elements)
+        imports.set(binding.name.text, { from, name: binding.propertyName?.text ?? binding.name.text });
+  }
+  const visit = (node) => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node))
+      rendered.add(node.tagName.getText(tree));
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  for (const name of rendered) {
+    const entry = imports.get(name);
+    if (!entry) continue;
+    if (['BitaKitProvider', 'FoundationProvider'].includes(entry.name) &&
+      /bitakit\.gen|^@bitakit\/(?:ui|next|tanstack)$/.test(entry.from)) return true;
+    const base = entry.from.startsWith('@/') ? path.join(root, 'src', entry.from.slice(2))
+      : entry.from.startsWith('.') ? path.resolve(path.dirname(file), entry.from) : undefined;
+    if (!base) continue;
+    for (const target of [base, `${base}.tsx`, `${base}.ts`, `${base}.jsx`, `${base}.js`, path.join(base, 'index.tsx')]) {
+      if (await mountsProvider(target, root, seen)) return true;
+    }
+  }
+  return false;
 }
 
 const unwrap = (node) =>

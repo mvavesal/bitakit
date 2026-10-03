@@ -1,4 +1,11 @@
 {
   "title": "Documentation",
-  "pages": ["index", "quickstart", "concepts", "packages", "contributing"]
+  "pages": [
+    "index",
+    "quickstart",
+    "cli",
+    "concepts",
+    "packages",
+    "contributing"
+  ]
 }

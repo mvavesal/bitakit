@@ -58,6 +58,18 @@ test('doctor follows the root CSS import, including alternative filenames and ne
   assert.equal(status(results, /Installed packages ship styles that are not imported/), 'warn');
 });
 
+test('doctor follows rendered provider wrappers but ignores unused provider imports', async (t) => {
+  const root = await project(nextApp({
+    'src/app/layout.tsx': "import { Providers } from '@/components/providers'; export default function Layout({ children }) { return <Providers>{children}</Providers>; }",
+    'src/components/providers.tsx': "import { BitaKitProvider as Root } from '@/bitakit.gen'; export function Providers({ children }) { return <Root>{children}</Root>; }",
+  }), t);
+  let { results } = await doctor({ cwd: root });
+  assert.equal(status(results, /root layout mounts the BitaKit provider/), 'ok');
+  await write(root, { 'src/components/providers.tsx': "import { BitaKitProvider } from '@/bitakit.gen'; export function Providers({ children }) { return children; }" });
+  ({ results } = await doctor({ cwd: root }));
+  assert.equal(status(results, /No BitaKit provider in the root layout/), 'error');
+});
+
 test('doctor reports missing wiring with the lines to add', async (t) => {
   const root = await project(
     nextApp({
@@ -185,7 +197,7 @@ test('doctor checks TanStack Start wiring and suggests the $ route', async (t) =
     'node_modules/@bitakit/core/package.json': { name: '@bitakit/core', version: '0.2.0' },
     'vite.config.ts':
       "import { bitakit } from '@bitakit/tanstack/config';\nexport default { plugins: [bitakit()] };\n",
-    'src/routes/__root.tsx': "import { BitaKitProvider } from '../bitakit.gen';\n",
+    'src/routes/__root.tsx': "import { BitaKitProvider } from '../bitakit.gen'; export function Root({ children }) { return <BitaKitProvider>{children}</BitaKitProvider>; }\n",
     'src/routes/index.tsx': 'export const Route = {};\n',
     'src/styles.css': "@import 'tailwindcss';\n@import './bitakit.gen.css';\n",
     'src/plugins/notes/ui/pages/index.tsx': 'export default function Notes() { return null; }\n',

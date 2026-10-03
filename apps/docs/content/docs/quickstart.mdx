@@ -24,6 +24,20 @@ To pick a framework and extras interactively — an application shell with setti
 ⌘K quick search, a sample Todos plugin — run `npx @bitakit/create-app my-app` instead. The
 generator adds the dependencies each choice needs.
 
+### Already have an app?
+
+In an existing Next.js or TanStack Start project, wire BitaKit in place instead:
+
+```sh
+npm install @bitakit/core @bitakit/ui @bitakit/next   # or @bitakit/tanstack
+npm install --save-dev @bitakit/cli @bitakit/discovery
+npx bitakit init
+```
+
+`init` writes `bitakit.config.ts`, wraps your framework config, mounts `<BitaKitProvider>` in the
+root layout and adds the plugin catch-all route; it never touches a file that already has the
+wiring. Then continue with step 3. The [command line](/docs/cli) page lists every option.
+
 ## 2. Start developing
 
 ```sh
@@ -46,8 +60,17 @@ npx bitakit add plugin notes
 This creates `src/plugins/notes/` with a service, typed events, actions, a navigation link
 and a page at `/notes`. The dev server picks it up; there is no registry to edit. Open
 `src/plugins/notes/ui/pages/index.tsx` to see how a page binds actions with `<Action>` and
-reads the service with `useServiceState`. Check the project at any time with
-`npx bitakit doctor`.
+reads the service with `useServiceState`.
+
+Grow the plugin one file at a time; each command writes one file and the path becomes the ID:
+
+```sh
+npx bitakit add action notes/archive    # actions/archive.ts → notes.archive
+npx bitakit add page notes/archive      # ui/pages/archive.tsx → /notes/archive
+npx bitakit add settings notes          # settings.ts → a generated settings page
+```
+
+Check the project at any time with `npx bitakit doctor`.
 
 ## 4. Make it yours
 
@@ -82,6 +105,11 @@ integrations; the generator does not create a backend.
     title="Build your first feature"
     href="/docs/concepts/plugins"
     description="Add a service and an action, then use them from a button."
+  />
+  <Card
+    title="Command line"
+    href="/docs/cli"
+    description="Create or wire an app, add files, generate, check and migrate."
   />
   <Card
     title="Explore packages"

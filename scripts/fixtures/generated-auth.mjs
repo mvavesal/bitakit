@@ -8,42 +8,41 @@ export async function configureAuthFixture(target, archives) {
   const manifest = JSON.parse(await readFile(file, 'utf8'));
   for (const name of ['better-auth', 'better-auth-ui', 'organizations'])
     manifest.dependencies[`@bitakit/${name}`] = archives[`@bitakit/${name}`];
-  Object.assign(manifest.dependencies, { 'better-auth': '^1.7.5', '@better-auth/api-key': '^1.7.5', '@tanstack/react-query': '^5.0.0' });
+  Object.assign(manifest.dependencies, { 'better-auth': '^1.7.5', '@better-auth/api-key': '^1.7.5' });
   Object.assign(manifest.overrides ??= {}, archives);
   await writeFile(file, JSON.stringify(manifest, null, 2));
   const files = {
-    'src/services/auth-client.ts': `import { defineService } from '@bitakit/core';
-import { betterAuthClient } from '@bitakit/better-auth';
-import { createBetterAuthClient } from '@bitakit/better-auth/client';
-export default defineService(() => ({ client: createBetterAuthClient() }), { provides: betterAuthClient });
-`,
-    'src/configs/better-auth-ui.ts': `import { defineConfig } from '@bitakit/core';
-import { QueryClient } from '@tanstack/react-query';
-import { organizationPlugin } from '@bitakit/better-auth-ui/plugins/organization';
-import { multiSessionPlugin } from '@bitakit/better-auth-ui/plugins/multi-session';
-import { twoFactorPlugin } from '@bitakit/better-auth-ui/plugins/two-factor';
-export default defineConfig({ defaults: {
-  toastProvider: false,
-  provider: {
-    queryClient: new QueryClient(),
-    plugins: [organizationPlugin({ teams: true }), multiSessionPlugin(), twoFactorPlugin()],
-    basePaths: { auth: '/auth', settings: '/account', organization: '/organization' },
-    redirectTo: '/checks',
-    socialProviders: [],
-    emailAndPassword: { enabled: true, forgotPassword: false },
-  },
-} });
+    'src/components/auth-providers.tsx': `'use client';
+import { useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { createBetterAuthIntegration } from '@bitakit/better-auth-ui';
+import { BitaKitProvider } from '../bitakit.gen';
+export function Providers({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const [native] = useState(() => createBetterAuthIntegration({
+    toastProvider: false,
+    provider: {
+      navigate: ({ to, replace }) => replace ? router.replace(to) : router.push(to),
+      basePaths: { auth: '/auth', settings: '/account', organization: '/organization' },
+      redirectTo: '/checks',
+      socialProviders: [],
+      emailAndPassword: { forgotPassword: false },
+    },
+  }));
+  return <BitaKitProvider additionalPlugins={native.plugins}>{children}</BitaKitProvider>;
+}
 `,
     'src/app/api/auth/[...all]/route.ts': `import { randomBytes } from 'node:crypto';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { organization, multiSession, twoFactor } from 'better-auth/plugins';
+import { apiKey } from '@better-auth/api-key';
 const auth = betterAuth({
   baseURL: process.env.BITAKIT_TEST_ORIGIN || 'http://localhost:4100',
   secret: randomBytes(32).toString('hex'),
-  database: memoryAdapter({ user: [], session: [], account: [], verification: [], organization: [], member: [], invitation: [], team: [], teamMember: [], twoFactor: [] }),
+  database: memoryAdapter({ user: [], session: [], account: [], verification: [], organization: [], member: [], invitation: [], team: [], teamMember: [], twoFactor: [], apikey: [] }),
   emailAndPassword: { enabled: true },
-  plugins: [organization({ teams: { enabled: true } }), multiSession(), twoFactor()],
+  plugins: [organization({ teams: { enabled: true } }), multiSession(), twoFactor(), apiKey()],
 });
 function handler(request: Request) {
   if (process.env.BITAKIT_TEST_AUTH !== '1') return new Response('Test auth is disabled', { status: 404 });
@@ -61,11 +60,10 @@ const Lazy = lazy(() => import('fixture-plugin/lazy'));
 export default function Checks() {
   const auth = useAuth();
   const [show, setShow] = useState(false);
-  if (auth.pending) return <p>Loading session</p>;
-  return <section>
+  return <section className="flex flex-col gap-4">
     <h1>Native integration checks</h1>
     <p>Isolated local test accounts. Data is temporary; no email is sent.</p>
-    {auth.user ? <><UserButton /><OrganizationSwitcher aria-label="Switch organization" /></> : <Auth view="signIn" />}
+    {auth.user ? <div className="flex flex-wrap gap-2"><UserButton /><OrganizationSwitcher aria-label="Switch organization" /></div> : <Auth view="signIn" />}
     <Link href="/settings/account">Account settings</Link>
     <Link href="/settings/shell">Appearance settings</Link>
     <button onClick={() => setShow(true)}>Load fixture plugin</button>
@@ -87,12 +85,30 @@ export default function Checks() {
     await mkdir(path.dirname(path.join(target, name)), { recursive: true });
     await writeFile(path.join(target, name), content);
   }
+  const layout = path.join(target, 'src/app/layout.tsx');
+  await writeFile(layout, (await readFile(layout, 'utf8'))
+    .replace("import { BitaKitProvider } from '@/bitakit.gen';", "import { Providers } from '@/components/auth-providers';")
+    .replaceAll('<BitaKitProvider>', '<Providers>').replaceAll('</BitaKitProvider>', '</Providers>'));
   await writeFile(path.join(target, 'src/fixture-plugin.d.ts'), "declare module 'fixture-plugin/lazy' { const component: import('react').ComponentType; export default component; }\n");
 }
 
 export async function verifyAuthStyles(page, url, artifacts) {
   await page.goto(url + '/checks');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).waitFor();
+  await page.getByRole('button', { name: /^Sign in$/i }).waitFor();
+  const layers = await page.evaluate(() => {
+    const result = [];
+    function scan(rules) {
+      for (const rule of rules) {
+        const match = /^@layer\s+([^;{]+)/.exec(rule.cssText);
+        if (match) for (const name of match[1].split(',').map((value) => value.trim()))
+          if (!result.includes(name)) result.push(name);
+        if (rule.styleSheet) scan(rule.styleSheet.cssRules);
+      }
+    }
+    for (const sheet of document.styleSheets) scan(sheet.cssRules);
+    return result.filter((name) => ['theme', 'base', 'components', 'utilities'].includes(name));
+  });
+  assert.deepEqual(layers, ['theme', 'base', 'components', 'utilities']);
   const before = await page.locator('.button--primary').first().evaluate((element) => {
     const style = getComputedStyle(element);
     return { background: style.backgroundColor, color: style.color, height: parseFloat(style.height) };
@@ -121,6 +137,7 @@ export async function verifyAuthStyles(page, url, artifacts) {
       assert.ok(menu.itemPadding > 0, JSON.stringify(menu));
       await page.screenshot({ path: path.join(artifacts, `menu-${dark ? 'dark' : 'light'}-${width}.png`) });
       await page.keyboard.press('Escape');
+      await page.getByRole('menu').waitFor({ state: 'hidden' });
     }
   }
   await page.getByRole('button', { name: 'Load fixture plugin' }).click();
@@ -129,8 +146,9 @@ export async function verifyAuthStyles(page, url, artifacts) {
   await page.getByRole('button', { name: 'Switch organization', exact: true }).click();
   assert.ok(await page.getByRole('menu').evaluate((e) => parseFloat(getComputedStyle(e).paddingTop)) > 0);
   await page.keyboard.press('Escape');
+  await page.getByRole('menu').waitFor({ state: 'hidden' });
   await page.getByRole('link', { name: 'Account settings', exact: true }).click();
-  await page.getByRole('heading', { name: 'Account', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Account', exact: true, level: 1 }).waitFor();
   await page.locator('input[type="password"]').first().waitFor();
   const input = await page.locator('input[type="password"]').first().evaluate((element) => {
     const container = element.closest('[data-slot="input-group"]') || element;
@@ -140,5 +158,5 @@ export async function verifyAuthStyles(page, url, artifacts) {
   assert.ok(input.width > 100 && input.height >= 28, JSON.stringify(input));
   await page.screenshot({ path: path.join(artifacts, 'account-settings.png'), fullPage: true });
   await page.reload();
-  await page.getByRole('heading', { name: 'Account', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Account', exact: true, level: 1 }).waitFor();
 }

@@ -17,6 +17,10 @@ src/plugins/todos/
   actions/add.ts
 ```
 
+The CLI writes the same two files from templates: `npx bitakit add service todos/tasks` and
+`npx bitakit add action todos/add`. `npx bitakit add plugin todos` creates a complete plugin with a
+page and a navigation link in one go; see the [command line](/docs/cli) page.
+
 ### The service owns the tasks
 
 ```ts

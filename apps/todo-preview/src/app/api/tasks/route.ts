@@ -9,6 +9,7 @@ const input = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('edit'), id: z.string(), title: z.string().trim().min(1) }),
   z.object({ operation: z.literal('complete'), id: z.string(), completed: z.boolean() }),
   z.object({ operation: z.literal('remove'), id: z.string() }),
+  z.object({ operation: z.literal('clear'), organizationId: z.string() }),
 ]);
 
 async function organizationFor(request: Request) {
@@ -36,6 +37,12 @@ export async function POST(request: Request) {
     const parsed = input.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return new Response('Invalid task input.', { status: 400 });
     const change = parsed.data;
+    if (change.operation === 'clear') {
+      if (change.organizationId !== organizationId)
+        return new Response('The selected organization changed. Try again.', { status: 409 });
+      tasks.set(organizationId, []);
+      return Response.json({ items: [] });
+    }
     const items = tasks.get(organizationId) ?? [];
     if (change.operation === 'add') items.push({ id: randomUUID(), title: change.title, completed: false });
     else {

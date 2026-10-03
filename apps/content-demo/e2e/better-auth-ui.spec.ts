@@ -96,25 +96,11 @@ async function signup(page: Page, email: string, name: string) {
   await expect(page.getByRole('button', { name: new RegExp(name) })).toBeVisible();
   await page.getByRole('button', { name: new RegExp(name) }).click();
   await page.getByRole('menuitem', { name: 'Einstellungen', exact: true }).click();
-  await expect(page).toHaveURL(/\/settings\/profile$/);
-  await expect(
-    page
-      .getByRole('navigation', { name: 'Einstellungsnavigation' })
-      .getByRole('link', { name: 'Profil', exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: 'E-Mail-Adresse ändern', exact: true }),
-  ).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Konten verwalten', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('navigation', { name: 'Einstellungsnavigation' })).toBeVisible();
+  await expect(page).toHaveURL(/\/settings\/account$/);
   await expect(page.getByRole('heading', { name: 'Benutzerprofil' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Better Auth UI', exact: true })).toHaveCount(0);
   await expect(page.getByRole('tablist', { name: 'Einstellungen' })).toHaveCount(0);
-  await page
-    .getByRole('navigation', { name: 'Einstellungsnavigation' })
-    .getByRole('link', { name: 'Sicherheit', exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/settings\/security$/);
+  // The generated account page now contains both profile and security controls.
   await expect(
     page.getByRole('heading', { name: 'E-Mail-Adresse ändern', exact: true }),
   ).toBeVisible();
@@ -476,7 +462,7 @@ test('security cards share separators and destructive button finish across theme
   const { auth } = backend(baseURL!);
   await connect(page, auth);
   await signup(page, 'security-theme@example.test', 'Security Theme');
-  await page.goto('/settings/security');
+  await page.goto('/settings/account');
   await expect(page.getByRole('button', { name: 'Überall abmelden', exact: true })).toBeVisible();
   for (const width of [390, 768, 1386]) {
     await page.setViewportSize({ width, height: 900 });
@@ -564,7 +550,7 @@ test('studio organization plugin persists real organizations and isolates accoun
   await expect(page.getByText('Änderungen gespeichert.', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('textbox', { name: /^Name/ })).toHaveValue('Updated Studio');
-  await page.goto('/settings/organization-members');
+  await page.goto('/settings/organization?tab=members');
   await expect(page.getByRole('cell', { name: /Organization Owner/ })).toBeVisible();
   await signup(page, 'other-owner@example.test', 'Other Owner');
   await page.goto('/');

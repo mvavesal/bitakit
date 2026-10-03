@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { cp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { describeModule } from '@bitakit/discovery';
+import { describeModule, validatePackageStyles } from '@bitakit/discovery';
 import { findProject } from './project.mjs';
 
 const quote = JSON.stringify;
@@ -79,6 +79,15 @@ export default plugin;
     for (const file of module.locales)
       await cp(file, path.join(dist, 'locales', path.basename(file)));
   }
+  const styles = (value) => (value === undefined ? [] : Array.isArray(value) ? value : [value])
+    .map((entry) => `${manifest.name}/${entry.replace(/^\.\//, '')}`);
+  await validatePackageStyles([{
+    name: manifest.name,
+    manifestFile: path.join(root, 'package.json'),
+    manifest,
+    styles: styles(metadata.styles),
+    theme: styles(metadata.theme),
+  }]);
   return { id, module, dist };
 }
 

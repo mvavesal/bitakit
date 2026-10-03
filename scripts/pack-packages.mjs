@@ -7,7 +7,8 @@ import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
-const [target = path.join(root, '.packs'), ...selected] = process.argv.slice(2);
+const build = !process.argv.includes('--skip-build');
+const [target = path.join(root, '.packs'), ...selected] = process.argv.slice(2).filter((value) => value !== '--skip-build');
 const destination = path.resolve(target);
 // Dependency order: each package builds after the packages it imports.
 const order = [
@@ -36,7 +37,7 @@ for (const file of await readdir(destination))
 for (const name of names) {
   const directory = path.join(root, 'packages', name);
   const manifest = JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'));
-  if (manifest.scripts?.build)
+  if (build && manifest.scripts?.build)
     execFileSync('npm', ['run', 'build'], { cwd: directory, stdio: 'ignore' });
   execFileSync('npm', ['pack', '--pack-destination', destination], {
     cwd: directory,

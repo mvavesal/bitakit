@@ -7,6 +7,7 @@ export default defineService(({ store, services, onStart, onStop }) => {
   const state = store({ items: [] as Item[], pending: false, error: '', organizationId: '' });
   let revision = 0;
   let identity = '';
+  let clearTarget: { identity: string; revision: number; organizationId: string } | undefined;
   const current = () => {
     const snapshot = auth.getSnapshot();
     return `${snapshot.user?.id ?? ''}:${snapshot.organizationId ?? ''}`;
@@ -50,5 +51,21 @@ export default defineService(({ store, services, onStart, onStop }) => {
     edit: (id: string, title: string) => change({ operation: 'edit', id, title }),
     complete: (id: string, completed: boolean) => change({ operation: 'complete', id, completed }),
     remove: (id: string) => change({ operation: 'remove', id }),
+    confirmClear() {
+      const value = state.get();
+      clearTarget = { identity: current(), revision, organizationId: value.organizationId };
+      return {
+        title: 'Clear all tasks?',
+        description: `Delete all ${value.items.length} tasks in the selected organization. This cannot be undone.`,
+        destructive: true,
+      };
+    },
+    clear() {
+      const target = clearTarget;
+      clearTarget = undefined;
+      if (!target || target.identity !== current() || target.revision !== revision)
+        throw new Error('The account or organization changed. Confirm again to clear its tasks.');
+      return change({ operation: 'clear', organizationId: target.organizationId });
+    },
   };
 }, { requires: [authService] });

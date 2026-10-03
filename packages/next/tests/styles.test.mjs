@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { generateBitaKit } from '@bitakit/discovery';
+import { generateBitaKit, watchBitaKit } from '@bitakit/discovery';
 
 async function fixture(t, css, extra = {}) {
   const root = await mkdtemp(path.join(tmpdir(), 'bitakit-style-contract-'));
@@ -72,4 +72,28 @@ test('an inaccessible opt-in manifest is diagnosed instead of silently disappear
   delete f.manifest.exports['./package.json'];
   await f.put('node_modules/test-plugin/package.json', f.manifest);
   await assert.rejects(f.generate(), /test-plugin.*Export "\.\/package.json"/);
+});
+
+test('development rejects invalid installed CSS updates and recovers after correction', async (t) => {
+  const f = await fixture(t, '@layer components { .fixture { padding: 1rem; } }');
+  await f.generate();
+  const errors = [];
+  const stop = watchBitaKit(f.root, (error) => errors.push(error));
+  t.after(stop);
+  const cssFile = path.join(f.root, 'src/bitakit.gen.css');
+  const until = async (condition) => {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      if (await condition()) return;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    assert.fail('Timed out waiting for stylesheet regeneration');
+  };
+  // Let the initial discovery attach the installed package directory watcher.
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  await f.put('node_modules/test-plugin/styles.css', '@layer components;');
+  await until(async () => (await readFile(cssFile, 'utf8')).includes('bitakit-invalid-plugin-css'));
+  assert.match(errors[0].message, /test-plugin.*layer order/s);
+  await f.put('node_modules/test-plugin/styles.css', '@layer components { .fixture { padding: 2rem; } }');
+  await until(async () => !(await readFile(cssFile, 'utf8')).includes('bitakit-invalid-plugin-css'));
+  assert.match(await readFile(cssFile, 'utf8'), /@layer theme, base, components, utilities;/);
 });

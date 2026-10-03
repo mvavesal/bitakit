@@ -50,6 +50,7 @@ export default function TodosPage() {
         {items.map((item) => <Task key={item.id} item={item} />)}
       </ul>
       {!pending && !error && items.length === 0 && <p>No tasks yet.</p>}
+      <Action id="todos.clear"><Button variant="outline" className="self-start" /></Action>
       </>}
     </div>
   );

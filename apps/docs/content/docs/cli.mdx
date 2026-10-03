@@ -1,0 +1,93 @@
+---
+title: Command line
+description: Create or wire an app, add plugins and files, generate, check and migrate.
+---
+
+Two commands cover the whole lifecycle: `npx @bitakit/create-app` for a new project and
+`npx bitakit <command>` inside a project. Apps created by the generator already have
+`@bitakit/cli` as a dev dependency; elsewhere install it with `npm install --save-dev @bitakit/cli`.
+
+## Create a new app
+
+```sh
+npx @bitakit/create-app my-app                                   # interactive: framework, features, sample
+npx @bitakit/create-app my-app --framework next --features none --yes
+npx @bitakit/create-app my-app --framework next --features shell,quick-search --sample
+npx @bitakit/create-app my-plugin --plugin                       # a plugin package with a playground app
+```
+
+Features: `shell` (navigation frame, layouts, appearance settings), `preferences` (settings pages
+for every plugin), `quick-search` (⌘K). `--sample` adds the Todos plugin, `--dry-run` shows the
+plan, `--no-install` skips `npm install`. The generator never overwrites an existing directory.
+
+## Wire an existing app
+
+```sh
+npx bitakit init
+```
+
+In an existing Next.js or TanStack Start app, `init` writes `bitakit.config.ts`, wraps
+`next.config` with `withBitaKit` (or adds `bitakit()` to the Vite plugins), mounts
+`<BitaKitProvider>` around the root layout's children, adds the catch-all route that renders
+`<PluginPage />` and ignores `src/bitakit.gen.*`. Files that already carry the wiring are left
+alone, so running it twice is safe; a file it cannot edit is skipped with the line to add by hand.
+It does not install packages: it lists the missing ones (`@bitakit/core`, `@bitakit/discovery`,
+`@bitakit/ui` and the framework adapter). Then run `npx bitakit generate` and `npx bitakit doctor`.
+
+## Add a feature
+
+```sh
+npx bitakit add plugin notes            # service, events, actions, navigation link and a page at /notes
+npx bitakit add plugin notes --minimal  # only a service, its events and one action
+```
+
+Discovery connects the new folder; there is nothing to register. Add single files to a plugin
+(inside a plugin package, give only the name):
+
+```sh
+npx bitakit add action notes/archive       # actions/archive.ts         → action notes.archive
+npx bitakit add service notes/search       # services/search.ts         → services.notes.search
+npx bitakit add page notes/archive         # ui/pages/archive.tsx       → /notes/archive
+npx bitakit add slot notes/app-bar.end     # ui/slots/app-bar.end.tsx   → placed in slot app-bar.end
+npx bitakit add dialog notes/rename        # ui/dialogs/rename.tsx      → opened by an action's dialog
+npx bitakit add provider notes/query       # ui/providers/query.tsx     → React provider around the app
+npx bitakit add interceptor notes/audit    # interceptors/audit.ts
+npx bitakit add config notes/limits        # configs/limits.ts          → app.config.notes.limits
+npx bitakit add events notes               # events.ts                  → notes.<event>
+npx bitakit add settings notes             # settings.ts                → settings.notes.<name>, generated settings page
+npx bitakit add layout admin               # src/layouts/admin.tsx      → pages opt in with export const layout = 'admin'
+```
+
+The file path decides the ID; `notes/team/invite` creates `actions/team/invite.ts` with the ID
+`notes.team.invite`. Existing files are never overwritten.
+
+## Generate, check, migrate
+
+```sh
+npx bitakit generate          # write src/bitakit.gen.* from plugin folders and installed packages
+npx bitakit generate --watch  # keep regenerating while files change
+npx bitakit doctor            # report problems with a fix for each; exit code 1 when something is wrong
+npx bitakit doctor --json     # for CI
+npx bitakit info [--json]     # what discovery finds: plugins, services, actions, events, pages
+npx bitakit migrate --dry-run # list the changes from a 0.1 layout
+npx bitakit migrate           # apply them
+```
+
+The framework adapters run the generator during `dev` and `build`; `generate` is for scripts and
+type checks. Doctor checks package versions and duplicate copies of Core, the config wrapper and
+provider wiring, ignored generated files, plugin pages and links no route reaches, colliding
+service names, `requires` entries that name nothing, plugin dependency cycles, slot files that
+target no declared slot, missing package styles and deprecated layouts.
+
+## Build a plugin package
+
+Inside a package created with `--plugin`:
+
+```sh
+npx bitakit build          # types, compiled sources and dist/plugin.js
+npx bitakit build --check  # type-check only
+```
+
+The package's `package.json` declares `bitakit: { plugin: './plugin' }`; apps that install it
+discover the plugin automatically. Read [Discovery](/docs/concepts/discovery) for what the
+generator reads and [Plugins](/docs/concepts/plugins) for what the files contain.

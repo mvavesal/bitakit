@@ -188,6 +188,7 @@ try {
     [
       path.join(root, 'scripts/pack-packages.mjs'),
       packs,
+      ...(argv.includes('--skip-build') ? ['--skip-build'] : []),
     ],
     root,
   );

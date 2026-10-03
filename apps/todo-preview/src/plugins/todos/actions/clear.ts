@@ -1,9 +1,13 @@
 import { defineAction } from '@bitakit/core';
 
-export default defineAction<string>({
-  title: 'Delete',
-  // Each row tracks its own pending state.
-  concurrency: 'per-input',
-  confirm: 'Delete this task?',
-  execute: ({ services, input }) => services.todos.items.remove(input),
+export default defineAction({
+  title: 'Clear all',
+  enabled: ({ services }) => {
+    const state = services.todos.items.state.get();
+    return Boolean(state.organizationId) && !state.pending && state.items.length > 0;
+  },
+  groups: ['apps'],
+  confirm: ({ services }) => services.todos.items.confirmClear(),
+  execute: ({ services }) => services.todos.items.clear(),
+  success: 'All tasks have been cleared.',
 });
