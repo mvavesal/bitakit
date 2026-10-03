@@ -1,10 +1,10 @@
 'use client';
 import { useTranslation, useAuth, useFoundationApp } from '@bitakit/ui';
 import { OrganizationSwitcher } from '@bitakit/better-auth-ui/plugins/organization';
-import { AppShell, SettingsShell, useShellLayout } from '@bitakit/shell';
+import { AppShell, useShellLayout } from '@bitakit/shell';
+import { SettingsShell } from '@bitakit/app-preferences';
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 import { Auth, AuthPageLayout, UserButton } from '@bitakit/better-auth-ui';
 import SettingsIcon from 'reicon-react/icons/Settings';
 import { Badge } from '@bitakit/ui/components';
@@ -33,7 +33,7 @@ function Workspace({ children }: { children: ReactNode }) {
     );
   if (path === '/settings' || path.startsWith('/settings/'))
     return (
-      <SettingsShell pathname={path} linkComponent={Link} backHref="/">
+      <SettingsShell pathname={path} backHref="/">
         {children}
       </SettingsShell>
     );
@@ -73,7 +73,7 @@ function Workspace({ children }: { children: ReactNode }) {
                 undefined,
                 'Einstellungen',
               ),
-              href: '/settings/profile',
+              href: '/settings/account',
               icon: <SettingsIcon aria-hidden="true" />,
               visibility: 'authenticated',
             },

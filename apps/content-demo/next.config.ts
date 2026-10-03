@@ -6,9 +6,12 @@ export default withBitaKit(
     devIndicators: false,
     async rewrites() {
       const origin = process.env.FOUNDATION_AUTH_ORIGIN;
-      return origin
-        ? [{ source: '/api/auth/:path*', destination: `${origin}/api/auth/:path*` }]
-        : [];
+      return {
+        beforeFiles:
+          origin && process.env.CONTENT_DEMO_AUTH !== 'memory'
+            ? [{ source: '/api/auth/:path*', destination: `${origin}/api/auth/:path*` }]
+            : [],
+      };
     },
   }),
 );

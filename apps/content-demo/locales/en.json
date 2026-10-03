@@ -1,4 +1,5 @@
 {
+  "localPreview": "Local preview: accounts and organizations are temporary and cleared when the server restarts. OAuth and email delivery are not configured.",
   "foundationUI": {
     "workspace_layout": {
       "checkingSignin": "Checking sign-in…",
