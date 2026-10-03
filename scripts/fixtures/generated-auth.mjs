@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 export async function configureAuthFixture(target, archives) {
   const file = path.join(target, 'package.json');
   const manifest = JSON.parse(await readFile(file, 'utf8'));
-  for (const name of ['better-auth', 'better-auth-ui', 'organizations'])
+  for (const name of ['better-auth', 'better-auth-ui', 'organizations', 'devtools'])
     manifest.dependencies[`@bitakit/${name}`] = archives[`@bitakit/${name}`];
   Object.assign(manifest.dependencies, {
     'better-auth': '^1.7.5',

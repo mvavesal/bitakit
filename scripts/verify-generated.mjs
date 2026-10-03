@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { configureAuthFixture, verifyAuthStyles } from './fixtures/generated-auth.mjs';
+import { configureThemeFixture, verifyDeveloperTheme } from './fixtures/generated-theme.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const argv = process.argv.slice(2);
@@ -145,6 +146,7 @@ async function verify(name, scenario) {
       ]),
     );
     await configureAuthFixture(target, archives);
+    await configureThemeFixture(target);
     await step('install native auth fixture', () =>
       run('npm', ['install', '--no-audit', '--no-fund'], target),
     );
@@ -180,7 +182,10 @@ async function verify(name, scenario) {
     await mkdir(artifacts);
     try {
       await step('development auth styles', () =>
-        smoke(server.url, [], (page) => verifyAuthStyles(page, server.url, artifacts, target)),
+        smoke(server.url, [], async (page) => {
+          await verifyAuthStyles(page, server.url, artifacts, target);
+          await verifyDeveloperTheme(page, server.url, artifacts);
+        }),
       );
     } finally {
       server.stop();
@@ -197,7 +202,10 @@ async function verify(name, scenario) {
       smoke(
         server.url,
         scenario.visits,
-        scenario.auth ? (page) => verifyAuthStyles(page, server.url, artifacts) : undefined,
+        scenario.auth ? async (page) => {
+          await verifyAuthStyles(page, server.url, artifacts);
+          await verifyDeveloperTheme(page, server.url, artifacts);
+        } : undefined,
       ),
     );
   } finally {

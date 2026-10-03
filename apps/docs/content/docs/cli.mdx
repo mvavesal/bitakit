@@ -5,32 +5,40 @@ description: Create or wire an app, add plugins and files, generate, check and m
 
 Two tools cover the whole lifecycle. `npx @bitakit/create-app` creates a new project; `npx bitakit` works inside a project. Apps made by the generator already have `@bitakit/cli` as a dev dependency; elsewhere run `npm install --save-dev @bitakit/cli`.
 
-| You want to                         | Run                                   |
-| ----------------------------------- | ------------------------------------- |
-| Start a new app                     | `npx @bitakit/create-app my-app`      |
-| Add BitaKit to an app you already have | `npx bitakit init`                 |
-| Add a feature or a file to it       | `npx bitakit add <kind> <name>`       |
-| Find problems                       | `npx bitakit doctor`                  |
+In every command on this page, `<angle brackets>` are placeholders you replace and `[square brackets]` are optional.
+
+| You want to                            | Command                                   |
+| -------------------------------------- | ----------------------------------------- |
+| Start a new app                        | `npx @bitakit/create-app <app-name>`      |
+| Add BitaKit to an app you already have | `npx bitakit init`                        |
+| Add a whole plugin                     | `npx bitakit add plugin <plugin>`         |
+| Add one file to a plugin               | `npx bitakit add <kind> <plugin>/<name>`  |
+| Write the generated files              | `npx bitakit generate`                    |
+| Find problems                          | `npx bitakit doctor`                      |
 
 ## Create a new app
 
 ```sh
-npx @bitakit/create-app my-app
+npx @bitakit/create-app <app-name> [switches]
 ```
 
-The generator asks which framework and extras you want, creates `my-app` and installs everything. It never overwrites an existing directory. Skip the questions with switches:
+Without switches the generator asks which framework and extras you want, creates `<app-name>` and installs everything. It never overwrites an existing directory.
 
-| Switch                 | What it does                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------ |
-| `--framework <name>`   | `next` or `tanstack` (TanStack Start is experimental)                                |
-| `--features <list>`    | Comma-separated extras: `shell` (navigation frame, layouts), `preferences` (settings pages), `quick-search` (⌘K), or `none` |
-| `--sample`             | Adds the Todos sample plugin; `--no-sample` leaves it out                            |
-| `-y`, `--yes`          | Use the defaults for everything you did not set, without asking                      |
-| `--no-install`         | Write the files but do not run `npm install`                                         |
-| `--dry-run`            | Print what would be created and change nothing                                       |
-| `--plugin`             | Create a standalone plugin package with a playground app instead of an app           |
+| Switch               | What it does                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--framework <name>` | `next` or `tanstack` (TanStack Start is experimental)                                                                           |
+| `--features <list>`  | Comma-separated extras: `shell` (navigation frame, layouts), `preferences` (settings pages), `quick-search` (⌘K), or `none`     |
+| `--sample`           | Adds the Todos sample plugin; `--no-sample` leaves it out                                                                       |
+| `--yes`              | Use the defaults for everything you did not set, without asking                                                                 |
+| `--no-install`       | Write the files but do not run `npm install`                                                                                    |
+| `--dry-run`          | Print what would be created and change nothing                                                                                  |
+| `--plugin`           | Create a standalone plugin package with a playground app instead of an app                                                      |
 
-Examples: a minimal Next.js app with no questions is `npx @bitakit/create-app my-app --framework next --features none --yes`. An app with the navigation frame, quick search and the sample is `npx @bitakit/create-app my-app --framework next --features shell,quick-search --sample`. A reusable plugin package is `npx @bitakit/create-app my-plugin --plugin`.
+| Goal                                         | Command                                                                        |
+| -------------------------------------------- | ------------------------------------------------------------------------------ |
+| A minimal Next.js app, no questions          | `npx @bitakit/create-app shop --framework next --features none --yes`          |
+| An app with navigation frame, ⌘K and sample  | `npx @bitakit/create-app shop --features shell,quick-search --sample`          |
+| A reusable plugin package                    | `npx @bitakit/create-app shop-reviews --plugin`                                |
 
 ## Add BitaKit to an existing app
 
@@ -40,63 +48,62 @@ npx bitakit init
 
 Run it in the root of an existing Next.js or TanStack Start project. It wires the app so plugins are discovered and mounted:
 
-| It writes or changes                                  | Why                                              |
-| ----------------------------------------------------- | ------------------------------------------------ |
-| `bitakit.config.ts`                                   | Discovery settings for your app                  |
-| `next.config` or `vite.config`                        | Runs discovery with your build (`withBitaKit` / `bitakit()`) |
-| The root layout                                       | Mounts `<BitaKitProvider>` around your pages     |
-| A catch-all route                                     | Renders plugin pages with `<PluginPage />`       |
-| `.gitignore`                                          | Ignores the generated `src/bitakit.gen.*` files  |
+| It writes or changes           | Why                                                           |
+| ------------------------------ | ------------------------------------------------------------- |
+| `bitakit.config.ts`            | Discovery settings for your app                               |
+| `next.config` or `vite.config` | Runs discovery with your build (`withBitaKit` or `bitakit()`) |
+| The root layout                | Mounts `<BitaKitProvider>` around your pages                  |
+| A catch-all route              | Renders plugin pages with `<PluginPage />`                    |
+| `.gitignore`                   | Ignores the generated `src/bitakit.gen.*` files               |
 
-`init` prints what it wrote (`+` new, `~` changed) and what it skipped. A file that already has the wiring is left alone, so running it twice is safe. It does not install packages: it lists the missing ones to install (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the adapter for your framework). Then run `npx bitakit generate` and `npx bitakit doctor`.
+`init` prints what it wrote (`+` new, `~` changed) and what it skipped. A file that already has the wiring is left alone, so running it twice is safe. It does not install packages: it lists the missing ones (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the adapter for your framework). Then run `npx bitakit generate` and `npx bitakit doctor`.
 
 ## Add a feature or a file
 
-```sh
-npx bitakit add plugin notes
-```
+| Command                                          | What it does                                                                                                        |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `npx bitakit add plugin <plugin> [--minimal]`    | A whole plugin: service, typed events, actions, a navigation link and a page at `/<plugin>`. `--minimal` creates only the service, its events and one action |
+| `npx bitakit add <kind> <plugin>/<name>`         | One file in an existing plugin; the kinds are listed below                                                          |
 
-Creates `src/plugins/notes/` with a service, typed events, actions, a navigation link and a page at `/notes`. Pass `--minimal` for only the service, its events and one action. There is nothing to register: discovery picks the folder up.
+There is nothing to register: discovery picks new files up. The path decides the ID or route, so `reviews/team/invite` creates `actions/team/invite.ts` with the ID `reviews.team.invite`. Existing files are never overwritten. Inside a plugin package, give only the name.
 
-To grow a plugin one file at a time, name the kind and the plugin:
+| Kind          | Name argument        | File it creates             | What you get                                             |
+| ------------- | -------------------- | --------------------------- | -------------------------------------------------------- |
+| `action`      | `<plugin>/<name>`    | `actions/<name>.ts`         | Action `<plugin>.<name>`                                 |
+| `service`     | `<plugin>/<name>`    | `services/<name>.ts`        | `services.<plugin>.<name>`                               |
+| `page`        | `<plugin>/<name>`    | `ui/pages/<name>.tsx`       | The route `/<plugin>/<name>`                             |
+| `slot`        | `<plugin>/<slot>`    | `ui/slots/<slot>.tsx`       | A component in a layout slot such as `app-bar.end`       |
+| `dialog`      | `<plugin>/<name>`    | `ui/dialogs/<name>.tsx`     | A component an action opens with `dialog`                |
+| `provider`    | `<plugin>/<name>`    | `ui/providers/<name>.tsx`   | A React provider wrapped around the app                  |
+| `interceptor` | `<plugin>/<name>`    | `interceptors/<name>.ts`    | Logic that runs around actions or service calls          |
+| `config`      | `<plugin>/<name>`    | `configs/<name>.ts`         | `app.config.<plugin>.<name>`                             |
+| `events`      | `<plugin>`           | `events.ts`                 | Typed events `<plugin>.<event>`                          |
+| `settings`    | `<plugin>`           | `settings.ts`               | User settings and a generated settings page              |
+| `layout`      | `<name>`             | `src/layouts/<name>.tsx`    | An app layout; pages opt in with `export const layout`   |
 
-```sh
-npx bitakit add <kind> notes/<name>
-```
-
-The file path decides the ID or route, so `notes/team/invite` creates `actions/team/invite.ts` with the ID `notes.team.invite`. Existing files are never overwritten. Inside a plugin package, give only the name.
-
-| Kind          | File it creates              | What you get                                              |
-| ------------- | ---------------------------- | --------------------------------------------------------- |
-| `action`      | `actions/<name>.ts`          | Action `notes.<name>`                                     |
-| `service`     | `services/<name>.ts`         | `services.notes.<name>`                                   |
-| `page`        | `ui/pages/<name>.tsx`        | The route `/notes/<name>`                                 |
-| `slot`        | `ui/slots/<slot>.tsx`        | A component placed in a layout slot such as `app-bar.end` |
-| `dialog`      | `ui/dialogs/<name>.tsx`      | A component an action opens with `dialog`                 |
-| `provider`    | `ui/providers/<name>.tsx`    | A React provider wrapped around the app                   |
-| `interceptor` | `interceptors/<name>.ts`     | Runs around actions or service calls                      |
-| `config`      | `configs/<name>.ts`          | `app.config.notes.<name>`                                 |
-| `events`      | `events.ts`                  | Typed events `notes.<event>` (use `add events notes`)     |
-| `settings`    | `settings.ts`                | User settings and a generated settings page (use `add settings notes`) |
-| `layout`      | `src/layouts/<name>.tsx`     | An app layout (use `add layout admin`); pages opt in with `export const layout = 'admin'` |
-
-For example, `npx bitakit add action notes/archive` followed by `npx bitakit add page notes/archive` gives the plugin an `archive` action and a page at `/notes/archive`.
+| Goal                                     | Command                                    |
+| ---------------------------------------- | ------------------------------------------ |
+| A reviews feature with a page            | `npx bitakit add plugin reviews`           |
+| An action that archives a review         | `npx bitakit add action reviews/archive`   |
+| A page at `/reviews/archive`             | `npx bitakit add page reviews/archive`     |
+| Typed events for the plugin              | `npx bitakit add events reviews`           |
+| A layout for admin pages                 | `npx bitakit add layout admin`             |
 
 ## Generate, check and migrate
 
-| Command                    | What it does                                                                 |
-| -------------------------- | ---------------------------------------------------------------------------- |
-| `npx bitakit generate`     | Writes `src/bitakit.gen.*` from your plugin folders; `--watch` keeps doing it |
-| `npx bitakit doctor`       | Reports wiring problems with a fix for each; `--json` for CI; exit code 1 on problems |
-| `npx bitakit info`         | Lists what discovery finds: plugins, services, actions, events, pages        |
-| `npx bitakit migrate`      | Rewrites a 0.1 project to the 0.2 layout; `--dry-run` only lists the changes |
+| Command                              | What it does                                                                                 |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `npx bitakit generate [--watch]`     | Writes `src/bitakit.gen.*` from your plugin folders; `--watch` keeps regenerating            |
+| `npx bitakit doctor [--json]`        | Reports wiring problems with a fix for each; `--json` for CI; exit code 1 on problems        |
+| `npx bitakit info [--json]`          | Lists what discovery finds: plugins, services, actions, events, pages                        |
+| `npx bitakit migrate [--dry-run]`    | Rewrites a 0.1 project to the 0.2 layout; `--dry-run` only lists the changes                 |
 
 You rarely run `generate` yourself: the framework adapters run it during `dev` and `build`. Use it in scripts and type checks. `doctor` checks package versions, provider wiring, ignored generated files, pages and links no route reaches, colliding service names, `requires` entries that name nothing, plugin dependency cycles, slot files that target no layout and missing package styles.
 
 ## Build a plugin package
 
 ```sh
-npx bitakit build
+npx bitakit build [--check]
 ```
 
 Run it inside a package created with `--plugin`. It type-checks, compiles the sources and writes `dist/plugin.js`; `--check` only type-checks. The package's `package.json` declares `bitakit: { plugin: './plugin' }`, so apps that install it discover the plugin automatically. [Discovery](/docs/concepts/discovery) explains what the generator reads and [Plugins](/docs/concepts/plugins) what the files contain.
