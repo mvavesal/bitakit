@@ -74,8 +74,13 @@ async function serve(framework, cwd, { development = false, auth = false } = {})
       ? ['npx', ['next', development ? 'dev' : 'start', '--port', String(current)]]
       : ['npx', ['vite', 'preview', '--port', String(current), '--strictPort']];
   const url = `http://localhost:${current}`;
-  const log = createWriteStream(path.join(cwd, development ? 'verify-dev.log' : 'verify-server.log'));
-  const server = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], detached: true,
+  const log = createWriteStream(
+    path.join(cwd, development ? 'verify-dev.log' : 'verify-server.log'),
+  );
+  const server = spawn(command, args, {
+    cwd,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true,
     env: { ...process.env, ...(auth ? { BITAKIT_TEST_AUTH: '1', BITAKIT_TEST_ORIGIN: url } : {}) },
   });
   server.stdout.pipe(log);
@@ -91,7 +96,9 @@ async function serve(framework, cwd, { development = false, auth = false } = {})
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   process.kill(-server.pid);
-  throw new Error(`The ${framework} server did not start. See ${cwd}/verify-${development ? 'dev' : 'server'}.log.`);
+  throw new Error(
+    `The ${framework} server did not start. See ${cwd}/verify-${development ? 'dev' : 'server'}.log.`,
+  );
 }
 
 async function smoke(url, visits, extra) {
@@ -131,11 +138,16 @@ async function verify(name, scenario) {
     ),
   );
   if (scenario.auth) {
-    const archives = Object.fromEntries((await readdir(packs)).map((file) => [
-      `@bitakit/${/^bitakit-(.+)-\d/.exec(file)[1]}`, `file:${path.join(packs, file)}`,
-    ]));
+    const archives = Object.fromEntries(
+      (await readdir(packs)).map((file) => [
+        `@bitakit/${/^bitakit-(.+)-\d/.exec(file)[1]}`,
+        `file:${path.join(packs, file)}`,
+      ]),
+    );
     await configureAuthFixture(target, archives);
-    await step('install native auth fixture', () => run('npm', ['install', '--no-audit', '--no-fund'], target));
+    await step('install native auth fixture', () =>
+      run('npm', ['install', '--no-audit', '--no-fund'], target),
+    );
   }
   if (scenario.plugin) {
     await step('npm test', () => run('npm', ['test'], target));
@@ -161,20 +173,33 @@ async function verify(name, scenario) {
   await step('type check', () => run('npm', ['run', 'typecheck'], target));
   await step('doctor', () => run('npx', ['bitakit', 'doctor'], target));
   if (scenario.auth) {
-    const server = await step('start development', () => serve(scenario.framework, target, { development: true, auth: true }));
+    const server = await step('start development', () =>
+      serve(scenario.framework, target, { development: true, auth: true }),
+    );
     const artifacts = path.join(target, 'verification-development');
     await mkdir(artifacts);
     try {
-      await step('development auth styles', () => smoke(server.url, [], (page) => verifyAuthStyles(page, server.url, artifacts)));
-    } finally { server.stop(); }
+      await step('development auth styles', () =>
+        smoke(server.url, [], (page) => verifyAuthStyles(page, server.url, artifacts, target)),
+      );
+    } finally {
+      server.stop();
+    }
   }
   await step('build', () => run('npm', ['run', 'build'], target));
-  const server = await step('start', () => serve(scenario.framework, target, { auth: scenario.auth }));
+  const server = await step('start', () =>
+    serve(scenario.framework, target, { auth: scenario.auth }),
+  );
   try {
     const artifacts = path.join(target, 'verification-production');
     await mkdir(artifacts);
-    await step('browser', () => smoke(server.url, scenario.visits,
-      scenario.auth ? (page) => verifyAuthStyles(page, server.url, artifacts) : undefined));
+    await step('browser', () =>
+      smoke(
+        server.url,
+        scenario.visits,
+        scenario.auth ? (page) => verifyAuthStyles(page, server.url, artifacts) : undefined,
+      ),
+    );
   } finally {
     server.stop();
   }

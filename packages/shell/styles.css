@@ -12,6 +12,11 @@
 .toast {
   --overlay: var(--popover);
   --overlay-foreground: var(--popover-foreground);
+  box-shadow: var(--theme-shadow-overlay, var(--overlay-shadow));
+  --toast-ease: var(--theme-motion-ease, var(--ease-out-fluid));
+  --toast-enter-duration: var(--theme-motion-duration, 350ms);
+  --toast-exit-duration: var(--theme-motion-duration, 250ms);
+  --toast-opacity-duration: var(--theme-motion-duration, 150ms);
 }
 .toast__title {
   color: var(--popover-foreground);

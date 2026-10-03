@@ -131,6 +131,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 - **Config** is immutable developer input, one file per subtree under `configs/`
   (`configs/actions/<action>.ts` is that action's scope), overridden in `bitakit.config.ts`.
   `config.plugin.get(path, fallback)`, `config.action.get(...)`, `app.config.<plugin>...`.
+  Values must be plain serializable data. Native plugin objects, callbacks and QueryClient
+  instances belong in the existing optional adapter's client composition, passed to the
+  generated provider as additional plugins; never loosen Core's config contract for them.
 - **Settings** are user, organization or device values declared once per plugin in
   `settings.ts`; keys are `<plugin>.<name>` (plain names for the app). Every context reads
   and writes them through `settings.<plugin>.<name>.get()/set()/subscribe()`, React through
@@ -238,6 +241,13 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   plugin CSS and validate the emitted import graph against baseline/theme ownership.
   Include negative plugin fixtures and lazy-load checks. Scope guarantees to the supported
   integration; unrestricted global CSS is not isolated merely by using cascade layers.
+  Installed visual packages export `./package.json` and declare `bitakit.styles` separately
+  from intentional `bitakit.theme` contributions. Discovery follows local CSS imports and
+  package-owned explicit JS exports/relative literal imports, rejecting JS CSS side effects.
+  Wildcard JS exports, computed imports, external vendor script graphs and extensionless
+  CSS subpaths are not fully audited; do not claim a sandbox for arbitrary third-party code.
+  Invalid watched CSS must
+  invalidate the generated entry and recover after correction, never silently retain stale CSS.
 - For settings identity changes, test a new identity's queued save while the previous
   identity's save is unresolved; every queued write must settle without crossing identities.
   Generic service subscriptions must preserve method receivers, including class services.
@@ -278,9 +288,14 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   build is not a visual check; package or DOM tests are not a full-host check.
 - Tests must still cover the real user path after a UI rebuild. Browser tests use isolated
   Better Auth memory data, never shared accounts; keep test keys out of logs and screenshots.
+  Keep public auth forms mounted during native session revalidation on browser focus.
+  Put protected pending screens after public-route handling. Test Tab, visibility refresh,
+  native account switching and organization changes without replacing upstream session state.
 - Doctor is the place for wiring checks (missing providers for `requires`, plugin dependency
   cycles, undeclared slots, unreachable pages); add a check when a confirmed integration
   mistake can be detected mechanically. `bitakit init` wires an existing Next or TanStack app.
+  Follow rendered local provider wrappers and real root CSS imports, not matching source
+  strings or unused imports. Doctor establishes static wiring, not computed visual correctness.
 
 ## Deprecation policy
 

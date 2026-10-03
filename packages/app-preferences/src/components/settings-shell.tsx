@@ -82,7 +82,7 @@ function Navigation({
       mobileTitle={messages('navigation')}
       mobileDescription={messages('search')}
       collapsible={docked ? 'none' : 'offcanvas'}
-      className={docked ? 'min-h-0 shrink-0 border-r' : undefined}
+      className={docked ? "min-h-0 shrink-0 border-r-(length:--border-width)" : undefined}
     >
       <SidebarHeader>
         {!embedded && (

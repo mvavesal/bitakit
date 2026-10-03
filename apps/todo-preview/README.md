@@ -1,41 +1,58 @@
-# todo-preview
+# Todo preview
 
-A Next.js app built with [BitaKit](https://github.com/mvavesal/bitakit).
+A generated Next.js app exercising BitaKit actions, services, native Better Auth accounts
+and organizations, and generated settings. Styles come from the shared platform entry;
+the sample has no per-component CSS fixes.
 
-```sh
-npm run dev        # start the dev server
-npm run build      # production build
-npm run typecheck  # types, including generated plugin types
-```
+## Run locally
 
-## Add a feature
-
-```sh
-npx bitakit add plugin notes
-```
-
-This creates `src/plugins/notes/` with a service, typed events, actions, a navigation link and
-a page at `/notes`. The dev server picks it up automatically: there is no registry to edit.
-A plugin can also be a single file: `src/plugins/notes/ui/pages/index.tsx` is already a page at
-`/notes`; add services and actions when the feature needs behavior.
-
-The `todos` plugin in `src/plugins/todos` is a working sample. Delete the folder to remove it.
-
-| Folder | What goes there |
-| --- | --- |
-| `src/plugins/<name>/services` | Data and behavior (`defineService`), reached as `services.<name>.<file>` |
-| `src/plugins/<name>/actions` | Operations for buttons, menus and links (`defineAction`), ID `<name>.<file>` |
-| `src/plugins/<name>/events.ts` | Typed events (`defineEvents`), named `<name>.<event>` |
-| `src/plugins/<name>/settings.ts` | User settings (`defineSettings`), keys `<name>.<setting>`, with a generated page under `/settings` |
-| `src/plugins/<name>/ui/pages` | Pages; the file path is the URL (`ui/pages/index.tsx` → `/<name>`) |
-| `src/plugins/<name>/ui/slots` | Components placed in layout slots (`ui/slots/app-bar.end.tsx`) |
-| `src/app` | Your own routes, as usual for the framework |
-| `src/configs/shell.ts` | App Shell options |
-
-Check the project at any time:
+Install dependencies and build the workspace packages from the repository root. In this
+app's ignored `.env.local`, set `TODO_PREVIEW_AUTH=memory` and set
+`TODO_PREVIEW_PASSWORD` to a local test password (at least eight characters). Then run:
 
 ```sh
-npx bitakit doctor
+npm run dev --workspace todo-preview
 ```
 
-Settings are at `/settings`. Preferences are stored in the browser.
+Open `http://127.0.0.1:3103/auth/sign-in`. The seed creates `alice@example.test` and
+`bob@example.test`, both using the configured test password. Alice owns Design Studio and
+Alice private team; Bob is a member of Design Studio. Use the native user menu to add and
+switch accounts, and the organization menu to select a workspace. The running preview's
+credentials are also in the ignored `.env.demo-credentials.local` file.
+
+This is an explicit local memory demo. Accounts and tasks are temporary and are lost when
+the server process stops. Email delivery, external OAuth and a production database are not
+configured. Do not use real passwords or customer data.
+
+## What the sample demonstrates
+
+- `/todos`: create, edit, complete and delete tasks. Clear all uses one action in both the
+  page and sidebar, asks for confirmation, and rejects a changed account/organization.
+- `/settings`: generated appearance and native account/organization settings.
+- `src/plugins/todos`: service-owned state and operations, with ordinary `defineAction`
+  bindings. No copied action registry or separate client session store.
+- `src/app/api/tasks/route.ts`: app-owned server data, scoped by the verified native
+  session and organization membership. Task IDs alone do not grant access.
+- `src/server/auth.ts`: the local native memory adapter and seed, shared across Next route
+  modules and development reloads.
+- `src/components/workspace.tsx`: native composition. Public auth forms remain mounted
+  during session revalidation, so switching browser focus does not erase typed input.
+
+## Verify
+
+With the preview server running, from this directory:
+
+```sh
+npm run typecheck
+npm run test:preview
+```
+
+The browser scripts cover form focus/revalidation, login, task CRUD, organization and
+account switching, settings, and Clear all in the page/sidebar. They create their own
+tasks and disposable test organizations. Clear checks include cancellation, reload,
+cross-organization preservation, context changes during confirmation, stale scope and
+anonymous requests. They never send email or mutate a shared database.
+
+The platform's clean installation and development/production CSS acceptance live in
+`scripts/verify-generated.mjs` at the repository root; this sample is not a substitute
+for those checks.

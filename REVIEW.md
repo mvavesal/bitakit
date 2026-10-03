@@ -4,7 +4,100 @@ Open review requirements are added at the top of this file as dated sections. Du
 derived from reviews live in `.agents/skills/foundation-development/SKILL.md`; resolved
 episodes are condensed into the history below.
 
-## Open review: out-of-the-box app integration and styling (2026-10-03)
+## Implementation status: foundation integration (2026-10-03)
+
+The later authorized implementation repaired the central loading path and the two runtime
+defects. This status supersedes the original diagnosis below. Core remains headless; CSS
+loading and validation live in Discovery/framework/build integration. No individual button
+import or local theme override is required by the new sample or packed-app acceptance.
+
+| Original item                   | Current status                               | Implemented change and evidence                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Cascade order                | Closed for verified Next integrations        | Shared `theme, base, components, utilities` prelude in root/generated CSS; browser CSSOM order, menu padding and button contrast verified in clean packed consumers in development and production.                                                                                                                                                                   |
+| 2. Quick Search side-effect CSS | Closed                                       | Manifest stylesheet metadata replaces JavaScript CSS imports in all package entries. Generated CSS includes the package once. Quick Search's four tests pass.                                                                                                                                                                                                        |
+| 3. Button-only workaround       | Closed                                       | Removed the individual HeroUI button import and explicit adapter CSS imports from Content Demo. Native geometry/contrast tests pass through the central styles.                                                                                                                                                                                                      |
+| 4. Better Auth visual surfaces  | Closed for reported surfaces                 | Menus, account/password fields, separators and geometry pass. Fresh packed-app checks also verify two-factor dialog geometry/focus in light/dark at 390/1280px and persisted appearance. No real passwords or MFA settings are changed.                                                                                                                              |
+| 5. Installed manifests          | Closed for affected adapters                 | Better Auth, Better Auth UI and next-intl export their manifests; adapter styles/theme are declared. Inaccessible opt-in manifests produce a package diagnostic. Packed auth integration passes installation, generation, types and Doctor.                                                                                                                          |
+| 6. Demo browser routes          | Partial; suite remains red                   | Current account/organization routes replaced removed settings paths. Full Content Demo run: 9 passed, 4 failed; remaining cases are listed below rather than treated as passed.                                                                                                                                                                                      |
+| 7. SettingsStore identity queue | Closed                                       | Completing or failing an old identity's save starts the new generation's queued drain. Seven settings tests pass, including both deferred old-save outcomes.                                                                                                                                                                                                         |
+| 8. Service subscribe receiver   | Closed                                       | Generic React subscription calls preserve the service receiver. Eighteen foundation React tests pass, including a class service and cleanup.                                                                                                                                                                                                                         |
+| 9. Fresh-app acceptance         | Closed for the scoped Next styling matrix    | Clean packed Next bare/sample/auth apps pass types, Doctor, production build and browser checks; auth additionally verifies development CSS updates, a valid lazy visual plugin, responsive native controls and appearance persistence. Experimental TanStack shapes were not rerun in this closeout; full-host action/page hot reload remains a separate open item. |
+| 10. Doctor scope                | Closed for static wiring                     | Parses active root CSS imports and follows rendered local provider wrappers. Comments/unused imports do not satisfy wiring. CLI tests: 24 passed. Doctor does not claim visual verification.                                                                                                                                                                         |
+| 11. Future plugin contract      | Partial, with an explicit guarantee boundary | CSS import graphs and explicit package-owned JS graphs are validated; invalid watched CSS fails the generated entry and recovers after correction. Next tests: 28 passed. Unsupported graph shapes are not comprehensively checked; see the open foundation work below.                                                                                              |
+
+### Remaining foundation work
+
+1. **[P1] Complete or explicitly reject unsupported plugin entry graphs.**
+   `packages/discovery/src/styles.mjs` follows explicit JS exports and relative static or
+   literal dynamic imports. Wildcard JS exports, nonliteral imports and external vendor JS
+   graphs are not exhaustively traversed; CSS subpaths without a `.css` suffix can also
+   evade the current script check. Explicit `bitakit.theme` entries are trusted theme
+   authority, not isolated component CSS. Do not describe the current validator as a
+   universal guarantee against all future plugin CSS. The next repair must validate these
+   supported entry shapes or reject them with an actionable diagnostic, with installed
+   fixtures for each shape. Arbitrary scripts outside the supported contract remain outside
+   any CSS isolation guarantee.
+2. **[P2] Recheck live action/page discovery in the full host.** The Content Demo test
+   `e2e/discovery.spec.ts` failed to display a newly created `live-check.open` navigation
+   action within its timeout. The authenticated shell rendered, and its configured group
+   matches the fixture's `navigation` group. The cause is not yet established; do not
+   dismiss this as an auth issue or equate the passing CSS watcher test with action/page
+   hot-reload acceptance. Reproduce against an isolated fresh host, then verify add,
+   title update and removal without a browser reload.
+3. **[P2] Localize organization validation feedback.** The German organization form
+   renders `Invalid URL.` from `packages/organizations/src/website.ts`, while its test
+   expects German feedback. Validation rejects the value correctly; translation at the
+   owning UI boundary remains open. Do not add another URL validator to repair wording.
+
+### Deferred demo test maintenance
+
+- The OAuth callback test expects a Google button, but explicit memory-preview configuration
+  sets `socialProviders: []`. Give that isolated test the intended configuration; do not
+  enable real OAuth merely to satisfy the fixture.
+- The language test expects `Reset to default: Interface language`; the current generated
+  control is `Reset Language to default`. Updating the locator and rerunning persistence/
+  reset remains open. The language did change to English before this assertion failed.
+- Organization validation translation and live discovery are tracked as foundation work
+  above, not hidden inside a sample-only completion claim.
+
+### Verification record
+
+- Core settings: `node --test packages/core/tests/settings.test.mjs` — 7 passed.
+- React bindings: `node --test packages/ui/tests/foundation-react.test.mjs` — 18 passed.
+- `npm test --workspace @bitakit/next` — 28 passed; includes invalid order/reset/token,
+  nested CSS/lazy JS imports, inaccessible manifest and watched invalidation/recovery.
+- `npm test --workspace @bitakit/cli` — 24 passed.
+- `npm test --workspace @bitakit/quick-search` — 4 passed.
+- `npm test --workspace @bitakit/create-app` — 10 passed.
+- `node scripts/verify-generated.mjs --only next-bare,next-sample --keep --skip-build` —
+  both passed; retained evidence directory `bitakit-verify-lQ5UDG` in the system temp folder.
+- `node scripts/verify-generated.mjs --only next-auth --keep --skip-build` — passed.
+  Final expanded evidence: `bitakit-verify-WijBMB/next-auth/verification-development` and
+  `verification-production` in the system temp folder. Includes live declared-plugin CSS
+  updates, lazy plugin loading, native menus, account/password layout, two-factor dialog
+  focus/geometry in light/dark at 390/1280px, and a Dark preference surviving reload.
+  The test waits for settings hydration and cancels the native MFA dialog using Cancel.
+  `--skip-build` packs previously built package output; it avoids disrupting the running
+  preview and is not a claim of a new full workspace build.
+- `npm run typecheck --workspace @bitakit/content-demo` — passed.
+- `npm run test:e2e --workspace @bitakit/content-demo` — **9 passed, 4 failed**. Passed:
+  native signup/invitation acceptance/resend/cancel/member/team flows, signout/signin/reset,
+  account switching, light/dark native geometry, API-key lifecycle, responsive security
+  cards, owned shell controls and both authentication-gated viewport tests. Mail is
+  captured in the isolated test backend, never delivered externally.
+- Todo sample typecheck and its two browser scripts passed: CRUD, native account/org
+  switching, focus/session-refetch form preservation, settings, page/sidebar Clear,
+  cancellation, scoped deletion and changed-context rejection. The local preview remains
+  running at `http://127.0.0.1:3103`; credentials stay in ignored local files.
+
+The entire monorepo test/lint/docs build chain and experimental TanStack generated cases
+were not rerun for this closeout. There is no publish, merge or shared-database change.
+The review is deliberately not marked entirely closed while the foundation gaps above remain.
+
+## Initial findings: out-of-the-box app integration and styling (2026-10-03)
+
+The following is the historical pre-implementation diagnosis. Its original status and
+code references describe that snapshot; current completion is recorded above.
 
 The refactor preview has a confirmed CSS cascade regression affecting native HeroUI
 controls. Existing theme files are present; their presence does not guarantee that the
@@ -260,10 +353,10 @@ are linked work, not two independently reproduced visual regressions. Item 4 con
 unverified reports. Items 9 and 10 are acceptance/diagnostic gaps, not claims that a new
 app or the full generated-app suite was executed during this review.
 
-The user requested this diagnosis and review before implementation. No Core or library
-runtime changes were made for this review. Package changes described above are proposed
-repair locations, not completed fixes. No styling approach can promise that regressions
-will never occur; a single loading contract and browser checks make recurrence detectable.
+The original request was diagnosis before implementation. Core/library changes were
+subsequently authorized and are recorded in the implementation status above. No styling
+approach can promise that regressions will never occur; a single loading contract and
+browser checks make recurrence detectable.
 
 ## History (pre-0.2)
 

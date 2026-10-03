@@ -16,7 +16,7 @@
   --field-border: var(--input);
   --field-border-hover: var(--input);
   --field-border-focus: var(--ring);
-  --field-border-width: 1px;
+  --field-border-width: var(--border-width);
   --field-radius: var(--radius-md);
   --focus: var(--ring);
   --link: var(--primary);
@@ -24,7 +24,9 @@
   --danger: var(--destructive);
 }
 .card {
-  @apply rounded-card bg-card text-card-foreground ring-1 ring-border shadow-none;
+  @apply rounded-card bg-card text-card-foreground ring-(length:--border-width) ring-border;
+  --tw-shadow: var(--theme-shadow-surface, 0 0 #0000);
+  box-shadow: var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 .button,
 .avatar,
@@ -43,8 +45,51 @@
 .input {
   background: var(--background);
 }
+.input,
+.input-group {
+  --field-shadow: var(--theme-shadow-field, 0 0 #0000);
+}
+.dropdown__popover,
+.modal__dialog,
+.alert-dialog__dialog,
+.popover {
+  box-shadow: var(--theme-shadow-overlay, var(--overlay-shadow));
+}
+.button {
+  transition-duration: var(--theme-motion-duration, 250ms), var(--theme-motion-duration, 100ms), var(--theme-motion-duration, 100ms);
+  transition-timing-function: var(--theme-motion-ease, var(--ease-smooth)), var(--theme-motion-ease, var(--ease-out)), var(--theme-motion-ease, var(--ease-out));
+}
+.button:is(:active, [data-pressed='true']):not(:disabled, [aria-disabled='true']) {
+  transform: scale(var(--theme-control-pressed-scale, 0.97));
+  translate: 0 var(--theme-control-pressed-offset, 0px);
+}
+.input,
+.input-group,
+.select__trigger {
+  transition-duration: var(--theme-motion-duration, 150ms);
+  transition-timing-function: var(--theme-motion-ease, var(--ease-smooth)), var(--theme-motion-ease, var(--ease-smooth)), var(--theme-motion-ease, var(--ease-out));
+}
+.modal__container[data-entering='true'],
+.alert-dialog__container[data-entering='true'] {
+  animation-duration: var(--theme-motion-duration, 250ms);
+  animation-timing-function: var(--theme-motion-ease, var(--ease-out-quad));
+}
+.dropdown__popover[data-entering='true'],
+.popover[data-entering='true'],
+.modal__backdrop[data-entering='true'],
+.alert-dialog__backdrop[data-entering='true'] {
+  animation-duration: var(--theme-motion-duration, 150ms);
+}
+.dropdown__popover[data-exiting='true'],
+.popover[data-exiting='true'],
+.modal__container[data-exiting='true'],
+.alert-dialog__container[data-exiting='true'],
+.modal__backdrop[data-exiting='true'],
+.alert-dialog__backdrop[data-exiting='true'] {
+  animation-duration: var(--theme-motion-duration, 100ms);
+}
 .button--primary {
-  @apply border;
+  @apply border-(length:--border-width);
   --button-bg: var(--primary);
   --button-bg-hover: var(--primary);
   --button-bg-pressed: var(--primary);
@@ -100,7 +145,7 @@
 
 /* Native social buttons use tertiary; map them and outline to Foundation outline. */
 .button:is(.button--tertiary, .button--outline) {
-  @apply border;
+  @apply border-(length:--border-width);
   --button-bg: var(--control-surface);
   --button-bg-hover: var(--control-surface);
   --button-bg-pressed: var(--control-surface);
@@ -115,10 +160,10 @@
       black calc(var(--control-neutral-shade) / 2)
     );
     --control-depth-shadow:
-      inset 0 1px 0 var(--control-highlight),
-      0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%);
+      var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight),
+      0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%));
     --tw-shadow: var(--control-depth-shadow);
-    background-image: linear-gradient(to bottom, var(--control-top), var(--control-bottom));
+    background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-top), var(--control-bottom)));
     box-shadow:
       var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000),
       var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
@@ -133,8 +178,8 @@
     );
     --control-idle-border: color-mix(in oklab, var(--control-action), black 16%);
     --control-depth-shadow:
-      inset 0 1px 0 var(--control-highlight), inset 0 -1px 0 var(--control-edge),
-      0 1px 2px var(--control-shadow), 0 2px 3px -1px var(--control-shadow);
+      var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight), inset 0 -1px 0 var(--control-edge),
+      0 1px 2px var(--control-shadow), 0 2px 3px -1px var(--control-shadow));
   }
   .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline):not(
       :focus-visible,
@@ -148,11 +193,11 @@
         :hover,
         [data-hovered='true']
       ):not(:disabled, [aria-disabled='true']) {
-      background-image: linear-gradient(
+      background-image: var(--theme-control-gradient, linear-gradient(
         to bottom,
-        color-mix(in oklab, var(--control-top), var(--foreground) 3%),
-        color-mix(in oklab, var(--control-bottom), var(--foreground) 3%)
-      );
+        color-mix(in oklab, var(--control-top), var(--foreground) var(--theme-control-hover-mix, 3%)),
+        color-mix(in oklab, var(--control-bottom), var(--foreground) var(--theme-control-hover-mix, 3%))
+      ));
     }
   }
   .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline):is(
@@ -161,8 +206,8 @@
       [aria-expanded='true']
     ):not(:disabled, [aria-disabled='true']) {
     --control-depth-shadow:
-      inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight);
-    background-image: linear-gradient(to bottom, var(--control-bottom), var(--control-top));
+      var(--theme-control-pressed-shadow, inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight));
+    background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-bottom), var(--control-top)));
   }
 }
 /* Match the Foundation Input/InputGroup: one surfaced shell, no suffix divider. */
@@ -193,7 +238,7 @@
 }
 .input:not([aria-invalid='true']):focus-visible,
 .input-group:not([data-invalid='true']):has(.input-group__input:focus-visible) {
-  @apply border-ring ring-3 ring-ring/50 ring-offset-0;
+  @apply border-ring ring-(length:--focus-ring-width) ring-ring/50 ring-offset-0;
 }
 /* Native auth footers use text-accent, whose Foundation meaning is a surface. */
 .link:not(.button) {
@@ -202,11 +247,11 @@
 }
 
 .button--primary:is(:focus-visible, [data-focus-visible='true']) {
-  @apply border-ring ring-3 ring-ring/50 ring-offset-0;
+  @apply border-ring ring-(length:--focus-ring-width) ring-ring/50 ring-offset-0;
 }
 /* Foundation InputGroupButton icon-xs, scoped to native field adornments. */
 .input-group :is(.input-group__suffix, .input-group__prefix) > .button--icon-only.button--ghost {
-  @apply size-6 min-h-0 min-w-0 border border-transparent p-0 shadow-none;
+  @apply size-6 min-h-0 min-w-0 border-(length:--border-width) border-transparent p-0 shadow-none;
   --button-bg-hover: var(--muted);
   --button-fg-hover: var(--foreground);
 }
@@ -225,7 +270,7 @@
 .input-group
   :is(.input-group__suffix, .input-group__prefix)
   > .button--icon-only.button--ghost:is(:focus-visible, [data-focus-visible='true']) {
-  @apply border-ring ring-3 ring-ring/50 ring-offset-0;
+  @apply border-ring ring-(length:--focus-ring-width) ring-ring/50 ring-offset-0;
 }
 
 /* Native selects follow Foundation SelectTrigger, not the round text-input exception. */
@@ -242,7 +287,7 @@
 
 /* Destructive actions share the primary finish and Foundation control geometry. */
 .button--danger {
-  @apply border;
+  @apply border-(length:--border-width);
   --button-bg: var(--destructive);
   --button-bg-hover: var(--destructive);
   --button-bg-pressed: var(--destructive);
@@ -390,7 +435,7 @@
 @media (hover: hover) and (pointer: fine) {
   .auth-identity-trigger > svg:last-child {
     opacity: 0;
-    transition: opacity 160ms ease;
+    transition: opacity var(--theme-motion-duration, 160ms) var(--theme-motion-ease, ease);
   }
   .auth-identity-trigger:is(
       :hover,

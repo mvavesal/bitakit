@@ -129,7 +129,7 @@ export function OrganizationDialog({
               <FieldGroup
                 className={
                   embedded
-                    ? 'gap-0 [&>div+div]:border-t [&>div+div]:pt-(--card-spacing) [&>div:not(:last-child)]:pb-(--card-spacing)'
+                    ? "gap-0 [&>div+div]:border-t-(length:--border-width) [&>div+div]:pt-(--card-spacing) [&>div:not(:last-child)]:pb-(--card-spacing)"
                     : undefined
                 }
               >

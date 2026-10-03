@@ -151,7 +151,7 @@ export function OrganizationSwitcher({ side }: { side?: 'bottom' | 'right' } = {
                   void run('organizations.create');
                 }}
               >
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-xl border">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-xl border-(length:--border-width)">
                   <PlusIcon aria-hidden="true" />
                 </span>
                 {translateUI(

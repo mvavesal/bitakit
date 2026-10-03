@@ -1,8 +1,14 @@
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
+/* Keep typography runtime-based so a host theme also reaches portals and native widgets. */
+@theme {
   --font-heading: var(--font-sans);
   --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --default-transition-duration: var(--theme-motion-duration, 150ms);
+  --default-transition-timing-function: var(--theme-motion-ease, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@theme inline {
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -88,6 +94,8 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.875rem;
+  --border-width: 1px;
+  --focus-ring-width: 3px;
   --corner-shape: squircle;
   /* Control depth: shared by the existing shadcn slots, independent of geometry. */
   --control-surface: var(--background);
@@ -237,10 +245,10 @@
       [data-variant='outline']
     ) {
       --control-depth-shadow:
-        inset 0 1px 0 var(--control-highlight), inset 0 -1px 0 var(--control-edge),
-        0 1px 2px var(--control-shadow), 0 2px 3px -1px var(--control-shadow);
+        var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight), inset 0 -1px 0 var(--control-edge),
+        0 1px 2px var(--control-shadow), 0 2px 3px -1px var(--control-shadow));
       background-color: var(--control-fill);
-      background-image: linear-gradient(to bottom, var(--control-top), var(--control-bottom));
+      background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-top), var(--control-bottom)));
     }
 
     [data-slot='button'][data-variant='default'] {
@@ -252,8 +260,8 @@
 
     [data-slot='button']:is([data-variant='secondary'], [data-variant='outline']) {
       --control-depth-shadow:
-        inset 0 1px 0 var(--control-highlight),
-        0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%);
+        var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight),
+        0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%));
       --control-fill: var(--control-surface);
       --control-top: var(--control-fill);
       --control-bottom: color-mix(
@@ -282,11 +290,11 @@
           [data-variant='secondary'],
           [data-variant='outline']
         ):hover:not(:disabled, [aria-disabled='true']) {
-        background-image: linear-gradient(
+        background-image: var(--theme-control-gradient, linear-gradient(
           to bottom,
-          color-mix(in oklab, var(--control-top), var(--foreground) 3%),
-          color-mix(in oklab, var(--control-bottom), var(--foreground) 3%)
-        );
+          color-mix(in oklab, var(--control-top), var(--foreground) var(--theme-control-hover-mix, 3%)),
+          color-mix(in oklab, var(--control-bottom), var(--foreground) var(--theme-control-hover-mix, 3%))
+        ));
       }
     }
 
@@ -299,8 +307,8 @@
         [aria-disabled='true']
       ) {
       --control-depth-shadow:
-        inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight);
-      background-image: linear-gradient(to bottom, var(--control-bottom), var(--control-top));
+        var(--theme-control-pressed-shadow, inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight));
+      background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-bottom), var(--control-top)));
     }
 
     /* Only the outer field is surfaced. Borderless search and group interiors stay flat. */
@@ -311,13 +319,13 @@
       [data-slot='combobox-chips']
     ):not(.border-0, .border-none, .shadow-none) {
       --control-depth-shadow:
-        inset 0 1px 1px var(--control-inset-shadow), 0 1px 2px var(--control-shadow);
+        var(--theme-shadow-field, inset 0 1px 1px var(--control-inset-shadow), 0 1px 2px var(--control-shadow));
       background-color: var(--control-surface);
     }
 
     :is([data-slot='checkbox'], [data-slot='radio-group-item']) {
       --control-depth-shadow:
-        inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight);
+        var(--theme-shadow-control, inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight));
       background-color: var(--control-surface);
     }
 
@@ -331,13 +339,13 @@
       [data-state='indeterminate']
     ) {
       --control-depth-shadow:
-        inset 0 1px 0 var(--control-highlight), 0 1px 2px var(--control-shadow);
+        var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight), 0 1px 2px var(--control-shadow));
       background-color: var(--primary);
-      background-image: linear-gradient(
+      background-image: var(--theme-control-gradient, linear-gradient(
         to bottom,
         color-mix(in oklab, var(--primary), white var(--control-primary-lift)),
         color-mix(in oklab, var(--primary), black var(--control-primary-shade))
-      );
+      ));
       color: var(--primary-foreground);
     }
 
@@ -349,22 +357,22 @@
     }
 
     [data-slot='switch'] {
-      --control-depth-shadow: inset 0 1px 2px var(--control-edge), 0 1px 0 var(--control-highlight);
+      --control-depth-shadow: var(--theme-shadow-control, inset 0 1px 2px var(--control-edge), 0 1px 0 var(--control-highlight));
     }
 
     [data-slot='switch'][data-state='checked'] {
       background-color: var(--primary);
-      background-image: linear-gradient(
+      background-image: var(--theme-control-gradient, linear-gradient(
         to bottom,
         color-mix(in oklab, var(--primary), black var(--control-primary-shade)),
         var(--primary)
-      );
+      ));
     }
 
     [data-slot='switch-thumb'] {
       --control-depth-shadow:
-        inset 0 1px 0 var(--control-highlight), 0 1px 2px var(--control-shadow);
-      background-image: linear-gradient(to bottom, oklch(1 0 0 / 14%), oklch(0 0 0 / 4%));
+        var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight), 0 1px 2px var(--control-shadow));
+      background-image: var(--theme-control-gradient, linear-gradient(to bottom, oklch(1 0 0 / 14%), oklch(0 0 0 / 4%)));
     }
   }
 }
@@ -372,8 +380,8 @@
 /* Shared, short crossfade for manual theme changes. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 280ms;
-  animation-timing-function: ease-in-out;
+  animation-duration: var(--theme-motion-duration, 280ms);
+  animation-timing-function: var(--theme-motion-ease, ease-in-out);
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(root),
@@ -402,11 +410,11 @@
       var(--tw-inset-ring-shadow, 0 0 #0000),
       var(--tw-ring-offset-shadow, 0 0 #0000),
       var(--tw-ring-shadow, 0 0 #0000),
-      inset 0 0 10px 2px var(--primary-glow-light),
-      inset 0 0 2px 1px var(--primary-glow-shade),
+      var(--theme-control-hover-shadow, inset 0 0 10px 2px var(--primary-glow-light),
+        inset 0 0 2px 1px var(--primary-glow-shade)),
       var(--control-depth-shadow, 0 0 #0000);
-    transition-duration: 280ms;
-    transition-timing-function: ease-in-out;
+    transition-duration: var(--theme-motion-duration, 280ms);
+    transition-timing-function: var(--theme-motion-ease, ease-in-out);
   }
   @media (hover: hover) {
     :is([data-slot='button'][data-variant='default'], .button.button--primary):is(
@@ -423,7 +431,7 @@
       ) {
       --primary-glow-light: var(--primary-hover-light);
       --primary-glow-shade: var(--primary-hover-shade);
-      background-image: linear-gradient(to bottom, var(--control-top), var(--control-bottom));
+      background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-top), var(--control-bottom)));
     }
   }
 }
@@ -444,6 +452,22 @@
 /* Shell density: compact tightens the spacing scale every utility derives from. */
 :root[data-density='compact'] {
   --spacing: 0.2rem;
+}
+
+/* Optional host tokens keep default component finishes while sharing customization. */
+[data-slot='dialog-content'] {
+  --tw-shadow: var(--theme-shadow-overlay, 0 0 #0000);
+  box-shadow: var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+[data-slot='button']:active:not([aria-haspopup]) {
+  scale: var(--theme-control-pressed-scale, 1);
+}
+
+/* Accessibility takes precedence over an application's animation duration. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --theme-motion-duration: 0ms !important;
+  }
 }
 
 /* Shared sidebar palettes also support an independent navigation scheme. */

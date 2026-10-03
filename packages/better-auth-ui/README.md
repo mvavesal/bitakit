@@ -1,9 +1,8 @@
-# Better Auth UI für SaaS Foundation
+# Better Auth UI for BitaKit
 
-Ein schlankes, optionales Foundation-Plugin um die direkt importierbare externe
-Bibliothek **`@better-auth-ui/heroui` (1.7.26)**. Keine Registry-Kopien, kein vendorter
-Quellcode, keine nachgeschriebenen Formulare oder Package-Patches. Die Bibliothek
-wird regulär über npm installiert. Die verworfenen shadcn-Experimente wurden entfernt.
+A thin optional adapter for **`@better-auth-ui/heroui` (1.7.15)**, installed from npm
+and consumed through its public exports. Native forms and behavior remain upstream;
+the adapter supplies BitaKit contracts, settings integration and the shared theme bridge.
 
 ## Install and register
 
@@ -17,19 +16,28 @@ host code. The plugin takes no host objects. The Better Auth client arrives thro
 ```ts
 // src/configs/better-auth-ui.ts
 import { defineConfig } from '@bitakit/core';
-import { organizationPlugin } from '@bitakit/better-auth-ui/plugins/organization';
-import { multiSessionPlugin } from '@bitakit/better-auth-ui/plugins/multi-session';
 
 export default defineConfig({
   defaults: {
     toastProvider: false, // Shell renders the HeroUI toast region
     provider: {
       basePaths: { auth: '/auth', settings: '/account', organization: '/organization' },
-      plugins: [organizationPlugin(), multiSessionPlugin()],
     },
   },
 });
 ```
+
+`defineConfig` holds plain immutable data. Do not put a `QueryClient`, React components,
+native plugin objects or callbacks in it. For native options containing those values, use
+the existing `createBetterAuthIntegration` client composition and pass its plugins as
+`additionalPlugins` to the generated `BitaKitProvider`. This keeps one runtime and one native
+auth client. Explicit client composition supplies native options; package discovery still
+owns CSS integration. Public auth pages must remain mounted while the native session
+revalidates on window focus; place them outside a protected application's pending screen.
+
+The manifest exports `./package.json` and declares component CSS and the theme bridge.
+Generated hosts receive both through `bitakit.gen.css`; no individual HeroUI component
+imports or app-specific theme patches are needed.
 
 Dependencies resolve through npm; React 19 is a peer dependency. Configure Better Auth on the
 server and provide the same client the `auth` service uses. The UI plugin creates no second
@@ -86,21 +94,17 @@ are removed.
 
 Details and exports: [CATALOG.md](CATALOG.md).
 
-## Zentrales Theme
+## Central theme
 
-Im Tailwind-Host nach den Basisimports:
+Discovery collects this package's declared component styles and theme bridge into
+`bitakit.gen.css`. Generated hosts establish `theme, base, components, utilities` before
+importing Tailwind and the generated entry. Do not add separate JavaScript CSS imports
+or copy individual component styles into the app.
 
-```css
-@import '@heroui/styles';
-@import '@better-auth-ui/heroui/styles';
-@import '@bitakit/better-auth-ui/theme.css';
-```
-
-HeroUI liefert seine CSS-Komponenten aus der Abhängigkeit. Unsere externe CSS-Brücke
-ordnet Farben, Rahmen, Karten-/Button-/Avatar-Radien und Squircle dem zentralen
-Foundation-Theme zu. Der Host muss seine vorhandenen Foundation-Tokens/Utilities
-bereitstellen. Kein neuer Farbwertsatz und keine Änderung in node_modules.
-Die originalen Bibliotheksicons und Marken bleiben unverändert.
+HeroUI supplies the component CSS. `theme.css` maps colors, borders, surface geometry
+and squircle behavior to the existing central BitaKit tokens. The bridge does not modify
+upstream packages or create another palette. A host outside Discovery must provide the
+same root layer order, baseline tokens and declared stylesheet entries explicitly.
 
 ## Content Studio
 

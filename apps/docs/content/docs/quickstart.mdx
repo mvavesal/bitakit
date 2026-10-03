@@ -62,13 +62,7 @@ and a page at `/notes`. The dev server picks it up; there is no registry to edit
 `src/plugins/notes/ui/pages/index.tsx` to see how a page binds actions with `<Action>` and
 reads the service with `useServiceState`.
 
-Grow the plugin one file at a time; each command writes one file and the path becomes the ID:
-
-```sh
-npx bitakit add action notes/archive    # actions/archive.ts → notes.archive
-npx bitakit add page notes/archive      # ui/pages/archive.tsx → /notes/archive
-npx bitakit add settings notes          # settings.ts → a generated settings page
-```
+Grow the plugin one file at a time with `npx bitakit add <kind> notes/<name>`. Each command writes one file and its path becomes the ID, for example `npx bitakit add action notes/archive` creates the action `notes.archive`. The [command line](/docs/cli) page lists every kind.
 
 Check the project at any time with `npx bitakit doctor`.
 

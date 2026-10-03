@@ -143,6 +143,7 @@ time; there is no registry, provider or import list to edit. One concept, one wa
 - After changes run \`npx bitakit doctor\` and \`npm run typecheck\`.
 - App-owned routes stay native framework routes in \`${routes}\`.
 - Use the standard components from \`@bitakit/ui/components\` and the app theme; do not restyle them locally.
+- Visual packages declare exported CSS in \`bitakit.styles\` and intentional theme mappings in \`bitakit.theme\`, and export \`./package.json\`. Do not import package CSS from JavaScript, including lazy modules; Discovery owns the root CSS graph and layer order.
 - Never edit generated files: \`src/bitakit.gen.*\`.
 
 <!-- END:bitakit-agent-rules -->

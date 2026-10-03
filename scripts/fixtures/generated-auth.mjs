@@ -8,8 +8,11 @@ export async function configureAuthFixture(target, archives) {
   const manifest = JSON.parse(await readFile(file, 'utf8'));
   for (const name of ['better-auth', 'better-auth-ui', 'organizations'])
     manifest.dependencies[`@bitakit/${name}`] = archives[`@bitakit/${name}`];
-  Object.assign(manifest.dependencies, { 'better-auth': '^1.7.5', '@better-auth/api-key': '^1.7.5' });
-  Object.assign(manifest.overrides ??= {}, archives);
+  Object.assign(manifest.dependencies, {
+    'better-auth': '^1.7.5',
+    '@better-auth/api-key': '^1.7.5',
+  });
+  Object.assign((manifest.overrides ??= {}), archives);
   await writeFile(file, JSON.stringify(manifest, null, 2));
   const files = {
     'src/components/auth-providers.tsx': `'use client';
@@ -72,12 +75,20 @@ export default function Checks() {
 }
 `,
     'fixture-plugin/package.json': JSON.stringify({
-      name: 'fixture-plugin', version: '1.0.0', type: 'module',
-      exports: { './package.json': './package.json', './styles.css': './styles.css', './lazy': './lazy.js' },
-      bitakit: { styles: './styles.css' }, sideEffects: ['./styles.css'],
+      name: 'fixture-plugin',
+      version: '1.0.0',
+      type: 'module',
+      exports: {
+        './package.json': './package.json',
+        './styles.css': './styles.css',
+        './lazy': './lazy.js',
+      },
+      bitakit: { styles: './styles.css' },
+      sideEffects: ['./styles.css'],
     }),
     'fixture-plugin/styles.css': '@layer components { .fixture-plugin { padding: 1rem; } }',
-    'fixture-plugin/lazy.js': "import { createElement } from 'react'; export default function Fixture() { return createElement('p', { className: 'fixture-plugin' }, 'Lazy plugin ready'); }",
+    'fixture-plugin/lazy.js':
+      "import { createElement } from 'react'; export default function Fixture() { return createElement('p', { className: 'fixture-plugin' }, 'Lazy plugin ready'); }",
   };
   manifest.dependencies['fixture-plugin'] = 'file:./fixture-plugin';
   await writeFile(file, JSON.stringify(manifest, null, 2));
@@ -86,13 +97,23 @@ export default function Checks() {
     await writeFile(path.join(target, name), content);
   }
   const layout = path.join(target, 'src/app/layout.tsx');
-  await writeFile(layout, (await readFile(layout, 'utf8'))
-    .replace("import { BitaKitProvider } from '@/bitakit.gen';", "import { Providers } from '@/components/auth-providers';")
-    .replaceAll('<BitaKitProvider>', '<Providers>').replaceAll('</BitaKitProvider>', '</Providers>'));
-  await writeFile(path.join(target, 'src/fixture-plugin.d.ts'), "declare module 'fixture-plugin/lazy' { const component: import('react').ComponentType; export default component; }\n");
+  await writeFile(
+    layout,
+    (await readFile(layout, 'utf8'))
+      .replace(
+        "import { BitaKitProvider } from '@/bitakit.gen';",
+        "import { Providers } from '@/components/auth-providers';",
+      )
+      .replaceAll('<BitaKitProvider>', '<Providers>')
+      .replaceAll('</BitaKitProvider>', '</Providers>'),
+  );
+  await writeFile(
+    path.join(target, 'src/fixture-plugin.d.ts'),
+    "declare module 'fixture-plugin/lazy' { const component: import('react').ComponentType; export default component; }\n",
+  );
 }
 
-export async function verifyAuthStyles(page, url, artifacts) {
+export async function verifyAuthStyles(page, url, artifacts, developmentTarget) {
   await page.goto(url + '/checks');
   await page.getByRole('button', { name: /^Sign in$/i }).waitFor();
   const layers = await page.evaluate(() => {
@@ -100,8 +121,9 @@ export async function verifyAuthStyles(page, url, artifacts) {
     function scan(rules) {
       for (const rule of rules) {
         const match = /^@layer\s+([^;{]+)/.exec(rule.cssText);
-        if (match) for (const name of match[1].split(',').map((value) => value.trim()))
-          if (!result.includes(name)) result.push(name);
+        if (match)
+          for (const name of match[1].split(',').map((value) => value.trim()))
+            if (!result.includes(name)) result.push(name);
         if (rule.styleSheet) scan(rule.styleSheet.cssRules);
       }
     }
@@ -109,16 +131,24 @@ export async function verifyAuthStyles(page, url, artifacts) {
     return result.filter((name) => ['theme', 'base', 'components', 'utilities'].includes(name));
   });
   assert.deepEqual(layers, ['theme', 'base', 'components', 'utilities']);
-  const before = await page.locator('.button--primary').first().evaluate((element) => {
-    const style = getComputedStyle(element);
-    return { background: style.backgroundColor, color: style.color, height: parseFloat(style.height) };
-  });
+  const before = await page
+    .locator('.button--primary')
+    .first()
+    .evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        background: style.backgroundColor,
+        color: style.color,
+        height: parseFloat(style.height),
+      };
+    });
   assert.notEqual(before.background, 'rgba(0, 0, 0, 0)');
   assert.notEqual(before.background, before.color);
   assert.ok(before.height >= 32);
   const email = `fixture-${Date.now()}@example.test`;
   const response = await page.request.post(url + '/api/auth/sign-up/email', {
-    headers: { origin: url }, data: { name: 'Fixture User', email, password: 'Fixture-password-2026!' },
+    headers: { origin: url },
+    data: { name: 'Fixture User', email, password: 'Fixture-password-2026!' },
   });
   assert.equal(response.ok(), true, await response.text());
   await page.reload();
@@ -131,32 +161,122 @@ export async function verifyAuthStyles(page, url, artifacts) {
       await page.getByRole('menu').waitFor();
       const menu = await page.getByRole('menu').evaluate((element) => ({
         padding: parseFloat(getComputedStyle(element).paddingTop),
-        itemPadding: parseFloat(getComputedStyle(element.querySelector('[role="menuitem"]')).paddingLeft),
+        itemPadding: parseFloat(
+          getComputedStyle(element.querySelector('[role="menuitem"]')).paddingLeft,
+        ),
       }));
       assert.ok(menu.padding > 0, JSON.stringify(menu));
       assert.ok(menu.itemPadding > 0, JSON.stringify(menu));
-      await page.screenshot({ path: path.join(artifacts, `menu-${dark ? 'dark' : 'light'}-${width}.png`) });
+      await page.screenshot({
+        animations: 'disabled',
+        path: path.join(artifacts, `menu-${dark ? 'dark' : 'light'}-${width}.png`),
+      });
       await page.keyboard.press('Escape');
       await page.getByRole('menu').waitFor({ state: 'hidden' });
     }
   }
   await page.getByRole('button', { name: 'Load fixture plugin' }).click();
   await page.getByText('Lazy plugin ready').waitFor();
-  assert.equal(await page.locator('.fixture-plugin').evaluate((e) => getComputedStyle(e).padding), '16px');
+  assert.equal(
+    await page.locator('.fixture-plugin').evaluate((e) => getComputedStyle(e).padding),
+    '16px',
+  );
   await page.getByRole('button', { name: 'Switch organization', exact: true }).click();
-  assert.ok(await page.getByRole('menu').evaluate((e) => parseFloat(getComputedStyle(e).paddingTop)) > 0);
+  assert.ok(
+    (await page.getByRole('menu').evaluate((e) => parseFloat(getComputedStyle(e).paddingTop))) > 0,
+  );
   await page.keyboard.press('Escape');
   await page.getByRole('menu').waitFor({ state: 'hidden' });
+  if (developmentTarget) {
+    const stylesheet = path.join(developmentTarget, 'fixture-plugin/styles.css');
+    const original = await readFile(stylesheet, 'utf8');
+    try {
+      await writeFile(stylesheet, '@layer components { .fixture-plugin { padding: 2rem; } }');
+      await page.waitForFunction(() => {
+        const element = document.querySelector('.fixture-plugin');
+        return element && getComputedStyle(element).padding === '32px';
+      });
+      await page.getByRole('button', { name: 'Switch organization', exact: true }).click();
+      assert.ok(
+        (await page.getByRole('menu').evaluate((e) => parseFloat(getComputedStyle(e).paddingTop))) >
+          0,
+      );
+      await page.keyboard.press('Escape');
+      await page.getByRole('menu').waitFor({ state: 'hidden' });
+    } finally {
+      await writeFile(stylesheet, original);
+    }
+    await page.waitForFunction(
+      () => getComputedStyle(document.querySelector('.fixture-plugin')).padding === '16px',
+    );
+  }
   await page.getByRole('link', { name: 'Account settings', exact: true }).click();
   await page.getByRole('heading', { name: 'Account', exact: true, level: 1 }).waitFor();
   await page.locator('input[type="password"]').first().waitFor();
-  const input = await page.locator('input[type="password"]').first().evaluate((element) => {
-    const container = element.closest('[data-slot="input-group"]') || element;
-    const rect = container.getBoundingClientRect();
-    return { width: rect.width, height: rect.height };
-  });
+  const input = await page
+    .locator('input[type="password"]')
+    .first()
+    .evaluate((element) => {
+      const container = element.closest('[data-slot="input-group"]') || element;
+      const rect = container.getBoundingClientRect();
+      return { width: rect.width, height: rect.height };
+    });
   assert.ok(input.width > 100 && input.height >= 28, JSON.stringify(input));
-  await page.screenshot({ path: path.join(artifacts, 'account-settings.png'), fullPage: true });
+  await page.screenshot({
+    animations: 'disabled',
+    path: path.join(artifacts, 'account-settings.png'),
+    fullPage: true,
+  });
+  for (const dark of [false, true]) {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.evaluate((dark) => document.documentElement.classList.toggle('dark', dark), dark);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      const twoFactor = page.locator('[data-two-factor-settings]');
+      await twoFactor.getByRole('button', { name: /enable/i }).click();
+      const dialog = page.getByRole('alertdialog');
+      await dialog.waitFor();
+      await dialog.locator('input[type="password"]').waitFor();
+      const geometry = await dialog.evaluate((element) => ({
+        width: element.getBoundingClientRect().width,
+        padding: parseFloat(
+          getComputedStyle(element.querySelector('[data-slot="modal-body"]') || element)
+            .paddingLeft,
+        ),
+        focusInside: element.contains(document.activeElement),
+      }));
+      assert.ok(geometry.width > 250 && geometry.width <= width, JSON.stringify(geometry));
+      assert.equal(geometry.focusInside, true);
+      await page.screenshot({
+        animations: 'disabled',
+        path: path.join(artifacts, `two-factor-${dark ? 'dark' : 'light'}-${width}.png`),
+      });
+      await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await dialog.waitFor({ state: 'hidden' });
+    }
+  }
   await page.reload();
   await page.getByRole('heading', { name: 'Account', exact: true, level: 1 }).waitFor();
+  await page.goto(url + '/settings/shell');
+  await page.getByRole('radio', { name: 'Dark', exact: true }).click();
+  await page
+    .getByRole('radio', { name: 'Dark', exact: true })
+    .and(page.locator('[aria-checked="true"]'))
+    .waitFor();
+  await page.reload();
+  await page
+    .getByRole('radio', { name: 'Dark', exact: true })
+    .and(page.locator('[aria-checked="true"]'))
+    .waitFor();
+  assert.equal(
+    await page.getByRole('radio', { name: 'Dark', exact: true }).getAttribute('aria-checked'),
+    'true',
+  );
+  assert.equal(
+    await page.locator('html').evaluate((element) => element.classList.contains('dark')),
+    true,
+  );
 }

@@ -192,7 +192,7 @@ export function InviteDialog({
               />
               <InputGroupAddon
                 align="inline-end"
-                className="self-stretch border-l border-input bg-muted px-3"
+                className="self-stretch border-l-(length:--border-width) border-input bg-muted px-3"
               >
                 <InputGroupText>
                   {translateUI('foundationUI.invite_dialog.days', undefined, 'Days')}

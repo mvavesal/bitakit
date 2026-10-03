@@ -8,16 +8,16 @@ A search dialog for BitaKit apps: press Mod+K, or click the search button in the
 npm install @bitakit/quick-search
 ```
 
-That is all. Foundation package discovery registers the search Action and the `app-bar.end` view automatically; the standard AppBar shows the search button in either Shell layout. You do not register results, add a provider or write a component. The package imports its own styles and uses the host's theme tokens.
+That is all. Foundation package discovery registers the search Action and the `app-bar.end` view automatically; the standard AppBar shows the search button in either Shell layout. You do not register results, add a provider or write a component. Discovery includes the package's declared stylesheet in the root generated CSS; it uses the host's theme tokens and has no JavaScript CSS side effects.
 
 ## What search finds
 
 Search finds places to go, nothing else. Each result is a link and shows its type and, unless the app itself owns it, the plugin it belongs to: `Tasks — Page · Todos`, `Notifications — Settings · Todos`. Typing a plugin's name finds everything that plugin owns.
 
-| Type     | What it includes                                                   | Default |
-| -------- | ------------------------------------------------------------------ | ------- |
-| Pages    | Links to pages of the app, and other navigation links              | on      |
-| Settings | Pages of the Settings catalog                                      | on      |
+| Type     | What it includes                                                      | Default |
+| -------- | --------------------------------------------------------------------- | ------- |
+| Pages    | Links to pages of the app, and other navigation links                 | on      |
+| Settings | Pages of the Settings catalog                                         | on      |
 | Plugins  | One result per plugin, opening its entry on the Plugins settings page | off     |
 
 Commands, dialogs and forms (Actions without a URL) never appear, so search never runs an Action. Hidden Actions and internal helpers never appear either, and disabled or pending links cannot be selected.
@@ -50,6 +50,9 @@ Types and owners come from existing registrations through `runtime.destinationOf
 ## Without package discovery
 
 In a host without Foundation discovery, add the plugin yourself: `quickSearchPlugin({ title, placeholder, empty, shortcut, results })`. A custom header can render the `PluginSlot` named `app-bar.end`, or `QuickSearchTrigger` directly. Without any header, Mod+K still opens the dialog. Installing the package cannot add a header to an arbitrary React app.
+
+Such a host also owns its stylesheet entry: establish the canonical layer order, then import
+`@bitakit/quick-search/styles.css` there. Generated BitaKit apps do this automatically.
 
 ## Translation catalogs
 

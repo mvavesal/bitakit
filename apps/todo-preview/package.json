@@ -6,7 +6,8 @@
     "dev": "next dev --hostname 127.0.0.1 --port 3103",
     "build": "next build",
     "start": "next start",
-    "typecheck": "bitakit generate && next typegen && tsc --noEmit"
+    "typecheck": "bitakit generate && next typegen && tsc --noEmit",
+    "test:preview": "node verify.mjs && node verify-clear.mjs"
   },
   "dependencies": {
     "next": "16.3.5",
@@ -26,6 +27,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
