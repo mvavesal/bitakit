@@ -10,6 +10,8 @@
   color: var(--muted-foreground);
 }
 .toast {
+  --surface: var(--card);
+  --surface-foreground: var(--card-foreground);
   --overlay: var(--popover);
   --overlay-foreground: var(--popover-foreground);
   box-shadow: var(--theme-shadow-overlay, var(--overlay-shadow));

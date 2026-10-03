@@ -62,11 +62,15 @@ async function style(locator) {
 }
 
 export async function verifyDeveloperTheme(page, url, artifacts) {
+  await page.setViewportSize({ width: 1280, height: 1000 });
   await page.addInitScript(() => { document.addEventListener('DOMContentLoaded', () => { document.documentElement.dataset.appTheme = 'fixture'; }); });
   for (const dark of [false, true]) {
+    await page.goto(url + '/settings/shell');
+    const mode = page.getByRole('radio', { name: dark ? 'Dark' : 'Light', exact: true });
+    await mode.click();
+    await expect(mode).toHaveAttribute('aria-checked', 'true');
     await page.goto(url + '/theme-checks');
     await page.getByRole('button', { name: 'Theme button', exact: true }).waitFor();
-    await page.evaluate((value) => document.documentElement.classList.toggle('dark', value), dark);
     const button = page.getByRole('button', { name: 'Theme button', exact: true });
     await expect(button).toHaveCSS('background-color', dark ? 'rgb(225, 175, 85)' : 'rgb(15, 90, 130)');
     const shared = await style(button);
@@ -100,11 +104,10 @@ export async function verifyDeveloperTheme(page, url, artifacts) {
     await search.waitFor({ state: 'hidden' });
     await page.goto(url + '/settings/shell');
     const settingsSearch = page.getByRole('textbox', { name: 'Search settings', exact: true });
-    await expect(settingsSearch).toHaveCSS('border-top-width', '3px');
+    await expect(page.locator('[data-slot="input-group"]').filter({ has: settingsSearch })).toHaveCSS('border-top-width', '3px');
     assert.match((await style(settingsSearch)).fontFamily, /Georgia/);
     await page.goto(url + '/settings/account');
     await page.locator('[data-two-factor-settings]').waitFor();
-    await page.evaluate((value) => document.documentElement.classList.toggle('dark', value), dark);
     const native = page.locator('.button--primary').first();
     await expect(native).toHaveCSS('background-color', dark ? 'rgb(225, 175, 85)' : 'rgb(15, 90, 130)');
     const authButton = await style(native);

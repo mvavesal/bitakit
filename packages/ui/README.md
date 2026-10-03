@@ -118,6 +118,11 @@ exported as `./locales/en.json` and `./locales/de.json`; compose them with
 
 ## Components and theme
 
+See [the developer theme contract](THEME.md) for one host theme shared by Shell, settings,
+Quick Search, native auth/organization controls and Devtools, including typography, border
+width, shadows, focus and motion. Define tokens after the generated root CSS import;
+consumer apps do not patch individual plugin selectors.
+
 The optional `./components` entry exports `Button`, `Input`, `Field`, `Label`, `Badge`,
 `Dialog`, `DropdownMenu`, `Sidebar`, `NavigationMenu`, `Sheet`, `Skeleton`, `Tooltip`,
 `Separator`, `PageHeader`, `AppBar`, `StandardActionMenu`, `ActionSidebarNavigation`,

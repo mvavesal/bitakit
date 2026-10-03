@@ -12,6 +12,7 @@
     "README.md",
     "locales",
     "theme.css"
+    ,"THEME.md"
   ],
   "exports": {
     ".": {
