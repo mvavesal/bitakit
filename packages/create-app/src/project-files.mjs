@@ -89,6 +89,8 @@ npx bitakit add plugin notes
 
 This creates \`src/plugins/notes/\` with a service, typed events, actions, a navigation link and
 a page at \`/notes\`. The dev server picks it up automatically: there is no registry to edit.
+A plugin can also be a single file: \`src/plugins/notes/ui/pages/index.tsx\` is already a page at
+\`/notes\`; add services and actions when the feature needs behavior.
 ${plan.sample ? '\nThe `todos` plugin in `src/plugins/todos` is a working sample. Delete the folder to remove it.\n' : ''}
 | Folder | What goes there |
 | --- | --- |
@@ -118,6 +120,8 @@ This app is organized in BitaKit plugins. Discovery generates \`src/bitakit.gen.
 time; there is no registry, provider or import list to edit. One concept, one way:
 
 - One feature = one folder in \`src/plugins/<name>/\`. The folder name is the plugin ID.
+- Start small: a plugin is complete with one or two files (a page, or a service and an action).
+  Add a folder only when the feature needs it; never scaffold every kind.
   - \`services/<file>.ts\`: \`defineService(({ store, events }) => ({ ... }))\`. Reached everywhere as
     \`services.<name>.<file>\`. Put state in \`store()\`; actions and pages follow it automatically.
   - \`actions/<file>.ts\`: \`defineAction({ title, execute })\`, ID \`<name>.<file>\`. Presentation fields may

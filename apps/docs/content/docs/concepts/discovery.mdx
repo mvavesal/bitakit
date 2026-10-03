@@ -7,11 +7,14 @@ description: Let the build generate imports and types from your plugin folders.
 
 ## One feature, one folder
 
+This is the complete reference of what discovery reads. Every entry is optional; most plugins use two or three of them, so start with the [two-file plugin](/docs/concepts/plugins) and come back here when a feature needs more.
+
 ```text
 src/plugins/todos/
 ├── services/items.ts         defineService   → services.todos.items
 ├── actions/add.ts            defineAction    → todos.add
 ├── events.ts                 defineEvents    → todos.changed
+├── settings.ts               defineSettings  → settings.todos.pageSize (generated settings page)
 ├── configs/limits.ts         defineConfig    → app.config.todos.limits
 ├── interceptors/audit.ts     defineInterceptor
 ├── setup.ts                  plugin setup (optional)
@@ -20,6 +23,8 @@ src/plugins/todos/
 └── ui/
     ├── pages/index.tsx       /todos          (file path = URL)
     ├── slots/app-bar.end.tsx component placed in slot "app-bar.end"
+    ├── dialogs/rename.tsx    a component an action opens with `dialog`
+    ├── settings/page.tsx     replaces the generated settings page
     └── providers/query.tsx   React provider wrapped around the app
 ```
 
@@ -40,6 +45,8 @@ A TypeScript or TSX file participates when it has a default export; discovery de
 | `actions/add.ts`           | Action `todos.add`                                                       |
 | `services/items.ts`        | Service `todos.items`, reached as `services.todos.items`                 |
 | `events.ts`                | The plugin's events, `todos.<name>`                                      |
+| `settings.ts`              | The plugin's settings, `todos.<name>`, shown on a generated settings page |
+| `ui/settings/page.tsx`     | Replaces the generated settings page of the plugin                       |
 | `configs/limits.ts`        | Config subtree `limits`; `configs/actions/add.ts` configures `todos.add` |
 | `interceptors/audit.ts`    | Interceptor, plugin-local by default                                     |
 | `ui/pages/tasks/[id].tsx`  | Page `/todos/tasks/:id`, receives `params.id`                            |

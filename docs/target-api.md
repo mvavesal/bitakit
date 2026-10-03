@@ -21,6 +21,16 @@ concept. See [refactor-phases.md](../refactor-phases.md) for sequencing and
 
 ## Folder
 
+A plugin starts as two files; everything else is optional and arrives one file at a time:
+
+```text
+src/plugins/todos/
+├── services/tasks.ts         defineService   → services.todos.tasks
+└── actions/add.ts            defineAction    → todos.add
+```
+
+The complete layout:
+
 ```text
 src/plugins/todos/
 ├── services/items.ts         defineService   → services.todos.items

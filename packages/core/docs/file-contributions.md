@@ -7,11 +7,14 @@ code.
 
 ## The plugin folder
 
+Every entry below is optional; most plugins use two or three of them. The complete layout:
+
 ```text
 src/plugins/todos/
 ├── services/items.ts         defineService   → services.todos.items
 ├── actions/add.ts            defineAction    → todos.add
 ├── events.ts                 defineEvents    → todos.changed
+├── settings.ts               defineSettings  → settings.todos.pageSize
 ├── configs/limits.ts         defineConfig    → app.config.todos.limits
 ├── interceptors/audit.ts     defineInterceptor
 ├── setup.ts                  plugin setup (optional)

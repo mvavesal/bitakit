@@ -38,6 +38,10 @@ page (`packages/create-app/src/project-files.mjs`) is too complicated.
 
 ## Plugin folder
 
+Most plugins are two or three files. Docs, templates and generated samples start with the
+fewest files that work (a page, or a service and an action) and add a folder only when a
+feature needs it; never scaffold every kind. The complete layout, every entry optional:
+
 ```text
 src/plugins/<id>/
 ├── services/<file>.ts     defineService   → services.<id>.<file>
@@ -218,6 +222,25 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   sizes, Reicon Outline). No local border/radius/shadow/color overrides, no quickly styled
   replacement buttons, dialogs, sidebars, badges or tables. Name a gap instead of inventing
   a visual special case; authorized changes go to the central component.
+- Verify CSS layer order in the served output, not only the root source: a package CSS
+  side effect can register `components` before `base` and let the reset override controls.
+  Use Discovery's package stylesheet metadata and one root integration path. Do not mask
+  a cascade defect with per-component imports or local overrides. For loading changes,
+  check native menu padding, input layout and button contrast in development and production.
+- Check installed/packed plugin discovery: its manifest must be accessible through the
+  package export used by Discovery, and styles/theme metadata must actually be collected.
+  A host's manual plugin composition can hide a skipped installed package.
+- Out-of-the-box styling acceptance uses a clean generated app with packed packages,
+  including optional visual plugins, in development and production. Extend the existing
+  generated-app verification workflow with rendered checks; a source import, successful
+  doctor result or text-only browser smoke check does not establish cascade correctness.
+- CSS loading safeguards must cover future plugins: establish the layer prelude before
+  plugin CSS and validate the emitted import graph against baseline/theme ownership.
+  Include negative plugin fixtures and lazy-load checks. Scope guarantees to the supported
+  integration; unrestricted global CSS is not isolated merely by using cascade layers.
+- For settings identity changes, test a new identity's queued save while the previous
+  identity's save is unresolved; every queued write must settle without crossing identities.
+  Generic service subscriptions must preserve method receivers, including class services.
 - Status is conveyed by text and accessible icons, never by color alone. Loading, empty,
   error and pending states belong to the affected surface.
 - Confirm consequential actions with `confirm` (target and consequence named, cancel

@@ -5,6 +5,8 @@ description: One feature in one folder, connected by the runtime.
 
 **Owner:** `@bitakit/core`. Plugins are trusted application code. They group services, actions, events and UI; Core does not render their UI.
 
+Most plugins are two or three files. Everything else on this page is optional: add a folder only when a feature needs it.
+
 ## Start with two files
 
 In an app with BitaKit discovery configured, a plugin is a folder under `src/plugins`. Add a service and an action; their paths supply their names.
@@ -89,29 +91,9 @@ export default function Page() {
 
 You see an **Add task** button. Each click runs `todos.add` with the input `Buy milk`; the button is disabled while the action runs, and the list re-renders because `useServiceState` follows the store. You wrote no click handler and no subscription.
 
-## The whole folder
+## Grow only when you need to
 
-A plugin grows into this shape; every part is optional:
-
-```text
-src/plugins/todos/
-├── services/items.ts         defineService   → services.todos.items
-├── actions/add.ts            defineAction    → todos.add
-├── events.ts                 defineEvents    → todos.changed
-├── configs/limits.ts         defineConfig    → app.config.todos.limits
-├── interceptors/audit.ts     defineInterceptor
-├── setup.ts                  plugin setup (optional)
-├── plugin.config.ts          dependencies and metadata (optional)
-├── locales/en.json           { "todos": { ... } }
-└── ui/
-    ├── pages/index.tsx       /todos          (file path = URL)
-    ├── pages/tasks/[id].tsx  /todos/tasks/:id
-    ├── slots/app-bar.end.tsx component placed in slot "app-bar.end"
-    ├── dialogs/rename.tsx    a component an action opens with `dialog`
-    └── providers/query.tsx   React provider wrapped around the app
-```
-
-Everything under `ui/` is React; nothing outside it may import React. `server/` is reserved and never bundled for the client.
+The two files above are a complete plugin. When a feature needs more, each addition is one more file in the same folder: `events.ts` for typed events, `settings.ts` for user settings (they get a generated settings page), `configs/<name>.ts` for developer configuration, `ui/pages/<path>.tsx` for pages, `ui/slots/<slot>.tsx` for a component in a layout slot, `ui/dialogs/<name>.tsx` for dialogs an action opens, `ui/providers/<name>.tsx` for React providers, `interceptors/<name>.ts` to observe actions and `locales/<lang>.json` for translations. Everything under `ui/` is React; nothing outside it may import React. The [complete folder reference](/docs/concepts/discovery) lists every entry with the ID it gets.
 
 ## Add a page
 
