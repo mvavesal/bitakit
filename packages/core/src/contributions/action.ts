@@ -87,9 +87,7 @@ export function adaptAction(
       ? (value as (context: PresentationContext) => V)(context(input))
       : value;
   const resolve = (input: unknown): ActionPresentation => {
-    const presentation: ActionPresentation = definition.resolve
-      ? { ...definition.resolve(input, { services: host.services, config }) }
-      : {};
+    const presentation: ActionPresentation = {};
     for (const key of dynamicKeys) {
       const value = definition[key];
       if (typeof value === 'function')

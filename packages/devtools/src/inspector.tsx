@@ -267,7 +267,7 @@ function Configuration({ plugin, runtime }: { plugin: string; runtime: Foundatio
   return (
     <Section
       title="Configuration"
-      description="Resolved defaults and app overrides (configs/ and foundation.config.ts)."
+      description="Resolved defaults and app overrides (configs/ and bitakit.config.ts)."
     >
       {snapshot && Object.keys(snapshot).length ? (
         <pre className="overflow-x-auto text-xs">{JSON.stringify(snapshot, null, 2)}</pre>

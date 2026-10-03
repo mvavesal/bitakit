@@ -1,11 +1,11 @@
 import type { FoundationConfig, Plugin, ProviderDefinition } from './definitions.js';
 
-export type FoundationOverrides = Pick<
-  FoundationConfig,
-  'actions' | 'plugins' | 'interceptors' | 'providers'
->;
-const providersOf = (plugin: Pick<Plugin, 'ui' | 'providers'>): readonly ProviderDefinition[] =>
-  plugin.ui?.providers ?? plugin.providers ?? [];
+export type FoundationOverrides = Pick<FoundationConfig, 'actions' | 'plugins' | 'interceptors'> & {
+  /** Replaces the app's React providers (`ui.providers`); plugin providers are added unless this is set. */
+  providers?: readonly ProviderDefinition[];
+};
+const providersOf = (plugin: Pick<Plugin, 'ui'>): readonly ProviderDefinition[] =>
+  plugin.ui?.providers ?? [];
 
 /** Undefined inherits. An explicit list replaces that domain, including an empty list. */
 export function resolveFoundationConfig(
@@ -25,7 +25,6 @@ export function resolveFoundationConfig(
           })),
     actions: overrides.actions ?? discovered.actions ?? [],
     interceptors: overrides.interceptors ?? discovered.interceptors ?? [],
-    providers: overrides.providers ?? providersOf(discovered),
   };
   const removed = new Set(
     (discovered.plugins ?? [])
@@ -43,10 +42,12 @@ export function resolveFoundationConfig(
     pluginIds.add(plugin.id);
   }
   const pluginProviders = (config.plugins ?? []).flatMap((plugin) => providersOf(plugin));
-  if (overrides.providers === undefined && pluginProviders.length)
-    config.providers = [...pluginProviders, ...config.providers!];
+  const providers =
+    overrides.providers === undefined
+      ? [...pluginProviders, ...providersOf(discovered)]
+      : overrides.providers;
   const seen = new Set<string>();
-  for (const provider of config.providers!) {
+  for (const provider of providers) {
     if (!provider.id || seen.has(provider.id))
       throw new Error(`Invalid or duplicate provider "${provider.id}".`);
     for (const id of provider.requires ?? []) {
@@ -54,5 +55,6 @@ export function resolveFoundationConfig(
     }
     seen.add(provider.id);
   }
+  config.ui = { ...discovered.ui, providers };
   return config;
 }

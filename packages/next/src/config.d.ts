@@ -11,7 +11,3 @@ type ConfigInput =
 export function withBitaKit(
   config?: ConfigInput,
 ): (phase: string, context: unknown) => Promise<NextConfig>;
-/** @deprecated Use withBitaKit. */
-export function withFoundation(
-  config?: ConfigInput,
-): (phase: string, context: unknown) => Promise<NextConfig>;

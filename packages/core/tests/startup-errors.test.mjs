@@ -86,7 +86,7 @@ test('page paths are validated and a path used by two plugins names both owners'
         /Invalid plugin page path "https:\/\/example\.com" in plugin "one"\. Use a root-relative path such as \/todos\./,
     },
   );
-  startupError(() => createRuntime({ pages: [page('/a'), page('/a')] }), {
+  startupError(() => createRuntime({ ui: { pages: [page('/a'), page('/a')] } }), {
     plugin: 'app',
     message: /both define a page at \/a/,
   });

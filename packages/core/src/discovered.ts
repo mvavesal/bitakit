@@ -8,7 +8,6 @@ import {
   type Contribution,
   type ServiceDefinition,
   type ActionEntry,
-  type LegacyServiceDefinition,
 } from './definitions.js';
 import { resolveContribution } from './conventions.js';
 import type { ContractName } from './service-key.js';
@@ -87,10 +86,7 @@ export function discoverActions(files: readonly DiscoveredFile[], moduleId = '')
     return resolved;
   });
 }
-const isServiceLike = (value: unknown) =>
-  isServiceDefinition(value) ||
-  typeof value === 'function' ||
-  (!!value && typeof value === 'object' && typeof (value as any).create === 'function');
+const isServiceLike = (value: unknown) => isServiceDefinition(value) || typeof value === 'function';
 export function discoverServices(
   files: readonly DiscoveredFile[],
   moduleId = '',
@@ -98,9 +94,7 @@ export function discoverServices(
   return expand(files, isServiceLike).map(({ value, path, source }) => {
     const service: ServiceDefinition = isServiceDefinition(value)
       ? value
-      : typeof value === 'function'
-        ? defineService(value as never)
-        : defineService(value as LegacyServiceDefinition);
+      : defineService(value as never);
     const definition = {
       ...service,
       id: service.id ?? [moduleId, ...path].filter(Boolean).join('.'),
@@ -258,9 +252,6 @@ type ServiceTree<T, P extends string> = [ServiceInstance<T>] extends [never]
   : { readonly [K in ServiceId<T, P>]: ServiceInstance<T> } & ServiceAlias<T, ServiceInstance<T>>;
 export type DiscoveredServiceEntry<F, Module extends string = ''> =
   F extends DiscoveredFile<infer T, infer P> ? ServiceTree<T, Join<Module, P>> : {};
-/** @deprecated Aliases are part of DiscoveredServiceEntry. */
-export type DiscoveredPublicServiceEntry<F> =
-  F extends DiscoveredFile<infer T, any> ? ServiceAlias<T, ServiceInstance<T>> : {};
 
 export type DiscoveredEventsEntry<F, Module extends string> =
   F extends DiscoveredFile<infer T, any> ? EventsOf<T, Module> : {};

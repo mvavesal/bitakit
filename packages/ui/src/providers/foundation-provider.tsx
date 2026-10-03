@@ -218,7 +218,7 @@ function FoundationRuntimeProvider({
             setSignOutIntent,
           }}
         >
-          {(attempt.selected.providers ?? []).reduceRight<ReactNode>(
+          {(attempt.selected.ui?.providers ?? []).reduceRight<ReactNode>(
             (content, provider) =>
               createElement(provider.component, { children: content, key: provider.id }),
             <>
@@ -309,7 +309,6 @@ function exposes(plugin: Plugin, name: string) {
     ? plugin.services
     : Object.values(plugin.services ?? {});
   const names = [
-    ...Object.keys(plugin.publicServices ?? {}),
     ...services.flatMap((service) =>
       [service.id, service.exposeAs, service.provides as string | undefined].filter(
         (item): item is string => !!item,

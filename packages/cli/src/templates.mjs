@@ -232,6 +232,48 @@ export default function ${component}({ children }: { children: ReactNode }) {
 `;
 }
 
+export function slotFile(plugin, slot) {
+  const component = `${pascalOf(slot.replace(/\./g, '-'))}Slot`;
+  return `'use client';
+
+// Placed in slot "${slot}" by the host layout; export const order = 10 to sort among siblings.
+export default function ${component}() {
+  return <span className="text-sm text-muted-foreground">${plugin}</span>;
+}
+`;
+}
+
+export function dialogFile(plugin, name) {
+  const component = `${pascalOf(name)}Dialog`;
+  return `'use client';
+import { Button } from '@bitakit/ui/components';
+
+// Opened by an action with dialog: ${component}; the host decides the frame (dialog, sheet, drawer).
+export default function ${component}({ close }: { input?: unknown; close: () => void }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted-foreground">Content of ${plugin}.${name}.</p>
+      <Button type="button" onClick={close}>
+        Done
+      </Button>
+    </div>
+  );
+}
+`;
+}
+
+export function providerFile(plugin, name) {
+  const component = `${pascalOf(name)}Provider`;
+  return `'use client';
+import type { ReactNode } from 'react';
+
+// Wrapped around the app by BitaKitProvider; export const requires = ['other-plugin.provider'] to order providers.
+export default function ${component}({ children }: { children: ReactNode }) {
+  return children;
+}
+`;
+}
+
 export function interceptorFile(plugin, name) {
   return `import { defineInterceptor } from '@bitakit/core';
 

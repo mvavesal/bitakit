@@ -1,6 +1,6 @@
 import {
   definePlugin,
-  provideService,
+  defineService,
   authService,
   type AuthService,
   type AuthSnapshot,
@@ -73,6 +73,6 @@ export function betterAuthPlugin(
   };
   return definePlugin({
     id: 'better-auth',
-    services: [provideService(authService, { create: () => auth })],
+    services: [defineService(() => auth, { provides: authService })],
   });
 }

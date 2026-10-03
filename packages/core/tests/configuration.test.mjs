@@ -26,7 +26,7 @@ test('omitted lists inherit; explicit and empty lists replace only their domain 
   assert.equal(inherited.actions, discovered.actions);
   assert.equal(inherited.plugins, discovered.plugins);
   assert.equal(inherited.interceptors, discovered.interceptors);
-  assert.deepEqual(inherited.providers, [provider]);
+  assert.deepEqual(inherited.ui.providers, [provider]);
   const empty = resolveFoundationConfig(discovered, {
     actions: [],
     interceptors: [],
@@ -35,7 +35,7 @@ test('omitted lists inherit; explicit and empty lists replace only their domain 
   assert.deepEqual(empty.actions, []);
   assert.deepEqual(empty.plugins[0].actions, []);
   assert.deepEqual(empty.interceptors, []);
-  assert.deepEqual(empty.providers, []);
+  assert.deepEqual(empty.ui.providers, []);
   assert.deepEqual(discovered.plugins[0].actions, [pluginAction]);
   const replacement = defineAction({ id: 'replacement', execute() {} });
   const manual = resolveFoundationConfig(discovered, { actions: [replacement] });
@@ -56,7 +56,7 @@ test('omitted lists inherit; explicit and empty lists replace only their domain 
 test('provider order is explicit; plugin providers come first; missing, reversed, cyclic and duplicate requirements fail early', () => {
   const theme = { id: 'theme', component: wrap };
   const widgets = { id: 'widgets', component: wrap, requires: ['theme'] };
-  assert.deepEqual(resolveFoundationConfig({ ui: { providers: [theme, widgets] } }).providers, [
+  assert.deepEqual(resolveFoundationConfig({ ui: { providers: [theme, widgets] } }).ui.providers, [
     theme,
     widgets,
   ]);
@@ -65,7 +65,7 @@ test('provider order is explicit; plugin providers come first; missing, reversed
     resolveFoundationConfig({
       plugins: [definePlugin({ id: 'data', ui: { providers: [fromPlugin] } })],
       ui: { providers: [theme] },
-    }).providers,
+    }).ui.providers,
     [fromPlugin, theme],
   );
   assert.throws(

@@ -279,5 +279,4 @@ test('doctor reports a configuration that cannot be loaded instead of crashing',
   const notice = find(results, /foundation\.config\.ts is deprecated/);
   assert.equal(notice.status, 'warn');
   assert.match(notice.fix, /bitakit migrate/);
-  assert.equal(status(results, /deprecated layout/), 'warn');
 });

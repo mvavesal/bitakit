@@ -82,8 +82,7 @@ with their own Action/UI providers can import `QueryProvider` from `@bitakit/nex
 `npx bitakit migrate` renames `foundation.config.ts` to `bitakit.config.ts`, rewrites
 `.foundation/*` and `@bitakit/next/generated` imports to `./bitakit.gen`, removes `--webpack`
 and `foundation-generate` from scripts and deletes the old generated output. `withFoundation`
-and `@bitakit/next/generated` remain as deprecated aliases until the packages are migrated;
-`@bitakit/next/generated` throws with guidance when used.
+and `@bitakit/next/generated` were removed in Phase 5; use `withBitaKit` and `./bitakit.gen`.
 
 ## Source responsibilities
 

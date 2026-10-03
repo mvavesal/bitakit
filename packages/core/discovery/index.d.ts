@@ -67,8 +67,11 @@ export function detectFramework(manifest: {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
 }): 'next' | 'tanstack' | 'none';
+/** Reads `bitakit.config.ts`; `names` lets migration tooling also read the 0.1 `foundation.config.ts`. */
 export function loadDiscoveryConfig(
   root: string,
+  jiti?: unknown,
+  names?: readonly string[],
 ): Promise<{ config: DiscoveryConfig; file?: string; legacy: boolean }>;
 
 export type DescribedEntry = { path: string; file: string };

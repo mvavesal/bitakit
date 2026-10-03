@@ -106,31 +106,3 @@ test('unknown services report a structured error; reserved lookups stay undefine
   }
   assert.deepEqual(Object.keys(runtime.app.services), [], 'not mounted: nothing to enumerate');
 });
-
-test('app extensions project the runtime once per name and reject collisions with built-ins', () => {
-  const runtime = createRuntime({
-    plugins: [
-      definePlugin({
-        id: 'ext',
-        appExtensions: {
-          stats: (host) => ({ count: () => Object.keys(host.actions.getState().actions).length }),
-        },
-        actions: { one: defineAction({ execute() {} }) },
-      }),
-    ],
-  });
-  const stop = runtime.mount();
-  try {
-    assert.equal(runtime.app.stats.count(), 1);
-  } finally {
-    stop();
-  }
-  for (const name of ['services', 'has', 'ready', 'actions', 'events', 'config'])
-    assert.throws(
-      () =>
-        createRuntime({
-          plugins: [definePlugin({ id: 'ext', appExtensions: { [name]: () => ({}) } })],
-        }),
-      new RegExp(`Duplicate app extension "${name}" in plugin "ext"`),
-    );
-});

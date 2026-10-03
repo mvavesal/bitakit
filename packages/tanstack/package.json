@@ -14,10 +14,6 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./generated": {
-      "types": "./dist/generated.d.ts",
-      "default": "./dist/generated.js"
-    },
     "./config": {
       "types": "./src/config.d.ts",
       "default": "./src/config.mjs"

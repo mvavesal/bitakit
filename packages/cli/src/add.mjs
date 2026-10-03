@@ -9,6 +9,9 @@ import {
   layoutFile,
   pageFile,
   settingsFile,
+  slotFile,
+  dialogFile,
+  providerFile,
   pluginFiles,
   serviceFile,
   titleOf,
@@ -61,6 +64,9 @@ export const contributionKinds = [
   'events',
   'settings',
   'layout',
+  'slot',
+  'dialog',
+  'provider',
 ];
 /** Declared once per plugin, in one root file. */
 const singleFile = { events: 'events.ts', settings: 'settings.ts' };
@@ -136,6 +142,9 @@ export async function addContribution(kind, target, { cwd } = {}) {
     config: () => ({ [`configs/${name}.ts`]: configFile(dotted) }),
     events: () => ({ 'events.ts': eventsFile(plugin) }),
     settings: () => ({ 'settings.ts': settingsFile(plugin) }),
+    slot: () => ({ [`ui/slots/${name}.tsx`]: slotFile(plugin, dotted) }),
+    dialog: () => ({ [`ui/dialogs/${name}.tsx`]: dialogFile(plugin, dotted) }),
+    provider: () => ({ [`ui/providers/${name}.tsx`]: providerFile(plugin, dotted) }),
   }[kind];
   const created = await writeNewFiles(moduleRoot, files());
   return {

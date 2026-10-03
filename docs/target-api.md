@@ -263,8 +263,12 @@ Removed: `ActionBinding`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`
 manifest (`bitakit.slots`) plus `slots` from `bitakit.config.ts`; `doctor` warns when a slot
 file targets a slot nobody renders. App layouts come from `src/layouts/<name>.tsx`.
 
-## Compatibility until Phase 5
+## Removed in Phase 5
 
-Deprecated shims stay until the packages are migrated: `provideService`, `defineURLAction`,
-`defineDialogAction`, `definePage`, `defineView`, `publicServices`, action `resolve` and
-`watch`, `foundation.config.ts`. They log a deprecation once in development.
+The 0.1 shims are gone: `provideService`, `defineURLAction`, `defineDialogAction`,
+`definePage`, `defineView`, `defineSetup`, `defineServiceInterceptor`, the object form of
+`defineService`, action `resolve` and `watch`, `publicServices`, `appExtensions`, top-level
+`pages`/`views`/`providers` on plugins, `events.watch`, `useWatchEvent`, `withFoundation`,
+`@bitakit/next/generated`, `@bitakit/tanstack/generated`, `createFoundationConfig` and
+`foundation.config.ts`. `bitakit migrate` still rewrites the old spellings and `bitakit doctor`
+still names them.

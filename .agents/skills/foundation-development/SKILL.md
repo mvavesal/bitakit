@@ -158,7 +158,6 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   navigation and query state. Pending is passed as a prop, never a swapped label.
 - Removed: `ActionBinding`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`,
   `ActionGroupBinding`, `ActionMenuView`, `useRegisterAction(s)`, `app.optional.services`.
-  Deprecated aliases: `useWatchEvent` (`useEvent`), `useFoundationReady`.
 - Renderers read live snapshots and groups through the bindings; no copied action state,
   no hard-coded lists of action IDs where a group binding fits, no second ActionList.
 
@@ -249,14 +248,13 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 
 ## Deprecation policy
 
-- Deprecated helpers map onto the current API, warn once in development through `deprecated()`
-  in `packages/core/src/compat.ts` and are removed in Phase 5 after the optional packages are
-  migrated: `provideService`, `defineURLAction`, `defineDialogAction`, `definePage`,
-  `defineView`, `defineSetup`, `defineServiceInterceptor`, the object form of
-  `defineService`, action `resolve`/`watch`, `publicServices`, `foundation.config.ts`,
-  `foundation-generate`, `withFoundation`, `@bitakit/next/generated`, `useWatchEvent`.
-- Do not add new code against deprecated helpers, and do not document them as options.
-  `bitakit migrate` is the codemod; run it on the repo apps when the layout changes.
+- There are no runtime shims. The 0.1 helpers (`provideService`, `defineURLAction`,
+  `defineDialogAction`, `definePage`, `defineView`, `defineSetup`, `defineServiceInterceptor`,
+  the object form of `defineService`, action `resolve`/`watch`, `publicServices`,
+  `appExtensions`, top-level `pages`/`views`/`providers`, `events.watch`, `useWatchEvent`,
+  `withFoundation`, `@bitakit/next/generated`, `createFoundationConfig`,
+  `foundation.config.ts`) were removed in Phase 5. Do not reintroduce them; `bitakit migrate`
+  is the codemod and `bitakit doctor` names the old spellings.
 - When an API changes, update in the same step: Core tests, the CLI templates
   (`packages/cli/src/templates.mjs`, the single source for `--sample`, `bitakit add` and
   plugin packages), the generated AGENTS.md, this skill, `docs/target-api.md` if the contract

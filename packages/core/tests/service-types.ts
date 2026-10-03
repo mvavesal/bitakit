@@ -4,7 +4,6 @@ import {
   defineService,
   discoveredFile,
   getService,
-  provideService,
   serviceKey,
   type DiscoveredServiceEntry,
   type FoundationApp,
@@ -31,12 +30,6 @@ const typed: ServiceDefinition<{
   send(input: { to: string }): Promise<{ id: string }>;
   drafts: string[];
 }> = outbox;
-// The deprecated object form types the same way.
-provideService(mail, { create: () => ({ send: async ({ to }) => ({ id: to }) }) });
-provideService(mail, {
-  // @ts-expect-error A provider must implement the declared return type.
-  create: () => ({ send: async () => 123 }),
-});
 
 declare const services: Services;
 const client = getService(services, mail);

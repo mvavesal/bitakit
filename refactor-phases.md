@@ -192,21 +192,32 @@ Done when
 
 ## Phase 5: Adapters, packages and tooling (M)
 
+Status 2026-10-03: base done (shims removed, `bitakit add` complete, config-only package
+factories for Shell, App Preferences and Quick Search). The remaining items are specified in
+`docs/handoff-phases-5-6.md` for a follow-up agent.
+
 Changes
 
 - [ ] Adapter kit: `defineFramework({ router, routes })`. Next and TanStack rebuilt on it.
       Route emission for Next first; the client catch-all stays as fallback.
 - [ ] Router contract: `navigate`, `pathname`, `params`, `subscribe`, `Link`.
 - [ ] Package plugins become zero-argument factories; host objects arrive through contracts
-      (`requires`). Migrate shell, app-preferences, quick-search first, then better-auth,
-      organizations, next-intl. `bitakit build` covers `ui/`.
+      (`requires`). Done for shell, app-preferences and quick-search (options come from
+      `configs/<name>.ts`); open for better-auth, organizations, next-intl and better-auth-ui.
+      `bitakit build` covers `ui/`.
 - [ ] `create-app` and `bitakit init` write the new shape. `bitakit add` covers all kinds and
-      nested paths. `doctor` gains wiring and graph checks and `--json`.
+      nested paths (done: action, service, page, interceptor, config, events, settings,
+      layout, slot, dialog, provider). `doctor` gains wiring and graph checks and `--json`.
 - [ ] Testing: typed `mountPlugin` (reads the generated maps, honours `plugin.config.ts`),
       `renderWithFoundation`, event recorder.
 - [ ] Package hygiene: discovery moves to `@bitakit/discovery` so `typescript` and `jiti`
       leave Core's runtime dependencies; `@bitakit/ui` declares zustand; `@bitakit/next` peer
       range matches `@bitakit/ui`.
+- [x] Deprecated shims removed: `compat.ts`, the object form of `defineService`, action
+      `resolve`/`watch`, `publicServices`, `appExtensions`, top-level `pages`/`views`/
+      `providers`, `events.watch`, `useWatchEvent`, `withFoundation`, the `generated` adapter
+      entries, `createFoundationConfig`, `foundation.config.ts` loading. `bitakit migrate`
+      and `doctor` keep their migration diagnostics.
 
 Done when
 

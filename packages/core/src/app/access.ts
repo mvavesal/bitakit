@@ -5,17 +5,6 @@ import { createActionAccess } from './action-access.js';
 
 /** Projects the runtime onto the app facade. Nothing is copied; every read is live. */
 export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
-  const extensions: Record<string, unknown> = {};
-  for (const plugin of runtime.modules) {
-    for (const [name, create] of Object.entries(plugin.appExtensions ?? {})) {
-      if (
-        Object.hasOwn(extensions, name) ||
-        ['actions', 'events', 'config', 'services', 'settings', 'ready', 'has'].includes(name)
-      )
-        throw new Error(`Duplicate app extension "${name}" in plugin "${plugin.id}".`);
-      extensions[name] = create(runtime);
-    }
-  }
   // Before mount every service read explains that the runtime is not ready yet.
   const services = new Proxy(Object.create(null) as object, {
     get(_target, name, receiver) {
@@ -41,7 +30,6 @@ export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
     deleteProperty: () => false,
   });
   return Object.freeze({
-    ...extensions,
     events: runtime.events,
     actions: createActionAccess(runtime.actions),
     get config() {

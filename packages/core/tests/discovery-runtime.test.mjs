@@ -10,9 +10,6 @@ import {
   defineEvents,
   defineInterceptor,
   defineService,
-  defineURLAction,
-  definePage,
-  defineView,
   discoverActions,
   discoverEvents,
   discoverInterceptors,
@@ -585,67 +582,5 @@ test('an input schema disables the action for invalid input and validates before
     );
   } finally {
     stop();
-  }
-});
-
-test('deprecated helpers still work through discovery and warn once', async () => {
-  const warnings = [];
-  const original = console.warn;
-  console.warn = (...args) => warnings.push(args.join(' '));
-  try {
-    const host = new NavigationHost();
-    const urls = [];
-    host.bind((url) => urls.push(url));
-    const list = createActionList([], { environment: host });
-    const runtime = new FoundationRuntime(list, {
-      plugins: [
-        {
-          id: 'legacy',
-          actions: discoverActions(
-            [
-              file(defineURLAction({ href: '/legacy', groups: ['navigation'] }), 'home'),
-              file(defineURLAction({ href: '/second' }), 'second'),
-            ],
-            'legacy',
-          ),
-        },
-      ],
-    });
-    const stop = runtime.mount();
-    try {
-      await list.execute('legacy.home');
-      assert.deepEqual(urls, ['/legacy']);
-    } finally {
-      stop();
-    }
-    const component = () => null;
-    assert.deepEqual(
-      pluginPage({ default: definePage({ path: '/custom', component }) }, '/from-file'),
-      { path: '/custom', component },
-    );
-    assert.deepEqual(pluginPage({ default: component, layout: 'admin' }, '/from-file'), {
-      path: '/from-file',
-      component,
-      layout: 'admin',
-    });
-    assert.deepEqual(
-      pluginSlot({ default: defineView({ slot: 'main', component }) }, 'from-file'),
-      { slot: 'main', component },
-    );
-    assert.deepEqual(pluginSlot({ default: component, order: 2 }, 'from-file'), {
-      slot: 'from-file',
-      component,
-      order: 2,
-    });
-    assert.deepEqual(
-      warnings.filter((warning) => /defineURLAction|definePage|defineView/.test(warning)),
-      [
-        '[bitakit] defineURLAction is deprecated. Use defineAction({ title, href, groups }).',
-        '[bitakit] definePage is deprecated. Export the component from ui/pages/<path>.tsx; the path comes from the file name.',
-        '[bitakit] defineView is deprecated. Export the component from ui/slots/<slot>.tsx; the slot comes from the file name.',
-      ],
-    );
-  } finally {
-    console.warn = original;
   }
 });

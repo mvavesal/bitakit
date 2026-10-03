@@ -28,7 +28,6 @@ import {
   useService,
   useServiceState,
   useEvent,
-  useWatchEvent,
   useTranslation,
   useGroupTitle,
   defineAction,
@@ -532,7 +531,6 @@ test('useEvent subscribes to the runtime bus once per name set and releases with
     assert.equal(runtime.events.subscriptionCount, 1);
     await act(async () => runtime.events.emit('todos.changed', { count: 3 }));
     assert.deepEqual(received.at(-1), ['wild', 'todos.changed', { count: 3 }]);
-    assert.equal(useWatchEvent, useEvent, 'useWatchEvent is a deprecated alias');
   } finally {
     await view.unmount();
   }

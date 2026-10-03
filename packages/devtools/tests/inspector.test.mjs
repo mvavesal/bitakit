@@ -20,7 +20,7 @@ globalThis.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const { createElement: h, act } = await import('react');
 const { createRoot } = await import('react-dom/client');
-const { FoundationProvider, defineAction, definePage, defineService } = await import('@bitakit/ui');
+const { FoundationProvider, defineAction, defineService } = await import('@bitakit/ui');
 const { standardFoundationUI } = await import('@bitakit/ui/components');
 const { Inspector } = await import('../dist/index.js');
 const labels = {
@@ -36,9 +36,8 @@ const notes = {
   metadata: { name: 'Notes', version: '1.2.3' },
   services: [
     // services.notes.notes: a plugin's services live under its own namespace.
-    defineService({
-      id: 'notes.notes',
-      create: ({ events }) => {
+    defineService(
+      ({ events }) => {
         const items = [];
         return {
           list: () => items,
@@ -48,7 +47,8 @@ const notes = {
           },
         };
       },
-    }),
+      { id: 'notes.notes' },
+    ),
   ],
   actions: [
     defineAction({
@@ -61,7 +61,7 @@ const notes = {
       },
     }),
   ],
-  pages: [definePage({ path: '/notes', component: () => null })],
+  ui: { pages: [{ path: '/notes', component: () => null }] },
 };
 
 test('the inspector shows a running plugin and runs its actions with JSON input', async () => {

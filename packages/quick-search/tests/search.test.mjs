@@ -177,7 +177,7 @@ async function openSearch({ plugins = [], list = createActionList(), results } =
 }
 
 test('results name their type and owning plugin, derived from existing registrations', async () => {
-  const { defineURLAction, destinationMetadata } = await import('@bitakit/core');
+  const { defineAction: defineURLAction, destinationMetadata } = await import('@bitakit/core');
   const list = createActionList();
   // What the settings catalog and a plugin overview project; developers never declare these.
   list.register({
@@ -240,7 +240,8 @@ test('results name their type and owning plugin, derived from existing registrat
 });
 
 test('each result type has its own switch; turning one off never hides another', async () => {
-  const { defineAction, defineURLAction, destinationMetadata } = await import('@bitakit/core');
+  const { defineAction, destinationMetadata } = await import('@bitakit/core');
+  const defineURLAction = defineAction;
   const todos = {
     id: 'todos',
     metadata: { name: 'Todos' },

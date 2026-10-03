@@ -24,5 +24,3 @@ export function useEvent<const Name extends EventName>(
     );
   }, [runtime, ready, key]);
 }
-/** @deprecated Use useEvent. */
-export const useWatchEvent = useEvent;

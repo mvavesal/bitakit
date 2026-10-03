@@ -55,11 +55,7 @@ export async function describeFoundation(root) {
   const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false });
   const relative = (file) => path.relative(root, file).split(path.sep).join('/');
   const warnings = [];
-  const { config, legacy } = await loadDiscoveryConfig(root, jiti);
-  if (legacy)
-    warnings.push(
-      'foundation.config.ts is deprecated: rename it to bitakit.config.ts (run "bitakit migrate").',
-    );
+  const { config } = await loadDiscoveryConfig(root, jiti);
   const directory = path.resolve(root, config.plugins?.directory ?? './src/plugins');
   const appRoot = path.resolve(root, config.directory ?? './src');
   const included = Object.entries(config.plugins?.include ?? {}).map(([id, folder]) => ({

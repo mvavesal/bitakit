@@ -61,14 +61,6 @@ export type ServiceDefinition<T = unknown> = ServiceOptions & {
   readonly kind: 'service';
   create(context: ServiceContext): T;
 };
-/** Legacy object form, accepted until the packages are migrated. @deprecated */
-export type LegacyServiceDefinition<T = unknown> = {
-  id?: string;
-  exposeAs?: string;
-  requires?: readonly string[];
-  create(context: { services: Services; config: ConfigContext; events: Events }): T;
-  dispose?: (instance: T) => void;
-};
 /** The instance type a contract key demands. */
 type ContractOf<Key> = Key extends ServiceKey<infer Contract, string> ? Contract : unknown;
 /**
@@ -83,27 +75,15 @@ export function defineService<
   T,
   const Options extends ServiceOptions & { provides?: undefined } = {},
 >(create: (context: ServiceContext) => T, options?: Options): ServiceDefinition<T> & Options;
-/** @deprecated Pass the factory as the first argument. */
-export function defineService<T>(definition: LegacyServiceDefinition<T>): ServiceDefinition<T>;
 export function defineService<T>(
-  input: ((context: ServiceContext) => T) | LegacyServiceDefinition<T>,
+  create: (context: ServiceContext) => T,
   options: ServiceOptions = {},
 ): ServiceDefinition<T> {
-  if (typeof input === 'function') return { ...options, kind: 'service', create: input };
-  if (!input || typeof input.create !== 'function')
+  if (typeof create !== 'function')
     throw new Error(
       'defineService expects a factory function: defineService((context) => instance).',
     );
-  const { create, dispose, ...rest } = input;
-  return {
-    ...rest,
-    kind: 'service',
-    create(context) {
-      const instance = create(context);
-      if (dispose) context.onStop(() => dispose(instance));
-      return instance;
-    },
-  };
+  return { ...options, kind: 'service', create };
 }
 export function isServiceDefinition(value: unknown): value is ServiceDefinition {
   return !!value && typeof value === 'object' && (value as { kind?: unknown }).kind === 'service';
@@ -212,13 +192,6 @@ export type ActionSpecInput<Input = unknown, Result = unknown> = {
   internal?: boolean;
   /** Opaque host metadata; Core never interprets it. */
   metadata?: unknown;
-  /** @deprecated Use function-valued presentation fields. */
-  resolve?: (
-    input: Input,
-    context: { services: Services; config: ConfigContext },
-  ) => ActionPresentation;
-  /** @deprecated Services are observed automatically. */
-  watch?: readonly string[];
 };
 export type ActionSpec<Input = unknown, Result = unknown> = ActionSpecInput<Input, Result> & {
   readonly kind: 'action';
@@ -313,18 +286,6 @@ export type Plugin = {
   interceptors?: readonly InterceptorSpec[];
   setup?: Setup;
   ui?: PluginUI;
-  /** @deprecated Use `ui.pages`. */
-  pages?: readonly PluginPageDefinition[];
-  /** @deprecated Use `ui.slots`. */
-  views?: readonly PluginView[];
-  /** @deprecated Use `ui.providers`. */
-  providers?: readonly ProviderDefinition[];
-  /** @deprecated Use `exposeAs` or `provides` on the service. */
-  publicServices?: Readonly<Record<string, ServiceKey<any>>>;
-  /** Instance-local projections owned by optional packages; never a second state store. */
-  appExtensions?: Readonly<
-    Record<string, (runtime: import('./runtime.js').FoundationRuntime) => unknown>
-  >;
   /** Declarative values for installers provided by integrations. */
   contributions?: ContributionSet;
   /** Installers for contribution kinds this module owns. One module per kind. */

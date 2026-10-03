@@ -10,7 +10,7 @@ import { FoundationStartupError } from './startup-error.js';
 
 /** Exact, canonical paths only. Routers remain responsible for dynamic parameters. */
 export function validatePluginPages(
-  plugins: readonly Pick<Plugin, 'id' | 'pages'>[],
+  plugins: readonly { id: string; pages?: readonly PluginPageDefinition[] }[],
   layouts: ReadonlySet<string> = new Set(),
 ) {
   const owners = new Map<string, string>();
@@ -62,7 +62,10 @@ function matchPath(pattern: string, pathname: string): Record<string, string> | 
  * The registered page for a pathname, with its parameters and the ID of the module that owns
  * it. Exact paths win over parameterized ones.
  */
-export function findPluginPage(plugins: readonly Pick<Plugin, 'id' | 'pages'>[], pathname: string) {
+export function findPluginPage(
+  plugins: readonly { id: string; pages?: readonly PluginPageDefinition[] }[],
+  pathname: string,
+) {
   const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
   let fallback:
     | (PluginPageDefinition & { plugin: string; key: string; params: Record<string, string> })

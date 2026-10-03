@@ -29,5 +29,3 @@ export function withBitaKit(config = {}) {
     };
   };
 }
-/** @deprecated Use withBitaKit. */
-export const withFoundation = withBitaKit;

@@ -110,16 +110,17 @@ test('a failing onStart rejects ready with an attributed startup error and leave
   }
 });
 
-test('legacy dispose and onStop both run on stop; async onStop failures are logged, not thrown', async () => {
+test('onStop hooks run in reverse order on stop; async onStop failures are logged, not thrown', async () => {
   const log = [];
   const runtime = createRuntime({
     plugins: [
       definePlugin({
         id: 'legacy',
         services: {
-          old: defineService({
-            create: () => ({ v: 1 }),
-            dispose: (instance) => log.push(`dispose:${instance.v}`),
+          old: defineService(({ onStop }) => {
+            const instance = { v: 1 };
+            onStop(() => log.push(`dispose:${instance.v}`));
+            return instance;
           }),
           fresh: defineService(({ onStop }) => {
             onStop(async () => {

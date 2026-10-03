@@ -82,8 +82,7 @@ through `dialogs={{ sheet: SheetFrame }}`.
 
 `useServiceState(name, selector?, fallback?)` subscribes to the store a service exposes as
 `state` (or a `subscribe`/`getSnapshot` pair) and returns the fallback until the runtime is
-ready. `useEvent` subscribes to the runtime bus with component cleanup (`useWatchEvent` is a
-deprecated alias). `useFoundationApp()` returns the typed app facade (`app.services`,
+ready. `useEvent` subscribes to the runtime bus with component cleanup. `useFoundationApp()` returns the typed app facade (`app.services`,
 `app.actions`, `app.config`, `app.has()`); `usePluginConfig(moduleId, path, fallback)` reads the
 config snapshot.
 

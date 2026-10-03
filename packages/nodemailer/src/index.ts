@@ -1,5 +1,5 @@
 import { createTransport } from 'nodemailer';
-import { definePlugin, provideService } from '@bitakit/core';
+import { definePlugin, defineService } from '@bitakit/core';
 import { emailService } from '@bitakit/email';
 import { createMailService } from './service.js';
 export type SMTPConfig = {
@@ -26,9 +26,9 @@ export function nodemailerPlugin(config: SMTPConfig) {
   return definePlugin({
     id: 'nodemailer',
     services: [
-      provideService(emailService, {
-        create: () =>
-          createMailService(
+      defineService(
+        ({ onStop }) => {
+          const service = createMailService(
             createTransport({
               host: config.host,
               port: config.port,
@@ -42,11 +42,14 @@ export function nodemailerPlugin(config: SMTPConfig) {
               socketTimeout: 15000,
             }),
             config.from,
-          ),
-        dispose: (service) => {
-          if ('dispose' in service && typeof service.dispose === 'function') service.dispose();
+          );
+          onStop(() => {
+            if ('dispose' in service && typeof service.dispose === 'function') service.dispose();
+          });
+          return service;
         },
-      }),
+        { provides: emailService },
+      ),
     ],
   });
 }

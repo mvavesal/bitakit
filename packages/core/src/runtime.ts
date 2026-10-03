@@ -65,14 +65,10 @@ import {
 } from './interceptors/define.js';
 import { serviceObserver } from './interceptors/service-observers.js';
 import type { Confirmation } from './confirmation.js';
-import { deprecated } from './compat.js';
 export type { DialogState } from './contributions/index.js';
 
 /** A plugin after normalization: records resolved to arrays with IDs, `ui` merged with the legacy fields. */
-export type NormalizedPlugin = Omit<
-  Plugin,
-  'services' | 'actions' | 'pages' | 'views' | 'providers'
-> & {
+export type NormalizedPlugin = Omit<Plugin, 'services' | 'actions'> & {
   readonly id: string;
   readonly services: readonly (ServiceDefinition<any> & { id: string })[];
   readonly actions: readonly ResolvedContribution[];
@@ -138,8 +134,6 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
             return resolved;
           },
         );
-    if (module.publicServices)
-      deprecated('publicServices', 'Use exposeAs or provides on the service definition.');
     if (module.settings !== undefined && !isSettingsDefinition(module.settings))
       throw new Error('settings must be declared with defineSettings({ ... }) in settings.ts.');
     return {
@@ -147,9 +141,9 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
       id,
       services,
       actions,
-      pages: module.ui?.pages ?? module.pages ?? [],
-      views: module.ui?.slots ?? module.views ?? [],
-      providers: module.ui?.providers ?? module.providers ?? [],
+      pages: module.ui?.pages ?? [],
+      views: module.ui?.slots ?? [],
+      providers: module.ui?.providers ?? [],
     };
   } catch (error) {
     throw attributed(error, id, 'Plugin definition', appId);
@@ -341,8 +335,6 @@ export class FoundationRuntime implements ContributionHost {
           ),
           plugin: module.id,
         });
-      for (const [alias, key] of Object.entries(module.publicServices ?? {}))
-        entries.push({ id: key as string, aliases: [alias], plugin: module.id });
     }
     return entries;
   }
@@ -843,10 +835,6 @@ export class FoundationRuntime implements ContributionHost {
     const source = contributionSource(contribution);
     let adapted: ReturnType<typeof adaptAction>;
     try {
-      if (contribution.resolve)
-        deprecated('resolve', 'Use function-valued fields such as enabled: ({ input }) => ...');
-      if (contribution.watch)
-        deprecated('watch', 'Services are observed automatically; remove watch.');
       const config = this.configuration.context(module, path);
       adapted = adaptAction(contribution, this, config, events);
       this.requireServices(module, adapted.requires, {

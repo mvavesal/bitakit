@@ -131,13 +131,3 @@ export {
   type AuthPaths,
   type AuthSignInOptions,
 } from './auth-navigation.js';
-// Deprecated helpers, removed after the optional packages are migrated (Phase 5).
-export {
-  provideService,
-  defineURLAction,
-  defineDialogAction,
-  definePage,
-  defineView,
-  defineSetup,
-  defineServiceInterceptor,
-} from './compat.js';

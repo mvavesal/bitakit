@@ -38,11 +38,6 @@ export interface Events {
     names: Name | readonly Name[],
     handler: EventHandler<Name>,
   ): () => void;
-  /** @deprecated Use `on`. */
-  watch<const Name extends EventName>(
-    names: Name | readonly Name[],
-    handler: EventHandler<Name>,
-  ): () => void;
   /**
    * Synchronous delivery; async handlers are observed for errors, not awaited. A cancelable
    * event waits for its handlers and resolves to false when one of them cancelled.

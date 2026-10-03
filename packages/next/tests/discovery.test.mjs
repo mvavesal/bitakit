@@ -132,11 +132,6 @@ test('a project without Next gets a plain .ts entry without a provider; the othe
         /actions: discoverActions\(\[file\d+\], ""\)/,
         'app actions are not prefixed',
       );
-      assert.match(
-        code,
-        /export const createFoundationConfig = createBitaKitConfig;/,
-        'the deprecated name stays as an alias',
-      );
       await put('package.json', JSON.stringify({ dependencies: { next: '16.0.0' } }));
       assert.equal((await generate()).framework, 'next');
       assert.equal(await exists('src/bitakit.gen.tsx'), true);
@@ -148,9 +143,9 @@ test('a project without Next gets a plain .ts entry without a provider; the othe
     { next: false },
   ));
 
-test('legacy locations, suffixes and foundation.config.ts still work and are reported as warnings', async () =>
+test('legacy locations and suffixes still work and are reported as warnings', async () =>
   fixture(async ({ put, output, generate }) => {
-    await put('foundation.config.ts', "export default { plugins: { directory: 'plugins' } }");
+    await put('bitakit.config.ts', "export default { plugins: { directory: 'plugins' } }");
     await put('plugins/users/plugin.config.ts', "export default { id: 'users' }");
     await put(
       'plugins/users/actions/invite.form-action.ts',
@@ -179,7 +174,6 @@ test('legacy locations, suffixes and foundation.config.ts still work and are rep
       /helpers|-shared/,
       'files without a default export and "-" helpers are not contributions',
     );
-    assert.ok(warnings.some((warning) => /foundation\.config\.ts is deprecated/.test(warning)));
     assert.ok(
       warnings.some((warning) =>
         /invite\.form-action\.ts: drop the "\.form-action" suffix/.test(warning),

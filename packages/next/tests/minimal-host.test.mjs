@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { generateFoundation, withBitaKit, withFoundation, defineBitaKit } from '../src/config.mjs';
+import { generateFoundation, withBitaKit, defineBitaKit } from '../src/config.mjs';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -171,7 +171,6 @@ test('withBitaKit runs discovery, transpiles core and leaves bundler aliases alo
         {},
       );
       assert.deepEqual(fromFunction.transpilePackages, ['phase-production-build', '@bitakit/core']);
-      assert.equal(withFoundation, withBitaKit, 'withFoundation is the deprecated alias');
       assert.deepEqual(defineBitaKit({ groups: ['menu'] }), { groups: ['menu'] });
       const twice = await withBitaKit({ transpilePackages: ['@bitakit/core'] })(
         'phase-production-build',
@@ -311,10 +310,4 @@ test('the Next provider needs a configuration and says where it comes from', asy
     console.error = error;
     await act(async () => root.unmount());
   }
-  const { createFoundationConfig, foundationConfig } = await import('../dist/generated.js');
-  assert.deepEqual(foundationConfig, {});
-  assert.throws(
-    () => createFoundationConfig(),
-    /no longer written by discovery\. Import \{ BitaKitProvider, createBitaKitConfig \} from '\.\/bitakit\.gen'/,
-  );
 });

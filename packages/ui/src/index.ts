@@ -17,7 +17,7 @@ export * from './actions/index.js';
 export { Action } from './components/action.js';
 export { usePluginConfig } from './hooks/use-plugin-config.js';
 export { useTranslation, type Translate } from './hooks/use-translation.js';
-export { useEvent, useWatchEvent } from './hooks/use-event.js';
+export { useEvent } from './hooks/use-event.js';
 export { useService, useServiceState } from './hooks/use-service.js';
 export { useSetting, type UseSettingResult } from './hooks/use-setting.js';
 export {

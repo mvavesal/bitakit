@@ -42,7 +42,6 @@ test('on delivers envelopes; lists are OR, duplicates are ignored, "*" and "<pre
   stopAll();
   stopScoped();
   assert.equal(events.subscriptionCount, 0);
-  assert.equal(events.watch, events.on, 'watch is a deprecated alias of on');
 });
 
 test('sync errors and async rejections are reported without interrupting other handlers', async () => {

@@ -150,7 +150,6 @@ export class EventService implements Events {
     return unsubscribe;
   }) as Events['on'];
   /** @deprecated Use `on`. */
-  watch = this.on;
 
   /** Diagnostics only: receives every event after delivery. It cannot change or stop delivery. */
   observe(listener: (event: FoundationEvent) => void) {
@@ -199,9 +198,7 @@ export function createEventScope(events: EventService, owner?: string) {
       cleanups.add(release);
       return release;
     }) as Events['on'],
-    watch: undefined as never,
   };
-  scoped.watch = scoped.on;
   return {
     events: scoped,
     dispose() {
