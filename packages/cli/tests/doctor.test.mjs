@@ -40,6 +40,24 @@ test('doctor passes a wired app once a route renders its plugin pages', async (t
   );
 });
 
+test('doctor follows the root CSS import, including alternative filenames and nested imports', async (t) => {
+  const root = await project(nextApp({
+    'src/app/layout.tsx': "import './styles.css'; export default function Layout() { return null; }",
+    'src/app/styles.css': "@import './packages.css';",
+    'src/app/packages.css': "@import '../bitakit.gen.css';",
+  }), t);
+  let { results } = await doctor({ cwd: root });
+  const styles = find(results, /Package styles are imported in src\/app\/styles.css/);
+  assert.equal(styles.status, 'ok');
+  assert.match(styles.details[0], /Static.*browser verification/);
+  await write(root, { 'src/app/packages.css': "/* @import '../bitakit.gen.css'; */" });
+  ({ results } = await doctor({ cwd: root }));
+  assert.equal(status(results, /Installed packages ship styles that are not imported/), 'warn');
+  await write(root, { 'src/app/layout.tsx': "// import './globals.css';\nexport default function Layout() { return null; }" });
+  ({ results } = await doctor({ cwd: root }));
+  assert.equal(status(results, /Installed packages ship styles that are not imported/), 'warn');
+});
+
 test('doctor reports missing wiring with the lines to add', async (t) => {
   const root = await project(
     nextApp({

@@ -24,7 +24,8 @@
     "create-next-app": "16.3.5",
     "execa": "^9.6.0",
     "validate-npm-package-name": "^7.0.0",
-    "@tanstack/cli": "0.71.0"
+    "@tanstack/cli": "0.71.0",
+    "@bitakit/discovery": "^0.2.0"
   },
   "license": "MIT",
   "repository": {

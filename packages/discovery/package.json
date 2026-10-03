@@ -16,7 +16,11 @@
     "LICENSE"
   ],
   "dependencies": {
+    "enhanced-resolve": "^5.26.0",
     "jiti": "^2.7.0",
+    "postcss": "^8.5.28",
+    "postcss-selector-parser": "^7.1.6",
+    "postcss-value-parser": "^4.2.0",
     "typescript": "^5.9.3"
   },
   "license": "MIT",

@@ -493,6 +493,35 @@ test('useServiceState also follows subscribe/getSnapshot services, such as host-
   assert.equal(listeners.size, 0, 'subscriptions are released with the component');
 });
 
+test('useServiceState preserves class receivers during subscription, updates and cleanup', async () => {
+  class Counter {
+    listeners = new Set();
+    value = 0;
+    subscribe(listener) {
+      this.listeners.add(listener);
+      return () => this.listeners.delete(listener);
+    }
+    getSnapshot() { return this.value; }
+    increment() {
+      this.value++;
+      this.listeners.forEach((listener) => listener());
+    }
+  }
+  const counter = new Counter();
+  function Consumer() {
+    return h('output', null, useServiceState('counter', undefined, -1));
+  }
+  const view = await mount(h(FoundationProvider, { config: {}, ui: testUI, services: { counter } }, h(Consumer)));
+  try {
+    assert.equal(view.container.textContent, '0');
+    await act(async () => counter.increment());
+    assert.equal(view.container.textContent, '1');
+  } finally {
+    await view.unmount();
+  }
+  assert.equal(counter.listeners.size, 0);
+});
+
 test('useEvent subscribes to the runtime bus once per name set and releases with the component', async () => {
   const received = [];
   const config = {

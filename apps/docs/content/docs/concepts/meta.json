@@ -2,6 +2,7 @@
   "title": "Core concepts",
   "pages": [
     "index",
+    "patterns",
     "plugins",
     "services",
     "actions",

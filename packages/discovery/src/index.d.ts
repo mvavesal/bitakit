@@ -49,6 +49,8 @@ export function defineFoundation(config: DiscoveryConfig): DiscoveryConfig;
 export type GenerateResult = {
   /** Directories of plugins included from outside the project. */
   included: string[];
+  /** Installed stylesheet and emitted script directories watched for CSS contract changes. */
+  styleDirectories: string[];
   warnings: string[];
   /** The generated TypeScript file. */
   generated: string;
@@ -63,6 +65,17 @@ export const generateBitaKit: typeof generateFoundation;
 export const generateFoundationHost: typeof generateFoundation;
 export function watchFoundation(root: string, onError?: (error: unknown) => void): () => void;
 export const watchBitaKit: typeof watchFoundation;
+export const styleLayers: string;
+export const stylePrelude: string;
+export function cssImports(css: string, from: string): { value: string; rule: import('postcss').AtRule }[];
+export function resolveStylesheet(specifier: string, from: string): string;
+export function validatePackageStyles(packages: {
+  name: string;
+  manifestFile: string;
+  manifest: { exports?: unknown };
+  styles: string[];
+  theme: string[];
+}[]): Promise<string[]>;
 export function detectFramework(manifest: {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;

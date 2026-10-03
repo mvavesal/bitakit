@@ -4,10 +4,12 @@
 // that fails on any console or page error. Needs the npm registry and Playwright's Chromium.
 // Usage: node scripts/verify-generated.mjs [--only next-sample,notes-plugin] [--keep]
 import { execFileSync, spawn } from 'node:child_process';
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm, mkdir } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
+import { configureAuthFixture, verifyAuthStyles } from './fixtures/generated-auth.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const argv = process.argv.slice(2);
@@ -45,6 +47,7 @@ const app = (framework, sample) => ({
 const scenarios = {
   'next-bare': app('next', false),
   'next-sample': app('next', true),
+  'next-auth': { ...app('next', true), auth: true },
   'tanstack-bare': app('tanstack', false),
   'tanstack-sample': app('tanstack', true),
   // Plugin IDs come from the package name: notes-plugin → "notes".
@@ -64,17 +67,22 @@ const run = (command, args, cwd) =>
     env: { ...process.env, NO_COLOR: '1' },
   });
 
-async function serve(framework, cwd) {
+async function serve(framework, cwd, { development = false, auth = false } = {}) {
   const current = port++;
   const [command, args] =
     framework === 'next'
-      ? ['npx', ['next', 'start', '--port', String(current)]]
+      ? ['npx', ['next', development ? 'dev' : 'start', '--port', String(current)]]
       : ['npx', ['vite', 'preview', '--port', String(current), '--strictPort']];
-  const server = spawn(command, args, { cwd, stdio: 'ignore', detached: true });
   const url = `http://localhost:${current}`;
+  const log = createWriteStream(path.join(cwd, development ? 'verify-dev.log' : 'verify-server.log'));
+  const server = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], detached: true,
+    env: { ...process.env, ...(auth ? { BITAKIT_TEST_AUTH: '1', BITAKIT_TEST_ORIGIN: url } : {}) },
+  });
+  server.stdout.pipe(log);
+  server.stderr.pipe(log);
   for (let attempt = 0; attempt < 120; attempt++) {
     if (
-      await fetch(url).then(
+      await fetch(url, { signal: AbortSignal.timeout(10000) }).then(
         (response) => response.ok,
         () => false,
       )
@@ -83,10 +91,10 @@ async function serve(framework, cwd) {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   process.kill(-server.pid);
-  throw new Error(`The ${framework} server did not start.`);
+  throw new Error(`The ${framework} server did not start. See ${cwd}/verify-${development ? 'dev' : 'server'}.log.`);
 }
 
-async function smoke(url, visits) {
+async function smoke(url, visits, extra) {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   const errors = [];
@@ -98,6 +106,7 @@ async function smoke(url, visits) {
       await page.getByText(text).first().waitFor({ timeout: 15000 });
       await act?.(page);
     }
+    await extra?.(page);
   } finally {
     await browser.close();
   }
@@ -121,6 +130,13 @@ async function verify(name, scenario) {
       work,
     ),
   );
+  if (scenario.auth) {
+    const archives = Object.fromEntries((await readdir(packs)).map((file) => [
+      `@bitakit/${/^bitakit-(.+)-\d/.exec(file)[1]}`, `file:${path.join(packs, file)}`,
+    ]));
+    await configureAuthFixture(target, archives);
+    await step('install native auth fixture', () => run('npm', ['install', '--no-audit', '--no-fund'], target));
+  }
   if (scenario.plugin) {
     await step('npm test', () => run('npm', ['test'], target));
     await step('type check', () => run('npm', ['run', 'typecheck'], target));
@@ -144,10 +160,21 @@ async function verify(name, scenario) {
   }
   await step('type check', () => run('npm', ['run', 'typecheck'], target));
   await step('doctor', () => run('npx', ['bitakit', 'doctor'], target));
+  if (scenario.auth) {
+    const server = await step('start development', () => serve(scenario.framework, target, { development: true, auth: true }));
+    const artifacts = path.join(target, 'verification-development');
+    await mkdir(artifacts);
+    try {
+      await step('development auth styles', () => smoke(server.url, [], (page) => verifyAuthStyles(page, server.url, artifacts)));
+    } finally { server.stop(); }
+  }
   await step('build', () => run('npm', ['run', 'build'], target));
-  const server = await step('start', () => serve(scenario.framework, target));
+  const server = await step('start', () => serve(scenario.framework, target, { auth: scenario.auth }));
   try {
-    await step('browser', () => smoke(server.url, scenario.visits));
+    const artifacts = path.join(target, 'verification-production');
+    await mkdir(artifacts);
+    await step('browser', () => smoke(server.url, scenario.visits,
+      scenario.auth ? (page) => verifyAuthStyles(page, server.url, artifacts) : undefined));
   } finally {
     server.stop();
   }
@@ -161,17 +188,6 @@ try {
     [
       path.join(root, 'scripts/pack-packages.mjs'),
       packs,
-      'core',
-      'discovery',
-      'ui',
-      'app-preferences',
-      'next',
-      'tanstack',
-      'shell',
-      'quick-search',
-      'devtools',
-      'cli',
-      'create-app',
     ],
     root,
   );

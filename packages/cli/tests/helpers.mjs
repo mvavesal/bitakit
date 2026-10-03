@@ -45,10 +45,11 @@ export const nextApp = (extra = {}) => ({
     version: '0.2.0',
     bitakit: { plugin: './plugin', styles: './styles.css' },
   },
+  'node_modules/@bitakit/shell/styles.css': '.shell { display: flex; }',
   'next.config.ts':
     "import { withBitaKit } from '@bitakit/next/config';\n\nexport default withBitaKit({});\n",
   'src/app/layout.tsx':
-    "import { BitaKitProvider } from '@/bitakit.gen';\nexport default function Layout({ children }) { return <BitaKitProvider>{children}</BitaKitProvider>; }\n",
+    "import './globals.css';\nimport { BitaKitProvider } from '@/bitakit.gen';\nexport default function Layout({ children }) { return <BitaKitProvider>{children}</BitaKitProvider>; }\n",
   'src/app/(app)/layout.tsx': "import { AppShell } from '@bitakit/shell';\n",
   'src/app/(app)/page.tsx': 'export default function Page() {}\n',
   'src/app/globals.css': "@import 'tailwindcss';\n@import '../bitakit.gen.css';\n",

@@ -4,6 +4,7 @@ import { createJiti } from 'jiti';
 import { files, discoverEntries, contributionKindSpecs } from './entries.mjs';
 import { installedContributions } from './packages.mjs';
 import { pluginManifests } from './modules.mjs';
+import { stylePrelude } from './styles.mjs';
 
 const quote = JSON.stringify;
 /** Single-quoted module specifiers, matching the style of hand-written imports. */
@@ -527,7 +528,7 @@ ${strict ? '  interface ActionMapOptions { strict: true }\n' : ''}}
 ${
   dependent
     ? `/** A package plugin with the plugin dependencies its manifest declares (\`bitakit.dependencies\`). */
-function withDependencies<P extends { dependencies?: readonly string[] }>(plugin: P, ids: string[]) {
+function withDependencies<P extends { id: string; dependencies?: readonly string[] }>(plugin: P, ids: string[]) {
   return { ...plugin, dependencies: [...new Set([...(plugin.dependencies ?? []), ...ids])] };
 }
 
@@ -575,7 +576,7 @@ export function BitaKitProvider(props: Omit<ComponentProps<typeof FoundationProv
   await removeGenerated(path.join(output, `bitakit.gen.${extension === 'tsx' ? 'ts' : 'tsx'}`));
   await writeChanged(
     path.join(output, 'bitakit.gen.css'),
-    `/* ${generatedHeader.slice(3)} Styles of installed packages, theme last. */\n${(installed.styles ?? []).map((specifier) => `@import ${quote(specifier)};`).join('\n')}\n`,
+    `/* ${generatedHeader.slice(3)} Styles of installed packages, theme last. */\n${stylePrelude}\n${(installed.styles ?? []).map((specifier) => `@import ${quote(specifier)};`).join('\n')}\n`,
   );
   const messagesFile = path.join(output, 'bitakit.gen.messages.json');
   if (Object.keys(allMessages).length)
@@ -585,6 +586,7 @@ export function BitaKitProvider(props: Omit<ComponentProps<typeof FoundationProv
   if (!quiet) for (const warning of warnings) console.warn(`[bitakit] ${warning}`);
   return {
     included: included.map((module) => path.dirname(module.manifestFile)),
+    styleDirectories: [...new Set((installed.styleSources ?? []).map((file) => path.dirname(file)))],
     warnings,
     generated,
     framework,

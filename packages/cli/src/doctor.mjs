@@ -1,7 +1,7 @@
 import { readdir, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
-import { describeFoundation } from '@bitakit/discovery';
+import { describeFoundation, cssImports } from '@bitakit/discovery';
 import { exists, findProject } from './project.mjs';
 import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
 
@@ -602,13 +602,39 @@ function checkGraph(description) {
 }
 async function checkStyles(project, description) {
   if (!description.styles.length) return { status: 'ok', title: 'No package styles to import' };
-  const candidates = ['src/app/globals.css', 'app/globals.css', 'src/styles.css', 'src/index.css'];
-  for (const file of candidates) {
-    const css = await readFile(path.join(project.root, file), 'utf8').catch(() => '');
-    if (css.includes('bitakit.gen.css'))
-      return { status: 'ok', title: `Package styles are imported in ${file}` };
-    if (css && description.styles.every((specifier) => css.includes(specifier)))
-      return { status: 'ok', title: `Package styles are imported individually in ${file}` };
+  const visited = new Set();
+  const generated = path.resolve(project.root, description.appDirectory, 'bitakit.gen.css');
+  const resolveLocal = (specifier, from) => specifier.startsWith('@/')
+    ? path.resolve(project.root, 'src', specifier.slice(2))
+    : specifier.startsWith('.') ? path.resolve(path.dirname(from), specifier) : undefined;
+  async function followsGenerated(file) {
+    if (file === generated) return true;
+    if (!file || visited.has(file)) return false;
+    visited.add(file);
+    const css = await readFile(file, 'utf8').catch(() => undefined);
+    if (css === undefined) return false;
+    for (const { value } of cssImports(css, file))
+      if (await followsGenerated(resolveLocal(value, file))) return true;
+    return false;
+  }
+  try {
+    for (const layout of rootLayouts(project)) {
+      const file = path.join(project.root, layout);
+      const source = await readFile(file, 'utf8').catch(() => '');
+      const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+      for (const node of tree.statements) {
+        if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) continue;
+        const value = node.moduleSpecifier.text.replace(/\?url$/, '');
+        if (!value.endsWith('.css')) continue;
+        const entry = resolveLocal(value, file);
+        if (await followsGenerated(entry)) return {
+          status: 'ok', title: `Package styles are imported in ${path.relative(project.root, entry)}`,
+          details: ['Static root import graph verified. Rendered cascade, spacing and contrast require browser verification.'],
+        };
+      }
+    }
+  } catch (error) {
+    return { status: 'error', title: 'The root stylesheet could not be parsed', details: [error.message] };
   }
   const target = project.framework === 'tanstack' ? 'src/styles.css' : 'src/app/globals.css';
   const relative = path.relative(

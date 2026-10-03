@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { validatePackageStyles } from './styles.mjs';
 
 /**
  * Reads opt-in metadata (`bitakit` in package.json, `foundation` as the older name) from direct
@@ -44,8 +45,17 @@ export async function installedContributions(root, selection, jiti) {
     try {
       file = createRequire(from).resolve(`${name}/package.json`);
     } catch (error) {
-      if (error.code === 'MODULE_NOT_FOUND' || error.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED')
+      if (error.code === 'MODULE_NOT_FOUND' || error.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
+        // Inspect only to diagnose an inaccessible opt-in manifest, never to bypass exports.
+        for (const directory of createRequire(from).resolve.paths(name) ?? []) {
+          const candidate = await readFile(path.join(directory, name, 'package.json'), 'utf8')
+            .then(JSON.parse).catch((failure) => { if (failure.code !== 'ENOENT') throw failure; });
+          if (candidate?.bitakit || candidate?.foundation)
+            throw new Error(`BitaKit package "${name}" cannot expose its discovery metadata. Export "./package.json" from its package.json (${error.code}).`);
+          if (candidate) break;
+        }
         continue;
+      }
       throw error;
     }
     const installed = JSON.parse(await readFile(file, 'utf8'));
@@ -75,9 +85,10 @@ export async function installedContributions(root, selection, jiti) {
           );
       if (ids.length) dependencies[plugin] = [...new Set(ids)];
     }
-    if (metadata.styles || metadata.theme)
-      stylesheets.push({
+    stylesheets.push({
         name,
+        manifestFile: file,
+        manifest: installed,
         dependencies: Object.keys({ ...installed.dependencies, ...installed.peerDependencies }),
         styles: list(metadata.styles).map(specifier),
         theme: list(metadata.theme).map(specifier),
@@ -102,12 +113,14 @@ export async function installedContributions(root, selection, jiti) {
     }).sort())
       if (!visited.has(dependency)) queue.push({ name: dependency, from: file });
   }
+  const styleSources = await validatePackageStyles(stylesheets);
   return {
     plugins,
     kinds,
     configurations,
     dependencies,
     styles: orderStyles(stylesheets),
+    styleSources,
     packages,
     slots,
   };

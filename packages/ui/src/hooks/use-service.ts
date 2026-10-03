@@ -42,7 +42,8 @@ function sourceOf(
     typeof candidate.getSnapshot === 'function'
   )
     return {
-      subscribe: candidate.subscribe as never,
+      subscribe: (listener) =>
+        (candidate.subscribe as (listener: () => void) => () => void).call(candidate, listener),
       get: () => (candidate.getSnapshot as () => unknown)(),
     };
   return undefined;

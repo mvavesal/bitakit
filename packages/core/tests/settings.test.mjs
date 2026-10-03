@@ -22,6 +22,41 @@ const deferred = () => {
   return { promise, resolve, reject };
 };
 
+for (const failOld of [false, true]) {
+  test(`a new identity's queued save drains after the old save ${failOld ? 'fails' : 'finishes'}`, async () => {
+    const storage = createMemorySettingsStorage();
+    const old = deferred();
+    const calls = [];
+    const store = new SettingsStore(
+      [{ key: 'mode', plugin: 'app', name: 'mode', spec: setting({ default: 'light' }) }],
+      () => ({
+        ...storage,
+        async save(key, value, context) {
+          calls.push({ value, userId: context.userId });
+          if (context.userId === 'A') await old.promise;
+          return storage.save(key, value, context);
+        },
+      }),
+    );
+    await store.activate({ userId: 'A' });
+    const a = store.set('mode', 'dark');
+    const settledA = a.catch((error) => error.message);
+    await store.activate({ userId: 'B' });
+    const b = store.set('mode', 'system');
+    assert.equal(store.state('mode').pending, true);
+    assert.deepEqual(calls, [{ value: 'dark', userId: 'A' }]);
+    failOld ? old.reject(new Error('old save failed')) : old.resolve();
+    await settledA;
+    // Assert dispatch before awaiting B: a stalled queue fails instead of hanging the test.
+    assert.deepEqual(calls, [{ value: 'dark', userId: 'A' }, { value: 'system', userId: 'B' }]);
+    assert.equal(await b, 'saved');
+    assert.equal(store.get('mode'), 'system');
+    assert.equal(store.state('mode').pending, false);
+    assert.equal(storage.data.get('user:B/mode'), 'system');
+    assert.equal(storage.data.get('user:A/mode'), failOld ? undefined : 'dark');
+  });
+}
+
 test('setting() and defineSettings() validate declarations and defaults', () => {
   const todos = defineSettings({
     pageSize: setting({ default: 20 }),

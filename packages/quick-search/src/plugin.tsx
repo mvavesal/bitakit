@@ -1,5 +1,4 @@
 'use client';
-import '../styles.css';
 import { defineAction, definePlugin } from '@bitakit/core';
 import SearchIcon from 'reicon-react/icons/Search';
 import { QuickSearchTrigger } from './trigger.js';

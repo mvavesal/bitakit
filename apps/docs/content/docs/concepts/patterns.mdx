@@ -1,0 +1,189 @@
+---
+title: Patterns at a glance
+description: Every interception and event pattern in one place, with short samples.
+---
+
+This page is the overview. Each pattern is three to ten lines; the linked pages explain the details.
+
+## What happens when an action runs
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcSet="/diagrams/action-loop-dark.svg" />
+  <img src="/diagrams/action-loop-light.svg" width="880" alt="Action loop: a control executes an action, the action calls a service, the service updates its store, the store change re-evaluates the action's state, every bound control receives the new state." />
+</picture>
+
+```text
+<Action id="todos.add" input={title}>   a button, menu item, link or shortcut
+  → execute('todos.add', title)
+    → input schema validates          invalid input disables the control before this
+    → confirm                         when the action declares one
+    → interceptors: before            plugin ones, then global; `false` cancels
+      → execute({ input, services, settings, events, signal })
+        → services.todos.tasks.add()  service interceptors observe before / after / onError
+        → store.set(...)              bound controls and useServiceState re-render
+        → events.emit('todos.changed') listeners in any plugin run now
+    → interceptors: after / onError
+    → feedback                        silent success or one failure toast
+```
+
+Startup, once per app: discovery generates `src/bitakit.gen.tsx` → `BitaKitProvider` creates the runtime → services are created in dependency order → interceptors are installed → actions are registered → each plugin's `setup` runs → every `onStart` is awaited → `runtime.ready` → settings load for the signed-in identity.
+
+## Intercept actions
+
+One file under `interceptors/` of a plugin (or `src/interceptors/` of the app) default-exports one definition or an array.
+
+```ts
+import { defineInterceptor } from '@bitakit/core';
+
+// One action.
+export const one = defineInterceptor({
+  action: 'todos.add',
+  before: ({ input }) => console.debug('adding', input),
+});
+
+// Several actions.
+export const some = defineInterceptor({
+  action: ['todos.add', 'todos.clear'],
+  after: ({ id, result }) => console.debug(id, result),
+});
+
+// Every action of one plugin.
+export const plugin = defineInterceptor({
+  action: 'todos.*',
+  onError: ({ id, error }) => report(id, error),
+});
+
+// Every action of every plugin: `scope: 'global'` inside a plugin; app interceptors are global by default.
+export const everything = defineInterceptor({
+  action: '*',
+  scope: 'global',
+  order: -10, // lower runs first
+  before: ({ id, services }) => {
+    if (!services.auth?.getSnapshot().user && id.startsWith('billing.')) return false; // cancels, reason "intercepted"
+  },
+});
+
+// Without `action`: every action of the interceptor's own plugin.
+export default defineInterceptor({ before: ({ id }) => console.time(id), after: ({ id }) => console.timeEnd(id) });
+```
+
+`before` may be async and may return `false` to cancel. `after` and `onError` observe. The context is the action's execute context (`id`, `input`, `services`, `settings`, `config`, `app`, `events`, `signal`) plus `translate`. Details: [Interceptors](/docs/concepts/interceptors#action-interceptors).
+
+## Observe service methods
+
+Service hooks only observe: they never change arguments, results or errors.
+
+```ts
+import { defineInterceptor } from '@bitakit/core';
+
+// One method of one service; arguments and the awaited result are typed.
+export const oneMethod = defineInterceptor({
+  service: 'todos.tasks',
+  method: 'add',
+  before: ({ args }) => console.debug('add', args),
+  after: ({ result }) => console.debug('added', result),
+});
+
+// Every public method of one service.
+export const wholeService = defineInterceptor({
+  service: 'todos.tasks',
+  onError: ({ method, error }) => report(`todos.tasks.${method}`, error),
+});
+
+// Every service of one plugin, or every service.
+export const pluginServices = defineInterceptor({ service: 'todos.*', before: ({ service, method }) => trace(service, method) });
+export const allServices = defineInterceptor({ service: '*', before: ({ service, method, args }) => trace(service, method, args) });
+
+// Actions and services in one file: export an array.
+export default [oneMethod, wholeService];
+```
+
+Targets accept exact names, a list, `plugin.*` and `*`; aliases (`exposeAs`, contracts such as `auth`) match too. Internal self-calls inside a service bypass the hooks. Details: [Interceptors](/docs/concepts/interceptors#service-interceptors).
+
+## Emit and listen to events
+
+Events are declared once per plugin in `events.ts`; only that plugin emits them, every plugin may listen.
+
+```ts
+// src/plugins/todos/events.ts
+import { defineEvents, event } from '@bitakit/core';
+
+export default defineEvents({
+  changed: event<{ id: number; kind: 'added' | 'removed' }>(),
+  deleting: event<{ id: number }>({ cancelable: true }),
+});
+```
+
+```ts
+// Emit from a service or action of the todos plugin.
+events.emit('todos.changed', { id: 1, kind: 'added' });
+
+// A cancelable event waits for its handlers and reports whether any of them cancelled.
+const allowed = await events.emit('todos.deleting', { id: 1 });
+if (!allowed) return;
+```
+
+```ts
+// Listen anywhere: a service factory (released with the service), setup, an action, or React.
+events.on('todos.changed', ({ data }) => refresh(data.id));          // one event
+events.on(['todos.changed', 'notes.changed'], (event) => sync(event)); // several
+events.on('todos.*', (event) => log(event.type));                      // every event of one plugin
+events.on('*', (event) => audit(event.type, event.data));              // every event
+
+// Cancel a cancelable event with a reason.
+events.on('todos.deleting', (event) => {
+  if (event.data.id === 1) event.cancel?.('The first task stays.');
+});
+
+// Async handlers get an AbortSignal that aborts on unsubscribe.
+events.on('documents.reload', async (event, { signal }) => {
+  const response = await fetch('/api/documents', { signal });
+  if (!signal.aborted) apply(await response.json());
+});
+```
+
+```tsx
+// React
+useEvent('todos.changed', (event) => setLastChange(event.data));
+```
+
+Delivery is synchronous in registration order; handler errors go to `onEventError` on the runtime configuration and never stop other handlers. Events are not replayed: read current state from a service store. Details: [Events](/docs/concepts/events).
+
+## Follow state
+
+Nothing subscribes by hand to a store; the runtime observes it.
+
+```ts
+// A service keeps state in store(); anything with subscribe(listener) is observed too.
+export default defineService(({ store }) => {
+  const state = store({ items: [] as Task[] });
+  return { state, add: (title: string) => state.set((s) => ({ items: [...s.items, task(title)] })) };
+});
+
+// Action fields that are functions re-run when an observed store or a setting changes.
+export default defineAction({
+  enabled: ({ services }) => services.todos.tasks.state.get().items.length > 0,
+  visible: ({ settings }) => settings.todos.showDone.get(),
+  execute: ({ services }) => services.todos.tasks.clear(),
+});
+```
+
+```tsx
+// React reads live state; both re-render only when the selected value changes.
+const items = useServiceState('todos.tasks', (s) => s.items, []);
+const { value: pageSize, set } = useSetting('todos.pageSize');
+```
+
+Settings are user, organization or device values declared in `settings.ts`; every context reads them as `settings.<plugin>.<name>.get()`, writes with `set()` and may `subscribe()`. They get a generated settings page under `/settings`.
+
+## Choose the right tool
+
+| You want to | Use |
+| --- | --- |
+| Run logic before or after specific actions, or block them | Action interceptor (`before` returns `false` to cancel) |
+| Log, trace or time service calls without touching them | Service interceptor (observe only) |
+| Tell other plugins that something happened | Event (`events.emit`), declared in `events.ts` |
+| Let other plugins veto an operation | Cancelable event (`emit` resolves to `false`) |
+| Keep state inside a plugin and have UI follow it | `store()` in a service, `useServiceState` in React |
+| Let users change behavior | `defineSettings` in `settings.ts`, `useSetting` in React |
+| Ask for confirmation, limit concurrency, show feedback | Action options `confirm`, `concurrency`, `success` / `failure` |

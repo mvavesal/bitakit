@@ -7,7 +7,12 @@
     "configuration": "better-auth-ui",
     "dependencies": [
       "better-auth"
-    ]
+    ],
+    "styles": [
+      "./organization-styles.css",
+      "./styles.css"
+    ],
+    "theme": "./theme.css"
   },
   "sideEffects": [
     "./theme.css",
@@ -56,7 +61,8 @@
       "default": "./dist/organizations.js"
     },
     "./organization-styles.css": "./organization-styles.css",
-    "./locales/*.json": "./locales/*.json"
+    "./locales/*.json": "./locales/*.json",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

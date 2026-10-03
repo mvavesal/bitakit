@@ -357,6 +357,9 @@ export class SettingsStore {
       waiters.forEach((waiter) => waiter.resolve('saved'));
     }
     slot.flying = false;
-    if (!slot.queued) slot.superseded.splice(0).forEach((waiter) => waiter.resolve('superseded'));
+    // Activation may queue a new identity's write while this generation is still saving.
+    // Its enqueue could not start a drain until the old storage call released the slot.
+    if (slot.queued) void this.drain(slot, this.generation);
+    else slot.superseded.splice(0).forEach((waiter) => waiter.resolve('superseded'));
   }
 }

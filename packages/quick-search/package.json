@@ -3,10 +3,7 @@
   "version": "0.2.0",
   "type": "module",
   "sideEffects": [
-    "./styles.css",
-    "./dist/foundation.js",
-    "./dist/index.js",
-    "./dist/plugin.js"
+    "./styles.css"
   ],
   "files": [
     "dist",
@@ -46,10 +43,6 @@
     "typescript": "^5",
     "jsdom": "^27.4.0"
   },
-  "foundation": {
-    "plugin": "./foundation",
-    "configuration": "quick-search"
-  },
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -58,5 +51,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "bitakit": {
+    "plugin": "./foundation",
+    "configuration": "quick-search",
+    "styles": "./styles.css"
   }
 }

@@ -35,7 +35,8 @@
     "apps/web",
     "apps/content-demo",
     "packages/*",
-    "apps/docs"
+    "apps/docs",
+    "apps/todo-preview"
   ],
   "devDependencies": {
     "prettier": "3.6.2"
