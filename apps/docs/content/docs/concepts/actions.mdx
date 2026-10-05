@@ -1,762 +1,115 @@
 ---
-title: Actions
-description: Define an operation once and bind it anywhere. The simple path first, the reference below.
+title: 4. Add a button
+description: Define one Action and bind it to the Counter.
 ---
 
-**Owner:** definitions and execution in `@bitakit/core`; React bindings in `@bitakit/ui`; router integration in the host adapter.
+Continue with [the Counter service](/docs/concepts/services).
+An **Action** connects an operation to a button, link or other control. Define the operation
+once; each control that uses it shares its current label, rules and execution state.
 
-An action is one operation of your app, defined once. It has an **ID** (its name), a **presentation** (title, icon, enabled and so on) and **behavior** (`execute`, a link or a dialog). Buttons, menus, links, keyboard shortcuts and your own code run it through the same guarded executor, and all of them read its current state. You never copy a title or an enabled flag into a component.
+[Read more about Actions →](/docs/reference/actions)
 
-## Start here
+## 1. Define the operation
 
-Most actions need a title, an `execute` function and one binding. The examples on this page use this service:
-
-```ts
-// src/plugins/todos/services/tasks.ts
-import { defineService } from '@bitakit/core';
-
-export type Task = { id: number; title: string; done: boolean };
-
-export default defineService(({ store }) => {
-  // Observable state: actions and pages follow it without any wiring.
-  const state = store<{ items: Task[]; showDone: boolean; sort: 'newest' | 'title' }>({
-    items: [],
-    showDone: false,
-    sort: 'newest',
-  });
-
-  return {
-    state,
-    list: () => state.get().items,
-    add(title: string) {
-      state.set((s) => ({ ...s, items: [...s.items, { id: Date.now(), title, done: false }] }));
-    },
-    remove(id: number) {
-      state.set((s) => ({ ...s, items: s.items.filter((task) => task.id !== id) }));
-    },
-    clear() {
-      state.set((s) => ({ ...s, items: [] }));
-    },
-    setShowDone(showDone: boolean) {
-      state.set((s) => ({ ...s, showDone }));
-    },
-    setSort(sort: 'newest' | 'title') {
-      state.set((s) => ({ ...s, sort }));
-    },
-  };
-});
-```
-
-### 1. Define the action
+Create `src/plugins/counter/actions/increment.ts`:
 
 ```ts
-// src/plugins/todos/actions/add.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<string>({
-  title: 'Add task',
-  // Buttons bound to this action are disabled while their input is empty.
-  enabled: ({ input }) => typeof input === 'string' && input.trim().length > 0,
-  // Runs when a bound control or your code executes "todos.add".
-  execute: ({ services, input }) => services.todos.tasks.add(input.trim()),
-});
-```
-
-`defineAction<string>` declares that the action takes a string as input. The file path gives it the ID `todos.add`. Discovery registers it and adds it to the generated action types, so bindings autocomplete the ID and check the input. Services are reached as `services.<plugin>.<file>`.
-
-### 2. Bind it
-
-```tsx
-// src/plugins/todos/ui/add-button.tsx
-'use client';
-
-import { Action } from '@bitakit/ui';
-import { Button } from '@bitakit/ui/components';
-
-export function AddButton({ draft }: { draft: string }) {
-  return (
-    <Action id="todos.add" input={draft}>
-      <Button />
-    </Action>
-  );
-}
-```
-
-`<Action>` merges the action into its child: the empty button receives the title (and icon), passes `draft` as input, and is disabled while the input is empty or the action runs. Errors go to the provider's `onError`.
-
-### 3. Run it from code (optional)
-
-```tsx
-// src/plugins/todos/ui/add-milk-button.tsx
-'use client';
-
-import { useFoundationApp } from '@bitakit/ui';
-
-export function AddMilkButton() {
-  const app = useFoundationApp();
-  const addMilk = () => app.actions.todos.add.execute('Buy milk').catch(() => {});
-
-  return (
-    <button type="button" onClick={() => void addMilk()}>
-      Add milk
-    </button>
-  );
-}
-```
-
-`execute` applies the same checks as the button and returns the [outcome](#execution-status-and-outcomes).
-
-That is the default path. The rest of this page is reference: [properties](#properties-at-a-glance), [availability](#availability), [running](#running), [navigation and dialogs](#navigation-and-dialogs), [forms](#forms), [bindings](#bindings), [outcomes](#execution-status-and-outcomes) and [identity](#identity).
-
-## Properties at a glance
-
-| Property                                                                      | Type                                           | Default            | What it does                                             |
-| ----------------------------------------------------------------------------- | ---------------------------------------------- | ------------------ | -------------------------------------------------------- |
-| [`title`](#title)                                                             | `string` or function                           | from the ID        | Label of buttons and menu items                          |
-| [`description`](#description)                                                 | `string` or function                           | none               | Longer explanation of what the action does               |
-| [`tooltip`](#tooltip)                                                         | `string` or function                           | none               | Short hover hint                                         |
-| [`icon`](#icon)                                                               | icon component or function                     | none               | Shown before the title                                   |
-| [`variant`](#variant)                                                         | `'default' \| 'destructive'` or function       | `'default'`        | Marks a dangerous operation                              |
-| [`enabled`](#enabled)                                                         | `boolean` or function                          | `true`             | `false`: shown but cannot run                            |
-| [`visible`](#visible)                                                         | `boolean` or function                          | `true`             | `false`: not rendered and cannot run                     |
-| [`input`](#input)                                                             | schema                                         | none               | Validates and types the input; disabled while invalid    |
-| [`execute`](#execute)                                                         | `(context) => result`                          | none               | The operation itself                                     |
-| [`href`](#navigation-actions)                                                 | `string` or function                           | none               | Navigation target; rendered as a link                    |
-| [`dialog`, `dialogSize`](#dialog-actions)                                     | component, `'default' \| 'wide'`               | none               | Opens a dialog instead of running `execute`              |
-| [`confirm`](#confirm)                                                         | `string`, `{ title, description }` or function | none               | Asks before running                                      |
-| [`concurrency`](#concurrency)                                                 | `'exclusive' \| 'per-input' \| 'latest'`       | `exclusive`        | What happens when the action is already running          |
-| [`requires`](#requires)                                                       | `string[]`                                     | none               | Services from other plugins this action needs            |
-| [`success`, `failure`](#success-and-failure)                                  | message, `false` or function                   | see below          | Message after a run                                      |
-| [`groups`](/docs/concepts/action-groups)                                      | `string[]`                                     | none               | Groups the action is in                                  |
-| [`order`, `dividerBefore`](/docs/concepts/action-groups#order-and-separators) | `number`, `boolean`                            | `0`, `false`       | Display hints among other items                          |
-| [`shortcut`](#shortcut)                                                       | `{ keys, input?, scope?, allowInInputs? }`     | none               | Keyboard shortcut                                        |
-| [`checked`](#checked)                                                         | `boolean` or function                          | none               | State of a toggle                                        |
-| [`value`](#value)                                                             | any or function                                | none               | Selected value of a choice                               |
-| [`metadata`](#metadata)                                                       | any                                            | none               | Your own data for custom renderers                       |
-| [`internal`](#internal)                                                       | `boolean`                                      | `false`            | Left out of menus, lists, shortcuts and typed references |
-| [`id`](#identity)                                                             | `string`                                       | from the file path | Explicit ID for manual composition                       |
-
-**Functions re-run on change.** Every presentation property accepts a value or a function of `{ input, services, config, app }`. The function runs for each binding with that binding's input, and again whenever a service store it reads changes. Two buttons of one action can therefore show different titles or availability.
-
-## Text
-
-`title`, `description` and `tooltip` are three different texts. The title is the label, the description explains the action and the tooltip is a short hint on hover. Set only the ones you need.
-
-### `title`
-
-The displayed text is the first match of:
-
-1. `title` as a translation key, for example `title: 'todos.addTask'`;
-2. the key `<id>.title`, here `todos.add.title`;
-3. `title` as written.
-
-Without `title`, the key `<id>.title` is tried and then a title made from the last part of the ID: `todos.clear-done` becomes "Clear done". Titles update when the language changes. A plugin ships its texts in `locales/en.json` under its own namespace (`{ "todos": { "add": { "title": "Add task" } } }`); discovery merges them for the host's translation provider.
-
-A function title is computed per binding: ``title: ({ input }) => (input ? `Add "${input}"` : 'Add task')``.
-
-### `description`
-
-A longer explanation, for example in a list of actions or as help text. Buttons, links and menu items show it as hover text when there is no tooltip, and custom renderers read it from the control state. Translation works like `title`: the value as a key, then `<id>.description`, then the text.
-
-### `tooltip`
-
-A short hint on hover. It is not a shorter description. Bindings show the tooltip, or the description when there is no tooltip; a `title` prop you pass to the control wins. Translation: the value as a key, then `<id>.tooltip`, then the text.
-
-## Appearance
-
-### `icon`
-
-Any React component that accepts `className` and `aria-hidden`, for example from your icon library:
-
-```ts
-// src/plugins/todos/actions/add.ts
-import { defineAction } from '@bitakit/core';
-import Plus from 'reicon-react/icons/Plus';
-
-export default defineAction<string>({
-  title: 'Add task',
-  icon: Plus,
-  execute: ({ services, input }) => services.todos.tasks.add(input),
-});
-```
-
-`<Action>` renders it before the title in an empty child and hides it from screen readers; menu items do the same. Core only stores it.
-
-### `variant`
-
-`'destructive'` marks a dangerous operation. Menu items use the destructive style. A bound button does not change its look by itself; pass your button's own prop: `<Action id="todos.clear"><Button variant="destructive" /></Action>`.
-
-## Availability
-
-Three separate states decide whether an action can run:
-
-|           | Who sets it                              | Meaning                      | The control           | Running it                     |
-| --------- | ---------------------------------------- | ---------------------------- | --------------------- | ------------------------------ |
-| `enabled` | you: value, function, schema, config cap | `false`: not available now   | shown, disabled       | skipped with reason `disabled` |
-| `visible` | you: value, function, config cap         | `false`: not offered here    | not rendered          | skipped with reason `hidden`   |
-| `pending` | the runtime                              | `true`: a run is in progress | disabled, `aria-busy` | skipped with reason `pending`  |
-
-None of them is security: the server still checks permissions.
-
-### `enabled`
-
-A value or a function. A function reads the binding's input and the services, and re-runs when a store it reads changes:
-
-```ts
-// src/plugins/todos/actions/clear.ts
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  title: 'Clear all',
-  // Re-evaluated whenever the tasks store changes: disabled while the list is empty.
-  enabled: ({ services }) => services.todos.tasks.list().length > 0,
-  execute: ({ services }) => services.todos.tasks.clear(),
+  title: 'Increment',
+  execute: ({ services }) => services.counter.value.increment(),
 });
 ```
 
-The app can also switch an action off with `actions.overrides` in `bitakit.config.ts`; see [overrides](/docs/concepts/overrides).
+The file names the Action **`counter.increment`**. It calls the service you already created.
 
-### `visible`
+## 2. Bind a button
 
-`visible: false` removes the action from the UI: bindings render nothing and menus leave it out. Like `enabled`, it accepts a function: `visible: ({ app }) => app.has('billing.invoices')`. Use `enabled` for "not now" and `visible` for "not here".
-
-### `pending`
-
-`pending` is not a property you set. The runtime sets it to `true` while a run that returned a promise is in progress and back to `false` when the run ends. During that time bindings disable themselves and another run of the same action is skipped (see [`concurrency`](#concurrency)). Read it with [`useAction`](#useaction) when you build your own control.
-
-### `input`
-
-A schema from zod, valibot or any Standard Schema library types and validates the input:
-
-```ts
-// src/plugins/todos/actions/add.ts
-import { defineAction } from '@bitakit/core';
-import { z } from 'zod';
-
-export default defineAction({
-  title: 'Add task',
-  input: z.string().trim().min(1, 'Enter a title.'),
-  execute: ({ services, input }) => services.todos.tasks.add(input), // input is a string
-});
-```
-
-With a schema, `input` and the result are inferred; there is nothing to repeat in a type argument. A bound control is disabled while its current input is invalid (unless you set `enabled` yourself), and `execute` receives the parsed value. Invalid input from code fails the run with the schema's message.
-
-## Running
-
-### `execute`
-
-The operation itself. It receives one context object:
-
-| Field           | What it is                                                                                    |
-| --------------- | --------------------------------------------------------------------------------------------- |
-| `input`         | The value the binding or caller passed, validated when the action has a schema                |
-| `services`      | Every service: `services.todos.tasks`, `services.auth`                                        |
-| `config`        | `config.plugin` and `config.action` scopes; see [configuration](/docs/concepts/configuration) |
-| `app`           | The app: `app.services`, `app.actions`, `app.events`, `app.config`, `app.has()`               |
-| `events`        | Emit this plugin's events                                                                     |
-| `signal`        | Aborts when the registration is disposed or a newer `latest` run supersedes this one          |
-| `id`            | This action's ID                                                                              |
-| `get()`         | The current snapshot of this registration                                                     |
-| `update(patch)` | Changes this registration's registered values, for example `update({ checked: true })`        |
-
-```ts
-// src/plugins/todos/actions/add.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<string, number>({
-  title: 'Add task',
-  async execute({ input, services, config }) {
-    const limit = config.action.get('limit', 100);
-    if (services.todos.tasks.list().length >= limit) throw new Error('Task limit reached.');
-    services.todos.tasks.add(input);
-    return services.todos.tasks.list().length; // the caller receives this value
-  },
-});
-```
-
-What you return reaches the caller as `{ status: 'completed', value }`. With an explicit input type, also name the result type, as in `defineAction<string, number>`; with a schema both are inferred. Throwing makes the run fail: the status becomes `failed`, the snapshot's `error` holds the error and the caller's promise rejects. `execute` may be async; `pending` is set only while a returned promise is open. An action without `execute`, `href` or `dialog` is skipped with the reason `no-handler`.
-
-### `concurrency`
-
-What happens when the action is executed while it is already running:
-
-| Value         | Behavior                                                                                   |
-| ------------- | ------------------------------------------------------------------------------------------ |
-| `'exclusive'` | Default. The second run is skipped with the reason `pending`; every binding shows pending. |
-| `'per-input'` | Each input runs and shows pending separately, for example one row of a table at a time.    |
-| `'latest'`    | The previous run's `signal` aborts and the new run proceeds, for searches and autosave.    |
-
-`concurrencyKey: (input) => string` identifies inputs that are objects.
-
-### `confirm`
-
-Asks before running, through the host's confirmation dialog:
-
-```ts
-// src/plugins/todos/actions/clear.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction({
-  title: 'Clear all',
-  variant: 'destructive',
-  confirm: ({ services }) => ({
-    title: 'Remove every task?',
-    description: `${services.todos.tasks.list().length} tasks will be deleted.`,
-    destructive: true,
-  }),
-  execute: ({ services }) => services.todos.tasks.clear(),
-});
-```
-
-A string is a title without description; a function may return `false` to skip the question. Declining skips the run with the reason `cancelled`. The action shows pending while the question is open.
-
-### `requires`
-
-Lists services from **other** plugins that the action uses:
-
-```ts
-// src/plugins/reports/actions/export.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction({
-  title: 'Export report',
-  // The tasks service belongs to another plugin, so declare it.
-  requires: ['todos.tasks'],
-  execute: ({ services }) =>
-    services.todos.tasks
-      .list()
-      .map((task) => task.title)
-      .join('\n'),
-});
-```
-
-At startup the app checks that each listed service exists. If one is missing, startup fails with an error that names this action and suggests close names; in development the plugin is turned off instead and a dialog explains why. A service that is not listed still fails clearly, but only when the action first reads it. Services of the action's own plugin need no entry.
-
-### `success` and `failure`
-
-Messages after a run. The defaults: success is silent, a failure shows one message:
-
-```ts
-// src/plugins/todos/actions/add.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<string>({
-  title: 'Add task',
-  execute: ({ services, input }) => services.todos.tasks.add(input),
-  success: ({ input }) => `Added "${input}"`,
-  failure: 'Could not add the task.',
-});
-```
-
-Each accepts:
-
-| Value                             | Meaning                                                                                                                                                                               |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| omitted                           | The `<id>.success` or `<id>.failure` catalog key when the catalog has it; otherwise silent success, and for failures the error message in development or a generic text in production |
-| `'Text'`                          | The text; it is tried as a translation key first                                                                                                                                      |
-| `{ messageKey, values }`          | A translation key with values, for example `{ messageKey: 'todos.added', values: { title: input } }`                                                                                  |
-| `{ message, closeDialog: false }` | Text that keeps a dialog open                                                                                                                                                         |
-| `false`                           | No message                                                                                                                                                                            |
-| a function                        | Receives `{ result, input, services }` or `{ error, input, services }` and returns one of the above                                                                                   |
-
-Messages go to your provider's `notify(message, kind)` callback, for example a toast; Shell supplies one. Bindings also receive the failure as an `ActionFailure` in `onError`: its `message` is the failure text and its `cause` the original error. Messages never change the outcome of a run.
-
-## Navigation and dialogs
-
-### Navigation actions
-
-An action with `href` is a link:
-
-```ts
-// src/plugins/todos/actions/open.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction({ title: 'Tasks', href: '/todos', groups: ['navigation'] });
-```
-
-`href` must be a path starting with `/`, a `#hash` or an `http(s)` URL without credentials; anything else is rejected when the action is registered. `<Action>` renders it as a real link through the app's router, so open-in-new-tab and copy-link work; running it from code navigates. `groups: ['navigation']` adds it to the app's navigation. The route itself is a plugin page (`ui/pages/index.tsx`) or a normal framework route; a navigation action does not create it. `href` may be a function of the input: ``href: ({ input }) => `/todos/tasks/${input}` ``.
-
-### Dialog actions
-
-An action with `dialog` opens a component in the shared dialog instead of running `execute`:
+Replace `src/plugins/counter/ui/pages/index.tsx` with:
 
 ```tsx
-// src/plugins/todos/ui/dialogs/task-details.tsx
 'use client';
+import { Action, useServiceState } from '@bitakit/ui';
+import { Button, PageHeader } from '@bitakit/ui/components';
 
-export function TaskDetails({ input, close }: { input: number; close(): void }) {
+export default function CounterPage() {
+  const count = useServiceState('counter.value', (state) => state.count, 0);
   return (
-    <div>
-      <p>Task {input}</p>
-      <button type="button" onClick={close}>
-        Close
-      </button>
-    </div>
-  );
-}
-```
-
-```ts
-// src/plugins/todos/actions/details.ts
-import { defineAction } from '@bitakit/core';
-import { TaskDetails } from '../ui/dialogs/task-details';
-
-export default defineAction<number>({
-  title: 'Task details',
-  dialog: TaskDetails,
-  dialogSize: 'wide',
-});
-```
-
-The component receives `{ input, close, services }` and runs its own logic, for example an ordinary action through `useAction`. The dialog shows the action's title and description; only one is open at a time. Bind it like any action: `<Action id="todos.details" input={task.id}><Button /></Action>`. An action opens a dialog or runs `execute`, not both.
-
-## Keyboard
-
-### `shortcut`
-
-```ts
-// src/plugins/todos/actions/add.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<string>({
-  title: 'Add task',
-  shortcut: { keys: 'Mod+Shift+N', input: 'New task' },
-  execute: ({ services, input }) => services.todos.tasks.add(input),
-});
-```
-
-| Field           | Meaning                                                                                                                       |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `keys`          | [TanStack Hotkeys](https://tanstack.com/hotkeys/latest/docs/overview) syntax; `Mod` is Command on macOS and Control elsewhere |
-| `input`         | Passed when the shortcut runs; required when the input type does not allow `undefined`                                        |
-| `scope`         | The shortcut works only while the provider activates this scope; default `global`                                             |
-| `allowInInputs` | Also run while typing in an input, textarea, select or editable element; off by default                                       |
-
-Shortcuts work without a rendered button and use the same guarded execution: nothing happens while the action is hidden, disabled or running. If two actions use the same keys, the first keeps them and the conflict is reported to `onError`. Menu items show the keys automatically; elsewhere use `<ActionShortcutLabel keys="Mod+Shift+N" />` from `@bitakit/ui`.
-
-A scoped shortcut needs its scope activated on the provider: `<BitaKitProvider actionOptions={{ shortcuts: { scopes: ['global', 'editor'] } }}>`.
-
-## Toggles and choices
-
-### `checked`
-
-The state of a toggle. Keep the state in a service; the action reads it and the control changes it:
-
-```ts
-// src/plugins/todos/actions/show-done.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<boolean>({
-  title: 'Show completed',
-  checked: ({ services }) => services.todos.tasks.state.get().showDone,
-  execute: ({ services, input }) => services.todos.tasks.setShowDone(input),
-});
-```
-
-```tsx
-<Action id="todos.show-done" kind="toggle">
-  <Switch />
-</Action>
-```
-
-With `kind="toggle"` the child receives `checked`, `disabled`, `aria-label` and `onCheckedChange(value)`, which fits shadcn's `Checkbox` and `Switch`; `onCheckedChange` runs the action with the new value. A button (`kind="button"`) exposes `checked` as `aria-pressed` instead.
-
-### `value`
-
-The selected value of a choice:
-
-```ts
-// src/plugins/todos/actions/sort.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<'newest' | 'title'>({
-  title: 'Sort by',
-  value: ({ services }) => services.todos.tasks.state.get().sort,
-  execute: ({ services, input }) => services.todos.tasks.setSort(input),
-});
-```
-
-```tsx
-<Action id="todos.sort" kind="choice">
-  <RadioGroup>
-    <RadioGroupItem value="newest" /> Newest first
-    <RadioGroupItem value="title" /> Title
-  </RadioGroup>
-</Action>
-```
-
-With `kind="choice"` the child receives `value`, `disabled` and `onValueChange(value)`, which fits shadcn's `RadioGroup` and `Select`.
-
-## Other properties
-
-### `metadata`
-
-Your own data. Core stores it unchanged and never reads it; a custom renderer decides what it means. Read it from `useAction(id)?.metadata`.
-
-### `internal`
-
-`internal: true` keeps a helper action out of `useActions`, menus, groups, shortcuts and typed references:
-
-```ts
-// src/plugins/todos/actions/import.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<string[]>({
-  internal: true, // run from code only
-  execute: ({ services, input }) => input.forEach((title) => services.todos.tasks.add(title)),
-});
-```
-
-Run it by ID through the action list: `useActionList().execute('todos.import', ['Buy milk'])`.
-
-## Groups
-
-Put related actions under one name with `groups: ['todos.bulk']`. A group only groups. Components read it and decide how to show it: `ActionMenu` as a dropdown, the app's navigation as a sidebar, search as a heading. [Action groups](/docs/concepts/action-groups) explains titles, which components use groups, and order and separators.
-
-## Forms
-
-A form collects values and an action receives them as input. The form can sit on a page, in a dialog or inside a larger form; the action stays the same. Build the form with your form library and run an ordinary action with the validated values. This example uses react-hook-form and zod; any form library works the same way.
-
-```ts
-// src/plugins/todos/schema.ts
-import { z } from 'zod';
-
-export const taskSchema = z.object({
-  title: z.string().trim().min(1, 'Enter a title.'),
-});
-export type TaskInput = z.infer<typeof taskSchema>;
-```
-
-```ts
-// src/plugins/todos/actions/create.ts
-import { defineAction } from '@bitakit/core';
-import { taskSchema } from '../schema';
-
-export default defineAction({
-  title: 'Create task',
-  // Actions also run from code and shortcuts, so the action validates too.
-  input: taskSchema,
-  execute: ({ services, input }) => services.todos.tasks.add(input.title),
-});
-```
-
-```tsx
-// src/plugins/todos/ui/task-form.tsx
-'use client';
-
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useAction } from '@bitakit/ui';
-import { taskSchema, type TaskInput } from '../schema';
-
-export function TaskForm({ onCreated }: { onCreated?: () => void }) {
-  const create = useAction('todos.create');
-  const form = useForm<TaskInput>({
-    resolver: zodResolver(taskSchema),
-    defaultValues: { title: '' },
-  });
-  const [error, setError] = useState<string>();
-
-  const submit = form.handleSubmit(async (values) => {
-    setError(undefined);
-    try {
-      const outcome = await create?.execute(values);
-      if (outcome?.status !== 'completed') return;
-      form.reset();
-      onCreated?.();
-    } catch (failure) {
-      // The values stay in the form, so the user can correct them and retry.
-      setError(failure instanceof Error ? failure.message : 'Could not create the task.');
-    }
-  });
-
-  if (!create?.visible) return null;
-  const titleError = form.formState.errors.title?.message;
-
-  return (
-    <form onSubmit={submit} noValidate>
-      <label htmlFor="task-title">Title</label>
-      <input id="task-title" aria-invalid={Boolean(titleError)} {...form.register('title')} />
-      {titleError && <p role="alert">{titleError}</p>}
-      {error && <p role="alert">{error}</p>}
-      <button type="submit" disabled={create.disabled} aria-busy={create.pending || undefined}>
-        {create.title}
-      </button>
-    </form>
-  );
-}
-```
-
-What you get: no popup; the validated values are the action's input; while the action runs, `create.pending` disables the button and a second submit is skipped; a failure rejects `execute`, the form shows the message and keeps the values; it resets only after a `completed` outcome. For a section of a larger form, do not nest `<form>` elements: validate the section's fields (react-hook-form's `trigger`) and run the section's action from a `type="button"`.
-
-A dialog is an optional host. Render the same form in a [dialog action](#dialog-actions): `defineAction({ title: 'New task', dialog: TaskFormDialog })`, where the dialog component renders `<TaskForm onCreated={close} />`.
-
-## Bindings
-
-### How binding works
-
-A binding connects a control to an action by ID. It never copies the action:
-
-1. **Register.** At startup each action is registered once in the app's action list. Each registration has a live snapshot: its registered values plus `enabled`, `visible`, `pending`, `status` and `error`.
-2. **Subscribe.** A binding looks up the action by ID or typed reference and re-renders when the snapshot changes: after a store change, `update`, or a language switch.
-3. **Resolve.** The binding evaluates the function-valued properties and the schema with its own input. That is why one registration can serve every row of a table.
-4. **Run.** Activating the control calls `execute(id, input)` on the action list. The executor checks again that the action exists, is visible, enabled, not running and has a handler; then interceptors and `confirm` run, then your `execute`. While it runs, `pending` is `true` and bindings disable themselves.
-5. **Finish.** The status becomes `succeeded` or `failed`. Success feedback goes to `notify`; a failure goes to the binding's `onError`.
-
-All bindings come from `@bitakit/ui` and must be rendered inside your app's provider. A binding of a missing or hidden action renders nothing.
-
-### `<Action>`
-
-Binds an action to any component:
-
-```tsx
-// src/plugins/todos/ui/toolbar.tsx
-'use client';
-
-import { Action } from '@bitakit/ui';
-import { Button } from '@bitakit/ui/components';
-
-export function Toolbar({ draft }: { draft: string }) {
-  return (
-    <div>
-      {/* An empty child gets the icon and title. */}
-      <Action id="todos.add" input={draft}>
+    <>
+      <PageHeader title="Counter" />
+      <output>{count}</output>
+      <Action id="counter.increment">
         <Button />
       </Action>
-
-      {/* Your own content and props; variant, size and className pass through. */}
-      <Action id="todos.clear" onError={(error) => console.warn(error)}>
-        <Button variant="destructive" size="sm">
-          Clear
-        </Button>
-      </Action>
-
-      {/* A render function for full control. */}
-      <Action id="todos.add" input={draft}>
-        {(add) => <button {...add.props()}>{add.pending ? 'Adding…' : add.title}</button>}
-      </Action>
-    </div>
+    </>
   );
 }
 ```
 
-| Prop         | Meaning                                                                                                           |
-| ------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `id`         | Action ID or typed reference                                                                                      |
-| `input`      | Passed to the function-valued properties, the schema and `execute`                                                |
-| `kind`       | `button`, `link`, `toggle`, `choice` or `menuItem`; default `link` for actions with an `href`, otherwise `button` |
-| `onError`    | Receives failures; default is the provider's `onError` (`console.error`)                                          |
-| `onExecuted` | Receives the outcome after a run, for example to clear a draft                                                    |
-| `pending`    | Rendered inside the child while the action runs, after its content                                                |
-| `children`   | One element, or a function receiving the control                                                                  |
+Click **Increment**. The number increases. The button gets its label and execution behavior
+from the Action; it needs no separate click handler.
 
-The generated props are merged into the child: handlers are chained, class names joined and `disabled` combined. A button receives `type="button"`, `disabled`, `aria-busy`, `aria-pressed` from `checked` and the tooltip (or description) as hover text. A link receives `href`, `aria-disabled` and client-side navigation for internal paths; a plain `<a>` child is swapped for the router's link component.
+You now have a complete feature: one page, one service and one Action.
 
-`ActionButton` and `ActionLink` are sugar on top of `<Action>`: `<ActionButton action="todos.add" input={draft} as={Button} variant="outline">Add</ActionButton>` and `<ActionLink action="todos.open" />`.
+<Diagram name="action-bindings" />
 
-### `useAction`
+## 3. Add one rule when needed
 
-The control for one action, for full control or your own component:
+To cap this demonstration at 10, add `enabled` to the same Action:
 
-```tsx
-// src/plugins/todos/ui/add-with-status.tsx
-'use client';
-
-import { ActionStatus, useAction } from '@bitakit/ui';
-
-export function AddWithStatus({ draft }: { draft: string }) {
-  const add = useAction('todos.add', draft);
-  if (!add?.visible) return null;
-
-  return (
-    <button {...add.props()}>
-      {add.title}
-      {add.status === ActionStatus.Failed && ' (failed, try again)'}
-    </button>
-  );
-}
+```ts
+export default defineAction({
+  title: 'Increment',
+  enabled: ({ services }) => services.counter.value.state.get().count < 10,
+  execute: ({ services }) => services.counter.value.increment(),
+});
 ```
 
-`useAction(action, input?)` returns `undefined` for an unknown ID. The result has the resolved state for `input` (`title`, `description`, `tooltip`, `icon`, `href`, `variant`, `checked`, `value`, `shortcut`, `enabled`, `visible`, `pending`, `disabled`, `status`, `error`, `metadata`), `execute(input?)`, which returns the [outcome](#execution-status-and-outcomes) and rejects when the run fails, and prop getters to spread on any component:
+Keep the existing import. Every binding updates as the store changes; at 10 the button is disabled.
+This optional example is a UI/execution rule, not server authorization.
 
-| Getter            | Props                                                               | Fits                     |
-| ----------------- | ------------------------------------------------------------------- | ------------------------ |
-| `props()`         | `type`, `disabled`, `aria-busy`, `aria-pressed`, `title`, `onClick` | Buttons                  |
-| `linkProps()`     | `href`, `aria-disabled`, `tabIndex`, `onClick`                      | Anchors and router links |
-| `checkedProps()`  | `checked`, `disabled`, `aria-label`, `onCheckedChange`              | Checkbox, Switch         |
-| `valueProps()`    | `value`, `disabled`, `onValueChange`                                | RadioGroup, Select       |
-| `menuItemProps()` | `disabled`, `aria-busy`, `title`, `variant`, `onSelect`             | Dropdown menu items      |
+### The Action loop
 
-Every getter accepts `{ onError, onExecuted }`. The provider's `controls` option renames props for libraries with other conventions, for example `{ button: (state) => ({ isDisabled: state.disabled }) }`.
+The same loop works for a delete button, menu item or shortcut. In this example, removing a
+task changes the service store; the Action's `enabled` function is re-evaluated and every
+bound control reads the new state.
 
-### `useActionGroup` and `ActionMenu`
+<figure data-doc-action-loop="">
+  <img className="dark:hidden" src="/diagrams/action-loop-light.svg" width="880" alt="Five steps: UI executes an Action, the Action calls a service, the service updates its store, enabled is re-evaluated, and bound UI receives the new state." />
+  <img className="hidden dark:block" src="/diagrams/action-loop-dark.svg" width="880" alt="Five steps: UI executes an Action, the Action calls a service, the service updates its store, enabled is re-evaluated, and bound UI receives the new state." />
+  <figcaption>The numbered arrows show execution and the return path to the UI. Validation, guards and interceptors still apply; this diagram focuses on state updates.</figcaption>
+</figure>
 
-```tsx
-import { ActionMenu, useActionGroup } from '@bitakit/ui';
+## Choose where an Action appears
 
-<ActionMenu group="todos.bulk" label="Bulk actions" />;
+With Shell installed, use `slots: ['shell.navigation']` for navigation or `slots: ['shell.toolbar']`
+for standard controls in the header toolbar. Shell renders the bound button or link for you.
+Component regions instead
+render a widget that binds the same Action. Select a destination below: the highlighted link
+shows the result, and the code shows exactly which file to create under `src/plugins/`.
 
-function RowActions({ task }: { task: Task }) {
-  const row = useActionGroup('todos.row', task.id);
-  return row.items.map((item) => (
-    <button key={item.id} {...item.props()}>
-      {item.title}
-    </button>
-  ));
-}
-```
+<SlotIllustration />
 
-`useActionGroup(group, input?)` returns the group's visible actions as controls bound to `input`, sorted by `order` then ID. `ActionMenu` renders a group with your app's menu component. See [Action groups](/docs/concepts/action-groups).
+Header start/end follow reading direction. The sidebar footer is available in the sidebar
+layout; it is separate from the app footer. An attached contribution only appears where its
+owner mounts an outlet. See [Layouts and regions](/docs/reference/layouts) for the full map.
 
-### `ActionBoundary`
+For an operation instead of a URL link, use `execute` in the Action and `ActionButton` inside
+the widget. Keep execution in the Action. To offer a destination in your own component,
+[define and render a slot](/docs/concepts/slots#4-use-a-different-slot-for-custom-ui).
 
-Renders its children while the action is enabled, nothing while it is hidden, and otherwise a fallback: `<ActionBoundary action="todos.share" fallback={<p>Sharing is not configured.</p>}>…</ActionBoundary>`. It is a UI gate, not authorization.
+**Next:** [Let plugins contribute to a toolbar →](/docs/concepts/slots)
 
-### Typed references
+## Later: choose the option you need
 
-`app.actions` mirrors the action IDs: `app.actions.todos.add` is a typed reference to the action `todos.add`. Use it in a binding (`<Action id={app.actions.todos.add} input="Buy milk">`) or from code (`await app.actions.todos.add.execute('Buy milk')`). A misspelled reference is a compile error; a misspelled string ID is one too in generated apps, where strict action IDs are on. IDs with dashes use brackets: `app.actions.todos['show-done']`. Outside React, use `runtime.actions.execute('todos.add', 'Buy milk')`; in plugin tests, `mountPlugin(...).execute('add', 'Buy milk')` from `@bitakit/core/testing`.
+| Need                                        | Read                                                     |
+| ------------------------------------------- | -------------------------------------------------------- |
+| Pass a value into an Action                 | [Input](/docs/reference/actions#input)                   |
+| Navigate to a page                          | [Navigation](/docs/reference/actions#navigation-actions) |
+| Ask before a destructive operation          | [Confirmation](/docs/reference/actions#confirm)          |
+| Handle pending work or concurrent execution | [Concurrency](/docs/reference/actions#concurrency)       |
+| Bind a menu, toggle or custom control       | [Bindings](/docs/reference/actions#bindings)             |
+| Look up every property                      | [Action reference](/docs/reference/actions)              |
 
-### `useActions`
-
-All public action snapshots, for lists such as a command palette: `Object.values(useActions()).filter((action) => action.visible)`. These snapshots have no input; use `useAction(id, input)` for input-specific state. `useActions({ internal: true })` includes internal actions.
-
-### Actions are files
-
-An action that belongs to a feature is a file in `actions/`. A truly component-local operation is an ordinary event handler. If a component-owned operation must be an action anyway (for a shortcut or a menu), register it in an effect through `useActionList().register({ id, title, execute })` and call the returned `unregister` on cleanup; these low-level definitions have no `services` or `config` context.
-
-## Execution status and outcomes
-
-The snapshot's `status` describes the last run of a registration:
-
-| Status                   | Meaning                                     |
-| ------------------------ | ------------------------------------------- |
-| `ActionStatus.Idle`      | Not run since it was registered             |
-| `ActionStatus.Pending`   | Running; `pending` is `true`                |
-| `ActionStatus.Succeeded` | The last run finished; `error` is cleared   |
-| `ActionStatus.Failed`    | The last run threw; `error` holds the error |
-
-Running an action resolves to an outcome:
-
-| Outcome                          | Meaning                                         |
-| -------------------------------- | ----------------------------------------------- |
-| `{ status: 'completed', value }` | It ran; `value` is what `execute` returned      |
-| `{ status: 'skipped', reason }`  | It did not run; status and error stay unchanged |
-| rejected promise                 | `execute` threw, or the input failed validation |
-
-Skip reasons: `missing` (unknown ID), `hidden`, `disabled`, `pending` (already running), `no-handler`, `intercepted` (an [interceptor](/docs/concepts/interceptors) refused), `cancelled` (the confirmation was declined) and `replaced` (the registration changed while starting). Bindings handle all three outcomes for you; when you call `execute` yourself, check the outcome and catch failures.
-
-## Identity
-
-The ID is the action's name. Bindings, shortcuts, overrides and tests refer to the action by its ID. With discovery, the plugin folder and the file path build it:
-
-| File                                       | ID                  |
-| ------------------------------------------ | ------------------- |
-| `src/plugins/todos/actions/add.ts`         | `todos.add`         |
-| `src/plugins/todos/actions/tasks/clear.ts` | `todos.tasks.clear` |
-| `src/actions/reset.ts` (app action)        | `reset`             |
-
-Moving or renaming the file renames the action; `bitakit doctor` and the type check point at every stale ID. An ID starts with a letter or digit and may contain letters, digits, `.`, `_`, `:`, `/` and `-`. It is unique in the app: registering the same ID twice fails at startup with both sources. Without discovery ([manual composition](/docs/concepts/manual-composition)) the record key or `id` supplies the name.
-
-Translation keys (`<id>.title`, `<id>.success`, …) and the action's config scope (`configs/actions/<action>.ts`) follow the same path. See [type safety](/docs/concepts/type-safety) for typed IDs and inputs and [overrides](/docs/concepts/overrides) for capping actions from the app.
+Set these options only when the operation needs them. They are not part of the minimal Action definition.

@@ -1,7 +1,13 @@
 import { readdir, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
-import { describeFoundation, cssImports } from '@bitakit/discovery';
+import {
+  describeFoundation,
+  describeModule,
+  describeDefinitions,
+  cssImports,
+  navigationPlacement,
+} from '@bitakit/discovery';
 import { exists, findProject } from './project.mjs';
 import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
 
@@ -17,6 +23,26 @@ export async function doctor({ cwd } = {}) {
   const results = [await checkVersions(project), await checkCopies(project)];
   if (project.kind === 'plugin') {
     results.push(checkPluginPackage(project));
+    try {
+      if (!(await exists(project.moduleRoot))) return { project, results };
+      const module = await describeModule(project.moduleRoot);
+      const info = await describeDefinitions(module.slotDefinitions, {
+        helper: 'defineSlot',
+        moduleId: project.pluginId,
+        properties: ['accepts', 'policy'],
+      });
+      results.push(
+        checkSlots({
+          app: { ...module, slots: [] },
+          plugins: [],
+          slots: [],
+          slotDeclarations: info.definitions,
+          unresolvedSlots: info.unresolved,
+        }),
+      );
+    } catch (error) {
+      results.push({ status: 'error', title: 'Slot discovery failed', details: [error.message] });
+    }
     return { project, results };
   }
   if (project.configError) {
@@ -69,6 +95,24 @@ export async function doctor({ cwd } = {}) {
   results.push(...checkGraph(description));
   results.push(await checkStyles(project, description));
   results.push(checkIgnored(description), checkDeprecated(description), checkSlots(description));
+  if (shell) {
+    const missing = [];
+    for (const module of modules)
+      for (const entry of module.actions) {
+        const source = await readFile(path.join(project.root, entry.file), 'utf8');
+        for (const issue of navigationPlacement(source).missing)
+          missing.push(
+            `${entry.file}:${issue.line}: navigation group has no explicit slot placement.`,
+          );
+      }
+    if (missing.length)
+      results.push({
+        status: 'warn',
+        title: 'Navigation Actions still rely on groups',
+        details: missing,
+        fix: 'Choose the intended owner slot. For the default Shell run bitakit migrate --navigation-slot shell.navigation --dry-run, review it, then apply. Logical groups alone do not place UI.',
+      });
+  }
   return { project, results };
 }
 
@@ -260,13 +304,17 @@ async function mountsProvider(file, root, seen = new Set()) {
   const imports = new Map();
   const rendered = new Set();
   for (const statement of tree.statements) {
-    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier))
+      continue;
     const from = statement.moduleSpecifier.text;
     const clause = statement.importClause;
     if (clause?.name) imports.set(clause.name.text, { from, name: 'default' });
     if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings))
       for (const binding of clause.namedBindings.elements)
-        imports.set(binding.name.text, { from, name: binding.propertyName?.text ?? binding.name.text });
+        imports.set(binding.name.text, {
+          from,
+          name: binding.propertyName?.text ?? binding.name.text,
+        });
   }
   const visit = (node) => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node))
@@ -277,12 +325,25 @@ async function mountsProvider(file, root, seen = new Set()) {
   for (const name of rendered) {
     const entry = imports.get(name);
     if (!entry) continue;
-    if (['BitaKitProvider', 'FoundationProvider'].includes(entry.name) &&
-      /bitakit\.gen|^@bitakit\/(?:ui|next|tanstack)$/.test(entry.from)) return true;
-    const base = entry.from.startsWith('@/') ? path.join(root, 'src', entry.from.slice(2))
-      : entry.from.startsWith('.') ? path.resolve(path.dirname(file), entry.from) : undefined;
+    if (
+      ['BitaKitProvider', 'FoundationProvider'].includes(entry.name) &&
+      /bitakit\.gen|^@bitakit\/(?:ui|next|tanstack)$/.test(entry.from)
+    )
+      return true;
+    const base = entry.from.startsWith('@/')
+      ? path.join(root, 'src', entry.from.slice(2))
+      : entry.from.startsWith('.')
+        ? path.resolve(path.dirname(file), entry.from)
+        : undefined;
     if (!base) continue;
-    for (const target of [base, `${base}.tsx`, `${base}.ts`, `${base}.jsx`, `${base}.js`, path.join(base, 'index.tsx')]) {
+    for (const target of [
+      base,
+      `${base}.tsx`,
+      `${base}.ts`,
+      `${base}.jsx`,
+      `${base}.js`,
+      path.join(base, 'index.tsx'),
+    ]) {
       if (await mountsProvider(target, root, seen)) return true;
     }
   }
@@ -642,9 +703,12 @@ async function checkStyles(project, description) {
   if (!description.styles.length) return { status: 'ok', title: 'No package styles to import' };
   const visited = new Set();
   const generated = path.resolve(project.root, description.appDirectory, 'bitakit.gen.css');
-  const resolveLocal = (specifier, from) => specifier.startsWith('@/')
-    ? path.resolve(project.root, 'src', specifier.slice(2))
-    : specifier.startsWith('.') ? path.resolve(path.dirname(from), specifier) : undefined;
+  const resolveLocal = (specifier, from) =>
+    specifier.startsWith('@/')
+      ? path.resolve(project.root, 'src', specifier.slice(2))
+      : specifier.startsWith('.')
+        ? path.resolve(path.dirname(from), specifier)
+        : undefined;
   async function followsGenerated(file) {
     if (file === generated) return true;
     if (!file || visited.has(file)) return false;
@@ -665,14 +729,22 @@ async function checkStyles(project, description) {
         const value = node.moduleSpecifier.text.replace(/\?url$/, '');
         if (!value.endsWith('.css')) continue;
         const entry = resolveLocal(value, file);
-        if (await followsGenerated(entry)) return {
-          status: 'ok', title: `Package styles are imported in ${path.relative(project.root, entry)}`,
-          details: ['Static root import graph verified. Rendered cascade, spacing and contrast require browser verification.'],
-        };
+        if (await followsGenerated(entry))
+          return {
+            status: 'ok',
+            title: `Package styles are imported in ${path.relative(project.root, entry)}`,
+            details: [
+              'Static root import graph verified. Rendered cascade, spacing and contrast require browser verification.',
+            ],
+          };
       }
     }
   } catch (error) {
-    return { status: 'error', title: 'The root stylesheet could not be parsed', details: [error.message] };
+    return {
+      status: 'error',
+      title: 'The root stylesheet could not be parsed',
+      details: [error.message],
+    };
   }
   const target = project.framework === 'tanstack' ? 'src/styles.css' : 'src/app/globals.css';
   const relative = path.relative(
@@ -708,13 +780,44 @@ function checkIgnored(description) {
 /** A slot file nobody renders is a silent no-op; layouts declare the slots they render. */
 function checkSlots(description) {
   const declared = new Set(description.slots ?? []);
+  const contracts = new Map();
+  const duplicates = [];
+  for (const entry of description.slotDeclarations ?? []) {
+    if (contracts.has(entry.id))
+      duplicates.push(
+        `Duplicate slot "${entry.id}": ${contracts.get(entry.id).file} and ${entry.file}.`,
+      );
+    else contracts.set(entry.id, entry);
+    declared.add(entry.id);
+  }
+  if (duplicates.length)
+    return {
+      status: 'error',
+      title: 'Duplicate slot declarations',
+      details: duplicates,
+      fix: 'Keep one owning definition per canonical slot ID; flat and nested forms are alternatives.',
+    };
   const problems = [];
-  for (const module of [description.app, ...description.plugins])
+  for (const module of [
+    description.app,
+    ...description.plugins.filter((item) => item.enabled !== false),
+  ])
     for (const slot of module.slots ?? [])
       if (!declared.has(slot.path))
         problems.push(
           `${slot.file} targets slot "${slot.path}", which no installed layout declares.`,
         );
+      else if (
+        contracts.get(slot.path)?.accepts &&
+        contracts.get(slot.path).accepts !== 'component'
+      )
+        problems.push(
+          `${slot.file} contributes a component to "${slot.path}", whose contract accepts ${contracts.get(slot.path).accepts}.`,
+        );
+  if (description.unresolvedSlots?.length)
+    problems.push(
+      `Static inspection cannot resolve slot definitions in: ${description.unresolvedSlots.join(', ')}. Runtime normalization and typechecking remain authoritative.`,
+    );
   if (!problems.length)
     return {
       status: 'ok',
@@ -724,9 +827,9 @@ function checkSlots(description) {
     };
   return {
     status: 'warn',
-    title: `${plural(problems.length, 'slot file')} target${problems.length === 1 ? 's' : ''} an undeclared slot`,
+    title: `${plural(problems.length, 'slot contract issue')} need review`,
     details: problems,
-    fix: 'Use a slot the layout renders, or list the slot under "slots" in bitakit.config.ts when your own layout renders it.',
+    fix: 'Declare the owner contract with defineSlot in slots/. ui/slots/ contributes components; Action slots must reference declared action contracts. Legacy bitakit.config.ts slots are name hints only.',
   };
 }
 function checkDeprecated(description) {

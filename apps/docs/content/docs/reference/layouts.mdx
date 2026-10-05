@@ -1,0 +1,239 @@
+---
+title: Layouts and regions
+description: Start with one header widget, then compose rows, drawers and full-page layouts.
+---
+
+These examples assume the Shell plugin is installed and the host renders `<AppShell>`.
+Keep using the host's central components and theme.
+
+## Put an Action in the toolbar
+
+Create `src/plugins/notes/actions/add.ts`:
+
+```ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  title: 'Add note',
+  slots: ['shell.toolbar'],
+  execute: () => console.log('Add a note'),
+});
+```
+
+Shell renders a standard button in the trailing header area, before `shell.header.end`, in
+both sidebar and navbar layouts. An Action with `href` renders as a native link. No widget
+file is needed. This example logs a message; a real Action calls the feature's service.
+
+## 1. Add one header widget
+
+Create `src/plugins/example/ui/slots/shell.header.end.tsx`:
+
+```tsx
+export default function ExampleLink() {
+  return <a href="/example">Your action</a>;
+}
+```
+
+The link appears at the end of the header, in both sidebar and navbar layouts.
+To place it at the other side, use `shell.header.start.tsx` instead.
+
+<SlotIllustration />
+
+## 2. Add another header row
+
+Create `src/plugins/project/ui/slots/shell.header.rows.tsx`:
+
+```tsx
+import { AppShell } from '@bitakit/shell';
+
+export default function ProjectRow() {
+  return <AppShell.HeaderRow id="project" start="Current project" />;
+}
+```
+
+A row is an ordinary ordered widget. Add `export const order = 20` only if its order matters.
+Each mounted row must have a distinct ID. An empty row renders nothing.
+
+A second plugin can extend just this row:
+
+```tsx
+// sync/ui/slots/shell.header.row.end.tsx
+import type { SlotPredicate } from '@bitakit/core';
+
+export const when: SlotPredicate<'shell.header.row.end'> = ({ payload }) =>
+  payload.rowId === 'project';
+
+export default function SyncStatus() {
+  return <span>Saved</span>;
+}
+```
+
+## 3. Place navigation or an Action
+
+For a native navigation item, add one property to a URL Action:
+
+```ts
+// counter/actions/open.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  title: 'Counter',
+  href: '/counter',
+  slots: ['shell.navigation'],
+});
+```
+
+The URL Action becomes a native link in `shell.navigation`. Groups do not choose a UI location.
+
+Component regions accept custom UI. Use the existing Action binding if that UI needs behavior:
+
+```tsx
+// counter/ui/slots/shell.header.end.tsx
+import { ActionButton } from '@bitakit/ui';
+export default function Increment() {
+  return <ActionButton action="counter.increment" />;
+}
+```
+
+For a second sidebar group, define an Action slot (for example `reports.navigation`),
+place Actions in it, then contribute this component to `sidebar.body`:
+
+```tsx
+import { AppShell } from '@bitakit/shell';
+export default function ReportsNavigation() {
+  return (
+    <AppShell.NavigationGroup id="reports" title="Reports" navigationSlot="reports.navigation" />
+  );
+}
+```
+
+This uses the same standard navigation renderer. The default group's ID is `main`.
+
+## 4. Compose a drawer
+
+```tsx
+import { AppShell } from '@bitakit/shell';
+import { Button } from '@bitakit/ui/components';
+
+<AppShell.Drawer id="activity" title="Activity" trigger={<Button>Activity</Button>}>
+  <p>Recent changes</p>
+</AppShell.Drawer>;
+```
+
+The existing Sheet owns keyboard focus, Escape, focus return and modality. `side="start"`
+selects the opposite logical edge; pass `dir="rtl"` or use the Radix direction context for RTL.
+Use one distinct `id` for each mounted drawer. Widgets receive `{ drawerId }`:
+
+```tsx
+// audit/ui/slots/shell.drawer.footer.tsx
+import type { SlotPredicate } from '@bitakit/core';
+export const when: SlotPredicate<'shell.drawer.footer'> = ({ payload }) =>
+  payload.drawerId === 'activity';
+export default function AuditLink() {
+  return <a href="/audit">View audit</a>;
+}
+```
+
+Without `when`, the widget intentionally appears in every drawer outlet. IDs scope context;
+they are not authorization. Protected content still belongs inside the owner's access boundary.
+
+## 5. Choose a layout
+
+| Need                                      | Use                                                           |
+| ----------------------------------------- | ------------------------------------------------------------- |
+| Navigation and header                     | `<AppShell>{children}</AppShell>`                             |
+| Shared page spacing, no navigation/header | `<AppShell.FullPage>{children}</AppShell.FullPage>`           |
+| Completely bare plugin page               | `export const layout = 'blank'`                               |
+| Custom named plugin-page layout           | `src/layouts/<name>.tsx` and `export const layout = '<name>'` |
+
+Create `src/layouts/full-page.tsx`:
+
+```tsx
+import { AppShell } from '@bitakit/shell';
+export default AppShell.FullPage;
+```
+
+A plugin page selects it with `export const layout = 'full-page'`.
+Native host routes compose the component directly. Layout selection does not replace the router.
+Each layout renders `children` once. Full-page supports `shell.content.before/after`; the other
+chrome regions have no outlet there. Attached content is not automatically visible in every layout.
+
+## 6. Change a shared part once
+
+The built-in framed and full-page layouts both use `ShellSurface`. Host replacements can
+share the same component too:
+
+```tsx
+// ui/layouts/shared-surface.tsx — define outside render
+import { ShellSurface } from '@bitakit/shell';
+import type { ReactNode } from 'react';
+export default function Surface({ children }: { children?: ReactNode }) {
+  return (
+    <ShellSurface>
+      <p>Workspace notice</p>
+      {children}
+    </ShellSurface>
+  );
+}
+```
+
+```tsx
+import Surface from './ui/layouts/shared-surface';
+const parts = { Surface }; // stable identity
+
+<AppShell components={parts}>{children}</AppShell>
+<AppShell.FullPage surface={Surface}>{children}</AppShell.FullPage>
+```
+
+These are alternative placements, not two wrappers around the same page. Existing `Sidebar`,
+`TopBar`, `Content` and `NavigationItem` replacements remain available; `Footer` is replaceable too.
+Replacing a part means owning its outlets. Keep the default part when adding a widget is enough.
+
+## Region reference
+
+All rows below accept **components**, use ordered **list** policy and are owned by Shell,
+except `shell.navigation` (Actions) and `shell.state.content` (keyed component selection).
+Definitions use the normal `defineSlot` / programmatic / flat-or-nested discovery mechanism.
+
+| Target                                | Context                       | Where                                                    |
+| ------------------------------------- | ----------------------------- | -------------------------------------------------------- |
+| `shell.brand`                         | None                          | Sidebar header or navbar start                           |
+| `shell.header.start/center/end`       | None                          | Main header areas                                        |
+| `shell.toolbar`                      | None                          | Standard Action buttons/links before `shell.header.end`  |
+| `app-bar.end`                         | None                          | Existing trailing region, before `shell.header.end`      |
+| `shell.header.rows`                   | None                          | Rows below the header                                    |
+| `shell.header.row.start/end`          | `{ rowId }`                   | A contributed `HeaderRow`                                |
+| `shell.navigation`                    | None                          | Default navigation Actions                               |
+| `shell.navigation.group.before/after` | `{ groupId }`                 | Existing sidebar groups                                  |
+| `sidebar.header/body/footer`          | `{ collapsed }`               | Sidebar sections; same sections inside its mobile drawer |
+| `shell.content.before/after`          | None                          | Shared page surface                                      |
+| `shell.footer`                        | None                          | App frame footer                                         |
+| `shell.drawer.header/body/footer`     | `{ drawerId }`                | A composed Drawer                                        |
+| `shell.state.content`                 | `{ surfaceId }`, matching key | Optional replacement message                             |
+| `shell.state.actions`                 | `{ surfaceId }`               | Optional additional recovery UI                          |
+
+Slash notation abbreviates **separate slot IDs**. Hiding/unmounting a region hides its contents;
+it does not stop the contributors. Empty optional rows/footer wrappers collapse. Dotted names do
+not create DOM nesting: the owning component chooses which child outlet to mount.
+
+## 7. Extend an empty or error surface
+
+Start with host-owned recovery that works even without BitaKit:
+
+```tsx
+import { ErrorPage } from '@bitakit/shell/pages';
+<ErrorPage reset={retry}>
+  <a href="/">Home</a>
+</ErrorPage>;
+```
+
+Set `content={<YourMessage />}` to replace the message through composition. Add `surfaceId="report"`
+only when plugin extensions are wanted. The Shell's optional `shell.state.actions` widget can
+then filter `payload.surfaceId === 'report'`. A `shell.state.content` widget also exports
+`key = 'report'` to select this occurrence. Duplicate keys are errors, not implicit overrides.
+
+The default message and host retry survive absent/stopped runtimes and failing extensions.
+The optional content can disappear when its owner stops. Keep essential recovery in the host,
+never solely inside the failing plugin. Access-denied surfaces must not reveal protected extensions.
+
+Settings owns its own region map: see [Settings extensions](/docs/reference/settings).

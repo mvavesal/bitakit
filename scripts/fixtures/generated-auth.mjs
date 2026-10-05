@@ -145,6 +145,18 @@ export async function verifyAuthStyles(page, url, artifacts, developmentTarget) 
   assert.notEqual(before.background, 'rgba(0, 0, 0, 0)');
   assert.notEqual(before.background, before.color);
   assert.ok(before.height >= 32);
+  assert.equal(
+    await page
+      .locator('.input-group')
+      .first()
+      .evaluate(
+        (element) =>
+          getComputedStyle(element).getPropertyValue('--field-shadow').trim() ===
+          getComputedStyle(document.documentElement).getPropertyValue('--field-shadow').trim(),
+      ),
+    true,
+    'Native field shadows keep the upstream default without a host override',
+  );
   const email = `fixture-${Date.now()}@example.test`;
   const response = await page.request.post(url + '/api/auth/sign-up/email', {
     headers: { origin: url },

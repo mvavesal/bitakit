@@ -65,6 +65,7 @@ export function adaptAction(
   host: ContributionHost,
   config: ConfigContext,
   events: Events,
+  available: () => boolean = () => true,
 ): Adapted {
   const override = host.override(resolved.id);
   // Only `false` caps apply to the definition; `true` never bypasses the action's own guards.
@@ -87,6 +88,8 @@ export function adaptAction(
       ? (value as (context: PresentationContext) => V)(context(input))
       : value;
   const resolve = (input: unknown): ActionPresentation => {
+    // A registered definition must not render or read its services before its owner is ready.
+    if (!available()) return { enabled: false, visible: false };
     const presentation: ActionPresentation = {};
     for (const key of dynamicKeys) {
       const value = definition[key];

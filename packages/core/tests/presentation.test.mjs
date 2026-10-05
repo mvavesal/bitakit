@@ -61,11 +61,11 @@ test('function-valued enabled follows store changes in snapshots and in bound re
     assert.equal(actions.resolve('demo.reset').enabled, false);
     off();
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('every presentation field except icon accepts a function of { input, services, config, app }', () => {
+test('every presentation field except icon accepts a function of { input, services, config, app }', async () => {
   const Icon = Symbol('icon');
   const runtime = createRuntime({
     configOverrides: { demo: { label: 'Counter' } },
@@ -120,11 +120,11 @@ test('every presentation field except icon accepts a function of { input, servic
     assert.equal(actions.get('demo.show').variant, 'destructive');
     assert.deepEqual(actions.resolve('demo.show', 1), actions.resolve('demo.show', 1));
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('observable services (anything with subscribe) refresh presentation like stores, including host services', () => {
+test('observable services (anything with subscribe) refresh presentation like stores, including host services', async () => {
   let user = null;
   const listeners = new Set();
   const auth = {
@@ -173,13 +173,13 @@ test('observable services (anything with subscribe) refresh presentation like st
     feedListeners.forEach((listener) => listener());
     assert.equal(runtime.actions.get('inbox').enabled, true);
   } finally {
-    stop();
+    await stop();
   }
   assert.equal(listeners.size, 0, 'host subscriptions are released on stop');
   assert.equal(feedListeners.size, 0);
 });
 
-test('configured action overrides cap dynamic presentation: false wins over any reactive result', () => {
+test('configured action overrides cap dynamic presentation: false wins over any reactive result', async () => {
   const runtime = createRuntime({
     actionOverrides: { 'demo.reset': { enabled: false }, 'demo.show': { visible: false } },
     plugins: [
@@ -204,11 +204,11 @@ test('configured action overrides cap dynamic presentation: false wins over any 
     assert.equal(actions.resolve('demo.reset').enabled, false);
     assert.equal(actions.get('demo.show').visible, false);
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('a throwing presentation function fails closed for the unbound snapshot and surfaces in bound reads', () => {
+test('a throwing presentation function fails closed for the unbound snapshot and surfaces in bound reads', async () => {
   const runtime = createRuntime({
     plugins: [
       definePlugin({
@@ -233,6 +233,6 @@ test('a throwing presentation function fails closed for the unbound snapshot and
     assert.equal(runtime.actions.resolve('demo.trim', '  ').enabled, false);
     assert.throws(() => runtime.actions.resolve('demo.trim', 1), TypeError);
   } finally {
-    stop();
+    await stop();
   }
 });

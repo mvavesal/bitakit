@@ -7,6 +7,7 @@ import { useFoundation } from '../providers/foundation-context.js';
 export function useFoundationApp<Plugins extends readonly Plugin[] | undefined = undefined>() {
   const { runtime } = useFoundation();
   useSyncExternalStore(runtime.subscribeReady, runtime.isReady, () => false);
+  useSyncExternalStore(runtime.lifecycle.subscribe, runtime.lifecycle.get, runtime.lifecycle.get);
   return runtime.app as unknown as FoundationApp<
     Plugins extends readonly Plugin[] ? PublicServicesOf<Plugins> : PublicServiceMap
   >;

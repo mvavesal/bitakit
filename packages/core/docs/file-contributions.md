@@ -90,7 +90,11 @@ Everything is optional. `entries` points a kind at another folder or file inside
 - **Slots** export a component placed in the slot named by the file (`ui/slots/app-bar.end.tsx`
   → `app-bar.end`); `export const order = 10` sorts within the slot. Layouts render a slot with
   `<PluginSlot name="app-bar.end" />`. Slot names a shell or `bitakit.config.ts` (`slots`)
-  declares are typed through `SlotMap`.
+  declares as contracts are typed through `SlotMap`; legacy name hints use `LegacySlotMap`.
+  Declared targets attach with wait by default and detach when the contributor closes. Files
+  may export `id`, `key` (required for keyed targets), `order` and `availability`. Hiding the
+  outlet does not remove the attachment. For programmatic contributions use scoped
+  `app.slots.attach`; Core never renders the component.
 - **Providers** export a React provider component wrapped around the app, ID
   `<plugin>.<file>`; `export const requires = ['other.query']` orders it after another one.
 - **Dialogs** are plain components an action references: `defineAction({ title: 'Rename', dialog: RenameDialog })`.
@@ -146,7 +150,7 @@ Discovery writes three files into the app directory; add `src/bitakit.gen.*` to 
 
 | File                            | Contents                                                                                                                                                                                  |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/bitakit.gen.tsx`           | `createBitaKitConfig()`, `BitaKitProvider` and the `ServiceMap`, `ActionMap`, `EventMap`, `CancelableEventMap`, `ConfigMap`, `SlotMap` augmentations (`.ts` without a framework provider) |
+| `src/bitakit.gen.tsx`           | `BitaKitProvider` only; configuration and type maps live in `src/bitakit.gen.config.ts` (`bitakit.gen.ts` without a framework provider) |
 | `src/bitakit.gen.css`           | `@import`s of installed package styles, dependencies first and theme last                                                                                                                 |
 | `src/bitakit.gen.messages.json` | Plugin locale catalogs, written only when a plugin has `locales/`                                                                                                                         |
 

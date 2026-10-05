@@ -27,3 +27,7 @@ export { SettingsOverview, type SettingsOverviewProps } from './components/setti
 export { PluginsOverview } from './components/plugins-overview.js';
 export { settingsCategories, type SettingsCategory } from './categories.js';
 export type { SettingsCatalogSection, SettingsCatalogField } from '@bitakit/ui';
+
+export { ScrollArea, ScrollBar } from './components/ui/scroll-area.js';
+
+export { settingsSlots } from './slots.js';

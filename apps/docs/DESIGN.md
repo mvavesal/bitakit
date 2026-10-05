@@ -40,3 +40,11 @@ neutral border. Reuse the upstream theme tokens for this match.
 
 Check article navigation, search, narrow layouts and both themes in the rendered site
 when these surfaces change. A successful build alone does not verify their appearance.
+
+## Explanatory examples
+
+The user requested theme-aware, interactive UI anatomy and more architecture/flow diagrams.
+Use the standard Fumadocs Mermaid integration (`beautiful-mermaid`, server rendering) and
+small MDX/React examples with existing code blocks/button variants. Reuse the central theme;
+no separate visual system or diagram engine. The shared recipe and source locations are in
+`.agents/skills/foundation-development/documentation-visuals.md`.

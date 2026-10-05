@@ -56,3 +56,9 @@ anonymous requests. They never send email or mutate a shared database.
 The platform's clean installation and development/production CSS acceptance live in
 `scripts/verify-generated.mjs` at the repository root; this sample is not a substitute
 for those checks.
+
+Run `npm run test:settings` to verify native account/session cards, organization member and
+invitation surfaces, and owner/member/email-verification guards against the running preview.
+The test opens disposable browser sessions, cancels invitations without sending mail and
+never modifies tasks or credentials. Incoming invitations require verified email; local
+seed accounts deliberately retain Better Auth's unverified state.

@@ -46,3 +46,6 @@ apps/docs/.source/
 
 # Temporary package copies created by Core tests
 packages/*/.copy-*/
+
+# Private working documents, proposals, TODOs and reviews
+/.private/

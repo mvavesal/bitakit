@@ -21,7 +21,11 @@
       "invitedAs": "Eingeladen als",
       "loadingInvitations": "Einladungen werden geladen …",
       "noMatchingInvitationsFound": "Keine passenden Einladungen gefunden.",
-      "youHaveNoPendingInvitations": "Du hast aktuell keine offenen Einladungen."
+      "youHaveNoPendingInvitations": "Noch keine Einladungen",
+      "actionRequired": "Einladungen konnten nicht geladen werden",
+      "unavailable": "Einladungen nicht verfügbar",
+      "tryAnotherSearch": "Versuchen Sie einen anderen Namen oder löschen Sie die Suche.",
+      "invitationHelp": "Sie haben derzeit keine Einladungen. Sobald eine Organisation Sie einlädt, erscheint die Einladung hier."
     },
     "invitation_email_input": {
       "email": "E-Mail",
@@ -79,7 +83,12 @@
       "confirmRoleChange": "Rollenänderung bestätigen",
       "confirmRemoval": "Entfernen bestätigen",
       "promoteConfirm": "{name} zum Administrator machen? Administratoren können die Organisation und ihre Mitglieder verwalten.",
-      "demoteConfirm": "{name} zum Mitglied machen? Die Person verliert ihre Verwaltungsrechte."
+      "demoteConfirm": "{name} zum Mitglied machen? Die Person verliert ihre Verwaltungsrechte.",
+      "nameRequired": "Gib einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 100 Zeichen lang sein.",
+      "invalidSlug": "Verwende Kleinbuchstaben, Zahlen und einzelne Bindestriche.",
+      "slugTooLong": "Die Kennung darf höchstens 80 Zeichen lang sein.",
+      "invalidWebsite": "Ungültige URL."
     },
     "pages": {
       "invitations": "Einladungen",
@@ -157,7 +166,12 @@
       "youCanViewTheseDetailsButCannotEditThem": "Du kannst diese Angaben ansehen, aber nicht bearbeiten.",
       "profile": "Profil",
       "membersAndInvitations": "Mitglieder und Einladungen",
-      "invitationsForMe": "Einladungen an mich"
+      "invitationsForMe": "Einladungen an mich",
+      "dangerZone": "Gefahrenbereich",
+      "deleteWarning": "Beim Löschen werden diese Organisation und ihre Mitgliedschaften dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
+      "managementUnavailable": "Sie haben keine Berechtigung, diese Organisation zu verwalten.",
+      "managementAccessRequired": "Verwaltungszugriff erforderlich",
+      "selectOrganizationHint": "Wähle im Organisationsmenü eine Organisation aus, um ihr Profil anzusehen."
     },
     "auth_page_layout": {
       "backToApplication": "Zurück zur Anwendung"
@@ -250,14 +264,29 @@
   },
   "better-auth-ui": {
     "settings": {
-      "title": "Konto",
-      "description": "Profil, E-Mail-Adresse, Passwort, Zwei-Faktor-Authentifizierung, verknüpfte Konten und aktive Sitzungen."
+      "title": "Profil",
+      "description": "Ihr Profilbild und Ihre persönlichen Angaben.",
+      "pages": {
+        "security": {
+          "title": "Sicherheit",
+          "description": "E-Mail, Passwort, Zwei-Faktor-Authentifizierung, verknüpfte Konten und aktive Sitzungen."
+        }
+      }
     }
   },
   "organizations-ui": {
     "settings": {
-      "title": "Organisation",
-      "description": "Profil, Mitglieder und Einladungen der aktiven Organisation."
+      "title": "Organisationsprofil",
+      "description": "Profil der aktiven Organisation verwalten.",
+      "pages": {
+        "members": {
+          "title": "Mitglieder und Einladungen"
+        },
+        "invitations": {
+          "title": "Meine Einladungen",
+          "description": "Einladungen für Ihr Konto zum Beitritt zu anderen Organisationen."
+        }
+      }
     }
   }
 }

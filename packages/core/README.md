@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/assets/bitakit-banner.png" alt="BitaKit — Your app. Your building blocks. An AI-friendly composition layer for modern applications." width="1024">
+  <img src="https://raw.githubusercontent.com/mvavesal/bitakit/main/docs/assets/readme/bitakit-banner.png" alt="BitaKit — Your app. Your building blocks. An AI-friendly composition layer for modern applications." width="1024">
 </p>
 
 # BitaKit Core
@@ -15,17 +15,21 @@ and typed connections to the rest of your app.
 and shared lifecycle management alongside your framework. You keep control of your
 routes, UI, business rules, and data.
 
-## Contents
+## Start with one service
 
-- [Install](#install)
-- [Why add BitaKit?](#why-add-bitakit)
-- [How the pieces fit](#how-the-pieces-fit)
-- [Try a To-do plugin](#try-a-to-do-plugin)
-- [Type safety that follows your feature](#type-safety-that-follows-your-feature)
-- [State and events](#state-and-events)
-- [What belongs outside Core?](#what-belongs-outside-core)
-- [Go deeper](#go-deeper)
-- [License](#license)
+In a discovery-enabled app, `src/plugins/counter/services/value.ts` needs only:
+
+```ts
+import { defineService } from '@bitakit/core';
+export default defineService(({ store }) => {
+  const state = store({ count: 0 });
+  return { state, increment: () => state.set((s) => ({ count: s.count + 1 })) };
+});
+```
+
+The service is `counter.value`. You can now add an Action and a page through the
+[step-by-step Counter guide](../../apps/docs/content/docs/concepts/services.mdx).
+Resource hooks, contracts and runtime management are optional topics below.
 
 ## Install
 
@@ -104,6 +108,32 @@ Application UI displays the result; Core does not render it.
 Core manages the lifecycle of plugin-created services. A service registers `onStart` and
 `onStop` hooks when it acquires resources. Core does not save data to a database for
 you; `store()` is in-memory state that actions and UI follow automatically.
+
+## Lifecycle
+
+```ts
+const runtime = createRuntime(config);
+const stop = runtime.mount();
+try {
+  await runtime.ready; /* use the runtime */
+} finally {
+  await stop();
+}
+```
+
+Stop cancels owned Actions and awaits startup, running Actions and reverse-order cleanup.
+It is idempotent and rejects with aggregated cleanup errors after all disposers run.
+`runtime.lifecycle.get()` and `.watch(listener)` expose retained plugin/service readiness
+and cleanup status. The existing bus emits `runtime.lifecycle` for transition observers.
+
+`createRuntimeController(config, { failures: 'isolate' })` adds the same startup isolation
+policy React uses; the default is `fail-fast`. Isolation fully stops and rebuilds the
+remaining composition, blocking explicit dependents and required-service consumers.
+React waits for old cleanup before replacement. Failed cleanup prevents automatic restart.
+Do not await the enclosing runtime's stop from its own hooks or Actions.
+
+Optional service access uses `app.has(name)` before reading; a missing direct read throws,
+including `auth` and `i18n`. See the [lifecycle contract](../../docs/target-api.md#lifecycle-completion-and-host-policy).
 
 ## Try a To-do plugin
 
@@ -263,3 +293,84 @@ Plugins are trusted application code. Core is not a sandbox or a remote plugin m
 ## License
 
 [MIT](https://cdn.jsdelivr.net/npm/@bitakit/core@0.2.0/LICENSE). Third-party dependencies retain their own licenses.
+
+## Slot contracts
+
+```ts
+import { createRuntime, definePlugin, defineSlot } from '@bitakit/core';
+
+const shell = definePlugin({
+  id: 'shell',
+  slots: {
+    header: { actions: defineSlot({ accepts: 'actions' }) },
+    logo: defineSlot({ accepts: 'component', policy: 'single' }),
+  },
+});
+const runtime = createRuntime({ plugins: [shell] });
+// runtime.modules[1].slots: shell.header.actions and shell.logo, owned by shell.
+```
+
+`slots/` files and manual nested/dotted records produce the same immutable contracts.
+Use `payload` for owner context; data slots require `schema`. Existing zod/Standard Schema
+support supplies `SlotPayload`/`SlotData` types. App-root names are plain, explicit IDs absolute,
+and arrays require IDs. Duplicate declarations fail with owner/source information.
+`list` (default), `single` and `keyed` are enforced at attachment, including pending entries.
+Conflicts never silently replace. A declaration does not activate or render a slot.
+
+```ts
+// Inside definePlugin({ setup: ({ app }) => { ... } }):
+const placement = app.slots.attach(
+  'shell.header.actions',
+  {
+    actionId: 'editor.save',
+    order: 10,
+  },
+  { availability: 'wait' },
+);
+app.slots.watch('shell.header.actions', (state) => console.log(state.phase));
+// Automatic cleanup with the contributor; placement.dispose() removes it early.
+```
+
+Default `require` rejects unavailable owners; `wait` accepts known definitions and attaches
+when owner and contributor are ready. Unknown names always fail. Both policies follow later
+availability. `get/subscribe/watch` retain current state; `placement.ready` resolves on first
+attachment and rejects on invalid data or early disposal. `runtime.slots` is the host read API.
+The existing `runtime.slot` event announces updates, but is not the readiness source of truth.
+Data uses the declared schema; Action IDs refer to existing public Actions. Component values
+stay opaque in Core. Declared `ui.slots` use the same owned path. Live declaration mutation requires composition replacement. Actions declare placements with
+`slots`; App Preferences projects Settings through these same attachments.
+
+Action definitions support explicit `slots` (names or `{ name, input, order, key, availability }` placements). Each placement is an owned reference to the one ActionList entry; `groups` remains logical membership. Core stores opaque content and input mappers; React outlet validation and rendering live in UI.
+
+Slot contributions may carry a pure `when({ payload })` presentation predicate. Core retains it;
+outlets evaluate it after payload validation. It does not change attachment state. Settings page
+metadata may carry an opaque `boundary` component, interpreted by the optional settings UI.
+`scopeLifecycle(scope)` exposes existing read-only lifecycle status to projections and revokes
+its observers when the runtime-issued scope closes; it adds no lifecycle mutation operation.
+
+## Targeted host updates and inspection
+
+```ts
+import { inspectRuntime } from '@bitakit/core';
+
+const result = await runtime.reconcilePlugins(nextPlugins);
+if (result.status === 'restart-required') console.log(result.reasons);
+const inventory = inspectRuntime(runtime); // version: 1, static + live
+```
+
+The host passes immutable already-loaded definitions, preserving unchanged object references.
+Supported implementation/Action/page changes stop and restart their dependency closure while
+unrelated services retain identity/state. Plugin membership, service identities/dependencies,
+foundational contracts and provider/installer/interceptor owners need composition replacement.
+Updates report `applied`, `blocked`, `failed` or `restart-required`. A clean startup failure can
+be retried explicitly; failed cleanup blocks reuse. Invoke outside owned work and await the
+result, not the initial `ready` promise. `isReady()` retains initial startup readiness through
+targeted updates; `isReady(pluginId)` and `isServiceReady(name)` report owner availability.
+`app.has(name)` uses service readiness; `hasService(name)` is raw container presence for cleanup.
+Inspect lifecycle/result for update success. Unaffected React UI stays mounted; affected
+owners (including composition readers) can remount. This is not file HMR or package installation.
+
+`observeRuntimeInventory(runtime)` supplies cached `get`/`subscribe` snapshots. Values, defaults,
+callbacks, components and raw failures are excluded; public metadata and declaration sources
+remain visible. Static CLI inspection uses the same schema with `live: null` and unresolved
+fields set to null. See [exact update and inventory contracts](../../docs/target-api.md#host-driven-plugin-updates).

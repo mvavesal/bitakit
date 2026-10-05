@@ -72,7 +72,12 @@ export async function createApp(plan, { run, packagesDir, install = plan.install
   await adapter.scaffold(plan, run);
   await adapter.configure(plan);
   if (plan.sample)
-    await writeProjectFiles(path.join(plan.target, 'src/plugins/todos'), pluginFiles('todos'));
+    await writeProjectFiles(
+      path.join(plan.target, 'src/plugins/todos'),
+      pluginFiles('todos', {
+        navigationSlot: plan.features.includes('shell') ? 'shell.navigation' : undefined,
+      }),
+    );
   if (packagesDir) await useLocalPackages(plan.target, packagesDir);
   if (install) await run('npm', ['install'], plan.target);
   return plan.target;

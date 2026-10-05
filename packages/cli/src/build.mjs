@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { cp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { describeModule, validatePackageStyles } from '@bitakit/discovery';
+import { describeModule, describeDefinitions, validatePackageStyles } from '@bitakit/discovery';
 import { findProject } from './project.mjs';
 
 const quote = JSON.stringify;
@@ -66,6 +66,16 @@ export async function buildPlugin({ cwd, check = false } = {}) {
       .join('/')
       .replace(/\.tsx?$/, '.js')}`;
   await writeFile(path.join(dist, 'plugin.js'), entry(id, module, manifest, metadata, local));
+  // Derived tooling hints travel with the entry; the source declarations remain the authority.
+  const slotInfo = await describeDefinitions(module.slotDefinitions, {
+    helper: 'defineSlot', moduleId: id, properties: ['accepts', 'policy'],
+  });
+  const source = (file) => path.relative(module.directory, file).split(path.sep).join('/');
+  await writeFile(path.join(dist, 'plugin.slots.json'), JSON.stringify({
+    version: 1,
+    definitions: slotInfo.definitions.map((item) => ({ ...item, file: source(item.file), plugin: id, policy: item.policy ?? 'list' })),
+    unresolved: slotInfo.unresolved.map(source),
+  }, null, 2) + '\n');
   await writeFile(
     path.join(dist, 'plugin.d.ts'),
     `${declarations(id, module, (file) => local(file))}import type { Plugin } from '@bitakit/core';
@@ -102,12 +112,16 @@ function declarations(id, module, specifier) {
       return name;
     });
   const services = files(module.services, 'Service');
+  const settings = files(module.settings, 'Settings');
+  const slots = files(module.slotDefinitions, 'Slot');
   const actions = files(module.actions, 'Action');
   const configs = files(module.configs, 'Config');
   const events = files(module.events, 'Events');
   const intersect = (items, map) => items.map(map).join(' & ') || '{}';
-  return `${header}import type { DiscoveredFile, DiscoveredServiceEntry, DiscoveredActionEntry, DiscoveredConfigEntry, DiscoveredEventsEntry, DiscoveredCancelableEntry } from '@bitakit/core';
+  return `${header}import type { DiscoveredFile, DiscoveredSlotEntry, DiscoveredServiceEntry, DiscoveredActionEntry, DiscoveredConfigEntry, DiscoveredEventsEntry, DiscoveredCancelableEntry, DiscoveredSettingsEntry } from '@bitakit/core';
 ${lines.join('\n')}
+type PluginSettings = ${intersect(settings, (name) => `DiscoveredSettingsEntry<${name}, ${quote(id)}>`)};
+type PluginSlots = ${intersect(slots, (name) => `DiscoveredSlotEntry<${name}, ${quote(id)}>`)};
 type PluginServices = ${intersect(services, (name) => `DiscoveredServiceEntry<${name}, ${quote(id)}>`)};
 type PluginActions = ${intersect(actions, (name) => `DiscoveredActionEntry<${name}, ${quote(id)}>`)};
 type PluginEvents = ${intersect(events, (name) => `DiscoveredEventsEntry<${name}, ${quote(id)}>`)};
@@ -117,6 +131,8 @@ declare module '@bitakit/core' {
   interface ActionMap extends PluginActions {}
   interface EventMap extends PluginEvents {}
   interface CancelableEventMap extends PluginCancelable {}
+  interface SlotMap extends PluginSlots {}
+  interface SettingsMap extends PluginSettings {}
   interface ConfigMap { ${quote(id)}: ${intersect(configs, (name) => `DiscoveredConfigEntry<${name}>`)} }
 }
 `;
@@ -141,9 +157,12 @@ function entry(id, module, manifest, metadata, local) {
       return `discoveredFile(${name}, ${quote(item.path)}, ${quote(path.relative(module.directory, item.file).split(path.sep).join('/'))})`;
     });
   const info = {};
-  for (const key of ['name', 'version', 'description', 'author', 'homepage', 'bugs', 'license'])
+  for (const key of ['name', 'version', 'description', 'author', 'homepage', 'bugs', 'license', 'coverImage', 'tags'])
     if (manifest[key] !== undefined) info[key] = manifest[key];
   const services = discovered(module.services);
+  const settings = discovered(module.settings);
+  const settingsPage = module.settingsPage ? `pluginSettingsPage(${load(module.settingsPage, true)})` : undefined;
+  const slotDefinitions = discovered(module.slotDefinitions);
   const actions = discovered(module.actions);
   const configs = discovered(module.configs);
   const interceptors = discovered(module.interceptors);
@@ -153,14 +172,14 @@ function entry(id, module, manifest, metadata, local) {
       `pluginPage(${load(item.file, true)}, ${quote(`/${id}${item.path ? `/${item.path.split('.').join('/')}` : ''}`)})`,
   );
   const slots = module.slots.map(
-    (item) => `pluginSlot(${load(item.file, true)}, ${quote(item.path)})`,
+    (item) => `pluginSlot(${load(item.file, true)}, ${quote(item.path)}, ${quote(path.relative(module.directory, item.file).split(path.sep).join('/'))})`,
   );
   const providers = module.providers.map(
     (item) => `pluginProvider(${load(item.file, true)}, ${quote(`${id}.${item.path}`)})`,
   );
   const setup = module.setup ? load(module.setup) : 'undefined';
   return `'use client';
-${header}import { definePlugin, discoveredFile, discoverActions, discoverServices, discoverConfig, discoverInterceptors, discoverEvents, pluginPage, pluginSlot, pluginProvider } from '@bitakit/core';
+${header}import { definePlugin, discoveredFile, discoverActions, discoverServices, discoverSlots, discoverConfig, discoverInterceptors, discoverEvents, discoverSettings, pluginSettingsPage, pluginPage, pluginSlot, pluginProvider } from '@bitakit/core';
 ${imports.join('\n')}
 
 /** Creates the ${quote(id)} plugin; apps call this once per runtime. */
@@ -170,11 +189,13 @@ export default function plugin() {
     metadata: ${quote(info)},
     dependencies: ${quote(metadata?.dependencies ?? [])},
     events: discoverEvents([${events.join(', ')}]),
+    settings: discoverSettings([${settings.join(', ')}]),
+    slots: discoverSlots([${slotDefinitions.join(', ')}], ${quote(id)}),
     services: discoverServices([${services.join(', ')}], ${quote(id)}),
     actions: discoverActions([${actions.join(', ')}], ${quote(id)}),
     config: discoverConfig([${configs.join(', ')}]),
     interceptors: discoverInterceptors([${interceptors.join(', ')}]),
-    ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}] },
+    ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${settingsPage ? `, settings: ${settingsPage}` : ''} },
     setup: ${setup},
   });
 }

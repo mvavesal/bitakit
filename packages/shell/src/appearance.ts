@@ -11,6 +11,7 @@ import ArrowUpRightIcon from 'reicon-react/icons/ArrowUpRight';
 import ArrowDownIcon from 'reicon-react/icons/ArrowDown';
 import ArrowDownLeftIcon from 'reicon-react/icons/ArrowDownLeft';
 import ArrowDownRightIcon from 'reicon-react/icons/ArrowDownRight';
+import { themeLibrarySchema, type ThemeLibrary } from './themes.js';
 import type { ShellPreset } from './options.js';
 
 export type ShellLayout = 'sidebar' | 'navbar';
@@ -30,6 +31,11 @@ export type NotificationPlacement =
 export function appearanceSettings(presets: readonly ShellPreset[]) {
   return defineSettings(
     {
+      themeLibrary: setting({
+        default: { selected: 'shell:default', custom: [] } as ThemeLibrary,
+        schema: themeLibrarySchema,
+        hidden: true,
+      }),
       mode: setting({
         default: 'system',
         scope: 'device',
@@ -65,7 +71,7 @@ export function appearanceSettings(presets: readonly ShellPreset[]) {
         : {}),
       density: setting({
         default: 'comfortable',
-        control: 'radio',
+        control: 'cards',
         label: 'Density',
         options: [
           { value: 'comfortable', label: 'Comfortable' },

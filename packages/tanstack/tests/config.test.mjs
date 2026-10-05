@@ -60,10 +60,16 @@ test('the Vite plugin runs discovery before the config resolves and wires the ge
       'no alias is added; the generated file is a real module',
     );
     assert.equal(await exists('src/bitakit.gen.tsx'), true);
-    const code = await readFile(path.join(root, 'src/bitakit.gen.tsx'), 'utf8');
-    assert.match(code, /import \{ FoundationProvider \} from '@bitakit\/tanstack';/);
-    assert.match(code, /export function BitaKitProvider\(/);
-    assert.match(code, /discoverActions\(\[file\d+\], "todos"\)/);
+    assert.equal(await exists('src/bitakit.gen.config.ts'), true);
+    const provider = await readFile(path.join(root, 'src/bitakit.gen.tsx'), 'utf8');
+    const config = await readFile(path.join(root, 'src/bitakit.gen.config.ts'), 'utf8');
+    assert.match(provider, /import \{ FoundationProvider \} from '@bitakit\/tanstack';/);
+    assert.match(provider, /import \{ createBitaKitConfig \} from '\.\/bitakit\.gen\.config';/);
+    assert.match(provider, /export type \{ BitaKitConfig \} from '\.\/bitakit\.gen\.config';/);
+    assert.match(provider, /export function BitaKitProvider\(/);
+    assert.doesNotMatch(provider, /discoverActions|discoveredFile|createBitaKitConfig\(\) \{/);
+    assert.match(config, /export function createBitaKitConfig\(\)/);
+    assert.match(config, /discoverActions\(\[file\d+\], "todos"\)/);
     assert.equal(foundation, bitakit, 'foundation() is the deprecated alias');
     assert.deepEqual(defineBitaKit({ groups: ['menu'] }), { groups: ['menu'] });
     assert.equal(defineFoundation, defineBitaKit);

@@ -31,11 +31,11 @@ void consumer;
 // configs/shell.ts: typed defaults, or the exported schema.
 defineConfig({
   defaults: {
-    groups: ['navigation', 'admin'],
+    navigationSlot: 'shell.navigation',
     presets: [{ id: 'ocean', label: 'Ocean' }],
   } satisfies ShellOptions,
 });
-defineConfig({ schema: shellOptions, defaults: { groups: ['navigation'] } });
+defineConfig({ schema: shellOptions, defaults: { navigationSlot: 'shell.navigation' } });
 shellPlugin({ presets: [{ id: 'ocean' }] });
 // @ts-expect-error Removed feature switches are not options.
 shellPlugin({ appearance: true });
@@ -50,7 +50,7 @@ function Item({ item, active, layout }: NavigationItemProps) {
   );
 }
 export const composed = (
-  <AppShell components={{ NavigationItem: Item }} groups={['navigation']}>
+  <AppShell components={{ NavigationItem: Item }} navigationSlot="shell.navigation">
     <AppShell.Sidebar header="Brand" footer="Account" />
     <AppShell.Content topBar={<AppShell.TopBar header="Title" end="End" />}>Page</AppShell.Content>
   </AppShell>

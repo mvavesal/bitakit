@@ -3,6 +3,7 @@ import { useCallback, useRef, useSyncExternalStore } from 'react';
 import { isStore, type ServiceMap, type Store } from '@bitakit/core';
 import { useFoundation } from '../providers/foundation-context.js';
 import { shallowEqual } from '../utils/merge-props.js';
+import { subscribeReadiness } from '../utils/subscribe-readiness.js';
 
 type ServiceName = Extract<keyof ServiceMap, string> | (string & {});
 type ServiceOf<Name extends string> = Name extends keyof ServiceMap
@@ -16,12 +17,18 @@ type StateOf<S> = S extends { state: Store<infer T> }
 
 const idle = () => () => {};
 
-/** The service instance, or undefined until the runtime is ready. Not reactive; use useServiceState for data. */
+/** The ready service instance; follows replacement. Use useServiceState for its data. */
 export function useService<Name extends ServiceName>(name: Name): ServiceOf<Name> | undefined {
   const { runtime } = useFoundation();
-  const ready = useSyncExternalStore(runtime.subscribeReady, runtime.isReady, () => false);
-  if (!ready || !runtime.hasService(name)) return undefined;
-  return readService(runtime.services, name) as ServiceOf<Name>;
+  const read = useCallback(
+    () => (runtime.isServiceReady(name) ? readService(runtime.services, name) : undefined),
+    [runtime, name],
+  );
+  const subscribe = useCallback(
+    (listener: () => void) => subscribeReadiness(runtime, listener),
+    [runtime],
+  );
+  return useSyncExternalStore(subscribe, read, () => undefined) as ServiceOf<Name> | undefined;
 }
 
 function readService(tree: unknown, name: string): unknown {
@@ -51,8 +58,8 @@ function sourceOf(
 
 /**
  * Reactive state of a service: its `store()` (exposed as `state`) or a `subscribe`/`getSnapshot`
- * pair. Re-renders when the selected value changes. Returns `fallback` until the runtime is
- * ready.
+ * pair. Re-renders when the selected value changes. Returns `fallback` until the runtime
+ * and its owning plugin are ready. Unrelated updates keep the current source subscribed.
  */
 export function useServiceState<Name extends ServiceName, R = StateOf<ServiceOf<Name>>>(
   name: Name,
@@ -73,29 +80,32 @@ export function useServiceState(
   const select = selector ?? ((state: unknown) => state);
   const subscribe = useCallback(
     (listener: () => void) => {
-      const stopReady = runtime.subscribeReady(listener);
       let stopSource = idle();
+      let current: unknown;
       const attach = () => {
+        const service = runtime.isServiceReady(name)
+          ? readService(runtime.services, name)
+          : undefined;
+        if (service === current) return;
         stopSource();
-        const service =
-          runtime.isReady() && runtime.hasService(name)
-            ? readService(runtime.services, name)
-            : undefined;
+        current = service;
         const source = sourceOf(service);
         stopSource = source ? source.subscribe(listener) : idle();
       };
+      const stopReady = subscribeReadiness(runtime, () => {
+        attach();
+        listener();
+      });
       attach();
-      const stopReattach = runtime.subscribeReady(attach);
       return () => {
         stopReady();
-        stopReattach();
         stopSource();
       };
     },
     [runtime, name],
   );
   const getSnapshot = () => {
-    if (!runtime.isReady() || !runtime.hasService(name)) return fallback;
+    if (!runtime.isServiceReady(name)) return fallback;
     const service = readService(runtime.services, name);
     const source = sourceOf(service);
     if (!source)

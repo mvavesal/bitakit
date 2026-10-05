@@ -49,8 +49,8 @@ test('Better Auth integration delegates current session, subscription ownership 
   assert.equal(signs, 1);
   failure = new Error('Failed');
   await assert.rejects(runtime.services.auth.signOut(), /Failed/);
-  stop();
-  stopList();
+  await stop();
+  await stopList();
   assert.equal(listeners.size, 0);
   let override = 0;
   const custom = betterAuthPlugin({
@@ -61,4 +61,37 @@ test('Better Auth integration delegates current session, subscription ownership 
   await custom.services.session.create({ services: { [betterAuthClient]: { client } } }).signOut();
   assert.equal(override, 1);
   assert.equal(signs, 2);
+});
+
+test('native session responses retain all sessions while empty user agents have a safe display fallback', async () => {
+  const { createBetterAuthClient } = await import('../dist/client.js');
+  const { default: Bowser } = await import('bowser');
+  const sessions = [
+    { id: 'null', token: 'one', userAgent: null },
+    { id: 'empty', token: 'two', userAgent: '' },
+    { id: 'space', token: 'three', userAgent: ' ' },
+    { id: 'known', token: 'four', userAgent: 'Mozilla/5.0' },
+  ];
+  let delegated = false;
+  const client = createBetterAuthClient({
+    baseURL: 'http://auth.example.test',
+    fetchOptions: {
+      customFetchImpl: async () => Response.json(sessions),
+      onSuccess(context) {
+        delegated = true;
+        assert.equal(context.data.length, 4);
+      },
+    },
+  });
+  const result = await client.listSessions();
+  assert.equal(delegated, true);
+  assert.deepEqual(
+    result.data.map(({ id, token }) => ({ id, token })),
+    sessions.map(({ id, token }) => ({ id, token })),
+  );
+  for (const session of result.data) assert.doesNotThrow(() => Bowser.parse(session.userAgent));
+  assert.equal(result.data[3].userAgent, sessions[3].userAgent);
+  // The hook must not alter unrelated provider payloads.
+  const unrelated = await client.$fetch('/some-other-endpoint');
+  assert.equal(unrelated.data[0].userAgent, null);
 });

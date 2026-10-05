@@ -167,3 +167,29 @@ test('an invalid base path is a startup error of App Preferences', () => {
       /must start with "\/"/.test(error.message),
   );
 });
+
+test('Settings entry uses explicit slot targets independently of logical groups', async () => {
+  const { defineSlot } = await import('@bitakit/core');
+  for (const targets of [undefined, [], ['custom.nav']]) {
+    const runtime = createRuntime({
+      slots: {
+        'shell.navigation': defineSlot({ accepts: 'actions' }),
+        'custom.nav': defineSlot({ accepts: 'actions' }),
+      },
+      plugins: [appPreferencesPlugin({ groups: [], slots: targets })],
+    });
+    const stop = runtime.mount();
+    try {
+      await runtime.ready;
+      assert.equal(
+        runtime.slots.get('shell.navigation').items.length,
+        targets === undefined ? 1 : 0,
+      );
+      assert.equal(runtime.slots.get('custom.nav').items.length, targets?.length ? 1 : 0);
+      assert.ok(runtime.actions.get('app-preferences.settings'));
+    } finally {
+      await stop();
+    }
+    assert.equal(runtime.slots.get('custom.nav').items.length, 0);
+  }
+});

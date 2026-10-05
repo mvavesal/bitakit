@@ -66,7 +66,7 @@ function fixture(overrides = {}) {
     },
     async close() {
       await act(async () => root.unmount());
-      stop();
+      await stop();
       assert.equal(listeners.size, 0);
     },
   };

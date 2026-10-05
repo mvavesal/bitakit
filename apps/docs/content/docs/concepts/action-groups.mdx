@@ -3,11 +3,13 @@ title: Action groups
 description: Put related actions under one name. Components decide how to show the group.
 ---
 
-**Owner:** groups in `@bitakit/core`; the components that show groups in `@bitakit/ui`, Shell and Quick Search.
+**Owner:** logical groups in `@bitakit/core`; query bindings in `@bitakit/ui`. UI placement uses slots.
 
 An action group is a name for a set of related actions. `todos.bulk`, for example, can hold every action that works on the whole task list.
 
-A group only groups. It does not render anything and does not decide where its actions appear. Components read a group and choose what to do with it: a menu shows it as a dropdown, the app's navigation shows it in the sidebar, and search uses it as a heading.
+A group only groups. It does not render anything and does not decide where its actions appear. Components read a group and choose what to do with it: an explicitly bound menu can show its members, and search can use its title as a heading.
+
+Shell navigation and organization member menus now use [explicit slots](/docs/concepts/slots). Joining a group alone does not place an Action in either region. The group bindings below remain available for explicit logical queries.
 
 ## Put actions in a group
 
@@ -35,9 +37,9 @@ export default defineAction({
 });
 ```
 
-Both actions are now in the group `todos.bulk`. You do not create a group first; naming it is enough. An action can be in several groups, and one group can hold actions from different plugins. Group names follow the [action ID rules](/docs/concepts/actions#identity).
+Both actions are now in the group `todos.bulk`. You do not create a group first; naming it is enough. An action can be in several groups, and one group can hold actions from different plugins. Group names follow the [action ID rules](/docs/reference/actions#identity).
 
-These examples use the `tasks` service from the [Actions guide](/docs/concepts/actions#start-here).
+These examples use the `tasks` service from the [Actions guide](/docs/reference/actions#example-service).
 
 ## Show a group
 
@@ -81,22 +83,21 @@ export function BulkActions() {
 
 ## How components use groups
 
-| Component                                                                    | Groups                                          | What happens                                                   |
-| ---------------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------- |
-| `ActionMenu` (`@bitakit/ui`)                                                 | the group you name                              | Shows a dropdown menu                                          |
-| `useActionGroup`, `useActionGroups` (`@bitakit/ui`)                          | the groups you pass                             | Hands the controls to your own component                       |
-| `ActionSidebarNavigation`, `ActionNavigationMenu` (`@bitakit/ui/components`) | `navigation` unless you pass `groups`           | Sidebar or top navigation, one section per group               |
-| Shell                                                                        | `navigation` unless you set `navigationGroups`  | The app's main navigation; Shell adds its Settings entry there |
-| Quick Search                                                                 | the first group of each result                  | Section heading; group titles are searchable                   |
-| App Preferences                                                              | puts each settings page in its category's group | Search shows settings under their category                     |
+| Component                                                                    | Groups                                          | What happens                                     |
+| ---------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------ |
+| `ActionMenu` (`@bitakit/ui`)                                                 | the group you name                              | Shows a dropdown menu                            |
+| `useActionGroup`, `useActionGroups` (`@bitakit/ui`)                          | the groups you pass                             | Hands the controls to your own component         |
+| `ActionSidebarNavigation`, `ActionNavigationMenu` (`@bitakit/ui/components`) | `navigation` unless you pass `groups`           | Sidebar or top navigation, one section per group |
+| Quick Search                                                                 | the first group of each result                  | Section heading; group titles are searchable     |
+| App Preferences                                                              | puts each settings page in its category's group | Search shows settings under their category       |
 
-To show an action in the app's main navigation, put a navigation action in the `navigation` group:
+For Shell navigation, target the owner's slot explicitly (Shell must be installed and mounted):
 
 ```ts
 // src/plugins/todos/actions/open.ts
 import { defineAction } from '@bitakit/core';
 
-export default defineAction({ title: 'Tasks', href: '/todos', groups: ['navigation'] });
+export default defineAction({ title: 'Tasks', href: '/todos', slots: ['shell.navigation'] });
 ```
 
 ## Give a group a title

@@ -1,4 +1,9 @@
+import type { RuntimeActionPlacement } from './slots/action-placement.js';
 import { EventService, createEventScope } from './events/service.js';
+import { normalizeSlots, validateSlotDeclarations } from './slots/normalize.js';
+import type { OwnedSlotDefinition } from './slots/define.js';
+import { SlotRuntime } from './slots/runtime.js';
+import type { SlotReader } from './slots/types.js';
 import { ConfigService, type ConfigContext } from './config-service.js';
 import {
   contributionPath,
@@ -33,7 +38,7 @@ import type {
   Translator,
 } from './definitions.js';
 import type { Events } from './events/types.js';
-import { PluginScope, assignScopeModule } from './scope.js';
+import { PluginScope, assignScopeModule, scopeModule, readsComposition } from './scope.js';
 import { SettingsStore, type SettingEntry } from './settings/store.js';
 import { createSettingsAccess, type SettingsAccess } from './settings/access.js';
 import { createLocalSettingsStorage, type SettingsStorage } from './settings/storage.js';
@@ -65,13 +70,25 @@ import {
 } from './interceptors/define.js';
 import { serviceObserver } from './interceptors/service-observers.js';
 import type { Confirmation } from './confirmation.js';
+import { cleanupSequence, cleanupFailure, type Cleanup } from './lifecycle/cleanup.js';
+import {
+  createLifecycleState,
+  type LifecycleState,
+  type LifecyclePhase,
+} from './lifecycle/state.js';
+import {
+  updateClosure,
+  updateRestrictions,
+  type PluginUpdateResult,
+} from './lifecycle/reconcile.js';
 export type { DialogState } from './contributions/index.js';
 
 /** A plugin after normalization: records resolved to arrays with IDs, `ui` merged with the legacy fields. */
-export type NormalizedPlugin = Omit<Plugin, 'services' | 'actions'> & {
+export type NormalizedPlugin = Omit<Plugin, 'services' | 'actions' | 'slots'> & {
   readonly id: string;
   readonly services: readonly (ServiceDefinition<any> & { id: string })[];
   readonly actions: readonly ResolvedContribution[];
+  readonly slots: readonly OwnedSlotDefinition[];
   readonly pages: readonly PluginPageDefinition[];
   readonly views: readonly PluginView[];
   readonly providers: readonly ProviderDefinition[];
@@ -108,10 +125,11 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
           }) as ServiceDefinition<any> & { id: string };
         })
       : Object.entries((module.services ?? {}) as Record<string, ServiceDefinition<any>>).map(
-          ([key, service]) => ({
-            ...service,
-            id: service.id ?? (isApp ? key : `${id}.${key}`),
-          }),
+          ([key, service]) =>
+            preserveContributionPath(service, {
+              ...service,
+              id: service.id ?? (isApp ? key : `${id}.${key}`),
+            }) as ServiceDefinition<any> & { id: string },
         );
     const actions: ResolvedContribution[] = Array.isArray(module.actions)
       ? module.actions.map((action) => {
@@ -141,6 +159,7 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
       id,
       services,
       actions,
+      slots: normalizeSlots(module, appId),
       pages: module.ui?.pages ?? [],
       views: module.ui?.slots ?? [],
       providers: module.ui?.providers ?? [],
@@ -218,7 +237,14 @@ export class FoundationRuntime implements ContributionHost {
   readonly app: FoundationApp;
   readonly events: EventService;
   readonly configuration: ConfigService;
-  readonly modules: readonly NormalizedPlugin[];
+  private currentModules: readonly NormalizedPlugin[];
+  get modules(): readonly NormalizedPlugin[] {
+    return this.currentModules;
+  }
+  private currentConfig: FoundationConfig;
+  get config(): FoundationConfig {
+    return this.currentConfig;
+  }
   readonly groups: Map<string, ActionGroup>;
   /** The owner of setting values; `useSetting` and the `settings` contexts read from it. */
   readonly settings: SettingsStore;
@@ -226,14 +252,45 @@ export class FoundationRuntime implements ContributionHost {
   readonly settingsAccess: SettingsAccess;
   private defaultStorage?: SettingsStorage;
   private readonly appId: string;
-  private readonly order: readonly NormalizedPlugin[];
+  private order: readonly NormalizedPlugin[];
   private readonly names: ServiceNames;
   private readonly actionConfigs = new Map<string, { module: string; config: ConfigContext }>();
   private mounted = false;
+  private mounting = false;
+  private tearingDown = false;
+  readonly lifecycle: LifecycleState;
+  readonly slots: SlotReader;
+  private slotRuntime: SlotRuntime;
+  private lifecycleState: ReturnType<typeof createLifecycleState>;
+  private generation = 0;
+  private stopCompletion?: Deferred;
+  private mountStop?: () => Promise<void>;
+  private startWork?: Promise<void>;
+  private startPending = false;
+  private setupComplete = false;
+  private activeRuns = new Map<
+    object,
+    { promise: Promise<void>; resolve(): void; plugin?: string }
+  >();
+  private updating?: Promise<PluginUpdateResult>;
+  private updateController?: AbortController;
+  private revision = 0;
+  getRevision = () => this.revision;
+  private observations = new Map<Observable, () => void>();
+  private pluginEvents = new Map<string, ReturnType<typeof createEventScope>>();
+  /** Settles after the current shutdown; a rejection means cleanup did not complete successfully. */
+  get stopped(): Promise<void> {
+    return this.stopCompletion?.promise ?? Promise.resolve();
+  }
+  stop = (): Promise<void> => this.mountStop?.() ?? Promise.resolve();
   private readinessListeners = new Set<() => void>();
   private readyDeferred = deferred();
   private startController?: AbortController;
-  isReady = () => this.mounted;
+  /** Initial startup has completed and shutdown has not begun. Updates use owner readiness. */
+  isReady = (plugin?: string) =>
+    this.mounted &&
+    (plugin === undefined ||
+      this.lifecycle.get().plugins.some((entry) => entry.id === plugin && entry.phase === 'ready'));
   subscribeReady = (listener: () => void) => {
     this.readinessListeners.add(listener);
     return () => {
@@ -246,15 +303,27 @@ export class FoundationRuntime implements ContributionHost {
   }
   private setReady(ready: boolean) {
     this.mounted = ready;
-    this.readinessListeners.forEach((listener) => listener());
+    for (const listener of this.readinessListeners) {
+      try {
+        listener();
+      } catch (error) {
+        this.reportLifecycleError(error);
+      }
+    }
     // Presentation may read app.ready.
-    if (this.container) this.actions.refresh();
+    if (this.container) {
+      try {
+        this.actions.refresh();
+      } catch (error) {
+        this.reportLifecycleError(error);
+      }
+    }
   }
   private listeners = new Set<() => void>();
   private state: DialogState | null = null;
   private registrations: { definition: ResolvedContribution; handle: ActionRegistration }[] = [];
   private scopes: PluginScope[] = [];
-  private extensionCleanups: (() => void)[] = [];
+  private extensionCleanups: Cleanup[] = [];
   private container?: ReturnType<typeof createServices>;
   private view?: Services;
   private translate: Translator = (key) => key;
@@ -273,17 +342,36 @@ export class FoundationRuntime implements ContributionHost {
 
   constructor(
     readonly actions: ActionList,
-    readonly config: FoundationConfig,
+    config: FoundationConfig,
     private providedServices: Readonly<Record<string, unknown>> = {},
   ) {
+    this.currentConfig = config;
     this.appId = config.appId ?? 'app';
     const { plugins = [], appId: _appId, ...appModule } = config;
-    this.modules = [
+    this.currentModules = [
       normalize({ ...appModule, id: this.appId } as Plugin, this.appId),
       ...plugins.map((plugin) => normalize(plugin, this.appId)),
     ];
     this.order = orderPlugins(this.modules, this.appId);
+    validateSlotDeclarations(this.modules, this.appId);
     this.events = new EventService(config.onEventError);
+    const publishLifecycle = this.events.reserve('runtime');
+    this.lifecycleState = createLifecycleState(
+      this.modules.map((module) => module.id),
+      this.serviceEntries().filter((entry) => !Object.hasOwn(this.providedServices, entry.id)),
+      (snapshot) => publishLifecycle('runtime.lifecycle', snapshot),
+      (error) => this.reportLifecycleError(error),
+    );
+    this.lifecycle = this.lifecycleState.state;
+    this.slotRuntime = new SlotRuntime(
+      this.modules.flatMap((module) => module.slots),
+      this.lifecycle,
+      this.actions,
+      (snapshot) => publishLifecycle('runtime.slot', snapshot),
+      (error) => this.reportLifecycleError(error),
+      this.appId,
+    );
+    this.slots = this.slotRuntime.reader;
     for (const module of this.modules)
       if (module.events) {
         try {
@@ -414,6 +502,12 @@ export class FoundationRuntime implements ContributionHost {
     const page = findPluginPage(this.modules, href.split(/[?#]/)[0]);
     return { kind: 'page', ...owner(page ? page.plugin : this.ownerOf(action.id)) };
   }
+  actionOwner(id: string): string | undefined {
+    const registered = this.actionConfigs.get(id)?.module;
+    if (registered) return registered;
+    const scope = this.scopes.find((scope) => scope.ownsAction(id));
+    return scope ? scopeModule(scope).id : undefined;
+  }
   private ownerOf(id: string): string | undefined {
     const module = this.actionConfigs.get(id)?.module;
     return module && module !== this.appId ? module : undefined;
@@ -447,6 +541,14 @@ export class FoundationRuntime implements ContributionHost {
       Object.hasOwn(this.container.services, this.names.key(name))
     );
   }
+  /** UI availability; raw service access remains available to dependent cleanup hooks. */
+  isServiceReady(name: string): boolean {
+    if (!this.isReady() || !this.hasService(name)) return false;
+    const id = this.names.key(name);
+    if (Object.hasOwn(this.providedServices, id)) return true;
+    const entry = this.lifecycle.get().services.find((service) => service.id === id);
+    return entry?.phase === 'ready' && this.isReady(entry.plugin);
+  }
 
   getSnapshot = () => this.state;
   getServerSnapshot = () => null;
@@ -458,7 +560,13 @@ export class FoundationRuntime implements ContributionHost {
   };
   private publish(state: DialogState | null) {
     this.state = state;
-    this.listeners.forEach((listener) => listener());
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch (error) {
+        this.reportLifecycleError(error);
+      }
+    }
   }
   t = (key: string) => this.translate(key);
   text(key: string | undefined, fallback: string, values?: MessageValues): string {
@@ -586,8 +694,101 @@ export class FoundationRuntime implements ContributionHost {
     this.publish(null);
   };
 
-  mount() {
-    if (this.container) throw new Error('Foundation is already mounted.');
+  private reportLifecycleError(error: unknown) {
+    try {
+      console.error('[bitakit] Lifecycle failed.', error);
+    } catch {
+      /* reporting only */
+    }
+  }
+  private servicePhase(id: string, phase: LifecyclePhase, error?: unknown) {
+    const failure =
+      error === undefined
+        ? undefined
+        : { message: error instanceof Error ? error.message : String(error) };
+    this.lifecycleState.service(id, phase, failure);
+    const owner = this.lifecycle.get().services.find((entry) => entry.id === id)?.plugin;
+    if (owner && phase === 'failed') this.lifecycleState.plugin(owner, 'failed', failure);
+    if (this.setupComplete && phase === 'ready') this.refreshPluginReadiness();
+  }
+  private refreshPluginReadiness() {
+    // Ready means the owner's initialization and declared dependencies are ready.
+    // Iterate to cover implicit service edges that are not explicit plugin ordering edges.
+    for (let changed = true; changed && !this.stopCompletion; ) {
+      changed = false;
+      for (const plugin of this.order) {
+        const state = this.lifecycle.get();
+        if (state.plugins.find((entry) => entry.id === plugin.id)?.phase !== 'starting') continue;
+        const required = [
+          ...plugin.services,
+          ...plugin.actions,
+          ...(plugin.interceptors ?? []),
+        ].flatMap((definition) => definition.requires ?? []);
+        const ownReady = state.services
+          .filter((entry) => entry.plugin === plugin.id)
+          .every((entry) => entry.phase === 'ready');
+        const dependenciesReady = (plugin.dependencies ?? []).every(
+          (id) => state.plugins.find((entry) => entry.id === id)?.phase === 'ready',
+        );
+        const servicesReady = required.every((name) => {
+          const id = this.names.key(name);
+          return (
+            Object.hasOwn(this.providedServices, id) ||
+            state.services.find((entry) => entry.id === id)?.phase === 'ready'
+          );
+        });
+        if (ownReady && dependenciesReady && servicesReady) {
+          changed = true;
+          this.lifecycleState.plugin(plugin.id, 'ready');
+        }
+      }
+    }
+  }
+  mount(): () => Promise<void> {
+    if (this.mounting || this.tearingDown || this.lifecycle.get().cleanup === 'failed')
+      throw new Error(
+        'Foundation cannot mount during a lifecycle transition or after failed cleanup.',
+      );
+    this.mounting = true;
+    try {
+      return this.start();
+    } finally {
+      this.mounting = false;
+    }
+  }
+  private start() {
+    if (this.container || this.lifecycle.get().phase === 'stopping')
+      throw new Error(
+        'Foundation is already mounted or still stopping. Await its stop before mounting.',
+      );
+    this.stopCompletion = undefined;
+    if (this.generation) this.readyDeferred = deferred();
+    const generation = ++this.generation;
+    let completion: Promise<void> | undefined;
+    this.mountStop = () =>
+      (completion ??= generation === this.generation ? this.unmount() : Promise.resolve());
+    const stop = this.mountStop;
+    this.setupComplete = false;
+    this.lifecycleState.update({
+      generation,
+      operation: Object.freeze({ kind: 'start', startedAt: Date.now() }),
+      phase: 'starting',
+      cleanup: 'none',
+      plugins: Object.freeze(
+        this.lifecycle
+          .get()
+          .plugins.map((entry) =>
+            Object.freeze({ ...entry, phase: 'starting' as const, failure: undefined }),
+          ),
+      ),
+      services: Object.freeze(
+        this.lifecycle
+          .get()
+          .services.map((entry) =>
+            Object.freeze({ ...entry, phase: 'idle' as const, failure: undefined }),
+          ),
+      ),
+    });
     const plugins = this.order;
     const owners = new Map<ServiceDefinition<any>, string>();
     for (const plugin of plugins)
@@ -596,23 +797,69 @@ export class FoundationRuntime implements ContributionHost {
     this.container = createServices(
       plugins.flatMap((plugin) => plugin.services),
       this.providedServices,
-      (definition) => this.configuration.context(owners.get(definition) ?? this.appId),
+      (definition) =>
+        this.configuration.context(
+          owners.get(definition) ??
+            this.modules.find((module) => module.services.includes(definition as never))?.id ??
+            this.appId,
+        ),
       serviceObserver(interceptors, (id) => this.aliasesOf(id)),
       this.events,
       {
         names: this.names,
         appId: this.appId,
-        moduleOf: (definition) => owners.get(definition) ?? this.appId,
+        moduleOf: (definition) =>
+          owners.get(definition) ??
+          this.modules.find((module) => module.services.includes(definition as never))?.id ??
+          this.appId,
         sourceOf: (definition) => contributionSource(definition),
       },
       (definition) => definition.id!,
       this.settingsAccess,
+      (id, phase, error) => this.servicePhase(id, phase, error),
     );
     // Contexts exist only after the container does; readiness is the public facade's concern.
     this.view = this.names.tree(this.container.services);
     const moduleEvents = new Map<string, Events>();
     try {
+      this.container.initialize();
       this.extensionCleanups.push(
+        this.actions.subscribeExecution((event) => {
+          if (
+            event.phase === 'started' &&
+            (this.registrations.some((entry) => entry.definition.id === event.id) ||
+              this.scopes.some((scope) => scope.ownsAction(event.id)))
+          ) {
+            const pending = deferred();
+            this.activeRuns.set(event.context, {
+              ...pending,
+              plugin:
+                this.actionConfigs.get(event.id)?.module ??
+                (this.scopes.find((scope) => scope.ownsAction(event.id))
+                  ? scopeModule(this.scopes.find((scope) => scope.ownsAction(event.id))!).id
+                  : undefined),
+            });
+          } else if (event.phase !== 'started') {
+            this.activeRuns.get(event.context)?.resolve();
+            this.activeRuns.delete(event.context);
+          }
+        }),
+        this.actions.use({
+          before: ({ id }) => {
+            const phase = this.lifecycle.get().phase;
+            const scope = this.scopes.find((entry) => entry.ownsAction(id));
+            const owner = this.actionConfigs.get(id)?.module ?? (scope && scopeModule(scope).id);
+            if (
+              owner &&
+              (this.stopCompletion ||
+                phase === 'stopping' ||
+                phase === 'stopped' ||
+                (phase === 'failed' && !this.isReady()) ||
+                (this.isReady() && !this.isReady(owner)))
+            )
+              return false;
+          },
+        }),
         this.actions.subscribeExecution((event) => {
           if (event.phase === 'failed' && event.context.get() && isActionFailure(event.error))
             this.notify(event.error.feedback, 'failure');
@@ -620,7 +867,7 @@ export class FoundationRuntime implements ContributionHost {
       );
       for (const plugin of plugins) {
         const scope = createEventScope(this.events, plugin.id);
-        this.extensionCleanups.push(scope.dispose);
+        this.pluginEvents.set(plugin.id, scope);
         moduleEvents.set(plugin.id, scope.events);
       }
       this.connectTranslation();
@@ -655,13 +902,38 @@ export class FoundationRuntime implements ContributionHost {
           composed,
           composedModules,
           translation,
+          this.lifecycle,
         );
         this.scopes.push(scope);
+        scope.bindSlots(this.slotRuntime.bind(scope, plugin.id));
+        scope.onClose(this.pluginEvents.get(plugin.id)!.dispose);
       }
       this.installContributions(plugins);
       plugins.forEach((plugin, index) => {
         for (const contribution of plugin.actions)
           this.install(this.scopes[index], contribution, plugin.id, moduleEvents.get(plugin.id)!);
+      });
+      // Declared targets and programmatic contributions share the same owned attachment path.
+      // Undeclared UI slots retain their existing rendering until the placement migration.
+      plugins.forEach((plugin, index) => {
+        for (const [viewIndex, view] of plugin.views.entries()) {
+          if (!this.slots.has(view.slot)) continue;
+          const contribution = {
+            id: view.id ?? `view:${viewIndex}`,
+            component: view.component,
+            key: view.key,
+            order: view.order,
+            when: view.when,
+          };
+          preserveContributionPath(view, contribution);
+          try {
+            this.scopes[index].slots.attach(view.slot, contribution, {
+              availability: view.availability ?? 'wait',
+            });
+          } catch (error) {
+            throw this.attribute(error, plugin.id, `Slot "${view.slot}"`, contributionSource(view));
+          }
+        }
       });
       this.observe(new Set([...this.container.observed, this.settings]));
       plugins.forEach((plugin, index) => {
@@ -674,25 +946,51 @@ export class FoundationRuntime implements ContributionHost {
         }
       });
       this.syncIdentity();
+      this.setupComplete = true;
+      this.refreshPluginReadiness();
     } catch (error) {
-      this.unmount();
+      this.startFailed(error);
+      void stop();
       throw error;
     }
+    if (this.stopCompletion) return stop;
     const controller = new AbortController();
     this.startController = controller;
     const pending = this.readyDeferred;
     const finish = () => {
-      if (this.startController !== controller) return;
+      if (this.startController !== controller || this.stopCompletion) return;
+      this.startPending = false;
+      for (const plugin of plugins) this.lifecycleState.plugin(plugin.id, 'ready');
+      if (this.stopCompletion) return;
+      this.lifecycleState.update({ phase: 'ready' });
+      if (this.stopCompletion) return;
       this.setReady(true);
-      pending.resolve();
+      if (!this.stopCompletion) pending.resolve();
     };
-    if (!this.container.hasStartHooks) finish();
-    else
-      void this.container.start(controller.signal).then(finish, (error) => {
-        if (this.startController !== controller) return;
+    if (!this.container.hasStartHooks) {
+      for (const entry of this.lifecycle.get().services) this.servicePhase(entry.id, 'ready');
+      finish();
+    } else {
+      this.startPending = true;
+      this.startWork = this.container.start(controller.signal);
+      void this.startWork.then(finish, (error) => {
+        this.startPending = false;
+        if (this.startController !== controller || this.stopCompletion) return;
+        this.startFailed(error);
         pending.reject(error);
       });
-    return () => this.unmount();
+    }
+    return stop;
+  }
+  private startFailed(error: unknown) {
+    const failure = {
+      message: error instanceof Error ? error.message : String(error),
+      ...(isFoundationStartupError(error) ? { plugin: error.plugin, source: error.source } : {}),
+    };
+    if (isFoundationStartupError(error))
+      this.lifecycleState.plugin(error.plugin, 'failed', failure);
+    this.lifecycleState.update({ phase: 'failed' });
+    this.readyDeferred.reject(error);
   }
   /** Routes each contribution kind to the one module that installs it; cleanup stays with the contributor. */
   private installContributions(plugins: readonly NormalizedPlugin[]) {
@@ -733,7 +1031,7 @@ export class FoundationRuntime implements ContributionHost {
       });
   }
   private connectTranslation() {
-    const i18n = this.services.i18n;
+    const i18n = this.hasService('i18n') ? this.services.i18n : undefined;
     if (!i18n) return;
     this.setTranslations(i18n.translate);
     this.extensionCleanups.push(i18n.subscribe(() => this.setTranslations(i18n.translate)));
@@ -836,7 +1134,7 @@ export class FoundationRuntime implements ContributionHost {
     let adapted: ReturnType<typeof adaptAction>;
     try {
       const config = this.configuration.context(module, path);
-      adapted = adaptAction(contribution, this, config, events);
+      adapted = adaptAction(contribution, this, config, events, () => this.isReady(module));
       this.requireServices(module, adapted.requires, {
         label: `Action "${adapted.definition.id}"`,
         source,
@@ -845,6 +1143,25 @@ export class FoundationRuntime implements ContributionHost {
         this.actionConfigs.set(registration.id, { module, config });
         const handle = this.actions.register(registration.definition, registration.placement);
         scope.own(handle.unregister);
+        // Placement is a reference to this registration, not another Action or execution path.
+        if (!registration.definition.internal) {
+          for (const placement of (adapted.definition.slots ??
+            []) as readonly RuntimeActionPlacement[]) {
+            const target = typeof placement === 'string' ? { name: placement } : placement;
+            const reference = {
+              id: `action:${registration.id}:${target.key ?? ''}`,
+              actionId: registration.id,
+              input: target.input,
+              key: target.key,
+              order: target.order ?? contribution.order,
+            };
+            preserveContributionPath(contribution, reference);
+            const attached = scope.slots.attach(target.name, reference, {
+              availability: target.availability ?? 'wait',
+            });
+            handle.onDispose(attached.dispose);
+          }
+        }
         if (adapted.confirm) {
           const confirm = adapted.confirm;
           handle.onDispose(
@@ -859,58 +1176,493 @@ export class FoundationRuntime implements ContributionHost {
       throw this.attribute(error, module, `Action "${contribution.id}"`, source);
     }
   }
-  /** Every store and observable service refreshes action presentation when it changes. */
-  private observe(observed: ReadonlySet<Observable>) {
+  /** Reconcile subscriptions over the existing container; never mirror service state. */
+  private observe(observed: ReadonlySet<Observable>, refresh = true) {
+    for (const [source, off] of this.observations)
+      if (!observed.has(source)) {
+        off();
+        this.observations.delete(source);
+      }
     for (const source of observed)
-      this.extensionCleanups.push(
-        source.subscribe(() => {
-          if (!this.container) return;
-          this.actions.refresh();
-          this.syncIdentity();
-        }),
-      );
-    if (observed.size) this.actions.refresh();
+      if (!this.observations.has(source))
+        this.observations.set(
+          source,
+          source.subscribe(() => {
+            if (!this.container) return;
+            this.actions.refresh();
+            this.syncIdentity();
+          }),
+        );
+    if (refresh && observed.size) this.actions.refresh();
   }
-  private unmount() {
-    const starting = this.startController !== undefined && !this.mounted;
+
+  /** Explicit host update of already-loaded immutable plugin definitions; never installs code. */
+  reconcilePlugins(next: readonly Plugin[]): Promise<PluginUpdateResult> {
+    next = [...next];
+    const result = (
+      status: PluginUpdateResult['status'],
+      reasons: string[],
+      changed: string[] = [],
+      affected: string[] = [],
+    ): PluginUpdateResult =>
+      Object.freeze({
+        status,
+        revision: this.revision,
+        reasons: Object.freeze(reasons),
+        changed: Object.freeze(changed),
+        affected: Object.freeze(affected),
+      });
+    if (
+      this.updating ||
+      this.mounting ||
+      this.tearingDown ||
+      this.stopCompletion ||
+      !this.container ||
+      this.startPending
+    )
+      return Promise.resolve(
+        result('blocked', ['A lifecycle operation is active or the runtime is not mounted.']),
+      );
+    if (this.lifecycle.get().cleanup === 'failed')
+      return Promise.resolve(
+        result('blocked', ['Failed cleanup requires resource recovery and a new runtime.']),
+      );
+    const current = this.config.plugins ?? [];
+    if (
+      JSON.stringify(current.map((plugin) => plugin.id)) !==
+      JSON.stringify(next.map((plugin) => plugin.id))
+    )
+      return Promise.resolve(
+        result('restart-required', [
+          'Changing plugin membership or order requires composition replacement.',
+        ]),
+      );
+    let normalized: NormalizedPlugin[];
+    let affected: string[];
+    const failed = this.lifecycle
+      .get()
+      .plugins.filter((plugin) => plugin.phase === 'failed' || plugin.phase === 'blocked')
+      .map((plugin) => plugin.id);
+    const changed = next
+      .filter((plugin, index) => plugin !== current[index] || failed.includes(plugin.id))
+      .map((plugin) => plugin.id);
+    if (!changed.length) return Promise.resolve(result('applied', []));
+    try {
+      normalized = next.map((plugin) => normalize(plugin, this.appId));
+      const all = [this.modules.find((plugin) => plugin.id === this.appId)!, ...normalized];
+      orderPlugins(all, this.appId);
+      validateSlotDeclarations(all, this.appId);
+      validatePluginPages(all, new Set(Object.keys(all[0].ui?.layouts ?? {})));
+      // A projection that captured the composition is an explicit consumer of every revision.
+      affected = updateClosure(all, [
+        ...changed,
+        ...this.scopes.filter(readsComposition).map((scope) => scopeModule(scope).id),
+      ]);
+      const reasons = next.flatMap((plugin, index) =>
+        updateRestrictions(
+          current[index],
+          plugin,
+          this.modules.find((module) => module.id === plugin.id)!,
+          normalized[index],
+        ),
+      );
+      for (const id of affected) {
+        const module = all.find((module) => module.id === id)!;
+        if (
+          id === this.appId ||
+          module.interceptors?.length ||
+          Object.keys(module.installs ?? {}).length ||
+          Object.keys(module.contributions ?? {}).length ||
+          module.providers.length
+        )
+          reasons.push(
+            `${id}: host, provider or cross-plugin installer/interceptor requires composition replacement.`,
+          );
+        if (
+          module.services.some((service) =>
+            [service.id, service.provides, service.exposeAs].some((name) =>
+              ['auth', 'i18n', 'settings.storage'].includes(name as string),
+            ),
+          )
+        )
+          reasons.push(
+            `${id}: replacing a host identity, translation or storage service requires composition replacement.`,
+          );
+      }
+      if (reasons.length)
+        return Promise.resolve(result('restart-required', reasons, changed, affected));
+    } catch (error) {
+      return Promise.resolve(
+        result('blocked', [error instanceof Error ? error.message : String(error)], changed),
+      );
+    }
+    const controller = new AbortController();
+    this.updateController = controller;
+    // Establish exclusion before any synchronous status observer or cleanup callback runs.
+    this.updating = Promise.resolve().then(() =>
+      this.applyPluginUpdate(next, normalized, changed, affected, controller),
+    );
+    void this.updating
+      .finally(() => {
+        this.updating = undefined;
+        this.updateController = undefined;
+      })
+      .catch(() => {});
+    return this.updating;
+  }
+
+  private async stopPlugins(ids: readonly string[]) {
+    const selected = new Set(ids);
+    const scopes = this.scopes.filter((scope) => selected.has(scopeModule(scope).id));
+    const registrations = this.registrations.filter((entry) =>
+      selected.has(this.actionConfigs.get(entry.definition.id)?.module ?? ''),
+    );
+    const runs = [...this.activeRuns.values()].filter(
+      (run) => run.plugin && selected.has(run.plugin),
+    );
+    const early: unknown[] = [];
+    for (const id of ids) this.lifecycleState.plugin(id, 'stopping');
+    if (
+      this.state &&
+      (selected.has(this.actionConfigs.get(this.state.definition.id)?.module ?? '') ||
+        scopes.some((scope) => scope.ownsAction(this.state!.definition.id)))
+    )
+      this.close();
+    for (const { handle } of registrations)
+      try {
+        handle.unregister();
+      } catch (error) {
+        early.push(error);
+      }
+    for (const scope of scopes)
+      try {
+        scope.close();
+      } catch (error) {
+        early.push(error);
+      }
+    this.registrations = this.registrations.filter((entry) => !registrations.includes(entry));
+    for (const entry of registrations) this.actionConfigs.delete(entry.definition.id);
+    this.scopes = this.scopes.filter((scope) => !scopes.includes(scope));
+    const tasks: Cleanup[] = [() => Promise.all(runs.map((run) => run.promise)).then(() => {})];
+    // Dependent scope cleanup can still use its provider's service until the next step.
+    for (const id of [...ids].reverse())
+      tasks.push(async () => {
+        const own = scopes.find((scope) => scopeModule(scope).id === id);
+        await cleanupSequence(
+          [
+            ...(own ? [() => own.dispose()] : []),
+            () => this.container!.disposeModules(new Set([id])),
+          ],
+          (errors) => {
+            this.lifecycleState.plugin(
+              id,
+              errors.length ? 'failed' : 'stopped',
+              errors.length ? { plugin: id, message: 'Plugin cleanup failed.' } : undefined,
+            );
+            cleanupFailure(errors, `Plugin "${id}" cleanup failed.`);
+          },
+        );
+        this.pluginEvents.delete(id);
+      });
+    await cleanupSequence(tasks, (errors) =>
+      cleanupFailure([...early, ...errors], 'Plugin update cleanup failed.'),
+    );
+    this.observe(new Set([...this.container!.observed, this.settings]), false);
+  }
+
+  private async applyPluginUpdate(
+    next: readonly Plugin[],
+    normalized: NormalizedPlugin[],
+    changed: string[],
+    affected: string[],
+    controller: AbortController,
+  ): Promise<PluginUpdateResult> {
+    const result = (
+      status: PluginUpdateResult['status'],
+      reasons: string[] = [],
+    ): PluginUpdateResult =>
+      Object.freeze({
+        status,
+        revision: this.revision,
+        changed: Object.freeze(changed),
+        affected: Object.freeze(affected),
+        reasons: Object.freeze(reasons),
+      });
+    // Initial readiness remains true: only the affected owners become unavailable.
+    this.setupComplete = false;
+    this.lifecycleState.update({
+      operation: Object.freeze({ kind: 'update', startedAt: Date.now() }),
+      phase: 'starting',
+      plugins: Object.freeze(
+        this.lifecycle
+          .get()
+          .plugins.map((entry) =>
+            affected.includes(entry.id)
+              ? Object.freeze({ ...entry, phase: 'stopping' as const })
+              : entry,
+          ),
+      ),
+    });
+    try {
+      await this.stopPlugins(affected);
+    } catch (error) {
+      this.lifecycleState.update({ phase: 'failed', cleanup: 'failed' });
+      return result('failed', [error instanceof Error ? error.message : String(error)]);
+    }
+    if (controller.signal.aborted)
+      return result('blocked', ['Update cancelled by runtime shutdown.']);
+    this.currentConfig = { ...this.config, plugins: [...next] };
+    this.currentModules = [this.modules.find((module) => module.id === this.appId)!, ...normalized];
+    this.order = orderPlugins(this.modules, this.appId);
+    this.revision++;
+    const plugins = affected.map((id) => this.modules.find((module) => module.id === id)!);
+    const selected = new Set(affected);
+    try {
+      for (const id of affected) this.lifecycleState.plugin(id, 'starting');
+      this.container!.install(plugins.flatMap((plugin) => plugin.services));
+      for (const plugin of plugins) {
+        const events = createEventScope(this.events, plugin.id);
+        this.pluginEvents.set(plugin.id, events);
+        const scope = new PluginScope(this.actions, this.groups);
+        assignScopeModule(
+          scope,
+          { id: plugin.id, app: false },
+          Object.freeze(
+            this.modules
+              .filter((module) => module.id !== this.appId)
+              .map((module) => Object.freeze({ id: module.id, metadata: module.metadata })),
+          ),
+          Object.freeze(
+            this.modules.map((module) =>
+              Object.freeze({
+                id: module.id,
+                app: module.id === this.appId,
+                metadata: module.metadata,
+                settings: module.settings,
+                ui: module.ui,
+              }),
+            ),
+          ),
+          {
+            translate: this.translator(),
+            text: (key, fallback, values) => this.text(key, fallback, values),
+            subscribe: this.subscribeTranslations,
+          },
+          this.lifecycle,
+        );
+        this.scopes.push(scope);
+        scope.bindSlots(this.slotRuntime.bind(scope, plugin.id));
+        scope.onClose(events.dispose);
+        for (const action of plugin.actions) this.install(scope, action, plugin.id, events.events);
+        for (const [index, view] of plugin.views.entries())
+          if (this.slots.has(view.slot)) {
+            const contribution = {
+              id: view.id ?? `view:${index}`,
+              component: view.component,
+              key: view.key,
+              order: view.order,
+              when: view.when,
+            };
+            preserveContributionPath(view, contribution);
+            scope.slots.attach(view.slot, contribution, {
+              availability: view.availability ?? 'wait',
+            });
+          }
+        try {
+          const cleanup = plugin.setup?.({ app: scope, services: this.services });
+          if (cleanup) scope.own(cleanup);
+        } catch (error) {
+          throw this.attribute(error, plugin.id, 'Setup');
+        }
+      }
+      this.observe(new Set([...this.container!.observed, this.settings]));
+      await this.container!.start(controller.signal, selected);
+      if (controller.signal.aborted) {
+        await this.stopPlugins(affected);
+        return result('blocked', ['Update cancelled by runtime shutdown.']);
+      }
+      this.setupComplete = true;
+      for (const id of affected) {
+        if (controller.signal.aborted) break;
+        this.lifecycleState.plugin(id, 'ready');
+      }
+      if (!controller.signal.aborted)
+        this.lifecycleState.update({ phase: 'ready', cleanup: 'none' });
+      if (!controller.signal.aborted) this.setReady(true);
+      if (controller.signal.aborted) {
+        this.setReady(false);
+        await this.stopPlugins(affected);
+        return result('blocked', ['Update cancelled by runtime shutdown.']);
+      }
+      return result('applied');
+    } catch (error) {
+      let cleanupError: unknown;
+      try {
+        await this.stopPlugins(affected);
+      } catch (failure) {
+        cleanupError = failure;
+      }
+      const failed = isFoundationStartupError(error) ? error.plugin : changed[0];
+      for (const id of affected)
+        this.lifecycleState.plugin(id, id === failed ? 'failed' : 'blocked', {
+          plugin: failed,
+          message: 'Plugin update failed.',
+        });
+      this.lifecycleState.update({
+        phase: 'failed',
+        cleanup: cleanupError ? 'failed' : 'complete',
+      });
+      return result('failed', [
+        error instanceof Error ? error.message : String(error),
+        ...(cleanupError ? ['Cleanup also failed; restart is blocked.'] : []),
+      ]);
+    }
+  }
+  private unmount(): Promise<void> {
+    if (this.stopCompletion) return this.stopCompletion.promise;
+    const completion = (this.stopCompletion = deferred());
+    this.setReady(false);
+    // Rejections are reported even if a host ignores the returned promise.
+    void completion.promise.catch((error) => this.reportLifecycleError(error));
+    // A hook or observer may request stop during synchronous construction. Finish recording
+    // ownership first; never dispose a half-created service from inside its own factory.
+    if (this.updating) {
+      this.updateController?.abort();
+      void this.updating.then(
+        () => this.teardown(completion),
+        () => this.teardown(completion),
+      );
+    } else if (this.mounting) {
+      this.lifecycleState.update({ cleanup: 'pending' });
+      queueMicrotask(() => this.teardown(completion));
+    } else this.teardown(completion);
+    return completion.promise;
+  }
+  private teardown(completion: Deferred) {
+    const previousCleanupFailed = this.lifecycle.get().cleanup === 'failed';
+    this.tearingDown = true;
+    const starting = this.startPending;
     this.startController?.abort();
     this.startController = undefined;
-    this.setReady(false);
-    this.settings.deactivate();
-    const errors: unknown[] = [];
-    for (const cleanup of this.extensionCleanups.splice(0).reverse()) {
+    if (this.mounted) this.setReady(false);
+    this.lifecycleState.update({
+      phase: 'stopping',
+      operation: Object.freeze({ kind: 'stop', startedAt: Date.now() }),
+      cleanup: 'pending',
+      plugins: Object.freeze(
+        this.lifecycle
+          .get()
+          .plugins.map((entry) =>
+            entry.phase === 'failed'
+              ? entry
+              : Object.freeze({ ...entry, phase: 'stopping' as const }),
+          ),
+      ),
+    });
+    this.readyDeferred.reject(
+      new Error('The runtime stopped before its services finished starting.'),
+    );
+    // Unregister immediately: cancellation and new-work gating cannot wait behind an async disposer.
+    const earlyErrors: unknown[] = previousCleanupFailed
+      ? [
+          new Error(
+            'Previous plugin update cleanup failed; external resource recovery is required.',
+          ),
+        ]
+      : [];
+    for (const { handle } of this.registrations) {
       try {
-        cleanup();
+        handle.unregister();
       } catch (error) {
-        errors.push(error);
+        earlyErrors.push(error);
       }
     }
-    for (const scope of this.scopes.splice(0).reverse()) {
+    for (const scope of this.scopes) {
       try {
-        scope.dispose();
+        scope.close();
       } catch (error) {
-        errors.push(error);
+        earlyErrors.push(error);
       }
     }
-    try {
-      this.container?.dispose();
-    } catch (error) {
-      errors.push(error);
-    }
-    this.events.clear();
-    for (const module of this.modules)
-      if (module.events) this.events.declare(module.id, module.events);
-    this.container = undefined;
-    this.view = undefined;
-    this.registrations = [];
-    this.actionConfigs.clear();
-    if (starting)
-      this.readyDeferred.reject(
-        new Error('The runtime stopped before its services finished starting.'),
+    const tasks: Cleanup[] = [];
+    if (starting && this.startWork)
+      tasks.push(() =>
+        this.startWork!.then(
+          () => {},
+          () => {},
+        ),
       );
-    this.readyDeferred = deferred();
-    this.publish(null);
-    if (errors.length) throw new AggregateError(errors, 'Foundation cleanup failed.');
+    const activeRuns = [...this.activeRuns.values()];
+    if (activeRuns.length)
+      tasks.push(() => Promise.all(activeRuns.map((run) => run.promise)).then(() => {}));
+    tasks.push(
+      ...this.scopes
+        .splice(0)
+        .reverse()
+        .map((scope) => async () => {
+          try {
+            await scope.dispose();
+          } catch (error) {
+            const plugin = scopeModule(scope).id;
+            const failure = Object.assign(
+              new Error(`Cleanup in plugin "${plugin}" failed.`, { cause: error }),
+              { plugin },
+            );
+            this.lifecycleState.plugin(plugin, 'failed', { plugin, message: failure.message });
+            throw failure;
+          }
+        }),
+    );
+    if (this.container) tasks.push(() => this.container!.dispose());
+    tasks.push(...this.extensionCleanups.splice(0).reverse());
+    tasks.push(() => {
+      for (const off of this.observations.values()) off();
+      this.observations.clear();
+      this.pluginEvents.clear();
+    });
+    void cleanupSequence(tasks, (errors) => {
+      errors.unshift(...earlyErrors);
+      try {
+        this.settings.deactivate();
+      } catch (error) {
+        errors.push(error);
+      }
+      this.container = undefined;
+      this.view = undefined;
+      this.registrations = [];
+      this.actionConfigs.clear();
+      this.activeRuns.clear();
+      this.startWork = undefined;
+      this.startPending = false;
+      this.setupComplete = false;
+      this.publish(null);
+      this.lifecycleState.update({
+        phase: errors.length ? 'failed' : 'stopped',
+        cleanup: errors.length ? 'failed' : 'complete',
+        plugins: Object.freeze(
+          this.lifecycle
+            .get()
+            .plugins.map((entry) =>
+              entry.phase === 'failed'
+                ? entry
+                : Object.freeze({ ...entry, phase: 'stopped' as const }),
+            ),
+        ),
+      });
+      this.events.clear();
+      for (const module of this.modules)
+        if (module.events) this.events.declare(module.id, module.events);
+      cleanupFailure(errors, 'Foundation cleanup failed.');
+    }).then(
+      () => {
+        this.tearingDown = false;
+        completion.resolve();
+      },
+      (error) => {
+        this.tearingDown = false;
+        completion.reject(error);
+      },
+    );
   }
 }
 

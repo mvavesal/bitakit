@@ -191,37 +191,27 @@ Der Styles-Einstieg registriert zusätzlich die eigenen ausgelieferten Klassen u
 
 ## Settings integration
 
-Each plugin contributes exactly one settings section: an empty `defineSettings({}, section)`
-declaration that carries the presentation, plus one settings page (`ui.settings`, the equivalent
-of `ui/settings/page.tsx`). `useSettingsCatalog()` from `@bitakit/ui` derives the sections and
-App Preferences renders each page under `/settings/<path>` inside its own frame. The pages
-therefore render no page title, frame or navigation of their own; their parts start at heading
-level 2. Nothing is registered at runtime, so there is nothing to clean up.
+Account Profile (`/settings/account`) and Security (`/settings/account/security`) are separate
+pages in the shared settings catalog. `AccountProfileSettings` and `AccountSecuritySettings`
+are independently composable; `AccountSettingsPage` retains their combined composition.
+Security uses the native provider-configured cards and the existing sign-in guards.
+Organization profile is `/settings/organization`; members and sent invitations are
+`/settings/organization/members`. Personal incoming invitations are `/settings/account/invitations`,
+under Account, independent of the selected organization. Old `?tab=` links no longer select
+these pages; update bookmarks to their dedicated paths. Members still use URL-backed filters
+and their existing pending-invitations tab. The host owns each page heading.
 
-| Plugin             | Section      | Path                                       | Category, order    |
-| ------------------ | ------------ | ------------------------------------------ | ------------------ |
-| `better-auth-ui`   | Account      | `/settings/better-auth-ui` (the plugin ID) | `account`, 0       |
-| `organizations-ui` | Organization | `/settings/organization`                   | `organization`, 10 |
+`OrganizationSettings`, `OrganizationMembersSettings`, `OrganizationsPage` and the exported
+`IncomingInvitations` remain usable independently. `embedded` omits the page heading and width
+while retaining toolbars and content. The settings wrappers wait for runtime readiness and
+management content remains guarded for direct URL access; navigation is not authorization.
 
-- **Account** (`AccountSettingsPage`): the native profile (`UserProfile`), then security: email,
-  password, linked accounts, two-factor authentication and active sessions, as the provider
-  configuration enables them. While the session loads it shows "Checking sign-in…"; signed out it
-  shows a sign-in link. With `profileFallback`, a signed-out visitor sees that content as the
-  profile and the sign-in link under security. Account switching stays in the account menu; API
-  keys remain available through the native package routes.
-- **Organization** (`OrganizationSettingsPage`): tabs for the profile, members and sent
-  invitations (offered only to members who can manage the active organization) and the
-  invitations addressed to the viewer. The selected tab is URL state through nuqs:
-  `?tab=profile|members|invitations`, where the default `profile` leaves the URL clean. The page
-  needs the host's nuqs adapter and wraps its URL-backed part in `Suspense`. The URL action
-  `organizations.settings` (Alt+Shift+O) opens it.
-
-Sections cannot be hidden at runtime; role-dependent content is handled inside the page. Titles
-and descriptions translate through `<plugin>.settings.title` and `<plugin>.settings.description`
-(`better-auth-ui.settings.*` and `organizations-ui.settings.*` in this package's catalogs). Hosts
-that render settings themselves can use the exported pages directly. The organization views
-(`OrganizationSettings`, `OrganizationMembersSettings`, `OrganizationsPage`) accept `embedded`
-to render inside a host frame: a level-2 heading and no page width of their own.
+The organization form uses one standard Card for appearance and general fields, with its
+shared save button inside the card at the logical end. Organization deletion has its own
+standard Card below the save form, with irreversible-action
+copy and a standard destructive button. It is visible only when deletion is permitted, uses
+the existing confirmation action, and does not alter deletion semantics or server authorization.
+Additional page labels use `<plugin>.settings.pages.<id>.title` and `.description`.
 
 ## Source ownership
 
@@ -283,3 +273,33 @@ Language updates reuse the provider and client. Upstream implementation code sta
 Package-owned English and German messages live in `locales/` and are exported as
 `./locales/en.json` and `./locales/de.json`. Compose them in the host request configuration
 with `mergePluginMessages`; app catalogs override matching keys in the same locale.
+
+Settings card actions align at the logical end (right in LTR) through the shipped theme
+bridge and shared organization components. Native form submit controls and HeroUI's public
+fieldset action slot are targeted; input adornments and sign-in forms are not repositioned.
+New hosts using the standard discovered styles need no application CSS for this behavior.
+
+### Invitation states
+
+Incoming invitations use the standard shadcn Empty composition from the owning visual package,
+with theme-inherited icon, title and description. Loading, unavailable provider, provider error,
+no pending invitations and no search results retain distinct messages. `IncomingInvitations`
+accepts `emptyState` to replace the no-invitations presentation; it does not replace access
+errors or loading states. Authentication and email verification remain provider-owned.
+
+Organization member menus read the typed `organizations.member.menu` Action slot. Contributors use `slots: [{ name: 'organizations.member.menu', input: ({ payload }) => payload }]`; each row supplies `{ organizationId, memberId }`. Logical member-group membership alone no longer places an Action in that menu. Native Action bindings retain guards, confirmation and keyboard behavior. Other organization toolbars retain their current group queries.
+
+The optional standalone Organizations entry uses `organizationUIPlugin({ slots: ['host.navigation'] })`; default placement joins Shell when present, and `slots: []` omits it. This does not affect the owned member-menu slot.
+
+
+Settings declarations include page boundaries shared with slot extensions. Account pages keep
+pending/sign-in behavior (and the optional local profile fallback); organization management
+checks `canManage`; invitation loading/provider verification failures retain their existing
+fallback. App Preferences encloses the full page, toolbar and extensions in that same boundary.
+Native standalone components retain their own guards. No provider/server access policy changes.
+
+Organization toolbar, organization selection, management/danger, members and incoming/outgoing
+invitation renderers now consume explicit `organizations.*` slots. Their owner context is
+`{ organizationId }`, with `invitationId` for invitation entries; the member menu additionally
+uses `memberId`. Existing groups remain logical queries. Bind mapped `item.action` controls
+through the existing Action renderer; do not copy input or presentation state.

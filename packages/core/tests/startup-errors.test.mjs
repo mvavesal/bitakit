@@ -21,7 +21,7 @@ const startupError = (fn, expectations) =>
   });
 const page = (path) => ({ path, component: () => null });
 
-test('duplicate plugin IDs are rejected before anything mounts', () => {
+test('duplicate plugin IDs are rejected before anything mounts', async () => {
   startupError(
     () =>
       createRuntime({ plugins: [definePlugin({ id: 'todos' }), definePlugin({ id: 'todos' })] }),
@@ -32,7 +32,7 @@ test('duplicate plugin IDs are rejected before anything mounts', () => {
   );
 });
 
-test('a missing plugin dependency names the plugin, the dependency and the known plugins', () => {
+test('a missing plugin dependency names the plugin, the dependency and the known plugins', async () => {
   startupError(
     () =>
       createRuntime({
@@ -50,7 +50,7 @@ test('a missing plugin dependency names the plugin, the dependency and the known
   );
 });
 
-test('a plugin dependency cycle is reported as a path', () => {
+test('a plugin dependency cycle is reported as a path', async () => {
   startupError(
     () =>
       createRuntime({
@@ -64,7 +64,7 @@ test('a plugin dependency cycle is reported as a path', () => {
   );
 });
 
-test('page paths are validated and a path used by two plugins names both owners', () => {
+test('page paths are validated and a path used by two plugins names both owners', async () => {
   startupError(
     () =>
       createRuntime({
@@ -92,7 +92,7 @@ test('page paths are validated and a path used by two plugins names both owners'
   });
 });
 
-test('an invalid href is attributed to the action and its plugin at mount, and nothing stays registered', () => {
+test('an invalid href is attributed to the action and its plugin at mount, and nothing stays registered', async () => {
   const runtime = createRuntime({
     plugins: [
       definePlugin({
@@ -110,10 +110,11 @@ test('an invalid href is attributed to the action and its plugin at mount, and n
     message:
       /Action "links\.evil" in plugin "links" failed to start: Action "links\.evil" has an invalid navigation target: javascript:alert\(1\)/,
   });
+  await runtime.stopped;
   assert.deepEqual(Object.keys(runtime.actions.getState().actions), []);
 });
 
-test('duplicate action IDs across plugins and duplicate service names are attributed to the second owner', () => {
+test('duplicate action IDs across plugins and duplicate service names are attributed to the second owner', async () => {
   startupError(
     () =>
       createRuntime({
@@ -155,7 +156,7 @@ test('duplicate action IDs across plugins and duplicate service names are attrib
   );
 });
 
-test('configOverrides for an unknown module name the known modules', () => {
+test('configOverrides for an unknown module name the known modules', async () => {
   assert.throws(
     () =>
       createRuntime({
@@ -166,7 +167,7 @@ test('configOverrides for an unknown module name the known modules', () => {
   );
 });
 
-test('plugin definition errors are attributed: invalid action IDs, array services without id, missing plugin id', () => {
+test('plugin definition errors are attributed: invalid action IDs, array services without id, missing plugin id', async () => {
   startupError(
     () =>
       createRuntime({
@@ -188,7 +189,7 @@ test('plugin definition errors are attributed: invalid action IDs, array service
   assert.throws(() => definePlugin({ id: '' }), /definePlugin needs an id/);
 });
 
-test('contribution kinds without an installer or with two installers are attributed', () => {
+test('contribution kinds without an installer or with two installers are attributed', async () => {
   startupError(
     () =>
       createRuntime({

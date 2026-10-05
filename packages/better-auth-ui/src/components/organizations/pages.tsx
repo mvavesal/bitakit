@@ -14,18 +14,11 @@ import { Avatar, AvatarImage, AvatarFallback } from '../ui/index.js';
 import { Badge } from '../ui/index.js';
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from '../ui/index.js';
 import { organizationService } from '@bitakit/organizations';
-import { organizationGroups } from '@bitakit/organizations';
-import { GroupActions } from './group-actions.js';
+import { SlotActions, MemberMenu } from './group-actions.js';
 import type { Member, Invitation } from '@bitakit/organizations';
 
 function MemberActions({ member, organizationId }: { member: Member; organizationId: string }) {
-  return (
-    <GroupActions
-      menu
-      group={organizationGroups.member}
-      context={{ organizationId, memberId: member.id }}
-    />
-  );
+  return <MemberMenu payload={{ organizationId, memberId: member.id }} />;
 }
 function InvitationActions({
   invitation,
@@ -35,9 +28,9 @@ function InvitationActions({
   organizationId: string;
 }) {
   return (
-    <GroupActions
+    <SlotActions
       menu
-      group={organizationGroups.invitation}
+      slot="organizations.invitation"
       context={{ organizationId, invitationId: invitation.id }}
     />
   );
@@ -86,6 +79,7 @@ export function OrganizationsPage({
       aria-busy={state.pending}
     >
       <PageHeader
+        showTitle={!embedded}
         level={embedded ? 2 : 1}
         title={
           view === 'pending'
@@ -99,14 +93,14 @@ export function OrganizationsPage({
         )}
         trailing={
           <>
-            <GroupActions
+            <SlotActions
               iconOnly
-              group={organizationGroups.toolbar}
+              slot="organizations.toolbar"
               context={{ organizationId: state.activeId }}
             />
             {state.canManage && (
-              <GroupActions
-                group={organizationGroups.members}
+              <SlotActions
+                slot="organizations.members"
                 context={{ organizationId: state.activeId }}
                 size="default"
                 variant="default"

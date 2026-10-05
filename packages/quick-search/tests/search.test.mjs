@@ -105,6 +105,10 @@ test('automatic AppBar trigger, URL-only search, metadata, native links and live
     assert.equal(container.querySelector('input'), null);
     await act(async () => trigger.click());
     assert.ok(document.querySelector('[role=dialog]'));
+    // The command frame: the search field is the header; the title stays for assistive technology.
+    assert.equal(document.querySelector('[data-slot=dialog-close]'), null);
+    assert.match(document.querySelector('[data-slot=dialog-header]').className, /\bsr-only\b/);
+    assert.equal(document.querySelector('[data-slot=dialog-title]').textContent, 'Quick search');
     assert.equal(document.activeElement.getAttribute('role'), 'combobox');
     assert.match(document.body.textContent, /Monthly revenue/);
     assert.match(document.body.textContent, /Workspace/);
@@ -124,6 +128,27 @@ test('automatic AppBar trigger, URL-only search, metadata, native links and live
       input.dispatchEvent(new window.Event('input', { bubbles: true }));
     });
     assert.equal(document.querySelectorAll('[cmdk-item]').length, 1);
+    // Mod+Enter opens the selected result in a new tab and keeps the dialog and page as they are.
+    const opened = [];
+    const open = window.open;
+    window.open = (...args) => opened.push(args);
+    try {
+      await act(async () =>
+        input.dispatchEvent(
+          new window.KeyboardEvent('keydown', {
+            key: 'Enter',
+            metaKey: true,
+            bubbles: true,
+            cancelable: true,
+          }),
+        ),
+      );
+    } finally {
+      window.open = open;
+    }
+    assert.deepEqual(opened, [['http://localhost/reports', '_blank', 'noopener']]);
+    assert.ok(document.querySelector('[role=dialog]'));
+    assert.ok(document.querySelector('[role=dialog] button[aria-label="Close"]'));
     await act(async () => remove.unregister());
     assert.match(document.body.textContent, /No results found/);
     await act(async () =>
@@ -269,13 +294,13 @@ test('each result type has its own switch; turning one off never hides another',
     return list;
   };
   const cases = [
-    // Omitted configuration keeps the existing behavior: pages and settings.
-    [undefined, ['alerts', 'todos.tasks']],
+    // All destination types are included unless explicitly disabled.
+    [undefined, ['alerts', 'overview', 'todos.tasks']],
     [{ plugins: true }, ['alerts', 'overview', 'todos.tasks']],
     // Plugin results off never hides the plugin's own pages or settings.
     [{ plugins: false }, ['alerts', 'todos.tasks']],
-    [{ settings: false }, ['todos.tasks']],
-    [{ pages: false }, ['alerts']],
+    [{ settings: false }, ['overview', 'todos.tasks']],
+    [{ pages: false }, ['alerts', 'overview']],
     [{ pages: false, settings: false, plugins: true }, ['overview']],
   ];
   for (const [results, expected] of cases) {

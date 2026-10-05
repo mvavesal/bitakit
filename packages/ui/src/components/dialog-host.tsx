@@ -6,9 +6,14 @@ import { useFoundation } from '../providers/foundation-context.js';
 import { useDialogFocus } from '../hooks/use-dialog-focus.js';
 import type { DialogFrameProps } from '../types/ui.js';
 
+/** Frame kinds rendered with the host dialog primitives when no frame of that kind is registered. */
+const builtInKinds = new Set(['dialog', 'command']);
+
 /**
  * Renders the dialog of the action that opened one. The action names a frame kind; the host
- * supplies frames through `dialogs`, and the default kind uses the host dialog primitives.
+ * supplies frames through `dialogs`, and the built-in kinds use the host dialog primitives:
+ * `dialog` with a visible header, `command` as shadcn's CommandDialog, whose content (a search
+ * field and results) is its own header.
  */
 export function DialogHost() {
   const { runtime, ui, dialogs } = useFoundation();
@@ -26,7 +31,7 @@ export function DialogHost() {
   const definition = state.definition;
   const dialog = dialogOf(definition)!;
   const kind = dialog.kind ?? 'dialog';
-  const Frame = dialogs?.[kind] ?? (kind === 'dialog' ? undefined : dialogs?.dialog);
+  const Frame = dialogs?.[kind] ?? (builtInKinds.has(kind) ? undefined : dialogs?.dialog);
   const content = action.enabled
     ? createElement(dialog.component as never, {
         input: state.input,
@@ -49,18 +54,21 @@ export function DialogHost() {
     children: content,
   };
   if (Frame) return createElement(Frame, frame);
-  if (kind !== 'dialog')
+  if (!builtInKinds.has(kind))
     console.warn(
       `[bitakit] Action "${definition.id}" opens a "${kind}" dialog, but no frame of that kind is registered on FoundationProvider; the default dialog is used.`,
     );
+  const command = kind === 'command';
   return (
     <ui.Dialog open onOpenChange={frame.onOpenChange}>
       <ui.DialogContent
         size={dialog.size}
         aria-describedby={action.description ? `${definition.id}-description` : undefined}
         onCloseAutoFocus={restoreFocus}
+        showCloseButton={!command}
+        className={command ? 'top-1/3 translate-y-0 gap-0 overflow-hidden p-0' : undefined}
       >
-        <ui.DialogHeader>
+        <ui.DialogHeader className={command ? 'sr-only' : undefined}>
           <ui.DialogTitle>{action.title}</ui.DialogTitle>
           {action.description && (
             <ui.DialogDescription id={`${definition.id}-description`}>

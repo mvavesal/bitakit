@@ -5,7 +5,7 @@ description: Follow a service with a store, actions, events and cleanup in one r
 
 Build a small To-do feature with a service, actions and events. This example runs in Node.js with `@bitakit/core` and no framework.
 
-It uses manual composition: `definePlugin` groups the files, and the record keys supply the same IDs discovery derives from file paths in an app. For the discovery-based workflow, start with [Plugins and lifecycle](/docs/concepts/plugins).
+It uses manual composition: `definePlugin` groups the files, and the record keys supply the same IDs discovery derives from file paths in an app. For the discovery-based workflow, start with [the Counter learning path](/docs/concepts/plugins).
 
 Install `@bitakit/core`, then create the following files in your project. Keep their relative paths. No React, router, database or file discovery is required. The same files ship in the package under `examples/`.
 
@@ -119,7 +119,7 @@ try {
   await actions.execute('todos.delete', 2);
   console.log('After:', (await actions.execute('todos.list')).value);
 } finally {
-  stop();
+  await stop();
 }
 ```
 

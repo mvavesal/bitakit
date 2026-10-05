@@ -14,8 +14,13 @@ async function fixture(t, css, extra = {}) {
     await writeFile(file, typeof value === 'string' ? value : JSON.stringify(value));
   };
   const manifest = {
-    name: 'test-plugin', type: 'module',
-    exports: { '.': './index.js', './package.json': './package.json', './styles.css': './styles.css' },
+    name: 'test-plugin',
+    type: 'module',
+    exports: {
+      '.': './index.js',
+      './package.json': './package.json',
+      './styles.css': './styles.css',
+    },
     bitakit: { plugin: '.', styles: './styles.css' },
   };
   manifest.bitakit.plugin = './plugin';
@@ -32,14 +37,19 @@ async function fixture(t, css, extra = {}) {
 }
 
 for (const [name, css, message] of [
-  ['early layer order', '@layer components; .fixture { display: flex; }', /Do not establish layer order/],
+  [
+    'early layer order',
+    '@layer components; .fixture { display: flex; }',
+    /Do not establish layer order/,
+  ],
   ['extra reset', '* { padding: 0; margin: 0; }', /Global resets/],
   ['shared token override', ':root { --primary: red; }', /shared tokens/],
   ['base reset layer', '@layer base { input { all: unset; } }', /Base resets/],
-]) test(`rejects a plugin's ${name} before generating the host`, async (t) => {
-  const f = await fixture(t, css);
-  await assert.rejects(f.generate(), message);
-});
+])
+  test(`rejects a plugin's ${name} before generating the host`, async (t) => {
+    const f = await fixture(t, css);
+    await assert.rejects(f.generate(), message);
+  });
 
 test('validates imported CSS, not only the manifest entry', async (t) => {
   const f = await fixture(t, '@import "./nested.css";', {
@@ -50,7 +60,8 @@ test('validates imported CSS, not only the manifest entry', async (t) => {
 
 test('rejects CSS side effects reached through a lazy emitted module', async (t) => {
   const f = await fixture(t, '.fixture { display: flex; }', {
-    'node_modules/test-plugin/index.js': 'export const lazy = () => import("./lazy.js"); export default () => ({});',
+    'node_modules/test-plugin/index.js':
+      'export const lazy = () => import("./lazy.js"); export default () => ({});',
     'node_modules/test-plugin/lazy.js': 'import "./styles.css"; export default {};',
   });
   await assert.rejects(f.generate(), /lazy.js.*bypasses the root/);
@@ -58,12 +69,16 @@ test('rejects CSS side effects reached through a lazy emitted module', async (t)
 
 test('valid lazy plugins use one eager generated stylesheet with the canonical prelude', async (t) => {
   const f = await fixture(t, '@layer components { .fixture { padding: 1rem; } }', {
-    'node_modules/test-plugin/index.js': 'export const lazy = () => import("./lazy.js"); export default () => ({});',
+    'node_modules/test-plugin/index.js':
+      'export const lazy = () => import("./lazy.js"); export default () => ({});',
     'node_modules/test-plugin/lazy.js': 'export default () => null;',
   });
   await f.generate();
   const css = await readFile(path.join(f.root, 'src/bitakit.gen.css'), 'utf8');
-  assert.match(css, /@layer theme, base, components, utilities;\n@import "test-plugin\/styles.css";/);
+  assert.match(
+    css,
+    /@layer theme, base, components, utilities;\n@import "test-plugin\/styles.css";/,
+  );
   assert.equal(css.match(/test-plugin\/styles.css/g).length, 1);
 });
 
@@ -93,7 +108,100 @@ test('development rejects invalid installed CSS updates and recovers after corre
   await f.put('node_modules/test-plugin/styles.css', '@layer components;');
   await until(async () => (await readFile(cssFile, 'utf8')).includes('bitakit-invalid-plugin-css'));
   assert.match(errors[0].message, /test-plugin.*layer order/s);
-  await f.put('node_modules/test-plugin/styles.css', '@layer components { .fixture { padding: 2rem; } }');
-  await until(async () => !(await readFile(cssFile, 'utf8')).includes('bitakit-invalid-plugin-css'));
+  await f.put(
+    'node_modules/test-plugin/styles.css',
+    '@layer components { .fixture { padding: 2rem; } }',
+  );
+  await until(
+    async () => !(await readFile(cssFile, 'utf8')).includes('bitakit-invalid-plugin-css'),
+  );
   assert.match(await readFile(cssFile, 'utf8'), /@layer theme, base, components, utilities;/);
+});
+
+for (const [name, entry, extra, message] of [
+  [
+    'computed dynamic import',
+    'const chunk = "./lazy.js"; export const lazy = () => import(chunk);',
+    {},
+    /Computed runtime imports/,
+  ],
+  [
+    'computed require',
+    'export const load = (name) => require(name);',
+    {},
+    /Computed runtime imports/,
+  ],
+  ['extensionless CSS import', 'import "./styles";', {}, /CSS import.*bypasses the root/],
+  [
+    'external vendor CSS side effect',
+    'import "vendor";',
+    {
+      'node_modules/vendor/package.json': { name: 'vendor', type: 'module', exports: './index.js' },
+      'node_modules/vendor/index.js': 'import "./skin";',
+      'node_modules/vendor/skin.css': '.vendor { color: red; }',
+    },
+    /vendor\/index.js.*CSS import.*bypasses the root/,
+  ],
+  [
+    'unresolved runtime import',
+    'import "missing-vendor";',
+    {},
+    /Cannot audit runtime import.*missing-vendor/,
+  ],
+])
+  test(`audits installed plugin ${name}`, async (t) => {
+    const f = await fixture(t, '.fixture {}', {
+      'node_modules/test-plugin/index.js': entry,
+      ...extra,
+    });
+    await assert.rejects(f.generate(), message);
+  });
+
+test('audits emitted wildcard exports even when not reached by the main entry', async (t) => {
+  const f = await fixture(t, '.fixture {}', {
+    'node_modules/test-plugin/chunks/bad.js': 'import "../styles.css";',
+  });
+  f.manifest.exports['./chunks/*'] = './chunks/*.js';
+  await f.put('node_modules/test-plugin/package.json', f.manifest);
+  await assert.rejects(f.generate(), /chunks\/bad.js.*bypasses the root/);
+});
+
+test('resolves CSS export aliases and traverses valid vendor JS cycles', async (t) => {
+  const f = await fixture(t, '.fixture {}', {
+    'node_modules/test-plugin/index.js': 'export { default } from "vendor";',
+    'node_modules/vendor/package.json': {
+      name: 'vendor',
+      type: 'module',
+      exports: { '.': './index.js', './skin': './skin.css' },
+    },
+    'node_modules/vendor/index.js': 'import "./other.js"; export default {};',
+    'node_modules/vendor/other.js': 'import "./index.js";',
+    'node_modules/vendor/skin.css': '.vendor {}',
+  });
+  await f.generate();
+  await f.put('node_modules/test-plugin/index.js', 'import "vendor/skin";');
+  await assert.rejects(f.generate(), /vendor\/skin.*bypasses the root/);
+});
+
+test('wildcard targets without extensions cannot hide emitted CSS side effects', async (t) => {
+  const f = await fixture(t, '.fixture {}', {
+    'node_modules/test-plugin/chunks/bad.js': 'import "../styles.css";',
+  });
+  f.manifest.exports['./chunks/*'] = './chunks/*';
+  await f.put('node_modules/test-plugin/package.json', f.manifest);
+  await assert.rejects(f.generate(), /chunks\/bad.js.*bypasses the root/);
+});
+
+test('literal require audits the vendor require condition rather than its import entry', async (t) => {
+  const f = await fixture(t, '.fixture {}', {
+    'node_modules/test-plugin/index.js': 'const vendor = require("vendor");',
+    'node_modules/vendor/package.json': {
+      name: 'vendor',
+      exports: { import: './safe.js', require: './unsafe.cjs' },
+    },
+    'node_modules/vendor/safe.js': 'export default {};',
+    'node_modules/vendor/unsafe.cjs': 'require("./skin");',
+    'node_modules/vendor/skin.css': '.vendor {}',
+  });
+  await assert.rejects(f.generate(), /unsafe.cjs.*bypasses the root/);
 });

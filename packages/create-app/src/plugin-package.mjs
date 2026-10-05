@@ -91,7 +91,7 @@ test('adding an item updates the store, emits an event and enables Clear all', a
     assert.ok(plugin.events.recorded.some((event) => event.type === '${id}.changed'));
     assert.equal(plugin.actions.get('${id}.clear')?.enabled, true);
   } finally {
-    plugin.stop();
+    await plugin.stop();
   }
 });
 `,
@@ -134,6 +134,14 @@ async function configurePlayground(plan, playground, id) {
   const inspector = `import { Inspector } from '@bitakit/devtools';`;
   await writeProjectFiles(playground, {
     'package.json': JSON.stringify(manifest, null, 2) + '\n',
+    'src/setup.ts': `import type { Setup } from '@bitakit/core';
+
+// Host-owned placement: the plugin also works without Shell.
+const setup: Setup = ({ app }) => {
+  app.slots.attach('shell.navigation', { actionId: '${id}.open' }, { availability: 'wait' });
+};
+export default setup;
+`,
     'bitakit.config.ts': `import { defineBitaKit } from '@bitakit/discovery';
 
 // Discover the plugin straight from ../src, so edits reload instantly.

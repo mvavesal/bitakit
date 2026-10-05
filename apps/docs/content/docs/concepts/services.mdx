@@ -1,140 +1,67 @@
 ---
-title: Services
-description: Define behavior and state in one file and call it from your feature.
+title: 3. Add state
+description: Give the Counter a value and one operation.
 ---
 
-A service is an object with functions and state your feature reuses. For example, a tasks service holds the task list and provides `add()`. Several actions and pages can use the same service.
+Continue with the [Counter page](/docs/concepts/plugins).
+A **service** owns data and behavior that multiple components or Actions can share. Here it
+keeps the count in one place, so the page and button use the same value.
 
-The examples below assume your app already has BitaKit discovery configured, as described in the [quickstart](/docs/quickstart).
+[Read more about services →](/docs/reference/services)
 
-## 1. Create the service file
+## 1. Add a service
+
+Create `src/plugins/counter/services/value.ts`:
 
 ```ts
-// src/plugins/todos/services/tasks.ts
 import { defineService } from '@bitakit/core';
 
-export type Task = { id: number; title: string };
-
 export default defineService(({ store }) => {
-  // Observable state: actions and pages follow it without any wiring.
-  const state = store<{ items: Task[] }>({ items: [] });
-
+  const state = store({ count: 0 });
   return {
     state,
-    list: () => state.get().items,
-    add(title: string) {
-      state.set((s) => ({ items: [...s.items, { id: Date.now(), title }] }));
-    },
+    increment: () => state.set((s) => ({ count: s.count + 1 })),
   };
 });
 ```
 
-That is the complete service definition. The folder and file name supply the ID `todos.tasks`; BitaKit creates the service when the plugin starts. TypeScript infers that `list()` returns `Task[]`.
+`store` holds the current value. `increment` is the only operation so far.
+The path names this service **`counter.value`**.
 
-The factory receives one context object:
+## 2. Display its value
 
-| Key        | What it is                                                                                        |
-| ---------- | ------------------------------------------------------------------------------------------------- |
-| `store`    | `store(initial)` creates observable state with `get()`, `set(value or updater)` and `subscribe()` |
-| `services` | Other services, reached as `services.<plugin>.<file>`                                             |
-| `events`   | Emit this plugin's [events](/docs/concepts/events) and listen to others                           |
-| `config`   | This plugin's [configuration](/docs/concepts/configuration): `config.plugin.get(path, fallback)`  |
-| `onStart`  | Registers async work awaited before the app is ready, with an `AbortSignal`                       |
-| `onStop`   | Registers cleanup that runs when the runtime stops                                                |
-
-## 2. Use it in an action
-
-```ts
-// src/plugins/todos/actions/add.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<string>({
-  title: 'Add task',
-  execute: ({ services, input }) => services.todos.tasks.add(input),
-});
-```
-
-The action calls the service as `services.todos.tasks`. Discovery finds both files, connects them and generates their types. You do not write registration IDs, a service-name mapping or runtime startup code.
-
-## 3. Read it in a page
+Replace `src/plugins/counter/ui/pages/index.tsx` with:
 
 ```tsx
-// src/plugins/todos/ui/pages/index.tsx
 'use client';
-
 import { useServiceState } from '@bitakit/ui';
+import { PageHeader } from '@bitakit/ui/components';
 
-export default function TodosPage() {
-  // Re-renders whenever the tasks store changes.
-  const tasks = useServiceState('todos.tasks', (state) => state.items, []);
+export default function CounterPage() {
+  const count = useServiceState('counter.value', (state) => state.count, 0);
   return (
-    <ul>
-      {tasks.map((task) => (
-        <li key={task.id}>{task.title}</li>
-      ))}
-    </ul>
+    <>
+      <PageHeader title="Counter" />
+      <output>{count}</output>
+    </>
   );
 }
 ```
 
-`useServiceState(name, selector?, fallback?)` subscribes to the store a service exposes as `state` (or to a `subscribe`/`getSnapshot` pair) and re-renders when the selected value changes. It returns the fallback until the runtime is ready. `useService(name)` returns the instance itself without subscribing; `app.has(name)` tells whether a service is available right now.
+You should see **0**. The final `0` is the fallback while the service starts.
+The hook follows the store and releases its subscription when the component unmounts.
 
-Actions follow stores too: a function-valued field such as `enabled: ({ services }) => services.todos.tasks.list().length > 0` re-runs on every change. See [actions](/docs/concepts/actions#availability).
+<Diagram name="service-state" />
 
-## Use a service from another plugin
+## 3. Know what survives
 
-Any contribution can use any service. List one that belongs to another plugin in `requires` when you want startup to report a missing plugin instead of the first click:
+This example stores the count in memory. A full page reload starts it at zero again.
+The next lesson adds a button so you can change it.
 
-```ts
-// src/plugins/reports/actions/summary.ts
-import { defineAction } from '@bitakit/core';
+**Next:** [Call increment from an Action →](/docs/concepts/actions)
 
-export default defineAction({
-  title: 'Summary',
-  requires: ['billing.invoices'],
-  execute: ({ services }) => services.billing.invoices.total(),
-});
-```
+## Later: dependencies and resources
 
-`billing.invoices` is the ID of the `invoices` service in the `billing` plugin. A service lists the services its factory reads in the second argument of `defineService`, even within the same plugin: that sets the creation order and lets BitaKit report cycles:
-
-```ts
-export default defineService(({ services }) => ({ total: () => services.billing.invoices.sum() }), {
-  requires: ['billing.invoices'],
-});
-```
-
-A service that is not listed still fails with a named error, with suggestions for close names, when it is first read.
-
-## Lifecycle and resources
-
-Core creates one instance per runtime, in dependency order, makes it available to every contribution and stops it in reverse order when the runtime stops. Put async startup work in `onStart` and cleanup in `onStop`:
-
-```ts
-export default defineService(({ store, onStart, onStop }) => {
-  const state = store<{ items: Task[] }>({ items: [] });
-  onStart(async ({ signal }) => {
-    const response = await fetch('/api/tasks', { signal });
-    state.set({ items: await response.json() });
-  });
-  onStop(() => state.set({ items: [] }));
-  return { state };
-});
-```
-
-The app is ready after every `onStart` has completed. A factory or start hook that throws is a startup error that names the plugin and the file; in development the plugin is turned off and the rest of the app keeps running.
-
-Your service still owns its behavior and data. `store()` is in-memory state: BitaKit does not persist it, and `store.optimistic(apply, commit)` helps when the commit may fail. Use [events](/docs/concepts/events) when another plugin needs to react to a change.
-
-## Names, contracts and aliases
-
-Services are named `<plugin>.<file>` and nested accordingly: `services/billing/invoices.ts` in plugin `finance` is `services.finance.billing.invoices`. Two options change that:
-
-- `provides: contract` registers the instance under a shared contract key as well, such as `auth` or `i18n`. Contracts are created with `defineContract<T>('auth')` and shared between the package that provides a service and the plugins that use it.
-- `exposeAs: 'clock'` adds a flat alias in `services`. Use it only for deliberate flattening; two services with the same name fail at startup.
-
-```ts
-export default defineService(() => createAuthClient(), { provides: authService });
-```
-
-Most application features only need the files above. For packages or standalone programs without discovery, see [Advanced — manual composition](/docs/concepts/manual-composition).
+A service can use other services, load data during startup or release a connection during shutdown.
+Those features are optional. See the [service reference](/docs/reference/services) when your
+service needs `requires`, `onStart`, `onStop` or a shared contract.

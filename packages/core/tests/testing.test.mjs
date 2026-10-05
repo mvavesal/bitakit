@@ -68,6 +68,7 @@ const setup: Setup = ({ app, services }) => {
 };
 export default setup;
 `,
+  'src/plugins/notes/slots/header.ts': `import { defineSlot } from '@bitakit/core'; export default defineSlot({ accepts: 'actions' });`,
   'src/plugins/notes/ui/pages/index.tsx': 'export default () => <main />;\n',
 };
 
@@ -77,6 +78,10 @@ test('mountPlugin discovers a plugin folder and runs services, actions, events.t
     const plugin = await mountPlugin(path.join(root, 'src/plugins/notes'), { services: { log } });
     try {
       assert.equal(plugin.id, 'notes', 'the folder under plugins/ names the plugin');
+      assert.equal(
+        plugin.runtime.modules.find((module) => module.id === 'notes').slots[0].id,
+        'notes.header',
+      );
       assert.deepEqual(
         log.entries,
         ['setup', 'started'],
@@ -97,19 +102,31 @@ test('mountPlugin discovers a plugin folder and runs services, actions, events.t
         true,
         'presentation follows the service store',
       );
-      assert.deepEqual(plugin.events.recorded, [
-        { type: 'notes.changed', data: { title: 'Write tests' } },
-      ]);
+      assert.deepEqual(
+        plugin.events.recorded.filter((event) => !event.type.startsWith('runtime.')),
+        [{ type: 'notes.changed', data: { title: 'Write tests' } }],
+      );
+      assert.ok(
+        plugin.events.recorded.some(
+          (event) =>
+            event.type === 'runtime.slot' &&
+            event.data.id === 'notes.header' &&
+            event.data.phase === 'ready',
+        ),
+      );
       const seen = [];
       plugin.events.on('notes.changed', (event) => seen.push(event.data.title));
       await plugin.execute('add', 'Second');
       assert.deepEqual(seen, ['Second']);
-      assert.equal(plugin.events.recorded.length, 2);
+      assert.equal(
+        plugin.events.recorded.filter((event) => !event.type.startsWith('runtime.')).length,
+        2,
+      );
       assert.equal(plugin.app.config.notes.limits.maxItems, 3);
       assert.equal((await plugin.execute('clear')).status, 'completed');
       assert.equal(plugin.actions.get('notes.clear').enabled, false);
     } finally {
-      plugin.stop();
+      await plugin.stop();
     }
     assert.deepEqual(log.entries, ['setup', 'started', 'cleanup', 'stopped']);
     assert.equal(plugin.actions.get('notes.add'), undefined);
@@ -122,7 +139,7 @@ test('mountPlugin discovers a plugin folder and runs services, actions, events.t
     try {
       assert.equal(overridden.app.config.notes.limits.maxItems, 1);
     } finally {
-      overridden[Symbol.dispose]();
+      await overridden[Symbol.asyncDispose]();
     }
     assert.equal(overridden.app.ready, false);
   }));
@@ -180,9 +197,12 @@ export default defineAction({ execute: ({ services }) => services.shell.theme.na
         assert.equal(plugin.id, 'notes');
         assert.equal((await plugin.execute('list')).value, 'dark');
         assert.equal(plugin.services.notes.items.theme(), 'dark');
-        assert.deepEqual(plugin.events.recorded, []);
+        assert.deepEqual(
+          plugin.events.recorded.filter((event) => !event.type.startsWith('runtime.')),
+          [],
+        );
       } finally {
-        plugin.stop();
+        await plugin.stop();
       }
       const custom = await mountPlugin(path.join(root, 'src'), { id: 'custom', plugins: [shell] });
       try {
@@ -190,7 +210,7 @@ export default defineAction({ execute: ({ services }) => services.shell.theme.na
         assert.ok(custom.actions.get('custom.list'));
         assert.equal(custom.services.custom.items.theme(), 'dark');
       } finally {
-        custom.stop();
+        await custom.stop();
       }
       await assert.rejects(mountPlugin(path.join(root, 'src')), (error) => {
         assert.ok(isFoundationStartupError(error));
@@ -242,7 +262,7 @@ export default setup;
         );
         assert.deepEqual(log.plugins[1].metadata, { name: 'Ledger' });
       } finally {
-        plugin.stop();
+        await plugin.stop();
       }
       const explicit = await mountPlugin(directory, {
         id: 'ledger',
@@ -252,7 +272,7 @@ export default setup;
       try {
         assert.equal(explicit.id, 'ledger', 'an explicit ID still wins');
       } finally {
-        explicit.stop();
+        await explicit.stop();
       }
       await assert.rejects(mountPlugin(directory, { services: { log } }), (error) => {
         assert.ok(isFoundationStartupError(error));

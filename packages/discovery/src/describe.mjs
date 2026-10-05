@@ -5,8 +5,9 @@ import { files, discoverEntries } from './entries.mjs';
 import { pluginManifests } from './modules.mjs';
 import { installedContributions } from './packages.mjs';
 import { detectFramework, loadDiscoveryConfig } from './generate.mjs';
+import { describeDefinitions } from './definition-info.mjs';
 
-const kinds = ['actions', 'services', 'pages', 'slots', 'providers', 'configs', 'interceptors'];
+const kinds = ['actions', 'services', 'pages', 'slots', 'slotDefinitions', 'providers', 'configs', 'interceptors'];
 
 async function contributionsOf(
   base,
@@ -14,11 +15,25 @@ async function contributionsOf(
   relative,
   warnings,
   relativeTo = base,
-  { app = false } = {},
+  { app = false, entries = {} } = {},
 ) {
   const result = {};
   for (const kind of kinds) {
-    const found = await discoverEntries(base, list, kind, {
+    const override = entries[kind];
+    if (override === false) { result[kind] = []; continue; }
+    let options = {};
+    let paths = list;
+    if (typeof override === 'string') {
+      const target = path.resolve(base, override);
+      const local = path.relative(base, target);
+      if (local.startsWith('..') || path.isAbsolute(local)) throw new Error(`Entry "${kind}" points outside the plugin: ${target}`);
+      const actual = await realpath(target);
+      if (actual !== target) throw new Error(`Symlink entry: ${target}`);
+      paths = /\.tsx?$/.test(target) ? [target] : await files(target);
+      options = /\.tsx?$/.test(target) ? { explicitFile: target } : { directory: target };
+    }
+    const found = await discoverEntries(base, paths, kind, {
+      ...options,
       relativeTo,
       legacy: !(app && kind === 'providers'),
     });
@@ -98,7 +113,7 @@ export async function describeFoundation(root) {
       dependencies: manifest.dependencies ?? [],
       enabled:
         config.plugins?.overrides?.[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true,
-      ...(await contributionsOf(base, own, relative, warnings, root)),
+      ...(await contributionsOf(base, own, relative, warnings, root, { entries: manifest.entries })),
     });
   }
   const installed = await installedContributions(root, config.packages, jiti);
@@ -106,6 +121,15 @@ export async function describeFoundation(root) {
     JSON.parse,
     () => ({}),
   );
+  const slotDeclarations = [...(installed.slotDeclarations ?? [])];
+  const unresolvedSlots = [...(installed.unresolvedSlots ?? [])];
+  for (const module of [app, ...plugins.filter((plugin) => plugin.enabled)]) {
+    const result = await describeDefinitions(module.slotDefinitions.map((entry) => ({ ...entry, file: path.join(root, entry.file) })), {
+      helper: 'defineSlot', moduleId: module === app ? '' : module.id, properties: ['accepts', 'policy'],
+    });
+    slotDeclarations.push(...result.definitions.map((item) => ({ ...item, file: relative(item.file), plugin: module.id, policy: item.policy ?? 'list' })));
+    unresolvedSlots.push(...result.unresolved.map(relative));
+  }
   return {
     root,
     framework: config.framework ?? detectFramework(rootManifest),
@@ -116,6 +140,8 @@ export async function describeFoundation(root) {
     packages: installed.plugins,
     installedPackages: installed.packages,
     styles: installed.styles ?? [],
+    slotDeclarations,
+    unresolvedSlots,
     /** Slot names layouts render: `@bitakit/ui`'s app bar, package manifests and `bitakit.config.ts`. */
     slots: [
       ...new Set([

@@ -38,7 +38,9 @@ export async function configureThemeFixture(target) {
   await writeFile(root, (await readFile(root, 'utf8')) + "\n@import './developer-theme.css';\n");
   const route = path.join(target, 'src/app/(app)/theme-checks');
   await mkdir(route, { recursive: true });
-  await writeFile(path.join(route, 'page.tsx'), `'use client';
+  await writeFile(
+    path.join(route, 'page.tsx'),
+    `'use client';
 import { Button, Input } from '@bitakit/ui/components';
 import { Inspector } from '@bitakit/devtools';
 import { useNotifications } from '@bitakit/shell';
@@ -50,20 +52,38 @@ export default function ThemeChecks() {
     <Inspector plugin="todos" />
   </section>;
 }
-`);
+`,
+  );
 }
 
 async function style(locator) {
   await locator.waitFor();
   return locator.evaluate((element) => {
     const css = getComputedStyle(element);
-    return Object.fromEntries(['backgroundColor', 'color', 'borderTopWidth', 'borderRadius', 'boxShadow', 'fontFamily', 'fontSize', 'transitionDuration', 'transitionTimingFunction', 'backgroundImage'].map((name) => [name, css[name]]));
+    return Object.fromEntries(
+      [
+        'backgroundColor',
+        'color',
+        'borderTopWidth',
+        'borderRadius',
+        'boxShadow',
+        'fontFamily',
+        'fontSize',
+        'transitionDuration',
+        'transitionTimingFunction',
+        'backgroundImage',
+      ].map((name) => [name, css[name]]),
+    );
   });
 }
 
 export async function verifyDeveloperTheme(page, url, artifacts) {
   await page.setViewportSize({ width: 1280, height: 1000 });
-  await page.addInitScript(() => { document.addEventListener('DOMContentLoaded', () => { document.documentElement.dataset.appTheme = 'fixture'; }); });
+  await page.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.documentElement.dataset.appTheme = 'fixture';
+    });
+  });
   for (const dark of [false, true]) {
     await page.goto(url + '/settings/shell');
     const mode = page.getByRole('radio', { name: dark ? 'Dark' : 'Light', exact: true });
@@ -72,7 +92,10 @@ export async function verifyDeveloperTheme(page, url, artifacts) {
     await page.goto(url + '/theme-checks');
     await page.getByRole('button', { name: 'Theme button', exact: true }).waitFor();
     const button = page.getByRole('button', { name: 'Theme button', exact: true });
-    await expect(button).toHaveCSS('background-color', dark ? 'rgb(225, 175, 85)' : 'rgb(15, 90, 130)');
+    await expect(button).toHaveCSS(
+      'background-color',
+      dark ? 'rgb(225, 175, 85)' : 'rgb(15, 90, 130)',
+    );
     const shared = await style(button);
     assert.equal(shared.borderTopWidth, '3px');
     assert.equal(shared.fontSize, '16px');
@@ -81,6 +104,7 @@ export async function verifyDeveloperTheme(page, url, artifacts) {
     assert.equal(shared.transitionDuration, '0.04s');
     assert.equal(shared.transitionTimingFunction, 'linear');
     assert.match(shared.boxShadow, /2px 3px/);
+    assert.doesNotMatch(shared.boxShadow, /140, 55, 90/);
     await button.focus();
     await expect(button).toHaveCSS('box-shadow', /5px/);
     const field = await style(page.getByLabel('Theme input'));
@@ -90,7 +114,10 @@ export async function verifyDeveloperTheme(page, url, artifacts) {
     assert.match((await style(page.locator('[data-slot="sidebar-inset"]'))).boxShadow, /4px 6px/);
     await button.hover();
     await expect(button).toHaveCSS('box-shadow', /140, 55, 90/);
-    await button.click();
+    await page.mouse.down();
+    await expect(button).toHaveCSS('scale', '0.99');
+    await expect(button).toHaveCSS('box-shadow', /40, 60, 70/);
+    await page.mouse.up();
     await expect(page.getByText('Theme notification', { exact: true })).toBeVisible();
     assert.match((await style(page.locator('.toast').first())).boxShadow, /6px 8px/);
     await page.locator('.quick-search-trigger').click();
@@ -99,17 +126,34 @@ export async function verifyDeveloperTheme(page, url, artifacts) {
     assert.match((await style(search)).boxShadow, /6px 8px/);
     assert.match((await style(search)).fontFamily, /Georgia/);
     assert.equal((await style(search.locator('.quick-search-item').first())).fontSize, '16px');
-    await page.screenshot({ animations: 'disabled', path: path.join(artifacts, `developer-search-${dark ? 'dark' : 'light'}.png`) });
+    await page.screenshot({
+      animations: 'disabled',
+      path: path.join(artifacts, `developer-search-${dark ? 'dark' : 'light'}.png`),
+    });
     await page.keyboard.press('Escape');
     await search.waitFor({ state: 'hidden' });
+    await page.goto(url + '/checks');
+    await page.getByRole('button', { name: 'Load fixture plugin' }).click();
+    assert.match((await style(page.locator('.fixture-plugin'))).fontFamily, /Georgia/);
+    await page.getByRole('button', { name: 'Switch organization', exact: true }).click();
+    await page.getByRole('menu').waitFor();
+    assert.match((await style(page.locator('.dropdown__popover'))).boxShadow, /6px 8px/);
+    assert.match((await style(page.getByRole('menuitem').last())).fontFamily, /Georgia/);
+    await page.keyboard.press('Escape');
+    await page.getByRole('menu').waitFor({ state: 'hidden' });
     await page.goto(url + '/settings/shell');
     const settingsSearch = page.getByRole('textbox', { name: 'Search settings', exact: true });
-    await expect(page.locator('[data-slot="input-group"]').filter({ has: settingsSearch })).toHaveCSS('border-top-width', '3px');
+    await expect(
+      page.locator('[data-slot="input-group"]').filter({ has: settingsSearch }),
+    ).toHaveCSS('border-top-width', '3px');
     assert.match((await style(settingsSearch)).fontFamily, /Georgia/);
-    await page.goto(url + '/settings/account');
+    await page.goto(url + '/settings/account/security');
     await page.locator('[data-two-factor-settings]').waitFor();
     const native = page.locator('.button--primary').first();
-    await expect(native).toHaveCSS('background-color', dark ? 'rgb(225, 175, 85)' : 'rgb(15, 90, 130)');
+    await expect(native).toHaveCSS(
+      'background-color',
+      dark ? 'rgb(225, 175, 85)' : 'rgb(15, 90, 130)',
+    );
     const authButton = await style(native);
     assert.equal(authButton.borderTopWidth, '3px');
     assert.equal(authButton.backgroundImage, 'none');
@@ -118,13 +162,25 @@ export async function verifyDeveloperTheme(page, url, artifacts) {
     assert.equal(authButton.transitionDuration, '0.04s');
     assert.match((await style(page.locator('.card').first())).boxShadow, /4px 6px/);
     assert.equal((await style(page.locator('.input-group').first())).borderTopWidth, '3px');
-    await page.locator('[data-two-factor-settings]').getByRole('button', { name: /enable/i }).click();
+    await page
+      .locator('[data-two-factor-settings]')
+      .getByRole('button', { name: /enable/i })
+      .click();
     const modal = page.getByRole('alertdialog');
     assert.match((await style(modal)).boxShadow, /6px 8px/);
     assert.match((await style(modal)).fontFamily, /Georgia/);
-    await page.screenshot({ animations: 'disabled', path: path.join(artifacts, `developer-auth-${dark ? 'dark' : 'light'}.png`) });
+    await page.setViewportSize({ width: 390, height: 1000 });
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+    );
+    await page.screenshot({
+      animations: 'disabled',
+      path: path.join(artifacts, `developer-auth-${dark ? 'dark' : 'light'}.png`),
+    });
     await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
     await modal.waitFor({ state: 'hidden' });
+    await page.setViewportSize({ width: 1280, height: 1000 });
   }
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(page.locator('.button--primary').first()).toHaveCSS('transition-duration', '0s');

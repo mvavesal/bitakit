@@ -3,7 +3,9 @@ title: Packages
 description: Choose capabilities without moving application behavior into Core.
 ---
 
-Start with Core. Add the packages your app needs. All packages below are published on npm under `@bitakit` (0.1); these guides describe the next release, 0.2.
+Start with the [minimal app](/docs/quickstart), then add the capabilities you need.
+These guides describe the 0.2 API in this checkout. Use matching package versions;
+the [local package setup](/docs/local-development) lets you try unpublished changes.
 
 | Package           | Responsibility                                                        |
 | ----------------- | --------------------------------------------------------------------- |
@@ -11,8 +13,8 @@ Start with Core. Add the packages your app needs. All packages below are publish
 | `ui`              | React bindings and optional standard themed components                |
 | `next`            | Next.js navigation, URL query adapter and discovery integration       |
 | `tanstack`        | Experimental TanStack Router/Start integration                        |
-| `app-preferences` | Settings pages, field controls, the settings route and navigation      |
-| `shell`           | Application frame: compound AppShell, layouts, slots, notifications    |
+| `app-preferences` | Settings pages, field controls, the settings route and navigation     |
+| `shell`           | Application frame, layouts, slots, notifications and theme management |
 | `quick-search`    | Optional search across the app's navigation actions                   |
 | `email`           | Provider-independent email message and sending contract               |
 | `nodemailer`      | Server-side SMTP implementation of the email contract                 |
@@ -21,6 +23,9 @@ Start with Core. Add the packages your app needs. All packages below are publish
 | `organizations`   | Shared organization service contracts and integration points          |
 | `next-intl`       | Translation integration for Next.js                                   |
 | `create-app`      | Frontend project generator                                            |
+
+Shell's [Themes and appearance guide](/docs/concepts/theming) covers custom theme files and
+the built-in manager. See [Theme reference](/docs/reference/theming) for its API and CSS contract.
 
 ## Framework ownership
 

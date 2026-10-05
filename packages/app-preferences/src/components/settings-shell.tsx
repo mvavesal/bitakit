@@ -1,10 +1,11 @@
 'use client';
 import { Suspense, useCallback, useId, type ReactNode } from 'react';
-import { useSettingsCatalog } from '@bitakit/ui';
+import { PluginSlot, useSettingsCatalog } from '@bitakit/ui';
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
+  SidebarFooter,
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
@@ -82,9 +83,10 @@ function Navigation({
       mobileTitle={messages('navigation')}
       mobileDescription={messages('search')}
       collapsible={docked ? 'none' : 'offcanvas'}
-      className={docked ? "min-h-0 shrink-0 border-r-(length:--border-width)" : undefined}
+      className={docked ? 'min-h-0 shrink-0 border-r-(length:--border-width)' : undefined}
     >
       <SidebarHeader>
+        <PluginSlot name="app-preferences.navigation.header" />
         {!embedded && (
           <BackLink as={Link} href={backHref}>
             {messages('back')}
@@ -101,6 +103,9 @@ function Navigation({
           <SearchingNavigation onNavigate={close} />
         </Suspense>
       </SidebarContent>
+      <SidebarFooter>
+        <PluginSlot name="app-preferences.navigation.footer" />
+      </SidebarFooter>
     </Sidebar>
   );
 }
@@ -127,7 +132,7 @@ export function SettingsShell({
   return (
     <SettingsLocationContext.Provider value={location}>
       <SidebarProvider
-        className={embedded ? 'min-h-0 flex-1 overflow-hidden' : undefined}
+        className={embedded ? 'min-h-0 flex-1 overflow-hidden' : 'h-svh overflow-hidden'}
         shortcut={embedded ? false : undefined}
       >
         <a

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "bitakit generate && next typegen && tsc --noEmit",
-    "test:preview": "node verify.mjs && node verify-clear.mjs"
+    "test:preview": "node verify.mjs && node verify-clear.mjs",
+    "test:settings": "node verify-settings.mjs"
   },
   "dependencies": {
     "next": "16.3.5",

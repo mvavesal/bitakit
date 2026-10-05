@@ -61,7 +61,7 @@ test('defaults: success is silent, failure shows the error message once and the 
     assert.equal(actions.get('todos.save').error.cause, boom);
     assert.equal(actions.get('todos.save').pending, false);
   } finally {
-    stop();
+    await stop();
   }
 });
 
@@ -89,7 +89,7 @@ test('<id>.success and <id>.failure catalog keys are used automatically when the
       ['failure', 'Speichern fehlgeschlagen'],
     ]);
   } finally {
-    stop();
+    await stop();
   }
 });
 
@@ -161,7 +161,7 @@ test('explicit feedback: literals, keys, callbacks with result/input/error, fals
       ['failure', 'Visible'],
     ]);
   } finally {
-    stop();
+    await stop();
   }
 });
 
@@ -184,7 +184,7 @@ test('in production the default failure message hides error details', async () =
       await tick();
       assert.deepEqual(notifications, [['failure', 'Something went wrong.']]);
     } finally {
-      stop();
+      await stop();
     }
   } finally {
     if (previous === undefined) delete process.env.NODE_ENV;
@@ -232,12 +232,12 @@ test('a failing notifier never changes the outcome; remounting installs exactly 
   remove();
   await assert.rejects(runtime.actions.execute('todos.notify'));
   assert.equal(received.length, 2);
-  stop();
+  await stop();
   const again = runtime.mount();
   runtime.setNotifier((message, kind) => received.push([kind, message]));
   await assert.rejects(runtime.actions.execute('todos.notify'));
   assert.equal(received.length, 3, 'remount installs exactly one failure observer');
-  again();
+  await again();
 });
 
 test('late completion after unmount neither notifies nor touches the replacement registration', async () => {
@@ -264,13 +264,15 @@ test('late completion after unmount neither notifies nor touches the replacement
   const stop = runtime.mount();
   const pending = runtime.actions.execute('todos.slow');
   assert.equal(runtime.actions.get('todos.slow').pending, true);
-  stop();
-  const again = runtime.mount();
+  const stopping = stop();
+  assert.throws(() => runtime.mount(), /lifecycle transition/);
   gate.resolve('late');
+  await stopping;
+  const again = runtime.mount();
   assert.equal((await pending).value, 'late');
   assert.equal(calls, 0);
   assert.deepEqual(notifications, []);
   assert.equal(runtime.actions.get('todos.slow').pending, false);
   assert.equal(runtime.actions.get('todos.slow').status, ActionStatus.Idle);
-  again();
+  await again();
 });

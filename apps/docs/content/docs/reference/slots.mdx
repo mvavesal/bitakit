@@ -1,0 +1,179 @@
+---
+title: Slot reference
+description: Contextual menus, component payloads and programmatic attachment.
+---
+
+Read [the small toolbar lesson](/docs/concepts/slots) first. The independent examples below assume a reports plugin and the named host integrations.
+
+## Define an extension point
+
+```ts
+// src/plugins/reports/slots/row/menu.ts
+import { defineSlot } from '@bitakit/core';
+import { z } from 'zod';
+
+export default defineSlot({
+  accepts: 'actions',
+  payload: z.object({ reportId: z.string() }),
+});
+```
+
+The name is `reports.row.menu`. A flat `slots/row.menu.ts`, an index collection or manual
+`definePlugin({ id: 'reports', slots: { row: { menu } } })` produces the same contract.
+
+## Bind each occurrence
+
+```ts
+// src/plugins/audit/actions/inspect.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction<string>({
+  title: ({ input }) => `Inspect ${input}`,
+  slots: [
+    {
+      name: 'reports.row.menu',
+      input: ({ payload }) => payload.reportId,
+    },
+  ],
+  execute: ({ input }) => console.log(input),
+});
+```
+
+```tsx
+// Inside the owner's existing DropdownMenuContent.
+const menu = useSlot('reports.row.menu', { payload: { reportId } });
+if (menu.error) throw menu.error;
+return menu.items.map((item) => (
+  <Action key={item.key} id={item.action} kind="menuItem">
+    <DropdownMenuItem />
+  </Action>
+));
+```
+
+`item.action` retains the mapped input. Labels, guards and pending state remain live. Each
+outlet validates its own payload; pending or invalid payloads expose no items. Keep nested
+payload references stable. Navigation Actions use real anchors and `kind="link"`.
+
+The organization UI already owns `organizations.member.menu`, with
+`{ organizationId, memberId }`. Its row renderer uses the existing themed dropdown and bindings.
+
+## Add a custom widget
+
+```tsx
+// src/plugins/reports/ui/slots/sidebar.footer.tsx
+import type { SlotProps } from '@bitakit/ui';
+export const order = 20;
+
+export default function Footer({ payload }: SlotProps<'sidebar.footer'>) {
+  return <span>{payload.collapsed ? 'R' : 'Reports available'}</span>;
+}
+```
+
+```tsx
+// Owner rendering a component slot.
+<PluginSlot name="sidebar.footer" payload={{ collapsed }} />
+```
+
+A component slot accepts custom UI. An Action slot keeps the owner's standard menu/navigation
+rendering. `useSlot` also supports typed data slots and returns `{ items, payload, pending, phase, error }`.
+`phase` is the declared owner's lifecycle state (absent for legacy outlets). A failed/blocked
+owner is unavailable rather than indefinitely pending; `error` reports outlet validation/binding failures.
+Unmounting an outlet does not remove contributions; stopping their plugin does.
+
+## A widget fails to render
+
+No extra setup is needed. `PluginSlot` isolates each component contribution, shows an attributed
+fallback and keeps its siblings mounted. The retry button uses the host's existing Button.
+
+```tsx
+<PluginSlot name="sidebar.footer" payload={{ collapsed }} />
+```
+
+If this outlet needs different recovery copy, add only an `errorFallback`:
+
+```tsx
+<PluginSlot
+  name="sidebar.footer"
+  payload={{ collapsed }}
+  errorFallback={({ error, retry }) => (
+    <div role="alert">
+      <p>Widget from {error.plugin} is unavailable.</p>
+      <Button onClick={retry}>Try again</Button>
+    </div>
+  )}
+/>
+```
+
+`Button` above is your existing design-system Button. `error` is a `SlotRenderError` with
+`plugin`, `slot`, `contribution` and the original `cause`. The default fallback omits raw error
+messages/stacks. Existing `FoundationProvider` `actionOptions.onError` receives the attributed
+error for local reporting; it is not added to Core inventory or settings.
+
+| Situation | Behavior |
+| --- | --- |
+| Click retry | Retry this occurrence once; a repeated failure shows the fallback again. |
+| Replace the contributing plugin definition or component | Reset the failed occurrence. |
+| Rerender with an equivalent stabilized payload or update another plugin | Keep the existing error; no automatic retry loop. |
+| Hide/remove the contribution, revalidate changed context or unmount the outlet | Remove its boundary; Core attachment ownership is unchanged. |
+| Invalid payload / failing `when` / Action input mapper | Existing `useSlot().error` behavior; not a widget render failure. |
+| Pending Suspense / event handler / later async work / server render | Use the corresponding loading, execution or framework error mechanism. |
+
+Advanced custom renderers using `useSlot` can put `SlotErrorBoundary` around one contribution.
+Do this **inside** any access boundary, using the entry's stable key and owning plugin:
+
+```tsx
+<SlotErrorBoundary
+  key={entry.key}
+  slot="sidebar.footer"
+  plugin={entry.plugin}
+  contribution={entry.key}
+>
+  <Widget payload={payload} />
+</SlotErrorBoundary>
+```
+
+App Preferences does this automatically for generated/custom bodies and extension widgets.
+A body's error names the settings page's owning plugin. Recovery remains inside the page's
+existing access boundary; hiding a fallback never grants access. A boundary protects its child
+render tree, not the plugin's services, event handlers or its own failing fallback.
+
+## Optional host integration
+
+```ts
+// setup.ts — reuse an already registered Action in a host that may provide Shell.
+import type { Setup } from '@bitakit/core';
+
+const setup: Setup = ({ app }) => {
+  if (app.slots.has('shell.navigation')) {
+    app.slots.attach(
+      'shell.navigation',
+      { actionId: 'reports.open' },
+      {
+        availability: 'wait',
+      },
+    );
+  }
+};
+export default setup;
+```
+
+Use one placement path per target. The scope owns cleanup. Readiness events notify observers;
+they are not registration commands. Settings page/body projection remains a separate integration.
+
+## Find out why a slot is empty
+
+Start in the component that already renders the slot:
+
+```tsx
+const view = useSlot('shell.navigation');
+console.info(view.diagnostics.reason);
+```
+
+When needed, inspect `view.diagnostics.excluded`: each entry names its plugin, contribution
+and reason (`key`, `condition`, `action-hidden`, or `action-unavailable`). No payload is
+copied into diagnostics. `selected` counts eligible entries, not successful or visible renders.
+The existing error boundary reports rendering errors separately.
+
+For a slow plugin, inspect `runtime.lifecycle.get().operation` and the plugin/service
+`since` timestamps. Devtools displays elapsed time. A timeout is a diagnostic, never
+permission to skip cleanup. Headless/CLI inspection cannot know which React outlets are mounted.

@@ -17,6 +17,7 @@
   --field-border-hover: var(--input);
   --field-border-focus: var(--ring);
   --field-border-width: var(--border-width);
+  --_bitakit-native-field-shadow: var(--field-shadow);
   --field-radius: var(--radius-md);
   --focus: var(--ring);
   --link: var(--primary);
@@ -47,7 +48,7 @@
 }
 .input,
 .input-group {
-  --field-shadow: var(--theme-shadow-field, 0 0 #0000);
+  --field-shadow: var(--theme-shadow-field, var(--_bitakit-native-field-shadow));
 }
 .dropdown__popover,
 .modal__dialog,
@@ -56,8 +57,12 @@
   box-shadow: var(--theme-shadow-overlay, var(--overlay-shadow));
 }
 .button {
-  transition-duration: var(--theme-motion-duration, 250ms), var(--theme-motion-duration, 100ms), var(--theme-motion-duration, 100ms);
-  transition-timing-function: var(--theme-motion-ease, var(--ease-smooth)), var(--theme-motion-ease, var(--ease-out)), var(--theme-motion-ease, var(--ease-out));
+  transition-duration:
+    var(--theme-motion-duration, 250ms), var(--theme-motion-duration, 100ms),
+    var(--theme-motion-duration, 100ms);
+  transition-timing-function:
+    var(--theme-motion-ease, var(--ease-smooth)), var(--theme-motion-ease, var(--ease-out)),
+    var(--theme-motion-ease, var(--ease-out));
 }
 .button:is(:active, [data-pressed='true']):not(:disabled, [aria-disabled='true']) {
   transform: scale(var(--theme-control-pressed-scale, 0.97));
@@ -67,7 +72,9 @@
 .input-group,
 .select__trigger {
   transition-duration: var(--theme-motion-duration, 150ms);
-  transition-timing-function: var(--theme-motion-ease, var(--ease-smooth)), var(--theme-motion-ease, var(--ease-smooth)), var(--theme-motion-ease, var(--ease-out));
+  transition-timing-function:
+    var(--theme-motion-ease, var(--ease-smooth)), var(--theme-motion-ease, var(--ease-smooth)),
+    var(--theme-motion-ease, var(--ease-out));
 }
 .modal__container[data-entering='true'],
 .alert-dialog__container[data-entering='true'] {
@@ -159,11 +166,16 @@
       var(--control-surface),
       black calc(var(--control-neutral-shade) / 2)
     );
-    --control-depth-shadow:
-      var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight),
-      0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%));
+    --control-depth-shadow: var(
+      --theme-shadow-control,
+      inset 0 1px 0 var(--control-highlight),
+      0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%)
+    );
     --tw-shadow: var(--control-depth-shadow);
-    background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-top), var(--control-bottom)));
+    background-image: var(
+      --theme-control-gradient,
+      linear-gradient(to bottom, var(--control-top), var(--control-bottom))
+    );
     box-shadow:
       var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000),
       var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
@@ -177,9 +189,13 @@
       black var(--control-primary-shade)
     );
     --control-idle-border: color-mix(in oklab, var(--control-action), black 16%);
-    --control-depth-shadow:
-      var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight), inset 0 -1px 0 var(--control-edge),
-      0 1px 2px var(--control-shadow), 0 2px 3px -1px var(--control-shadow));
+    --control-depth-shadow: var(
+      --theme-shadow-control,
+      inset 0 1px 0 var(--control-highlight),
+      inset 0 -1px 0 var(--control-edge),
+      0 1px 2px var(--control-shadow),
+      0 2px 3px -1px var(--control-shadow)
+    );
   }
   .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline):not(
       :focus-visible,
@@ -193,11 +209,22 @@
         :hover,
         [data-hovered='true']
       ):not(:disabled, [aria-disabled='true']) {
-      background-image: var(--theme-control-gradient, linear-gradient(
-        to bottom,
-        color-mix(in oklab, var(--control-top), var(--foreground) var(--theme-control-hover-mix, 3%)),
-        color-mix(in oklab, var(--control-bottom), var(--foreground) var(--theme-control-hover-mix, 3%))
-      ));
+      background-image: var(
+        --theme-control-gradient,
+        linear-gradient(
+          to bottom,
+          color-mix(
+            in oklab,
+            var(--control-top),
+            var(--foreground) var(--theme-control-hover-mix, 3%)
+          ),
+          color-mix(
+            in oklab,
+            var(--control-bottom),
+            var(--foreground) var(--theme-control-hover-mix, 3%)
+          )
+        )
+      );
     }
   }
   .button:is(.button--primary, .button--danger, .button--tertiary, .button--outline):is(
@@ -205,9 +232,15 @@
       [data-pressed='true'],
       [aria-expanded='true']
     ):not(:disabled, [aria-disabled='true']) {
-    --control-depth-shadow:
-      var(--theme-control-pressed-shadow, inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight));
-    background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-bottom), var(--control-top)));
+    --control-depth-shadow: var(
+      --theme-control-pressed-shadow,
+      inset 0 1px 2px var(--control-inset-shadow),
+      0 1px 0 var(--control-highlight)
+    );
+    background-image: var(
+      --theme-control-gradient,
+      linear-gradient(to bottom, var(--control-bottom), var(--control-top))
+    );
   }
 }
 /* Match the Foundation Input/InputGroup: one surfaced shell, no suffix divider. */
@@ -452,4 +485,17 @@
   .auth-identity-trigger > svg:last-child {
     transition: none;
   }
+}
+
+/* Settings card actions align at the logical end. Target form submission and the
+   public HeroUI action slot, never input adornments or every button in a card. */
+.card form > .button[type='submit'],
+.card .fieldset__actions {
+  align-self: flex-end;
+}
+.card .fieldset__actions {
+  justify-content: flex-end;
+}
+[data-two-factor-settings] .card__content > .button {
+  align-self: flex-end;
 }

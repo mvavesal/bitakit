@@ -5,92 +5,71 @@ description: Tell other plugins what happened, with typed, runtime-owned subscri
 
 **Owner:** `@bitakit/core`; discovery generates the event types from each plugin's `events.ts`.
 
-An event announces that something happened. The tasks service adds a task, emits `todos.changed`, and an audit plugin records it. The service owns the data; the event lets other plugins react without calling each other directly.
+An event announces that something happened. Here the [Counter](/docs/concepts/settings) increments, emits `counter.incremented`, and an audit plugin records it. The service owns the data; the event lets other plugins react without calling each other directly.
 
 Inside a plugin you rarely need an event: actions and pages follow a service's `store()` automatically. Use an action when you want to request an operation and receive its outcome, a store when something should follow state, and an event when another plugin should be notified.
 
-## Declare
-
-A plugin declares its events once, in `events.ts`:
+## 1. Declare one event
 
 ```ts
-// src/plugins/todos/events.ts
+// src/plugins/counter/events.ts
 import { defineEvents, event } from '@bitakit/core';
-
-export default defineEvents({
-  changed: event<{ kind: 'added' | 'removed'; id: number }>(),
-  deleting: event<{ id: number }>({ cancelable: true }),
-});
+export default defineEvents({ incremented: event<number>() });
 ```
 
-Names are prefixed with the plugin ID: `changed` is emitted and observed as `todos.changed`. Discovery adds the declarations to the generated `EventMap`, so `emit`, `on` and `useEvent` know every payload. Only the declaring plugin may emit its events; another plugin that tries gets an error naming the owner.
+Discovery names it `counter.incremented` and generates its payload type.
 
-## Emit
+## 2. Emit after the change
 
-Service factories and action `execute` functions receive `events`. Emit after the source data has changed:
+In the Counter Action, add `events` to the execution context:
 
 ```ts
-// src/plugins/todos/services/tasks.ts
-import { defineService } from '@bitakit/core';
-
-export default defineService(({ store, events }) => {
-  const state = store<{ items: { id: number; title: string }[] }>({ items: [] });
-  return {
-    state,
-    add(title: string) {
-      const task = { id: Date.now(), title };
-      state.set((s) => ({ items: [...s.items, task] }));
-      events.emit('todos.changed', { kind: 'added', id: task.id });
-    },
-    async remove(id: number) {
-      // A cancelable event waits for its handlers and tells whether one of them cancelled.
-      const allowed = await events.emit('todos.deleting', { id });
-      if (!allowed) return false;
-      state.set((s) => ({ items: s.items.filter((task) => task.id !== id) }));
-      events.emit('todos.changed', { kind: 'removed', id });
-      return true;
-    },
-  };
-});
+execute: ({ services, settings, events }) => {
+  services.counter.value.increment(settings.counter.step.get());
+  events.emit('counter.incremented', services.counter.value.state.get().count);
+},
 ```
 
-`emit` returns `void` for ordinary events and `Promise<boolean>` for cancelable ones.
+This is an edit to the existing Action, not a separate file. Only the declaring plugin can emit its event.
 
-## Listen
+## 3. Listen from another plugin
+
+Select a listener to see its service. Both subscribe to the same event and react independently;
+select Counter to see the complete publishing Action. The event was declared in step 1.
+
+<EventIllustration />
+
+Subscriptions belong in a service, or in React's `useEvent` hook, so their lifetime is owned.
+An Action definition does not subscribe by itself. A listener can call a service operation;
+if it explicitly invokes an Action through `app.actions.execute`, the Action's usual guards
+and execution rules still apply.
+
+The subscription is released with its service. Events are not replayed; read current state
+through its owning service rather than waiting for an event that may already have happened.
+
+## Later: cancelable events
+
+Use cancellation only when the emitter must ask listeners before continuing:
 
 ```ts
-// src/plugins/audit/services/log.ts
-import { defineService } from '@bitakit/core';
-
-export default defineService(({ store, events }) => {
-  const state = store<{ entries: string[] }>({ entries: [] });
-  events.on('todos.changed', ({ data }) => {
-    state.set((s) => ({ entries: [...s.entries, `${data.kind} ${data.id}`] }));
-  });
-  events.on('todos.deleting', (event) => {
-    if (event.data.id === 1) event.cancel?.('The first task stays.');
-  });
-  return { state };
-});
+// Independent example: src/plugins/documents/events.ts
+export default defineEvents({ deleting: event<string>({ cancelable: true }) });
 ```
 
-`on` takes one name, an array of names (each event invokes the handler once) or a pattern: `todos.*` matches every event of the todos plugin, `*` every event. Handlers receive a typed `{ type, data }` envelope and `{ signal }`. Subscriptions made in a service factory are released with the service; `on` also returns an unsubscribe function for other cases.
+Keep the same imports as the declaration example. In a `documents` Action or service:
 
-In React:
-
-```tsx
-import { useEvent } from '@bitakit/ui';
-
-useEvent('todos.changed', (event) => {
-  // React to event.type and event.data.
-});
+```ts
+const allowed = await events.emit('documents.deleting', documentId);
+if (!allowed) return;
+// Continue with the owning service's delete operation.
 ```
 
-The hook subscribes once the runtime is ready, follows the latest callback and unsubscribes with the component. Events are not replayed; read the initial state with `useServiceState`.
+A listener can call `event.cancel?.('Reason')`. Cancelable emit returns `Promise<boolean>`;
+ordinary emit returns `void`. This is coordination, not a replacement for server authorization.
 
 ## Delivery and errors
 
-`emit` delivers synchronously in registration order. An async handler starts immediately, but the emitter does not await it; cancelable events are the exception. Both synchronous throws and promise rejections go to `onEventError(error, event)` on the runtime configuration, `console.error` by default. One failing handler does not prevent other handlers from receiving the event. Callbacks may emit further events synchronously, so avoid cycles.
+`emit` calls exact-name listeners first, then matching wildcard groups. Each group retains subscription order. An async handler starts immediately, but the emitter does not await it; cancelable events are the exception. Both synchronous throws and promise rejections go to `onEventError(error, event)` on the runtime configuration, `console.error` by default. One failing handler does not prevent other handlers from receiving the event. Callbacks may emit further events synchronously, so avoid cycles.
 
 Each subscription supplies an `AbortSignal`, aborted when unsubscribed. Pass it to abort-aware operations and check it before external side effects after `await`:
 
@@ -104,12 +83,12 @@ events.on('documents.reload', async (event, { signal }) => {
 
 ## Without discovery
 
-In a manual composition, add the declaration to the plugin (`events: todosEvents`) and augment the maps yourself when you need types:
+In a manual composition, add the declaration to the plugin (`events: counterEvents`) and augment the maps yourself when you need types:
 
 ```ts
 declare module '@bitakit/core' {
   interface EventMap {
-    'todos.changed': { kind: 'added' | 'removed'; id: number };
+    'counter.incremented': number;
   }
 }
 ```

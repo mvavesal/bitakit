@@ -1,62 +1,58 @@
 ---
-title: Core concepts
-description: Create a feature, define its behavior and use it in your app.
+title: Build your first feature
+description: Build one feature, then choose the capabilities it needs.
 ---
 
-Start with three ideas:
+Start with a working app, then grow one **Counter** plugin. Each step adds just one idea.
+If you want the overview first, read [What is BitaKit?](/docs#what-is-bitakit).
 
-- A **plugin** groups a feature's files.
-- A **service** provides behavior and observable state.
-- An **action** exposes an operation that calls the service.
+| Step | What you build |
+| --- | --- |
+| [1. Create an app](/docs/quickstart) | An application with BitaKit connected. |
+| [2. Add a page](/docs/concepts/plugins) | A Counter page from one file. |
+| [3. Add state](/docs/concepts/services) | One shared value and a method to change it. |
+| [4. Add a button](/docs/concepts/actions) | An Action that increments the count. |
+| [5. Add an extension point](/docs/concepts/slots) | A toolbar other plugins can add buttons to. |
+| [6. Add a preference](/docs/concepts/settings) | A saved setting with its generated page. |
 
-In a configured app, add the files and write your feature's behavior. BitaKit discovers the definitions and manages their lifecycle. Follow [your first plugin](/docs/concepts/plugins) to see this in two files.
+The first four steps are enough for a working feature. Slots and Settings can wait until you need them.
 
-## Available APIs
+**Start:** [Create your app →](/docs/quickstart)
 
-These guides describe BitaKit 0.2, the next release in this repository. Start with the quickstart; add capabilities as your app grows.
+For a visual overview, open the [architecture map](/docs/concepts/architecture).
+It shows how the layers fit together and links to the relevant step and state diagrams.
 
-| Concept                     | Owner                                  | Purpose                                                       |
-| --------------------------- | -------------------------------------- | ------------------------------------------------------------- |
-| Plugin                      | `@bitakit/core`                        | Groups contributions and declares dependencies                |
-| Service                     | `@bitakit/core`                        | Shares behavior and state within a runtime                    |
-| Action                      | `@bitakit/core`                        | Names an operation and centralizes execution and availability |
-| Events                      | `@bitakit/core`                        | Notifies other plugins within one runtime                     |
-| Config                      | `@bitakit/core`                        | Immutable developer defaults with host overrides              |
-| Interceptors                | `@bitakit/core`                        | Observe or gate actions and observe service calls             |
-| React bindings              | `@bitakit/ui`                          | Bind controls to actions and pages to service state           |
-| Routing and build discovery | `@bitakit/next` or `@bitakit/tanstack` | Connects the host framework and generates `src/bitakit.gen.*` |
-| Settings                    | `@bitakit/core`                        | `defineSettings` declares them; the runtime owns and persists values |
-| Settings pages              | `@bitakit/app-preferences`             | Renders every plugin's settings under `/settings`             |
+## A small vocabulary
 
-A plugin is a runtime definition, not necessarily an npm package. One package can supply several plugins or just shared contracts. See the [package and plugin guides](/docs/packages).
+| Concept | Its job                                                           |
+| ------- | ----------------------------------------------------------------- |
+| Plugin  | Groups one feature's files                                        |
+| Service | Owns shared behavior and state                                    |
+| Action  | Defines an operation and how a control presents it                |
+| Slot    | Names a place in your UI where other plugins can add content       |
+| Setting | Holds a user preference in the runtime's settings store           |
 
 ```text
-Host application
-  → BitaKit runtime
-    → Plugin
-      → Service: behavior and a store
-      → Action: invokes those operations
-        ← React binding or headless caller
+Button → Action → Service → Store
+                             ↓
+                           Page
 ```
 
-Start with [plugins](/docs/concepts/plugins), then [services](/docs/concepts/services) and [actions](/docs/concepts/actions). Use [events](/docs/concepts/events) when another plugin needs to react to a change. [Discovery](/docs/concepts/discovery) removes manual contribution imports in configured hosts.
+File discovery connects these parts in a configured app. You do not write a registry or mount another provider for each plugin.
 
-## Choose the right concept
+Use [Patterns at a glance](/docs/concepts/patterns) to compare execution, observation and communication.
 
-| If you need to…                                        | Read                                                    |
-| ------------------------------------------------------ | ------------------------------------------------------- |
-| Group a feature and own its cleanup                    | [Plugins](/docs/concepts/plugins)                       |
-| Share data access or reusable operations               | [Services](/docs/concepts/services)                     |
-| Expose an operation to callers and UI                  | [Actions](/docs/concepts/actions)                       |
-| Group related actions for menus, navigation and search | [Action groups](/docs/concepts/action-groups)           |
-| Tell other plugins that something changed              | [Events](/docs/concepts/events)                         |
-| Supply stable defaults and host options                | [Configuration](/docs/concepts/configuration)           |
-| Understand the folder conventions and generated files  | [Discovery](/docs/concepts/discovery)                   |
-| Customize selected defaults or behavior                | [Overrides](/docs/concepts/overrides)                   |
-| Understand inferred inputs, results and payloads       | [Type safety](/docs/concepts/type-safety)               |
-| Observe execution across a feature                     | [Interceptors](/docs/concepts/interceptors)             |
-| Compose without discovery                              | [Manual composition](/docs/concepts/manual-composition) |
+## Choose the next topic when you need it
 
-For standalone Node usage without automatic discovery, the [advanced To-do walkthrough](/docs/concepts/tutorial) shows explicit composition. AppShell and authentication guides are later steps; no UI integration is needed to understand or run Core.
+| Need                                  | Guide                                                   |
+| ------------------------------------- | ------------------------------------------------------- |
+| Learn all supported file names        | [Discovery](/docs/concepts/discovery)                   |
+| Notify another plugin                 | [Events](/docs/concepts/events)                         |
+| Set developer defaults                | [Configuration](/docs/concepts/configuration)           |
+| Add a theme or customize Appearance   | [Themes and appearance](/docs/concepts/theming)         |
+| Query related Actions                 | [Action groups](/docs/concepts/action-groups)           |
+| Add dependencies or cleanup           | [Service reference](/docs/reference/services)           |
+| Inspect or update a running plugin    | [Runtime management](/docs/concepts/runtime-management) |
+| Own a runtime outside a generated app | [Manual composition](/docs/concepts/manual-composition) |
 
-For every interception and event pattern with a short sample, start with [Patterns at a glance](/docs/concepts/patterns).
+The sidebar's advanced topics and API reference are lookup material, not prerequisites for your first feature.

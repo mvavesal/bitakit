@@ -5,6 +5,7 @@ import type {
   ProviderDefinition,
   PluginSettingsPage,
 } from './definitions.js';
+import { setContributionSource } from './contribution-origin.js';
 import type { PresentationType } from './presentation.js';
 import { FoundationStartupError } from './startup-error.js';
 
@@ -88,6 +89,10 @@ type Exported<T> = {
   default: T;
   layout?: string;
   order?: number;
+  key?: string;
+  when?: PluginView['when'];
+  boundary?: PresentationType<'component'>;
+  availability?: import('./slots/types.js').SlotAvailability;
   requires?: readonly string[];
   id?: string;
 };
@@ -99,10 +104,22 @@ export function pluginPage(module: Exported<unknown>, path: string): PluginPageD
   return { path, component: value as PresentationType<'component'>, layout: module.layout };
 }
 /** A slot view from `ui/slots/<slot>.tsx`. */
-export function pluginSlot(module: Exported<unknown>, slot: string): PluginView {
+export function pluginSlot(module: Exported<unknown>, slot: string, source?: string): PluginView {
   const value = module.default as PluginView | PresentationType<'component'>;
-  if (value && typeof value === 'object' && 'component' in value) return value as PluginView;
-  return { slot, component: value as PresentationType<'component'>, order: module.order };
+  const view: PluginView =
+    value && typeof value === 'object' && 'component' in value
+      ? { ...(value as PluginView), slot: (value as PluginView).slot ?? slot }
+      : {
+          slot,
+          component: value as PresentationType<'component'>,
+          order: module.order,
+          ...(module.id === undefined ? {} : { id: module.id }),
+          ...(module.key === undefined ? {} : { key: module.key }),
+          ...(module.availability === undefined ? {} : { availability: module.availability }),
+          ...(module.when === undefined ? {} : { when: module.when }),
+        };
+  if (source) setContributionSource(view, source);
+  return view;
 }
 /** A layout from `src/layouts/<name>.tsx`: the default export wraps pages that name it. */
 export function pluginLayout(module: Exported<unknown>): PresentationType<'component'> {
@@ -111,9 +128,9 @@ export function pluginLayout(module: Exported<unknown>): PresentationType<'compo
 /** The settings page from `ui/settings/page.tsx`; it replaces the generated page of the plugin. */
 export function pluginSettingsPage(module: Exported<unknown>): PluginSettingsPage {
   const value = module.default as PluginSettingsPage | PresentationType<'component'>;
-  if (value && typeof value === 'object' && 'component' in value)
+  if (value && typeof value === 'object' && ('component' in value || 'pages' in value))
     return value as PluginSettingsPage;
-  return { component: value as PresentationType<'component'> };
+  return { component: value as PresentationType<'component'>, boundary: module.boundary };
 }
 /** A React provider from `ui/providers/<name>.tsx`. */
 export function pluginProvider(module: Exported<unknown>, id: string): ProviderDefinition {

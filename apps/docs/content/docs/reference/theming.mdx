@@ -1,0 +1,207 @@
+---
+title: Theme reference
+description: Theme definitions, manager Actions, storage and the central CSS contract.
+---
+
+Start with [Themes and appearance](/docs/concepts/theming) to add one theme and use the
+built-in editor. The APIs here describe the current checkout; use matching package builds.
+
+## Definition and identity
+
+`@bitakit/shell` exports `themeSchema`, `ShellThemeInput`, `ShellThemeDefinition` and `ThemeEntry`.
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `schemaVersion` | Yes | `1`. |
+| `id` | Yes | Nonempty identity within its source; not inferred from the filename. |
+| `name` | Yes | Display name; need not be unique. |
+| `shared` | No | CSS variable values for both modes, default `{}`. |
+| `light` | No | Light-mode overrides, default `{}`. |
+| `dark` | No | Dark-mode overrides, default `{}`. |
+
+Token maps contain string values and omit `--` from names. `themeSchema` checks the object
+shape; it does not prove CSS validity or accessible color contrast. Use foreground/background
+pairs and check your controls in both modes.
+
+| Source | Example key | Editable in Appearance? |
+| --- | --- | --- |
+| Bundled Shell theme | `shell:default` | Save a personal copy. |
+| App theme | `app:ocean` | Save a personal copy. |
+| Personal theme | `user:my-ocean` | Update or delete. |
+
+`themeKey(source, id)` builds a key. Duplicate IDs within a source are errors; equal display
+names or IDs across different sources remain distinct. If the saved selection is no longer
+in the catalog, the active theme falls back to `shell:default`.
+
+## Programmatic themes
+
+File discovery and explicit composition feed the same Shell theme catalog. For a manually
+composed app, pass definitions to the **existing** Shell plugin:
+
+```tsx
+// Inside your existing client composition
+shellPlugin({
+  themes: [{
+    schemaVersion: 1,
+    id: 'ocean',
+    name: 'Ocean',
+    light: { primary: '#075985', 'primary-foreground': '#ffffff' },
+    dark: { primary: '#7dd3fc', 'primary-foreground': '#082f49' },
+  }],
+});
+```
+
+Import `shellPlugin` from `@bitakit/shell`. This fragment configures that plugin; it does not
+mount a second provider. See [Manual composition](/docs/concepts/manual-composition).
+
+In a discovery-enabled app, `src/themes/**/*.json` is the simpler route. Alternatively,
+provide the `themes` option in the app's existing `src/configs/shell.ts`:
+
+```ts
+import { defineConfig } from '@bitakit/core';
+import type { ShellOptions } from '@bitakit/shell';
+
+export default defineConfig({
+  defaults: {
+    themes: [{ schemaVersion: 1, id: 'soft', name: 'Soft', shared: { radius: '1rem' } }],
+  } satisfies ShellOptions,
+});
+```
+
+Merge this option into an existing config instead of replacing its other options. Discovery
+combines configured themes and discovered JSON files. **Do not register the same app ID in
+both places.** Packaged integrations can supply definitions through this option; automatic
+JSON collection is for the app source directory, not every plugin's folder.
+
+## Actions and service
+
+Use existing Actions for user-facing controls. They retain validation, pending state,
+availability guards and the standard confirmation flow:
+
+```tsx
+// src/plugins/branding/ui/choose-theme.tsx
+'use client';
+import { ActionButton } from '@bitakit/ui';
+
+export function ChooseOcean() {
+  return (
+    <ActionButton action="shell.selectTheme" input={{ key: 'app:ocean' }}>
+      Use Ocean
+    </ActionButton>
+  );
+}
+```
+
+The Ocean theme must already exist. No new `theme.set` Action or separate state store is needed.
+
+| Action ID | Input | Result |
+| --- | --- | --- |
+| `shell.selectTheme` | `{ key: 'app:ocean' }` | Select a known theme. |
+| `shell.saveThemeCopy` | Full `ShellThemeInput` with a fresh personal `id` | Save and select the copy. |
+| `shell.updateTheme` | Full `ShellThemeInput` with an existing personal `id` | Replace that personal definition; keep the selection. |
+| `shell.deleteTheme` | `{ id: 'my-ocean' }` | Confirm, then delete a personal theme. |
+
+For integration code, Shell provides the typed **`themeService`** contract (`themes`):
+
+| Method | Purpose |
+| --- | --- |
+| `list()` / `active()` | Read the catalog or current theme. |
+| `canWrite()` | Check readiness, storage writability and pending state. |
+| `select(key)` / `saveCopy(theme)` | Select a theme or create and select a personal copy. |
+| `update(theme)` / `remove(id)` | Change or delete a personal definition. |
+| `subscribe(listener)` | Observe library changes; returns cleanup. |
+
+Use the existing `getService(services, themeService)` or React `useService(themeService)`
+after runtime readiness. Direct service calls do **not** run Action confirmation or execution
+guards. Writes reject unknown/duplicate identities or unavailable storage; updates and deletes
+reject original themes. Writes return Core's `SaveResult` (`saved`, `superseded`, `cancelled`);
+only `saved` confirms persistence. An Action wraps that value in its execution result.
+
+## Central CSS and tokens
+
+The central stylesheet supplies defaults; the active JSON theme overrides only its declared
+tokens on `<html>`. This also reaches portaled menus, dialogs and notifications. Switching
+themes or unmounting removes the previous runtime overrides.
+
+| Layer | Responsibility |
+| --- | --- |
+| Central host CSS | Base appearance shared across the app. |
+| Theme `shared` | Overrides used in either mode. |
+| Theme `light` or `dark` | Overrides `shared` for that mode. |
+| Appearance preferences | Separate layout, density and corner choices. |
+
+For a host-owned baseline, keep the generated CSS entry and import your file **after it**:
+
+```css
+/* src/app/globals.css — preserve your app's existing entry and import paths */
+@layer theme, base, components, utilities;
+@import 'tailwindcss';
+@import '../bitakit.gen.css';
+@import './theme.css';
+```
+
+```css
+/* src/app/theme.css */
+:root { --primary: #075985; --primary-foreground: #ffffff; }
+:root.dark { --primary: #7dd3fc; --primary-foreground: #082f49; }
+```
+
+Use this for app defaults; use a JSON definition for a theme users can select and copy.
+BitaKit Default adds no runtime token overrides, so the central CSS remains visible.
+
+| Customize | Representative tokens |
+| --- | --- |
+| Colors | `--background`, `--foreground`, `--primary`, `--primary-foreground`, `--card`, `--border`, `--ring` |
+| Sidebar | `--light--sidebar`, `--dark--sidebar` and their foreground/accent/border variants |
+| Typography | `--font-sans`, `--font-heading`; host supplies font assets |
+| Shape and strokes | `--radius`, `--corner-shape`, `--border-width`, `--focus-ring-width` |
+| Depth | `--theme-shadow-surface`, `--theme-shadow-overlay`, `--theme-shadow-control`, `--theme-shadow-field` |
+| Motion | `--theme-motion-duration`, `--theme-motion-ease` |
+
+JSON uses these names without `--`. A shadow value of `none` is projected as a transparent
+shadow to preserve composed border/focus rings. Explicit corner choices and functional round
+controls remain meaningful. External widgets need an adapter to these tokens; installing a
+widget does not automatically make it theme-compatible.
+
+## CSS presets and packaged styles
+
+An optional **CSS preset** is separate from a selectable JSON theme. Existing integrations
+declare `presets: [{ id: 'ocean', label: 'Ocean' }]` in Shell options and ship rules under
+`:root[data-theme-preset='ocean']` and its `.dark` variant. This adds `shell.preset` to
+Appearance; without configured presets, that setting does not exist.
+
+Prefer JSON themes for new selectable palettes with personal copies. Do not register the same
+palette twice: runtime JSON tokens override normal stylesheet declarations for the same tokens.
+
+A distributable CSS theme uses the package's `bitakit.theme` stylesheet entry. Export the
+stylesheet and `./package.json`; declare the visual packages it maps. Discovery collects these
+styles in the generated root CSS. Ordinary `bitakit.styles` entries are component styles and
+cannot redefine the platform baseline.
+
+## Storage and first paint
+
+`shell.themeLibrary` atomically stores `{ selected, custom }` as a hidden user-scoped setting.
+`shell.mode` is device-scoped. Core owns confirmed values and delegates persistence to
+`settings.storage`; the theme service does not keep a second confirmed store.
+
+The Shell theme provider waits for loaded settings, follows system mode changes and projects
+the selected tokens. The built-in editor keeps unsaved drafts and its preview mode local.
+Saving an original creates a copy; saving an existing personal theme updates it. Cancel leaves
+the confirmed theme unchanged.
+
+`ShellThemeScript` in the document head applies the browser-stored **color scheme** before
+hydration. Generated Shell apps already include it. It does not pre-load personal theme
+tokens; those apply after settings/identity resolution. With custom server-backed storage,
+the script uses the system scheme until settings load. Custom hosts can supply a CSP `nonce`
+and retain `suppressHydrationWarning` on `<html>`.
+
+## If the theme does not appear
+
+| Symptom | Check |
+| --- | --- |
+| No Appearance page | Shell and App Preferences are installed, enabled and the Settings route is mounted. |
+| New JSON file is missing | It is under the configured app source's `themes/`; regenerate and rebuild. |
+| Duplicate identity error | The same `id` is not present twice in the app source/options. |
+| Some UI keeps its old colors | It uses central semantic tokens, not hardcoded colors or an unmapped external library. |
+| Preview changes but the app does not | Save and apply; previewing alone is deliberately local. |
+| Changes disappear on another device | Browser storage is local; shared persistence requires the host's storage integration. |

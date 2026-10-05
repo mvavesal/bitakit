@@ -5,7 +5,7 @@
  * which plugin pages select with `export const layout = 'focus'`.
  */
 import type { ReactNode } from 'react';
-import { Action, useNavigation, useSlot, type SlotEntry } from '@bitakit/ui';
+import { Action, useNavigation, useSlot, type SlotView } from '@bitakit/ui';
 import { AppBar } from '@bitakit/ui/components';
 import { AppShell } from '@bitakit/shell';
 
@@ -22,14 +22,15 @@ export function FocusLayout({ children }: { children: ReactNode }) {
   );
 }
 
-const contributions = (entries: readonly SlotEntry[]) =>
-  entries.map(({ key, component: Contribution }) => <Contribution key={key} />);
+const contributions = (view: SlotView) =>
+  view.items.map(entry => entry.kind === 'component'
+    ? <entry.component key={entry.key} payload={view.payload} /> : null);
 
 /** Hooks only: every navigation action and slot contribution in the app's own arrangement. */
 export function MinimalLayout({ children }: { children: ReactNode }) {
-  const { groups, isActive } = useNavigation();
-  const header = useSlot('sidebar.header');
-  const footer = useSlot('sidebar.footer');
+  const { items, isActive } = useNavigation();
+  const header = useSlot('sidebar.header', { payload: { collapsed: false } });
+  const footer = useSlot('sidebar.footer', { payload: { collapsed: false } });
   return (
     <>
       {/* AppBar renders the app-bar.end slot itself. */}
@@ -42,11 +43,9 @@ export function MinimalLayout({ children }: { children: ReactNode }) {
         }
         center={
           <nav aria-label="Main navigation">
-            {groups
-              .flatMap((group) => group.items)
-              .map((item) => (
+            {items.map((item) => (
                 // An empty child receives the action's icon and title.
-                <Action key={item.id} id={item}>
+                <Action key={item.key} id={item}>
                   {item.href === undefined ? (
                     <button type="button" />
                   ) : (

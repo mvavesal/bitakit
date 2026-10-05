@@ -1,5 +1,21 @@
 # Development TODOs
 
+- [x] **Isolate slot component render failures (October 4, workspace only).** Per-contribution React boundaries preserve healthy siblings, report plugin/slot attribution and support bounded retry/owner-update recovery. Settings bodies and extensions retain their existing access boundaries. Focused tests, full Preferences tests and a real production-browser recovery/access check passed.
+
+- [x] **Preserve unaffected UI during compatible plugin updates (October 4, workspace only).** Separate initial readiness from affected-owner status; keep independent page/widget identity and subscriptions, gate Actions until their owner is ready, and rebind service hooks after recovery. Focused tests and a real generated-host slow update/failure/retry check passed. Affected Settings projections, full runtime replacement and file HMR remain outside this guarantee.
+
+- [x] **Targeted plugin updates and shared inventory (October 4, workspace only).** Explicit compatible host updates preserve unrelated services and report truthful outcomes. Core/UI/Devtools/App Preferences/CLI share versioned inspection; organization renderers use explicit slots; migration, Doctor and custom Settings scaffolding are aligned. File HMR and structural live changes remain outside this support envelope.
+
+- [x] **Settings slot integration (October 4, workspace only).** Existing declarations project navigation and keyed bodies automatically. Ordered extensions, contextual toolbars and sidebar widgets share the slot API and page-owned access boundaries. Local and packaged settings retain catalog/store ownership. Package/type tests, generated consumers, production builds and desktop/mobile browser checks passed. Compatible explicit host replacement is now implemented; structural changes still require restart.
+
+- [x] **Explicit UI placement (October 4, workspace only).** Actions declare `slots`; groups remain logical queries. Shell navigation and organization member menus use live slot entries with contextual input, stable placement keys and existing Action bindings. Component outlets receive validated payloads. Package/type tests, generated-consumer checks and browser acceptance passed. Settings page/body projection is completed in the entry above.
+
+- [x] **Owned slot attachments (October 4, workspace only).** Scoped attach with require/wait, retained snapshots, existing runtime.slot notifications, conflict enforcement and immediate scope cleanup. Declared UI contributions share this path; outlet visibility does not own lifetime. Core/UI/CLI tests (305), builds/types, generated consumers and final browser checks passed. Action placement, contextual rendering and Settings projection remain separate work.
+
+- [x] **Owned slot definitions (October 4, workspace only).** Added headless `defineSlot`, manual/file normalization, typed contracts and payloads, package build support and static Doctor diagnostics. Scoped attachment follows below; Action placement remains a separate follow-up.
+
+- [x] **Await runtime teardown and share startup policy across hosts (October 4, workspace only).** Core exposes awaited idempotent stop, lifecycle snapshots/events and selectable startup isolation; React awaits predecessor cleanup. Verified with 256 Core/UI tests, integration checks and generated/browser acceptance. File-deletion Fast Refresh can still trigger a Next full reload and is a separate discovery issue.
+
 - [x] **Simplify service publication.** Service definitions and `provideService` accept `exposeAs`; Core derives the existing app-service aliases, and discovery carries inferred names directly on definitions. Generated and manual types follow the same names. Existing maps remain compatible for older compositions and external-service aliases. Introductory docs teach file-based definitions; manual runtime composition is advanced material. No new service registry or lifecycle was introduced. 0.2: services are namespaced `<plugin>.<file>`; `defineService(factory, { exposeAs, provides })` replaces `provideService` and `publicServices` (deprecated until Phase 5).
 - [x] **Evaluate decorator authoring for classes.** Superseded by the 0.2 refactor: class and factory action exports are no longer discovered, `defineAction({ ... })` is the one action shape and services may still return class instances. Decorators are not planned.
 
@@ -31,7 +47,7 @@ Latest scope decisions: prioritize stabilizing the web Foundation. Do not requir
 
 Current generator scope: frontend only; Next.js and experimental TanStack Start. Backend scaffolding and other framework choices are deferred proposals, not current prompts or implementation requirements. TanStack uses the existing nuqs Router adapter with limited Start verification; keep server dependencies and credentials out of frontend bundles.
 
-- [ ] **Review plugin tags and tag-based catalog filtering.** Text filtering by plugin name/ID, clear-search and empty-state UI already exist on the Plugins settings page (`packages/app-preferences/src/components/plugins-overview.tsx`), using nuqs. Remaining work is to decide whether tags are needed, inspect existing metadata and define a small naming/localization convention and tag filter. Reuse the existing catalog and standard controls; tags are not permissions or dependencies. Planning only; do not rebuild the existing text search.
+- [x] **Plugin tags and tag filtering.** Optional metadata tags feed the standard plugin table; nuqs preserves the selected tags with search and detail navigation. Existing untagged plugins remain visible when no tag is selected.
 
 - [ ] **Design the E-Learning authoring workspace.** Product direction: a modern, agent-assisted authoring environment with a Codex-like collaboration experience for learning content. Proposed structure: project briefing (audience, learning objectives, language), shared project resources, courses, lessons and editable content blocks. Resources should be reusable across lessons without unnecessary duplication, with explicit source references. Support manual editing alongside an assistant and a learner preview. Clarify templates separately; the template discussion was not completed. Define the first author workflow before implementation; do not treat historical Course Studio demo code as the required architecture.
 
@@ -122,3 +138,37 @@ Historical planning-only constraint is superseded for the explicitly authorized 
 - [ ] **Additional authentication providers.** Implement and verify optional Auth.js/Clerk
       adapters when requested. The common contract and template do not constitute working
       integrations. Action instance/form isolation remains a separate deferred design task.
+
+## App Shell theme management — implemented, wider integration verification outstanding
+
+- [x] App Shell owns theme management and the Appearance experience. Preserve the current
+  visual design, including button finishes, as **BitaKit Default**; the supplied CSS sample
+  is an interoperability example, not an instruction to replace the current theme.
+- [x] Bundle platform themes with Shell; discover app-supplied themes from a documented
+  folder through Discovery. Define the file format and lifecycle before implementation;
+  distinguish build-time file discovery from runtime selection and user-created themes.
+- [x] Let users duplicate a theme, edit supported palette/geometry/typography/shadow tokens,
+  name it and save it as a separate theme. Originals remain intact. Use existing settings
+  storage for saved user themes and the selected theme, with no parallel persistence store.
+- [x] Keep light/dark/system mode and navigation choices in Appearance. Custom themes must
+  preserve their light/dark definitions and inherit centrally across supported plugins.
+- [ ] Complete integration verification for the existing Appearance theme editor.
+  Verify default-theme visual parity, reload persistence, theme switching, portals, and
+  clean generated-app integration. Do not modify Quick Search as part of this work.
+
+Theme service/actions, JSON collection, root projection and the Appearance editor are implemented.
+Local preview save/reload and default switching have been checked. Clean packed-consumer
+production verification and comprehensive cross-plugin visual parity remain outstanding.
+
+## Verified runtime and extension surfaces (October 4)
+
+- [x] Expose lifecycle timing and honest outlet diagnostics through the existing inspection APIs.
+- [x] Keep generated providers component-only; publish complete generated files and invalidate
+  package-audit caches on relevant changes. Document actual Fast Refresh limits.
+- [x] Compose shared full-page/framed surfaces and contextual Shell/Preferences regions using
+  existing contracts. Preserve host recovery, access boundaries and standard keyboard behavior.
+- [x] Add progressive region examples and reproducible light/dark help illustrations with one
+  canonical style reference. Verify documentation at mobile and desktop widths.
+
+The existing apps/web settings catalog migration remains separate: root check currently stops
+at its old @bitakit/app-preferences/discovery import. Fresh generated apps use the current API.

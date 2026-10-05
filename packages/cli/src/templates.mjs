@@ -34,7 +34,7 @@ const member = (name) =>
  * A complete feature: a service that owns the data, typed events, actions that change it, a
  * navigation link and a page. `minimal` keeps only the service, the events and one action.
  */
-export function pluginFiles(name, { minimal = false } = {}) {
+export function pluginFiles(name, { minimal = false, navigationSlot } = {}) {
   validateName(name, 'plugin name');
   const title = titleOf(name);
   const items = `services${member(name)}.items`;
@@ -49,6 +49,7 @@ export type Item = { id: number; title: string };
  */
 export default defineService(({ store, events }) => {
   // Observable state: actions and pages follow it without any wiring.
+  // Resources belong in onStart/onStop; Core awaits cleanup before replacement.
   const state = store<{ items: Item[] }>({ items: [] });
   return {
     state,
@@ -108,8 +109,8 @@ export default defineAction({
 `,
     'actions/open.ts': `import { defineAction } from '@bitakit/core';
 
-// Adds "${title}" to the app navigation. The page lives in ui/pages/index.tsx.
-export default defineAction({ title: '${title}', href: '/${name}', groups: ['navigation'] });
+// The page lives in ui/pages/index.tsx. Placement is explicit; groups are logical queries.
+export default defineAction({ title: '${title}', href: '/${name}', groups: ['navigation']${navigationSlot ? `, slots: [${JSON.stringify(navigationSlot)}]` : ''} });
 `,
     'ui/pages/index.tsx': pageFile(name, `/${name}`, title, { list: true }),
   };
@@ -184,12 +185,30 @@ export default defineAction({
 `;
 }
 
+/** Retains the generated fields and store; navigation and body placement are automatic. */
+export function settingsPageFile() {
+  return `'use client';
+import type { ReactNode } from 'react';
+import type { SettingsCatalogSection, SettingsCatalogField } from '@bitakit/app-preferences';
+
+// Requires @bitakit/app-preferences. Add custom content alongside the canonical fields.
+// No Action, navigation entry or slot registration is needed for this page.
+export default function SettingsPage({ section, renderField }: {
+  section: SettingsCatalogSection;
+  renderField: (field: SettingsCatalogField) => ReactNode;
+}) {
+  return <>{section.fields.map(renderField)}</>;
+}
+`;
+}
+
 export function serviceFile(name) {
   const segments = name.split('/');
   segments.forEach((segment) => validateName(segment, 'service name'));
   return `import { defineService } from '@bitakit/core';
 
-/** Other contributions call these methods as services.<plugin>.${segments.join('.')}. */
+/** Other contributions call these methods as services.<plugin>.${segments.join('.')}.
+ * Acquire resources in onStart and return cleanup work from onStop; Core awaits it. */
 export default defineService(({ store }) => {
   const state = store({ count: 0 });
   return {
@@ -215,6 +234,8 @@ export function settingsFile(plugin) {
 
 // Keys are prefixed with the plugin ID: read and write as settings.${plugin}.<name> or useSetting('${plugin}.<name>').
 // A generated page under /settings shows every setting; ui/settings/page.tsx replaces it.
+// Its default export may also declare { component, boundary?, pages: [{ id, title, component }] }.
+// App Preferences automatically projects navigation and keyed bodies; extensions target app-preferences.page.after.
 export default defineSettings({
   pageSize: setting({ default: 20, control: 'number', label: 'Items per page' }),
 });
@@ -236,10 +257,23 @@ export function slotFile(plugin, slot) {
   const component = `${pascalOf(slot.replace(/\./g, '-'))}Slot`;
   return `'use client';
 
-// Placed in slot "${slot}" by the host layout; export const order = 10 to sort among siblings.
+// Declared targets wait for both plugins to be ready; cleanup belongs to this plugin.
+// The owner renders "${slot}" with PluginSlot (isolated errors). Export order to sort, and key for keyed targets.
+// Export a typed when({ payload }) predicate to filter this outlet occurrence.
 export default function ${component}() {
   return <span className="text-sm text-muted-foreground">${plugin}</span>;
 }
+
+`;
+}
+
+/** An owned declaration; the existing slot template contributes UI to a target. */
+export function slotDefinitionFile() {
+  return `import { defineSlot } from '@bitakit/core';
+
+// Owned contract; declaring it does not activate it or mount a renderer.
+// UI files attach automatically. In setup use app.slots.attach(name, content, { availability: 'wait' }).
+export default defineSlot({ accepts: 'component', policy: 'list' });
 `;
 }
 

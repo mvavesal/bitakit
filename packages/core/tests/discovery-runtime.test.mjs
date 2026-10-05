@@ -26,7 +26,7 @@ import {
 const file = (value, localPath, source = `src/${localPath.replaceAll('.', '/')}.ts`) =>
   discoveredFile(value, localPath, source);
 
-test('groups are inferred, shared across plugins, and dynamic API placements clean up', () => {
+test('groups are inferred, shared across plugins, and dynamic API placements clean up', async () => {
   const list = createActionList();
   const typed = new ActionGroup('members.menu');
   let dynamic;
@@ -59,7 +59,7 @@ test('groups are inferred, shared across plugins, and dynamic API placements cle
     list.get('one.run').groups.map((group) => group.id),
     ['menu', 'members.menu'],
   );
-  dispose();
+  await dispose();
   assert.deepEqual(Object.keys(list.getState().actions), []);
   assert.throws(() => runtime.getGroup('invalid group'), /Invalid action group/);
 });
@@ -147,7 +147,7 @@ test('discovered services form a tree; function-valued presentation follows thei
       'state survives the translation update',
     );
   } finally {
-    stop();
+    await stop();
   }
   assert.throws(() => runtime.services, /not mounted/);
 });
@@ -193,7 +193,7 @@ test('href actions render the current href and navigate to the latest value when
       plugin: 'navigation',
     });
   } finally {
-    dispose();
+    await dispose();
     release();
   }
   assert.throws(
@@ -272,7 +272,7 @@ test('discovered interceptors run in order, cancel safely, and clean up without 
   const dispose = runtime.mount();
   assert.equal((await list.execute('demo.run')).reason, 'intercepted');
   assert.deepEqual(log, ['host', 'plain', 'first', 'second']);
-  dispose();
+  await dispose();
   log.length = 0;
   list.register({ id: 'later', title: 'Later', execute: () => void log.push('execute') });
   await list.execute('later');
@@ -347,7 +347,7 @@ test('plugin interceptors are scoped to their plugin unless global; after and on
       'error todos.fail boom',
     ]);
   } finally {
-    stop();
+    await stop();
   }
   assert.throws(
     () =>
@@ -416,7 +416,7 @@ test('action overrides from the configuration cap presentation and are never byp
     assert.equal(list.resolve('demo.hidden').visible, false);
     assert.equal((await list.execute('demo.hidden')).reason, 'hidden');
   } finally {
-    dispose();
+    await dispose();
   }
 });
 
@@ -538,7 +538,7 @@ test('startup errors name the plugin and the discovered source file; events stay
     });
     assert.deepEqual(received, ['notes.changed']);
   } finally {
-    stop();
+    await stop();
   }
 });
 
@@ -581,6 +581,6 @@ test('an input schema disables the action for invalid input and validates before
       (error) => isActionFailure(error) && error.cause.message === 'title required',
     );
   } finally {
-    stop();
+    await stop();
   }
 });

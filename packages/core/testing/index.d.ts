@@ -33,8 +33,8 @@ export type MountedPlugin = {
     name: Id,
     input?: ActionInput<Id>,
   ): Promise<ExecutionResult<ActionResult<Id>>>;
-  stop(): void;
-  [Symbol.dispose](): void;
+  stop(): Promise<void>;
+  [Symbol.asyncDispose](): Promise<void>;
 };
 
 /**

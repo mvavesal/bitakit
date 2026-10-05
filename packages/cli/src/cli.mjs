@@ -10,6 +10,7 @@ import {
   watchFoundation,
 } from '@bitakit/discovery';
 import { addContribution, addPlugin, contributionKinds } from './add.mjs';
+import { inspectionFromDescription } from './inventory.mjs';
 import { buildPlugin } from './build.mjs';
 import { doctor } from './doctor.mjs';
 import { initProject } from './init.mjs';
@@ -126,6 +127,7 @@ program
 
 program
   .command('migrate')
+  .option('--navigation-slot <name>', 'explicit target for legacy navigation group Actions')
   .option('--dry-run', 'only list the changes')
   .description(
     'Rewrite a 0.1 project to the current layout: bitakit.config.ts, folder-only files, ui/ folders, generated imports.',
@@ -133,7 +135,10 @@ program
   .action(async (options) => {
     // Only the root is needed: a 0.1 configuration may not even load before it is migrated.
     const { root } = await findProjectRoot();
-    const { changes } = await migrateProject(root, { dryRun: options.dryRun });
+    const { changes } = await migrateProject(root, {
+      dryRun: options.dryRun,
+      navigationSlot: options.navigationSlot,
+    });
     if (!changes.length) {
       console.log('\nNothing to migrate.\n');
       return;
@@ -209,33 +214,29 @@ program
     const project = await findProject();
     if (project.kind !== 'app') throw new Error('Run "bitakit info" inside an app.');
     const description = await describeFoundation(project.root);
+    const inventory = inspectionFromDescription(description);
     if (options.json) {
-      console.log(JSON.stringify(description, null, 2));
+      console.log(JSON.stringify(inventory, null, 2));
       return;
     }
-    const print = (title, module) => {
-      console.log(`\n${styleText('bold', title)} ${styleText('dim', module.directory)}`);
-      for (const kind of [
-        'services',
-        'actions',
-        'events',
-        'pages',
-        'slots',
-        'interceptors',
-        'configs',
-      ])
-        if (module[kind]?.length)
-          console.log(
-            `  ${kind}: ${module[kind].map((entry) => entry.path || (kind === 'events' ? 'events.ts' : '/')).join(', ')}`,
-          );
-    };
-    print('App', description.app);
-    for (const plugin of description.plugins)
-      print(`Plugin "${plugin.id}"${plugin.enabled ? '' : ' (disabled)'}`, plugin);
-    if (description.installedPackages.length)
+    for (const plugin of inventory.static.plugins) {
+      const title =
+        plugin.source.kind === 'package' ? `Package "${plugin.id}"` : `Plugin "${plugin.id}"`;
       console.log(
-        `\n${styleText('bold', 'Installed plugin packages')}\n  ${description.installedPackages.join('\n  ')}`,
+        `\n${styleText('bold', title)}${plugin.enabled === false ? ' (disabled)' : ''} ${styleText('dim', plugin.source.path ?? '')}`,
       );
+      if (plugin.declarations === null)
+        console.log('  declarations: unavailable (static package entry)');
+      else
+        for (const kind of new Set(plugin.declarations.map((entry) => entry.kind)))
+          console.log(
+            `  ${kind}: ${plugin.declarations
+              .filter((entry) => entry.kind === kind)
+              .map((entry) => entry.id ?? entry.source)
+              .join(', ')}`,
+          );
+    }
+    console.log('\nLive state: unavailable (static discovery).');
     if (description.warnings.length) {
       console.log(
         `\n${styleText('yellow', `${description.warnings.length} warning${description.warnings.length === 1 ? '' : 's'}`)}`,

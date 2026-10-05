@@ -75,13 +75,18 @@ export async function renderWithFoundation(
         content,
       ),
     });
-  let mounted = true;
-  const unmount = async () => {
-    if (!mounted) return;
-    mounted = false;
-    await act(async () => root.unmount());
-    container.remove();
-  };
+  let completion: Promise<void> | undefined;
+  const unmount = () =>
+    (completion ??= (async () => {
+      try {
+        await act(async () => {
+          root.unmount();
+          await current?.stopped;
+        });
+      } finally {
+        container.remove();
+      }
+    })());
   try {
     await act(async () => root.render(tree(element)));
     if (!current)

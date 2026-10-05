@@ -13,7 +13,7 @@ import {
 } from '../dist/core.js';
 import todos from '../examples/todos/plugin.mjs';
 
-test('on delivers envelopes; lists are OR, duplicates are ignored, "*" and "<prefix>.*" are patterns', () => {
+test('on delivers envelopes; lists are OR, duplicates are ignored, "*" and "<prefix>.*" are patterns', async () => {
   const events = new EventService();
   const received = [];
   const stop = events.on(['a', 'b', 'a'], (event) => received.push(event));
@@ -25,8 +25,8 @@ test('on delivers envelopes; lists are OR, duplicates are ignored, "*" and "<pre
     { type: 'b', data: undefined },
   ]);
   assert.equal(events.subscriptionCount, 1);
-  stop();
-  stop();
+  await stop();
+  await stop();
   events.emit('a');
   assert.equal(received.length, 2);
   assert.equal(events.subscriptionCount, 0);
@@ -188,7 +188,7 @@ test('defineEvents declares plugin events: prefixed names, owner-only emit, canc
       assert.ok(observed.includes(type), `observed ${type}`);
     unobserve();
   } finally {
-    stop();
+    await stop();
   }
 });
 
@@ -213,14 +213,15 @@ test('the todos example: store-driven enabled state and declared events, with le
       { kind: 'removed', id: created.value.id },
     ]);
     off();
-    stop();
-    stop();
-    assert.equal(runtime.events.subscriptionCount, 0);
+    await stop();
+    await stop();
+    await runtime.stopped;
+  assert.equal(runtime.events.subscriptionCount, 0);
     assert.equal(actions.get('todos.create'), undefined);
   }
 });
 
-test('a failing setup releases listeners, aborts handler signals and stops services', () => {
+test('a failing setup releases listeners, aborts handler signals and stops services', async () => {
   let signal,
     stopped = 0;
   const runtime = createRuntime({
@@ -252,13 +253,14 @@ test('a failing setup releases listeners, aborts handler signals and stops servi
       error.plugin === 'broken' &&
       /Setup in plugin "broken" failed to start: setup failed/.test(error.message),
   );
+  await runtime.stopped;
   assert.equal(runtime.events.subscriptionCount, 0);
   assert.equal(signal.aborted, true);
   assert.equal(stopped, 1);
   assert.equal(runtime.actions.get('broken.run'), undefined);
 });
 
-test('each runtime has its own bus; stopping releases the listeners of its services', () => {
+test('each runtime has its own bus; stopping releases the listeners of its services', async () => {
   const flag = definePlugin({
     id: 'flag',
     events: defineEvents({ off: event() }),
@@ -284,8 +286,8 @@ test('each runtime has its own bus; stopping releases the listeners of its servi
   a.events.emit('flag.off');
   assert.equal(a.actions.get('flag.toggle').enabled, false);
   assert.equal(b.actions.get('flag.toggle').enabled, true);
-  stopA();
+  await stopA();
   assert.equal(a.events.subscriptionCount, 0);
   assert.equal(b.events.subscriptionCount, 1);
-  stopB();
+  await stopB();
 });

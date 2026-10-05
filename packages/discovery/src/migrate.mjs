@@ -1,3 +1,4 @@
+import { navigationPlacement } from './navigation-placement.mjs';
 import { readFile, writeFile, rename, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { files } from './entries.mjs';
@@ -27,7 +28,7 @@ async function exists(file) {
  * contribution files, `ui/` for pages, slots and providers, generated-file imports, scripts and
  * `.gitignore`. Returns the list of changes; `dryRun` only reports them.
  */
-export async function migrateProject(root, { dryRun = false } = {}) {
+export async function migrateProject(root, { dryRun = false, navigationSlot } = {}) {
   root = path.resolve(root);
   const changes = [];
   const apply = async (change, run) => {
@@ -287,5 +288,27 @@ export async function migrateProject(root, { dryRun = false } = {}) {
       await apply({ kind: 'delete', from: stale }, () =>
         rm(path.join(root, stale), { recursive: true, force: true }),
       );
+  if (navigationSlot) {
+    for (const file of await files(appRoot)) {
+      if (!/\.tsx?$/.test(file) || /(?:^|[\\/])server[\\/]|bitakit\.gen\./.test(file)) continue;
+      const source = await readFile(file, 'utf8');
+      const placement = navigationPlacement(source, navigationSlot);
+      if (placement.changed)
+        await apply(
+          {
+            kind: 'rewrite',
+            from: relative(file),
+            detail: `Place navigation Actions in the explicitly selected slot "${navigationSlot}".`,
+          },
+          () => writeFile(file, placement.code),
+        );
+      for (const item of placement.missing.filter((item) => !item.safe))
+        changes.push({
+          kind: 'skip',
+          from: relative(file),
+          detail: `Line ${item.line}: spread properties make placement ambiguous; add slots explicitly.`,
+        });
+    }
+  }
   return { changes };
 }

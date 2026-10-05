@@ -4,7 +4,7 @@ import type { ShellOptions } from '@bitakit/shell';
 // Shell options: https://github.com/mvavesal/bitakit/tree/main/packages/shell
 export default defineConfig({
   defaults: {
-    // Action groups shown in the navigation; theme presets are CSS under [data-theme-preset="<id>"].
-    groups: ['navigation', 'apps'],
+    // Action slot shown in the navigation; theme presets are CSS under [data-theme-preset="<id>"].
+    navigationSlot: 'shell.navigation',
   } satisfies ShellOptions,
 });

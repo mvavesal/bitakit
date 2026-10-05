@@ -50,6 +50,8 @@ type GetterOptions = {
 
 /** Everything a control needs: state, guarded execution and prop getters for common controls. */
 export type ActionControl<Id extends string = string> = ControlState & {
+  /** This binding's contextual input; never stored on the shared Action registration. */
+  input: ActionInput<Id>;
   pendingKeys: readonly string[];
   status: ActionSnapshot['status'];
   error: unknown;
@@ -59,7 +61,7 @@ export type ActionControl<Id extends string = string> = ControlState & {
   /** Button: onClick, disabled, aria-busy, title. */
   props(options?: GetterOptions): ControlProps;
   /** Anchor: href, aria-disabled, client-side navigation for internal links. */
-  linkProps(options?: GetterOptions): ControlProps;
+  linkProps(options?: GetterOptions & { href?: string }): ControlProps;
   /** Checkbox or switch: checked, onCheckedChange. */
   checkedProps(options?: GetterOptions): ControlProps;
   /** Select or radio group: value, onValueChange. */
@@ -130,6 +132,7 @@ export function buildControl<Id extends string>(
   });
   return {
     ...state,
+    input: input as ActionInput<Id>,
     pendingKeys: resolved.pendingKeys,
     status: resolved.status,
     error: resolved.error,
@@ -147,7 +150,7 @@ export function buildControl<Id extends string>(
         onClick: () => void run(input, options),
       }),
     linkProps: (options) => {
-      const href = safeHref(state.href);
+      const href = safeHref(options?.href ?? state.href);
       const external = !!href && /^https?:/i.test(href);
       return adapt('link', {
         href: state.disabled ? undefined : href,
@@ -204,8 +207,10 @@ export function buildControl<Id extends string>(
  * One action as a control: its resolved state for `input`, guarded `execute`, and prop getters
  * to spread on any component. Returns undefined while the action is not registered.
  */
-/** A control from `useActionGroup` may stand in for an ID, so group items bind under strict IDs. */
-export type ActionTarget<Id extends string = string> = Id | ActionReference<Id> | ActionControl<Id>;
+/** Resolved controls retain their input; literal IDs and references follow strict discovery. */
+export type ActionTarget<Id extends string = string> =
+  | ((Id | ActionReference<Id>) & (Id extends ActionId ? unknown : never))
+  | ActionControl<Id>;
 export function isActionControl(value: unknown): value is ActionControl {
   return (
     !!value &&
@@ -216,21 +221,22 @@ export function isActionControl(value: unknown): value is ActionControl {
   );
 }
 
-export function useAction<Id extends ActionId>(
+export function useAction<const Id extends string>(
   target: ActionTarget<Id>,
-  input?: ActionInput<Id>,
+  input?: ActionInput<NoInfer<Id>>,
 ): ActionControl<Id> | undefined {
   const list = useActionList();
   const ui = useContext(UIContext);
   const id = isActionControl(target) ? (target.id as Id) : resolveActionId(target, list);
+  const boundInput = input === undefined && isActionControl(target) ? target.input : input;
   const snapshot = useStore(list, (state) =>
     Object.hasOwn(state.actions, id) ? state.actions[id] : undefined,
   );
   return useMemo(() => {
     if (!snapshot) return undefined;
-    const resolved = list.resolve(id, input);
-    return resolved ? buildControl<Id>(list, resolved, input, ui) : undefined;
-  }, [snapshot, list, id, input, ui]);
+    const resolved = list.resolve(id, boundInput);
+    return resolved ? buildControl<Id>(list, resolved, boundInput, ui) : undefined;
+  }, [snapshot, list, id, boundInput, ui]);
 }
 
 /** Public registrations only; pass `{ internal: true }` to include helper registrations. */

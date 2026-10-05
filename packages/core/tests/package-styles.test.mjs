@@ -10,10 +10,14 @@ async function fixture(run) {
   const install = async (name, manifest) => {
     const directory = path.join(root, 'node_modules', name);
     await mkdir(directory, { recursive: true });
-    await writeFile(
-      path.join(directory, 'package.json'),
-      JSON.stringify({ name, exports: { './package.json': './package.json' }, ...manifest }),
-    );
+    const metadata = manifest.bitakit ?? manifest.foundation ?? {};
+    const css = [metadata.styles ?? [], metadata.theme ?? []].flat();
+    const exports = { './package.json': './package.json' };
+    for (const file of css) {
+      exports[file] = file;
+      await writeFile(path.join(directory, file), '/* fixture */');
+    }
+    await writeFile(path.join(directory, 'package.json'), JSON.stringify({ name, exports, ...manifest }));
   };
   const imports = async () =>
     (await readFile(path.join(root, 'src/bitakit.gen.css'), 'utf8'))

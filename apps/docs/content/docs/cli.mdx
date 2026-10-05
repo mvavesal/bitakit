@@ -5,16 +5,16 @@ description: Create or wire an app, add plugins and files, generate, check and m
 
 Two tools cover the whole lifecycle. `npx @bitakit/create-app` creates a new project; `npx bitakit` works inside a project. Apps made by the generator already have `@bitakit/cli` as a dev dependency; elsewhere run `npm install --save-dev @bitakit/cli`.
 
-Every code block on this page runs as written; replace the names with your own. Only the reference tables use `<placeholders>` to describe what a command accepts.
+The command groups below are independent examples; use a new plugin name when scaffolding a complete feature. Use a matching 0.2 package set, or the [local checkout workflow](/docs/local-development). Only the reference tables use `<placeholders>` to describe what a command accepts.
 
-| You want to                            | Run                                       |
-| -------------------------------------- | ----------------------------------------- |
-| Start a new app                        | `npx @bitakit/create-app my-app`          |
-| Add BitaKit to an app you already have | `npx bitakit init`                        |
-| Add a feature to your app              | `npx bitakit add plugin notes`            |
-| Add one file to a feature              | `npx bitakit add action notes/archive`    |
-| Write the generated files              | `npx bitakit generate`                    |
-| Find problems                          | `npx bitakit doctor`                      |
+| You want to                            | Run                                    |
+| -------------------------------------- | -------------------------------------- |
+| Start a new app                        | `npx @bitakit/create-app my-app`       |
+| Add BitaKit to an app you already have | `npx bitakit init`                     |
+| Add a feature to your app              | `npx bitakit add plugin notes`         |
+| Add one file to a feature              | `npx bitakit add action notes/archive` |
+| Write the generated files              | `npx bitakit generate`                 |
+| Find problems                          | `npx bitakit doctor`                   |
 
 ## Create a new app
 
@@ -85,31 +85,32 @@ npx bitakit add action notes/archive
 npx bitakit add page notes/archive
 ```
 
-Typed events and a settings page for the same plugin, and a layout for admin pages:
+Add Settings and an optional custom page to that plugin:
 
 ```sh
-npx bitakit add events notes
 npx bitakit add settings notes
-npx bitakit add layout admin
+npx bitakit add settings-page notes
 ```
 
-There is nothing to register: discovery picks new files up. The path decides the ID or route, so `notes/team/invite` creates `actions/team/invite.ts` with the ID `notes.team.invite`. Existing files are never overwritten. Inside a plugin package, give only the name.
+The full `add plugin` template already declares events; do not add that file twice. `add events <plugin>` is for a plugin that does not have `events.ts`. Discovery connects new files. The path decides the ID or route, so `notes/team/invite` creates `actions/team/invite.ts` with the ID `notes.team.invite`. Existing files are never overwritten. Inside a plugin package, give only the name.
 
 `npx bitakit add <kind> <plugin>/<name>` supports these kinds:
 
-| Kind          | Name argument     | File it creates           | What you get                                           |
-| ------------- | ----------------- | ------------------------- | ------------------------------------------------------ |
-| `action`      | `<plugin>/<name>` | `actions/<name>.ts`       | Action `<plugin>.<name>`                               |
-| `service`     | `<plugin>/<name>` | `services/<name>.ts`      | `services.<plugin>.<name>`                             |
-| `page`        | `<plugin>/<name>` | `ui/pages/<name>.tsx`     | The route `/<plugin>/<name>`                           |
-| `slot`        | `<plugin>/<slot>` | `ui/slots/<slot>.tsx`     | A component in a layout slot such as `app-bar.end`     |
-| `dialog`      | `<plugin>/<name>` | `ui/dialogs/<name>.tsx`   | A component an action opens with `dialog`              |
-| `provider`    | `<plugin>/<name>` | `ui/providers/<name>.tsx` | A React provider wrapped around the app                |
-| `interceptor` | `<plugin>/<name>` | `interceptors/<name>.ts`  | Logic that runs around actions or service calls        |
-| `config`      | `<plugin>/<name>` | `configs/<name>.ts`       | `app.config.<plugin>.<name>`                           |
-| `events`      | `<plugin>`        | `events.ts`               | Typed events `<plugin>.<event>`                        |
-| `settings`    | `<plugin>`        | `settings.ts`             | User settings and a generated settings page            |
-| `layout`      | `<name>`          | `src/layouts/<name>.tsx`  | An app layout; pages opt in with `export const layout` |
+| Kind              | Name argument     | File it creates           | What you get                                           |
+| ----------------- | ----------------- | ------------------------- | ------------------------------------------------------ |
+| `action`          | `<plugin>/<name>` | `actions/<name>.ts`       | Action `<plugin>.<name>`                               |
+| `service`         | `<plugin>/<name>` | `services/<name>.ts`      | `services.<plugin>.<name>`                             |
+| `page`            | `<plugin>/<name>` | `ui/pages/<name>.tsx`     | The route `/<plugin>/<name>`                           |
+| `slot-definition` | `<plugin>/<name>` | `slots/<name>.ts`         | An owned slot contract                                 |
+| `settings-page`   | `<plugin>`        | `ui/settings/page.tsx`    | Custom content using the existing settings fields      |
+| `slot`            | `<plugin>/<slot>` | `ui/slots/<slot>.tsx`     | A component in a layout slot such as `app-bar.end`     |
+| `dialog`          | `<plugin>/<name>` | `ui/dialogs/<name>.tsx`   | A component an action opens with `dialog`              |
+| `provider`        | `<plugin>/<name>` | `ui/providers/<name>.tsx` | A React provider wrapped around the app                |
+| `interceptor`     | `<plugin>/<name>` | `interceptors/<name>.ts`  | Logic that runs around actions or service calls        |
+| `config`          | `<plugin>/<name>` | `configs/<name>.ts`       | `app.config.<plugin>.<name>`                           |
+| `events`          | `<plugin>`        | `events.ts`               | Typed events `<plugin>.<event>`                        |
+| `settings`        | `<plugin>`        | `settings.ts`             | User settings and a generated settings page            |
+| `layout`          | `<name>`          | `src/layouts/<name>.tsx`  | An app layout; pages opt in with `export const layout` |
 
 ## Generate, check and migrate
 
@@ -122,12 +123,12 @@ npx bitakit doctor
 
 You rarely run `generate` yourself: the framework adapters run it during `dev` and `build`. Use it in scripts and type checks.
 
-| Command                | What it does                                                                         | Useful switch                       |
-| ---------------------- | ------------------------------------------------------------------------------------ | ----------------------------------- |
-| `npx bitakit generate` | Writes `src/bitakit.gen.*` from your plugin folders                                  | `--watch` keeps regenerating        |
-| `npx bitakit doctor`   | Reports wiring problems with a fix for each; exit code 1 when something is wrong     | `--json` for CI                     |
-| `npx bitakit info`     | Lists what discovery finds: plugins, services, actions, events, pages                | `--json`                            |
-| `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout                                             | `--dry-run` only lists the changes  |
+| Command                | What it does                                                                     | Useful switch                      |
+| ---------------------- | -------------------------------------------------------------------------------- | ---------------------------------- |
+| `npx bitakit generate` | Writes `src/bitakit.gen.*` from your plugin folders                              | `--watch` keeps regenerating       |
+| `npx bitakit doctor`   | Reports wiring problems with a fix for each; exit code 1 when something is wrong | `--json` for CI                    |
+| `npx bitakit info`     | Lists what discovery finds: plugins, services, actions, events, pages            | `--json`                           |
+| `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout                                         | `--dry-run` only lists the changes |
 
 `doctor` checks package versions, provider wiring, ignored generated files, pages and links no route reaches, colliding service names, `requires` entries that name nothing, plugin dependency cycles, slot files that target no layout and missing package styles.
 
@@ -140,3 +141,22 @@ npx bitakit build
 ```
 
 It type-checks, compiles the sources and writes `dist/plugin.js`; `--check` only type-checks. The package's `package.json` declares `bitakit: { plugin: './plugin' }`, so apps that install it discover the plugin automatically. [Discovery](/docs/concepts/discovery) explains what the generator reads and [Plugins](/docs/concepts/plugins) what the files contain.
+
+## Inspect and migrate slot placement
+
+```sh
+npx bitakit info --json
+```
+
+The version-1 snapshot has `static.plugins` and `live: null`: the CLI inspects source files,
+not a running application. Unresolved fields stay null. See [runtime inspection](/docs/concepts/runtime-management#shared-inspection-schema).
+
+To migrate old navigation group placement, choose the target explicitly:
+
+```sh
+npx bitakit migrate --navigation-slot shell.navigation --dry-run
+```
+
+Review the preview, then remove `--dry-run` to apply. The migration preserves logical groups
+and skips ambiguous spread objects. Doctor warns about literal navigation-group Actions without
+slots when Shell is installed. The migration does not infer a destination for arbitrary groups.

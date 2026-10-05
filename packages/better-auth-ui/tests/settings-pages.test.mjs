@@ -63,7 +63,7 @@ function testAuth(initial) {
   };
 }
 
-test('the account settings page shows profile and security when signed in, the sign-in prompt otherwise', async () => {
+test('independent account profile and security pages preserve native cards and sign-in guards', async () => {
   // A real Better Auth handler in memory feeds the native cards; no network, no shared data.
   const server = betterAuth({
     baseURL: origin,
@@ -111,27 +111,37 @@ test('the account settings page shows profile and security when signed in, the s
         config: { plugins: [auth.plugin, plugin] },
         services: { [betterAuthClient]: { client: authClient } },
       },
-      h(plugin.ui.settings.component),
+      h('section', { 'data-test-profile': true }, h(plugin.ui.settings.boundary, null, h(plugin.ui.settings.component), h('span', { 'data-protected-extension': true }, 'Profile extension'))),
+      h('section', { 'data-test-security': true }, h(plugin.ui.settings.pages[0].boundary, null, h(plugin.ui.settings.pages[0].component), h('span', { 'data-protected-extension': true }, 'Security extension'))),
     ),
   );
   try {
     assert.equal(view.container.querySelector('[role="status"]')?.textContent, 'Checking sign-in…');
 
+    assert.equal(view.container.querySelector('[data-protected-extension]'), null);
     await auth.set({ user: { id: 'user', name: 'Page Tester' }, pending: false, error: null });
     await settle(10);
+    assert.equal(view.container.querySelectorAll('[data-protected-extension]').length, 2);
     const headings = texts(view.container, 'h2');
-    assert.ok(headings.indexOf('Profile') < headings.indexOf('Security'), headings.join(', '));
+    assert.deepEqual(texts(view.container.querySelector('[data-test-profile]'), 'h2'), [
+      'User profile',
+    ]);
+    assert.ok(
+      !view.container.querySelector('[data-test-security]').textContent.includes('User profile'),
+    );
+    assert.ok(!headings.includes('Profile') && !headings.includes('Security'));
     // The native cards with the signed-in user's data, profile first.
     for (const card of ['User profile', 'Change email', 'Change password', 'Active sessions'])
       assert.ok(headings.includes(card), `${card} in ${headings.join(', ')}`);
-    assert.ok(headings.indexOf('User profile') < headings.indexOf('Security'));
-    assert.ok(headings.indexOf('Security') < headings.indexOf('Change password'));
+
     assert.match(view.container.textContent, /Current session/);
     assert.equal(view.container.querySelector('h1'), null, 'the host frame owns the page title');
 
     await auth.set({ user: null, pending: false, error: null });
-    assert.match(view.container.textContent, /^Sign in to access these account settings\./);
+    assert.match(view.container.textContent, /Sign in to access these account settings\./);
     assert.equal(view.container.querySelector('a').getAttribute('href'), '/auth/sign-in');
+    assert.equal(view.container.querySelectorAll('[data-slot=empty]').length, 2);
+    assert.equal(view.container.querySelector('[data-protected-extension]'), null);
     assert.equal(view.container.querySelector('h2'), null);
   } finally {
     await view.unmount();
@@ -139,7 +149,7 @@ test('the account settings page shows profile and security when signed in, the s
   }
 });
 
-test('the organization settings page offers members only to managers and keeps its tab in the URL', async () => {
+test('separate organization pages preserve management guards and an independent danger card', async () => {
   const organizations = organizationUIPlugin({ path: false });
   // Better Auth UI provides the native locale the invitation dates are formatted with.
   const account = betterAuthUIPlugin({
@@ -169,66 +179,90 @@ test('the organization settings page offers members only to managers and keeps i
           },
         },
         h(Probe),
-        h(organizations.ui.settings.component),
+        h(organizations.ui.settings.boundary, null, h(organizations.ui.settings.component)),
+        ...organizations.ui.settings.pages.map((page) => h(page.boundary, { key: page.id }, h(page.component), h('span', { 'data-protected-page': page.id }, 'Extension'))),
       ),
     ),
   );
   try {
     await settle();
-    // What the host settings UI renders: one page per plugin, under /settings/<path>.
     assert.deepEqual(
-      catalog.map((section) => [
-        section.id,
-        section.path,
-        section.title,
-        section.category,
-        section.fields.length,
-        section.component ===
-          (section.id === 'organizations-ui' ? organizations : account).ui.settings.component,
-      ]),
+      catalog.map((section) => [section.path, section.category]),
       [
-        ['better-auth-ui', 'account', 'Account', 'account', 0, true],
-        ['organizations-ui', 'organization', 'Organization', 'organization', 0, true],
+        ['account', 'account'],
+        ['organization', 'organization'],
+        ['account/security', 'account'],
+        ['organization/members', 'organization'],
+        ['account/invitations', 'account'],
       ],
     );
-    // The demo viewer owns the active organization, so the URL's members tab is offered.
-    assert.deepEqual(tabs(view.container), [
-      'Profile',
-      'Members and invitations (selected)',
-      'Invitations for me',
-    ]);
-    assert.deepEqual(texts(view.container, 'h2'), ['Members']);
-
-    await press(view.container, 'Invitations for me');
-    assert.equal(urls.at(-1), '?tab=invitations');
-    assert.deepEqual(texts(view.container, 'h2'), ['Invitations for me']);
+    assert.equal(
+      view.container.querySelector('h1'),
+      null,
+      'the settings host owns the page heading',
+    );
+    assert.equal(
+      view.container.querySelector('h2'),
+      null,
+      'embedded content does not duplicate headings',
+    );
     assert.match(view.container.textContent, /Partner Studio/);
-
-    await press(view.container, 'Profile');
-    assert.equal(urls.at(-1), '', 'the default tab leaves the URL clean');
-    assert.deepEqual(texts(view.container, 'h2'), ['Organization settings']);
-    assert.equal(view.container.querySelector('h1'), null, 'the host frame owns the page title');
-
-    await press(view.container, 'Members and invitations');
-    assert.equal(urls.at(-1), '?tab=members');
+    const deletion = [...view.container.querySelectorAll('button')].find(
+      (button) => button.textContent === 'Delete organization',
+    );
+    assert.equal(deletion.getAttribute('data-variant'), 'destructive');
+    assert.equal(deletion.closest('form'), null, 'deletion is outside the save form');
+    const save = view.container.querySelector('button[type=submit]');
+    assert.ok(save.closest('[data-slot=card]'), 'save belongs inside the profile card');
+    assert.notEqual(save.closest('[data-slot=card]'), deletion.closest('[data-slot=card]'));
+    assert.match(save.parentElement.className, /justify-end/);
+    assert.match(deletion.closest('[data-slot="card"]').textContent, /cannot be undone/);
     const service = runtime.services.organizations;
     await act(async () => {
       await service.accept('demo-incoming');
       await service.setActive('partner');
     });
     await settle();
-    // A plain member: no members tab, and the page falls back to the profile.
-    assert.deepEqual(tabs(view.container), ['Profile (selected)', 'Invitations for me']);
-    assert.deepEqual(texts(view.container, 'h2'), ['Organization profile']);
-
+    assert.match(
+      view.container.textContent,
+      /You do not have permission to manage this organization/,
+    );
+    const restricted = view.container.querySelector('[data-slot=empty][role=status]');
+    assert.match(restricted.textContent, /Management access required/);
+    assert.equal(view.container.querySelector('[data-protected-page=members]'), null);
+    assert.ok(restricted.querySelector('[data-slot=empty-description]'));
+    assert.ok(
+      ![...view.container.querySelectorAll('button')].some(
+        (button) => button.textContent === 'Delete organization',
+      ),
+    );
     await act(() => service.setActive('studio'));
     await settle();
-    assert.deepEqual(tabs(view.container), [
-      'Profile',
-      'Members and invitations (selected)',
-      'Invitations for me',
-    ]);
+    assert.ok(
+      !view.container.textContent.includes(
+        'You do not have permission to manage this organization',
+      ),
+    );
   } finally {
     await view.unmount();
   }
+});
+
+test('organization settings leave loading for a signed-out session before mounting protected content', async () => {
+  const { SettingsAccountAccess } = await import('../dist/settings/account.js');
+  const auth = testAuth({ user: null, pending: true, error: null });
+  const plugin = betterAuthUIPlugin({ provider: { navigate() {}, plugins: [] }, toastProvider: false });
+  const view = await mount(h(FoundationProvider, {
+    config: { plugins: [auth.plugin, plugin] },
+    services: { [betterAuthClient]: { client: createAuthClient({ baseURL: origin }) } },
+  }, h(SettingsAccountAccess, null, h('p', null, 'Protected settings'))));
+  try {
+    assert.match(view.container.textContent, /Checking sign-in/);
+    await auth.set({ user: null, pending: false, error: null });
+    assert.match(view.container.textContent, /Sign in to access/);
+    assert.ok(!view.container.textContent.includes('Checking sign-in'));
+    assert.ok(!view.container.textContent.includes('Protected settings'));
+    await auth.set({ user: { id: 'test' }, pending: false, error: null });
+    assert.match(view.container.textContent, /Protected settings/);
+  } finally { await view.unmount(); }
 });

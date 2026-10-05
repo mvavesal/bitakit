@@ -47,6 +47,6 @@ export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
     get ready() {
       return runtime.isReady();
     },
-    has: (service: string) => runtime.hasService(service),
+    has: (service: string) => runtime.isServiceReady(service),
   }) as unknown as FoundationApp;
 }

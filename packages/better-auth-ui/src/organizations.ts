@@ -8,3 +8,7 @@ export {
   OrganizationMembersSettings,
   OrganizationInvitationsSettings,
 } from './settings/organizations.js';
+
+export { IncomingInvitations } from './components/organizations/incoming-invitations.js';
+
+export { memberMenuSlot, organizationSlots } from './slots.js';

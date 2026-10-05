@@ -166,7 +166,7 @@ test('the shell app adds the App Shell, settings, a not-found fallback and the T
   );
   assert.match(
     await read(plan.target, 'src/configs/shell.ts'),
-    /export default defineConfig\(\{[\s\S]*groups: \['navigation'\],[\s\S]*\} satisfies ShellOptions/,
+    /export default defineConfig\(\{[\s\S]*navigationSlot: 'shell\.navigation',[\s\S]*\} satisfies ShellOptions/,
   );
   await missing(plan.target, 'src/app/page.tsx');
   await missing(plan.target, 'src/app/[...path]');

@@ -1,0 +1,145 @@
+---
+title: Runtime management
+description: Explicit plugin updates, lifecycle outcomes and shared inspection.
+---
+
+## Startup and shutdown states
+
+A runtime's **phase** tells you whether it is starting, usable or stopping. Its **cleanup**
+status tells you whether owned resources have been released. Read both when diagnosing a
+failure; a failed startup still needs teardown.
+
+<Diagram name="runtime-states" />
+
+These are common whole-runtime paths, not every per-plugin state. Under isolation,
+dependent plugins can be `blocked`; that does not mean their cleanup failed.
+
+## Host-driven plugin updates
+
+`runtime.reconcilePlugins(nextPlugins)` is an explicit host operation on already loaded,
+immutable plugin definitions. Its first consumer is development/manual composition that needs
+to preserve unrelated service instances and stores. It is not an automatic discovery/HMR hook.
+
+<Diagram name="lifecycle-flow" />
+
+```ts
+// Host code, after initial runtime.ready. Keep unchanged definitions by reference.
+const next = (runtime.config.plugins ?? []).map((plugin) =>
+  plugin.id === updated.id ? updated : plugin,
+);
+const result = await runtime.reconcilePlugins(next);
+console.log(result.status, result.revision, result.changed, result.affected, result.reasons);
+```
+
+| Result             | Meaning                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------- |
+| `applied`          | Selected plugins finished starting; unchanged instances survive. No-op retains revision.  |
+| `restart-required` | Unsupported structural change detected before mutation; host may replace composition.     |
+| `blocked`          | Invalid proposal, overlapping operation, shutdown or earlier failed cleanup.              |
+| `failed`           | A stop/start failed; inspect lifecycle, repair and explicitly retry if cleanup completed. |
+
+Supported updates retain plugin IDs/order, service IDs/aliases/required-service shape and the
+same settings, events, config and slot declarations. Change implementations, Actions, setup,
+pages, widgets or metadata by passing a new plugin object; never mutate existing definitions.
+Definition comparison is referential, not a code hash or deep schema comparison. Reconstructed
+foundational declarations conservatively require replacement even if structurally similar.
+
+The affected set includes declared plugin dependents, required-service consumers and scopes
+that read composition with `scopeModules`/`scopePlugins`. Dependents stop before providers;
+selected services start serially in dependency order. Owned Actions are cancelled and drained,
+scopes revoke contributions immediately, then cleanup is awaited. Unrelated services stay alive.
+Declare dependencies for captured cross-plugin services; optional reads alone do not create edges.
+
+Adding/removing/reordering plugins, changing service names/contracts, replacing the app,
+providers, installers/interceptors, or auth/i18n/settings-storage providers requires a full
+composition replacement. No live package installation or arbitrary code evaluation is provided.
+Child scopes and parallel startup remain deferred until a consumer requires them.
+
+A failed start cleans the partial affected set and permits an explicit new attempt. Failed
+cleanup blocks further updates and remount; stop still attempts remaining cleanup and rejects.
+Recovery does not roll back external effects or resurrect old state. Revision increments when
+the new definitions are committed, even if their subsequent startup fails; check the result and
+lifecycle, not revision alone. Initial readiness remains true during a compatible update,
+including a failed update of another owner. Unaffected pages and widgets stay mounted, keeping
+their drafts and focus. Affected pages/widgets can remount and lose their own local drafts.
+
+## Readiness during updates
+
+Most UI uses `PluginPage`, `PluginSlot` and the service hooks, which handle owner readiness.
+A custom host can check one plugin explicitly:
+
+```tsx
+const available = useFoundationReady('reports');
+return available ? <Reports /> : <p>Reports are unavailable.</p>;
+```
+
+Import `useFoundationReady` from `@bitakit/ui`. Without an argument it reports initial startup
+readiness, not the success of every later update. It becomes false on full shutdown.
+
+| API                                                              | What it reports                                                        |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `runtime.isReady(pluginId)`                                      | Whether this plugin is currently ready after initial startup           |
+| `runtime.isServiceReady(name)` / `app.has(name)`                 | Service and owner readiness, including aliases                         |
+| `useService(name)` / `useServiceState(name, selector, fallback)` | Current ready instance/state; fallback while that owner is unavailable |
+| `useSlot(name).phase`                                            | Declared slot owner's phase; absent for legacy undeclared outlets      |
+| `<PluginPage unavailable={...} />`                               | Host fallback for an unavailable matched page owner                    |
+
+A failed/blocked slot owner is not indefinitely pending; read `phase` for its state.
+Payload validation failures still appear as `error`. Affected dialogs close before replacement;
+unrelated dialogs remain. `runtime.hasService(name)` is raw presence for lifecycle infrastructure,
+so a stopping instance can still exist for dependent cleanup.
+Ordinary Action bindings also wait for their owner: the adapter hides/disables them before
+evaluating dynamic fields that could read a starting service.
+
+Composition readers, including App Preferences projections, remain part of the affected set:
+their Settings bodies can remount. State retention covers unaffected UI, not changed component
+types, affected projections, removed owners or a whole-runtime replacement.
+
+Invoke and await updates from host management code, never from an affected Action, setup/start
+hook or disposer: otherwise the operation can wait for its own caller. `runtime.ready` remains
+the initial-mount promise; await the update result for later readiness. React provider config
+changes still replace the whole runtime. File-based Next refresh has separate full-reload and
+stale-import limitations; these APIs do not claim state-preserving file HMR.
+
+## Shared inspection schema
+
+```ts
+import { inspectRuntime, observeRuntimeInventory } from '@bitakit/core';
+
+const snapshot = inspectRuntime(runtime);
+// { version: 1, static: { plugins: [...] }, live: { revision, phase, plugins, services, actions, slots } }
+const reader = observeRuntimeInventory(runtime);
+const unsubscribe = reader.subscribe(() => console.log(reader.get()));
+// Release the observer when the host view closes.
+unsubscribe();
+```
+
+```tsx
+import { useRuntimeInventory } from '@bitakit/ui';
+
+function Status() {
+  const inventory = useRuntimeInventory();
+  return <output>{inventory.live?.phase}</output>;
+}
+```
+
+| Field                                  | Evidence and limits                                                                                  |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `static.plugins`                       | IDs, configured enablement, public metadata, dependency names and declarations.                      |
+| `source` / declaration `source`        | File/package/runtime attribution; `null` when unavailable.                                           |
+| Declaration `resolution`               | `file` is static file evidence; `resolved` is a known declaration ID.                                |
+| `live`                                 | Runtime phase/revision, plugin/service phases, public Action flags and slot counts; CLI uses `null`. |
+| Missing package plugin ID/declarations | `null`, never guessed by executing installed plugins.                                                |
+
+`bitakit info` and `info --json`, Devtools and the App Preferences plugin overview use this
+version-1 vocabulary. CLI inventory is static and retains disabled local plugins. Runtime
+inventory describes the current composed runtime; plugins filtered out by controller isolation
+are reported in controller diagnostics, not invented as runtime instances. It is not a merged
+remote management catalog. The JSON shape replaces the older raw discovery output.
+
+Inspection omits config/settings values and defaults, service/store contents, Action
+inputs/results/errors, callbacks, icons and component payloads. Public metadata and source paths
+are intentionally visible, so do not put secrets in them. `createInventory` builds the shared
+DTO envelope; it does not scrub arbitrary data supplied by a caller. Interactive Devtools
+execution, event recording and service inspection still use their existing APIs and may expose
+application values. Snapshot identity is retained while its source snapshots are unchanged.

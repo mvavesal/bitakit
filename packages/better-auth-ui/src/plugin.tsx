@@ -1,4 +1,5 @@
 'use client';
+import ShieldIcon from 'reicon-react/icons/Shield';
 import { createElement, type ComponentType, type ReactNode } from 'react';
 import {
   definePlugin,
@@ -15,7 +16,11 @@ import { AuthProvider, Auth, Settings, type AuthProviderProps } from '@better-au
 import { Organization } from '@better-auth-ui/heroui/plugins/organization';
 import { Toast } from '@heroui/react';
 import UserIcon from 'reicon-react/icons/User';
-import { AccountSettingsPage } from './settings/account.js';
+import {
+  AccountProfileAccess,
+  AccountProfileSettings,
+  AccountSecuritySettings,
+} from './settings/account.js';
 
 /** Full native configuration, never a reduced copy of its auth options. */
 export type BetterAuthUIConfiguration = Omit<AuthProviderProps, 'children'>;
@@ -102,12 +107,23 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions = {}) {
       </AuthProvider>
     );
   }
+  function AccountBoundary({ children }: { children: import('react').ReactNode }) {
+    return (
+      <AccountProfileAccess profileFallback={options.profileFallback}>
+        {children}
+      </AccountProfileAccess>
+    );
+  }
+  function SecurityBoundary({ children }: { children: import('react').ReactNode }) {
+    return <AccountProfileAccess>{children}</AccountProfileAccess>;
+  }
   function AccountSettings() {
-    return <AccountSettingsPage profileFallback={options.profileFallback} />;
+    return <AccountProfileSettings profileFallback={options.profileFallback} />;
   }
   return definePlugin({
     id: 'better-auth-ui',
     metadata: {
+      tags: ['security'],
       name: 'Better Auth UI',
       version: '0.1.0',
       description: 'Native HeroUI components for sign-in, accounts and organizations.',
@@ -129,9 +145,8 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions = {}) {
     settings: defineSettings(
       {},
       {
-        title: 'Account',
-        description:
-          'Profile, email, password, two-factor authentication, linked accounts and active sessions.',
+        title: 'Profile',
+        description: 'Your profile picture and personal details.',
         icon: UserIcon,
         category: 'account',
         order: 0,
@@ -141,7 +156,24 @@ export function betterAuthUIPlugin(options: BetterAuthUIOptions = {}) {
     ui: {
       providers: [{ id: 'better-auth-ui', component: Provider }],
       pages,
-      settings: { component: AccountSettings },
+      settings: {
+        component: AccountSettings,
+        boundary: AccountBoundary,
+        pages: [
+          {
+            id: 'security',
+            icon: ShieldIcon,
+            title: 'Security',
+            path: 'account/security',
+            category: 'account',
+            order: 10,
+            description:
+              'Email, password, two-factor authentication, linked accounts and active sessions.',
+            component: AccountSecuritySettings,
+            boundary: SecurityBoundary,
+          },
+        ],
+      },
     },
   });
 }

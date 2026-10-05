@@ -4,6 +4,8 @@ export type PresentationType<Key extends string> = Key extends keyof Presentatio
   ? PresentationTypes[Key]
   : unknown;
 
-/** Slot names a layout renders. Generated from installed shells and `bitakit.config.ts`; augmentable by hand. */
+/** Owned slot definitions, generated from `slots/`; augmentable for manual composition. */
 export interface SlotMap {}
-export type SlotName = Extract<keyof SlotMap, string> | (string & {});
+/** Transitional name hints only. They neither declare a contract nor activate a slot. */
+export interface LegacySlotMap {}
+export type SlotName = Extract<keyof SlotMap | keyof LegacySlotMap, string> | (string & {});

@@ -6,12 +6,16 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import {
   ConfirmationController,
   FoundationRuntime,
-  isFoundationStartupError,
+  createRuntimeController,
+  describeStartupFailure,
+  pluginExposesService,
   resolveFoundationConfig,
   type Confirmation,
   type FoundationConfig,
@@ -82,53 +86,32 @@ function FoundationRuntimeProvider({
     [explicitPlugins, config, additionalPlugins],
   );
   const [signOutIntent, setSignOutIntent] = useState<SignOutIntent>(null);
-  // Failures found after mount; they apply only to the composition that produced them.
-  const [isolation, setIsolation] = useState<Isolation | null>(null);
-  const known =
-    isolation && isolation.config === config && isolation.plugins === plugins
-      ? isolation.failures
-      : noFailures;
-  const attempt = useMemo(() => {
-    const failed = [...known];
-    for (;;) {
-      const { active, off } = withoutFailed(plugins ?? config.plugins ?? [], failed);
-      try {
-        const selected = resolveFoundationConfig(config, {
-          actions: explicitActions,
-          plugins: failed.length ? active : plugins,
-          interceptors,
-          providers,
-        });
-        return {
-          selected,
-          runtime: new FoundationRuntime(actions, selected, services),
-          failed,
-          off,
-        };
-      } catch (error) {
-        if (!isolateFailures) throw error;
-        const failure = describeFailure(error);
-        // Construction errors that name a plugin are retried without it; others are fatal.
-        if (failure.app || failed.some((item) => item.plugin === failure.plugin))
-          return { failed: [...failed, failure], off };
-        failed.push(failure);
-      }
-    }
-  }, [
-    config,
-    explicitActions,
-    plugins,
-    interceptors,
-    providers,
-    actions,
-    services,
-    known,
-    isolateFailures,
-  ]);
+  const selected = useMemo(
+    () =>
+      resolveFoundationConfig(config, {
+        actions: explicitActions,
+        plugins,
+        interceptors,
+        providers,
+      }),
+    [config, explicitActions, plugins, interceptors, providers],
+  );
+  const controller = useMemo(
+    () =>
+      createRuntimeController(selected, {
+        actions,
+        services,
+        failures: isolateFailures ? 'isolate' : 'fail-fast',
+      }),
+    [selected, actions, services, isolateFailures],
+  );
+  const attempt = useSyncExternalStore(controller.subscribe, controller.get, controller.get);
+  const previousStop = useRef<Promise<void> | undefined>(undefined);
+  const [waitingForStop, setWaitingForStop] = useState(false);
   if (
     translate &&
     (services.i18n ||
-      attempt.selected?.plugins?.some((plugin) =>
+      selected.plugins?.some((plugin) =>
         Object.values(plugin.services ?? {}).some(
           (service) => service.provides === 'i18n' || service.id === 'i18n',
         ),
@@ -136,7 +119,7 @@ function FoundationRuntimeProvider({
   )
     throw new Error('Use either a translation plugin or the translate prop, not both.');
   const [fatal, setFatal] = useState<{
-    runtime: FoundationRuntime;
+    runtime?: FoundationRuntime;
     failure: StartupFailure;
   } | null>(null);
   const runtime = attempt.runtime;
@@ -151,43 +134,54 @@ function FoundationRuntimeProvider({
     [runtime, confirmations],
   );
   useEffect(() => {
-    if (!runtime) return;
-    let stop: () => void;
     let active = true;
+    let started = false;
+    const predecessor = previousStop.current;
     const report = (error: unknown) => {
       if (!active) return;
-      if (!isolateFailures) throw error;
-      const failure = describeFailure(error);
-      if (failure.app || attempt.failed.some((item) => item.plugin === failure.plugin))
-        setFatal({ runtime, failure });
-      else setIsolation({ config, plugins, failures: [...attempt.failed, failure] });
-    };
-    try {
-      stop = runtime.mount();
-    } catch (error) {
-      report(error);
-      return;
-    }
-    // Asynchronous start hooks may fail after mount; isolate those plugins the same way. Without
-    // isolation the failure is rethrown from the next render, as synchronous startup errors are,
-    // instead of becoming an unhandled rejection.
-    runtime.ready.catch((error) => {
-      if (!active) return;
-      if (isolateFailures) report(error);
-      else
+      if (!isolateFailures) {
         setFatal(() => {
           throw error;
         });
-    });
+        return;
+      }
+      setFatal({ runtime: controller.get().runtime, failure: describeStartupFailure(error) });
+    };
+    const begin = () => {
+      if (!active) return;
+      setWaitingForStop(false);
+      started = true;
+      try {
+        controller.mount();
+      } catch (error) {
+        if (!isolateFailures) throw error;
+        report(error);
+        return;
+      }
+      void controller.ready.catch(report);
+    };
+    if (predecessor) {
+      setWaitingForStop(true);
+      void predecessor.then(begin).catch(report);
+    } else begin();
     return () => {
       active = false;
       setSignOutIntent(null);
       confirmations.dispose();
-      stop();
+      const stopping = controller.stop();
+      // A skipped intermediate composition must not discard the original cleanup barrier.
+      previousStop.current =
+        !started && predecessor ? Promise.all([predecessor, stopping]).then(() => {}) : stopping;
+      // React cannot await cleanup; the next effect observes this same completion before mount.
+      void previousStop.current.catch(() => {});
     };
-  }, [runtime]);
+  }, [controller]);
   const failures =
-    fatal && fatal.runtime === runtime ? [...attempt.failed, fatal.failure] : attempt.failed;
+    fatal &&
+    fatal.runtime === runtime &&
+    !attempt.failures.some((item) => item.message === fatal.failure.message)
+      ? [...attempt.failures, fatal.failure]
+      : attempt.failures;
   const report = failures.map((failure) => failure.message).join('\n');
   useEffect(() => {
     for (const failure of failures) console.error(`[bitakit] ${failure.message}`);
@@ -200,7 +194,9 @@ function FoundationRuntimeProvider({
     const plugin =
       service &&
       (plugins ?? config.plugins ?? []).find(
-        (plugin) => attempt.off.has(plugin.id) && exposes(plugin, service),
+        (plugin) =>
+          (attempt.blocked.includes(plugin.id) || failedIds.has(plugin.id)) &&
+          pluginExposesService(plugin, service),
       );
     return plugin ? { service, plugin: plugin.id, failed: failedIds.has(plugin.id) } : undefined;
   };
@@ -210,6 +206,7 @@ function FoundationRuntimeProvider({
         <FoundationContext.Provider
           value={{
             runtime,
+            transition: waitingForStop ? 'stopping' : undefined,
             ui,
             dialogs,
             labels,
@@ -218,7 +215,7 @@ function FoundationRuntimeProvider({
             setSignOutIntent,
           }}
         >
-          {(attempt.selected.ui?.providers ?? []).reduceRight<ReactNode>(
+          {(runtime.config.ui?.providers ?? []).reduceRight<ReactNode>(
             (content, provider) =>
               createElement(provider.component, { children: content, key: provider.id }),
             <>
@@ -239,7 +236,7 @@ function FoundationRuntimeProvider({
         <StartupFailureDialog
           ui={ui}
           failures={failures}
-          dependents={[...attempt.off].filter((id) => !failedIds.has(id))}
+          dependents={attempt.blocked}
           onDismiss={() => setDismissed(report)}
         />
       ) : null}
@@ -247,12 +244,6 @@ function FoundationRuntimeProvider({
   );
 }
 
-type Isolation = {
-  config: FoundationConfig;
-  plugins: readonly Plugin[] | undefined;
-  failures: readonly StartupFailure[];
-};
-const noFailures: readonly StartupFailure[] = [];
 declare const process: { env: Record<string, string | undefined> };
 function developing() {
   try {
@@ -260,15 +251,6 @@ function developing() {
   } catch {
     return false;
   }
-}
-function describeFailure(error: unknown): StartupFailure {
-  if (isFoundationStartupError(error))
-    return { plugin: error.plugin, app: error.app, message: error.message, source: error.source };
-  return {
-    plugin: 'app',
-    app: true,
-    message: error instanceof Error ? error.message : String(error),
-  };
 }
 type TurnedOff = { service: string; plugin: string; failed: boolean };
 const explain = ({ service, plugin, failed }: TurnedOff) =>
@@ -302,35 +284,4 @@ function unavailableService(error: unknown) {
   if (!(error instanceof Error) || error.name !== 'FoundationServiceError') return undefined;
   const { service } = error as Error & { service?: unknown };
   return typeof service === 'string' ? service : undefined;
-}
-/** Whether `plugin` exposes `name`, as a service ID or alias, or as the namespace above one. */
-function exposes(plugin: Plugin, name: string) {
-  const services = Array.isArray(plugin.services)
-    ? plugin.services
-    : Object.values(plugin.services ?? {});
-  const names = [
-    ...services.flatMap((service) =>
-      [service.id, service.exposeAs, service.provides as string | undefined].filter(
-        (item): item is string => !!item,
-      ),
-    ),
-    plugin.id,
-  ];
-  return names.some(
-    (exposed) =>
-      exposed === name || name.startsWith(`${exposed}.`) || exposed.startsWith(`${name}.`),
-  );
-}
-/** Removes failed plugins and, transitively, the plugins that depend on them. */
-function withoutFailed(plugins: readonly Plugin[], failed: readonly StartupFailure[]) {
-  const off = new Set(failed.map((failure) => failure.plugin));
-  for (let changed = true; changed; ) {
-    changed = false;
-    for (const plugin of plugins)
-      if (!off.has(plugin.id) && plugin.dependencies?.some((id) => off.has(id))) {
-        off.add(plugin.id);
-        changed = true;
-      }
-  }
-  return { active: plugins.filter((plugin) => !off.has(plugin.id)), off };
 }

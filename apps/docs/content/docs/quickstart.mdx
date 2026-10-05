@@ -1,124 +1,66 @@
 ---
-title: Quickstart
-description: Create your application. Choose your capabilities. Start building.
+title: 1. Create an app
+description: Start a minimal Next.js app before adding your first plugin.
 ---
 
-Build a small Next.js application with BitaKit already connected.
-You need **Node.js 24**, **npm 10 or newer**, and an internet connection.
+You need **Node.js 24** and **npm 10 or newer**. This walkthrough uses Next.js and no optional features.
 
-<Callout title="Ready to build">
-  The generator installs BitaKit from npm and connects the pieces for you. No repository checkout or
-  manual package build is needed.
+<Callout title="Use matching packages">
+  These examples target the 0.2 API. If you are working from this repository before publishing, use
+  the [local package setup](/docs/local-development) to create the same minimal app, then continue
+  at step 2. Do not mix examples from this checkout with an older installed release.
 </Callout>
 
-## 1. Create your app
+## 1. Create the project
+
+With a matching published package set:
 
 ```sh
-npx @bitakit/create-app my-app --framework next --features none --yes
+npx @bitakit/create-app@0.2 my-app --framework next --features none --yes
 ```
 
-This creates a minimal Next.js app in `my-app`, the shortest path to a first feature.
-Choose a new directory name: the generator does not overwrite an existing project.
+Use a new directory name. The generator connects BitaKit and keeps your normal Next.js routes.
 
-To pick a framework and extras interactively — an application shell with settings pages,
-⌘K quick search, a sample Todos plugin — run `npx @bitakit/create-app my-app` instead. The
-generator adds the dependencies each choice needs.
-
-### Already have an app?
-
-In an existing Next.js or TanStack Start project, wire BitaKit in place instead:
-
-```sh
-npm install @bitakit/core @bitakit/ui @bitakit/next   # or @bitakit/tanstack
-npm install --save-dev @bitakit/cli @bitakit/discovery
-npx bitakit init
-```
-
-`init` writes `bitakit.config.ts`, wraps your framework config, mounts `<BitaKitProvider>` in the
-root layout and adds the plugin catch-all route; it never touches a file that already has the
-wiring. Then continue with step 3. The [command line](/docs/cli) page lists every option.
-
-## 2. Start developing
+## 2. Start the app
 
 ```sh
 cd my-app
 npm run dev
 ```
 
-Open the address printed in your terminal (usually http://localhost:3000). You see
-**Welcome**. Edit `src/app/page.tsx` and the page updates. The generator has already
-connected BitaKit to your application's router: `next.config.ts` runs discovery with
-`withBitaKit`, and the root layout renders `<BitaKitProvider>` from the generated
-`src/bitakit.gen.tsx`. You did not write any setup code.
+Open the address printed in the terminal. You should see **Welcome**.
 
-## 3. Add a feature
+## 3. Make one visible change
 
-```sh
-npx bitakit add plugin notes
+Replace `src/app/page.tsx` with:
+
+```tsx
+'use client';
+import { PageHeader } from '@bitakit/ui/components';
+
+export default function Home() {
+  return <PageHeader title="My first app" />;
+}
 ```
 
-This creates `src/plugins/notes/` with a service, typed events, actions, a navigation link
-and a page at `/notes`. The dev server picks it up; there is no registry to edit. Open
-`src/plugins/notes/ui/pages/index.tsx` to see how a page binds actions with `<Action>` and
-reads the service with `useServiceState`.
+The page now says **My first app**. Keep the generated provider and configuration as they are.
 
-Grow the plugin one file at a time with `npx bitakit add <kind> notes/<name>`. Each command writes one file and its path becomes the ID, for example `npx bitakit add action notes/archive` creates the action `notes.archive`. The [command line](/docs/cli) page lists every kind.
+## 4. Check your project
 
-Check the project at any time with `npx bitakit doctor`.
-
-## 4. Make it yours
-
-Edit your app's native routes and components. Keep product behavior in your application;
-use BitaKit packages for shared capabilities.
-
-| You own                  | BitaKit connects                                      |
-| ------------------------ | ----------------------------------------------------- |
-| Pages and business logic | Runtime and plugin lifecycle                          |
-| Framework routes         | Links and navigation through the selected integration |
-| Product configuration    | Installed capabilities and their dependencies         |
-
-You can use your framework's router directly in application code. BitaKit does not
-replace it, and plugins do not need their own router setup on every page.
-
-## Choose your starting point
-
-To create a new project with an application shell and quick search:
+In a second terminal, from the app directory:
 
 ```sh
-npx @bitakit/create-app my-app --framework next --features shell,quick-search
+npm run typecheck
+npx bitakit doctor
 ```
 
-Shell includes App Preferences as a prerequisite. Your home page then lives in a route
-group: `src/app/(app)/page.tsx`. Authentication, a database and email are separate
-integrations; the generator does not create a backend.
+`typecheck` generates the plugin types and checks your code. `doctor` reports wiring problems with suggested fixes.
 
-## Where next?
+**Next:** [Add a Counter page in one file →](/docs/concepts/plugins)
 
-<Cards>
-  <Card
-    title="Build your first feature"
-    href="/docs/concepts/plugins"
-    description="Add a service and an action, then use them from a button."
-  />
-  <Card
-    title="Command line"
-    href="/docs/cli"
-    description="Create or wire an app, add files, generate, check and migrate."
-  />
-  <Card
-    title="Explore packages"
-    href="/docs/packages"
-    description="Choose the capabilities your application needs."
-  />
-  <Card
-    title="Understand BitaKit"
-    href="/docs"
-    description="See how your app, the runtime and plugins fit together."
-  />
-</Cards>
+## Other starting points
 
-### Framework support
+These are optional; the learning path above uses neither.
 
-Next.js projects run with the default bundler; discovery writes real files, so Turbopack
-and Webpack behave the same. TanStack Start is available as an experimental generator
-option; broader compatibility is still being verified.
+- [Connect an existing app](/docs/cli#add-bitakit-to-an-existing-app).
+- [Choose Shell, Settings or another framework](/docs/cli#create-a-new-app).

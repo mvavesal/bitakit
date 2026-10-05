@@ -26,6 +26,27 @@ export function createBetterAuthClient<const Extensions extends BetterAuthClient
 ): ReactAuthClient<ClientOptions<Extensions>> {
   return createAuthClient<ClientOptions<Extensions>>({
     ...options,
+    fetchOptions: {
+      ...options.fetchOptions,
+      async onSuccess(context) {
+        // Native session cards require a nonempty UA even though Better Auth permits null.
+        // Preserve every session and permission; only supply an unknown display value.
+        if (
+          new URL(context.request.url, 'http://localhost').pathname.endsWith('/list-sessions') &&
+          Array.isArray(context.data)
+        ) {
+          for (const session of context.data) {
+            if (
+              session &&
+              typeof session === 'object' &&
+              (typeof session.userAgent !== 'string' || !session.userAgent.trim())
+            )
+              session.userAgent = 'Unknown';
+          }
+        }
+        await options.fetchOptions?.onSuccess?.(context);
+      },
+    },
     plugins: [
       ...standardPlugins(),
       ...(options.plugins ?? []),

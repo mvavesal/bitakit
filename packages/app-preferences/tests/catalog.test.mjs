@@ -148,3 +148,48 @@ test('search matches section text, field text and words split across both', () =
   assert.deepEqual(ids('todos due'), [['todos', ['sort']]], 'option labels match with the section');
   assert.deepEqual(ids('nothing here'), []);
 });
+
+test('additional settings pages share the catalog and retain ownership without duplicating fields', async () => {
+  const multi = definePlugin({
+    id: 'workspace',
+    settings: defineSettings({ label: setting({ default: 'Name' }) }, { category: 'organization' }),
+    ui: {
+      settings: {
+        component: Page,
+        pages: [
+          { id: 'members', title: 'Members', component: Page, shortcut: 'Alt+M' },
+          {
+            id: 'invites',
+            title: 'My invitations',
+            path: 'account/invitations',
+            category: 'account',
+            component: Page,
+          },
+        ],
+      },
+    },
+  });
+  let catalog, runtime;
+  function Probe() {
+    catalog = useSettingsCatalog();
+    runtime = useFoundation().runtime;
+    return null;
+  }
+  const view = await renderApp(h(Probe), { config: { plugins: [appPreferencesPlugin(), multi] } });
+  try {
+    assert.deepEqual(catalog, settingsCatalog(runtime.modules, 'app'));
+    const pages = catalog.filter((entry) => entry.plugin === 'workspace');
+    assert.equal(pages.length, 3);
+    assert.equal(pages.filter((entry) => entry.fields.length).length, 1);
+    const members = runtime.actions.resolve('settings.section.workspace/members');
+    assert.equal(members.href, '/settings/workspace/members');
+    assert.deepEqual(members.shortcut, { keys: 'Alt+M' });
+    assert.deepEqual(runtime.destinationOf(members), { kind: 'settings', plugin: 'workspace' });
+    assert.equal(
+      runtime.actions.resolve('settings.section.workspace/invites').href,
+      '/settings/account/invitations',
+    );
+  } finally {
+    await view.unmount();
+  }
+});

@@ -24,26 +24,30 @@ test('UI uses the registered service and cleanup removes its navigation and comm
   assert.equal(actions.get('organizations.open').href, '/organizations');
   await service.setActive('academy');
   assert.equal(service.getSnapshot().activeId, 'academy');
-  stop();
+  await stop();
   assert.equal(actions.get('organizations.open'), undefined);
   await assert.rejects(service.refresh(), /disposed/);
 });
 
-test('organization settings are one section with a tabbed page and a URL action', async () => {
+test('organization settings separate profile, members and personal invitations while preserving action guards', async () => {
   const actions = createActionList();
   const plugin = organizationUIPlugin();
   assert.deepEqual(plugin.settings.settings, {});
-  assert.equal(plugin.settings.section.title, 'Organization');
+  assert.equal(plugin.settings.section.title, 'Organization profile');
   assert.equal(plugin.settings.section.category, 'organization');
   assert.equal(plugin.settings.section.order, 10);
   assert.equal(plugin.settings.section.path, 'organization');
   assert.equal(plugin.settings.section.icon, BuildingIcon);
   assert.equal(typeof plugin.ui.settings.component, 'function');
+  assert.deepEqual(plugin.ui.settings.pages.map(({ id, path, category }) => ({ id, path, category })), [
+    { id: 'members', path: 'organization/members', category: 'organization' },
+    { id: 'invitations', path: 'account/invitations', category: 'account' },
+  ]);
   assert.deepEqual(
     plugin.ui.pages.map((page) => page.path),
     ['/organizations'],
   );
-  for (const legacy of ['pages', 'providers', 'views', 'setup'])
+  for (const legacy of ['pages', 'providers', 'views'])
     assert.equal(plugin[legacy], undefined, legacy);
   const runtime = new FoundationRuntime(
     actions,
@@ -69,11 +73,11 @@ test('organization settings are one section with a tabbed page and a URL action'
   assert.equal(service.getSnapshot().canManage, false);
   assert.equal(actions.resolve('organizations.remove', partner).visible, false);
   assert.equal(actions.resolve('organizations.promote', partner).visible, false);
-  stop();
+  await stop();
   assert.equal(actions.get('organizations.create'), undefined);
 });
 
-test('settings-only organization integration omits its standalone page and navigation', () => {
+test('settings-only organization integration omits its standalone page and navigation', async () => {
   const actions = createActionList();
   const plugin = organizationUIPlugin({ path: false });
   assert.deepEqual(plugin.ui.pages, []);
@@ -88,6 +92,6 @@ test('settings-only organization integration omits its standalone page and navig
     assert.equal(actions.get('organizations.open'), undefined);
     assert.ok(actions.get('organizations.create'));
   } finally {
-    stop();
+    await stop();
   }
 });

@@ -305,3 +305,62 @@ const providerProps: FoundationProviderProps = {
 void controls;
 void unknownControl;
 void providerProps;
+
+// Slot payloads belong to outlets; mapped Action inputs retain the existing Action contract.
+import { defineSlot } from '@bitakit/core';
+import { useSlot, PluginSlot, type SlotProps } from '../src/index.js';
+const memberMenu = defineSlot({
+  accepts: 'actions',
+  payload: { parse: () => ({ memberId: 'ada' }) },
+});
+const footerSlot = defineSlot({
+  accepts: 'component',
+  payload: { parse: () => ({ collapsed: false }) },
+});
+declare module '@bitakit/core' {
+  interface SlotMap {
+    'members.menu': typeof memberMenu;
+    'shell.footer': typeof footerSlot;
+  }
+}
+defineAction<string>({
+  slots: [{ name: 'members.menu', input: ({ payload }) => payload.memberId }],
+  execute: () => {},
+});
+// @ts-expect-error Components cannot accept an Action placement.
+defineAction({ slots: ['shell.footer'] });
+// @ts-expect-error Unknown placement names do not pass a generated map.
+defineAction({ slots: ['misspelled.menu'] });
+defineAction<string>({
+  // @ts-expect-error The input mapper must return the Action's input type.
+  slots: [{ name: 'members.menu', input: ({ payload }) => payload }],
+});
+function slotTypes() {
+  const menu = useSlot('members.menu', { payload: { memberId: 'ada' } });
+  menu.items[0]?.action.execute();
+  // @ts-expect-error Action slots have no component entry.
+  menu.items[0]?.component;
+  // @ts-expect-error An owner payload is required.
+  useSlot('members.menu');
+  // @ts-expect-error Payload fields are schema-typed.
+  useSlot('members.menu', { payload: { memberId: 1 } });
+  const props: SlotProps<'shell.footer'> = { payload: { collapsed: true } };
+  PluginSlot({ name: 'shell.footer', ...props });
+  // @ts-expect-error Component outlets must supply the defined payload.
+  PluginSlot({ name: 'shell.footer' });
+}
+void slotTypes;
+
+// @ts-expect-error PluginSlot is the component renderer; Action owners use useSlot.
+PluginSlot({ name: 'members.menu', payload: { memberId: 'ada' } });
+const keyedMenu = defineSlot({ accepts: 'actions', policy: 'keyed' });
+declare module '@bitakit/core' {
+  interface SlotMap {
+    'keyed.menu': typeof keyedMenu;
+  }
+}
+// @ts-expect-error Keyed placements require an explicit key, so string shorthand is insufficient.
+defineAction({ slots: ['keyed.menu'] });
+// @ts-expect-error Keyed placements require an explicit key.
+defineAction({ slots: [{ name: 'keyed.menu' }] });
+defineAction({ slots: [{ name: 'keyed.menu', key: 'primary' }] });

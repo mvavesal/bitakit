@@ -1,0 +1,141 @@
+{
+  "settings": [
+    {
+      "key": "navigation",
+      "label": "Settings navigation item",
+      "slot": "app-preferences.navigation",
+      "accepts": "actions",
+      "policy": "list",
+      "explanation": "The catalog generates this link. A settings declaration registers the page and its navigation together."
+    },
+    {
+      "key": "category",
+      "label": "Settings category",
+      "explanation": "The settings category groups navigation entries. It is metadata, not another page registration."
+    },
+    {
+      "key": "heading",
+      "label": "Settings page title",
+      "explanation": "The catalog supplies the page title. The page.header slot adds content below this heading; it does not replace the heading."
+    },
+    {
+      "key": "header",
+      "label": "Settings page header slot",
+      "slot": "app-preferences.page.header",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "Add content below the title. Filter pageId so this widget only appears on the Counter page."
+    },
+    {
+      "key": "toolbar",
+      "label": "Settings page toolbar",
+      "slot": "app-preferences.page.toolbar",
+      "accepts": "actions",
+      "policy": "list",
+      "explanation": "Place an Action here for the page toolbar. Map pageId to its input and use visible to select this page. The same Action can have other placements."
+    },
+    {
+      "key": "before",
+      "label": "Before Settings page body",
+      "slot": "app-preferences.page.before",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "Add introductory content before the generated or custom body, filtered to this page."
+    },
+    {
+      "key": "body",
+      "label": "Settings page body",
+      "slot": "app-preferences.page.body",
+      "accepts": "component",
+      "policy": "keyed",
+      "explanation": "The generated field list owns this body by default. ui/settings/page.tsx replaces it while keeping the same URL and navigation."
+    },
+    {
+      "key": "setting",
+      "label": "Setting field",
+      "explanation": "This field comes from step in settings.ts. Core owns its value; App Preferences supplies the standard control."
+    },
+    {
+      "key": "after",
+      "label": "After Settings page body",
+      "slot": "app-preferences.page.after",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "Extend a page without replacing its generated body. The owner renders matching widgets inside the page access boundary."
+    },
+    {
+      "key": "footer",
+      "label": "Settings page footer slot",
+      "slot": "app-preferences.page.footer",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "Place supplementary content at the end of this page. It is a component region, not a second settings store."
+    },
+    {
+      "key": "navigationFooter",
+      "label": "Settings navigation footer",
+      "slot": "app-preferences.navigation.footer",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "This outlet belongs to the whole Settings navigation. It is not scoped to one protected settings page."
+    }
+  ],
+  "shell": [
+    {
+      "key": "toolbar",
+      "label": "Header toolbar",
+      "slot": "shell.toolbar",
+      "accepts": "actions",
+      "policy": "list",
+      "explanation": "Place the Action directly with slots. Shell renders a standard button or native link at the trailing end of either header layout, before custom header.end content."
+    },
+    {
+      "key": "navigation",
+      "label": "Navigation",
+      "slot": "shell.navigation",
+      "accepts": "actions",
+      "policy": "list",
+      "explanation": "Place the URL Action directly. Shell renders its current title and href as a native navigation link."
+    },
+    {
+      "key": "headerStart",
+      "label": "Header start",
+      "slot": "shell.header.start",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "Place the bound link at the start of the header: left in a left-to-right layout, right in a right-to-left layout. Shell owns the position."
+    },
+    {
+      "key": "headerCenter",
+      "label": "Header center",
+      "slot": "shell.header.center",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "Use the same ActionLink in the middle header region. This is a component placement, not another Action registration."
+    },
+    {
+      "key": "headerEnd",
+      "label": "Header end",
+      "slot": "shell.header.end",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "This region accepts a component. A widget uses ActionLink to bind the existing Action; its executor is not registered again."
+    },
+    {
+      "key": "navigationFooter",
+      "label": "Sidebar footer",
+      "slot": "sidebar.footer",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "Place a widget below the sidebar navigation. This outlet belongs to the sidebar layout; it is distinct from the app footer and is not a navbar-footer slot."
+    },
+    {
+      "key": "footer",
+      "label": "App footer",
+      "slot": "shell.footer",
+      "accepts": "component",
+      "policy": "list",
+      "explanation": "Move the widget file to this target to render the same ActionLink in the footer. The Shell still owns positioning."
+    }
+  ]
+}

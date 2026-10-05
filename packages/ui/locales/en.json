@@ -12,6 +12,10 @@
     },
     "navigation": {
       "general": "General"
+    },
+    "slot": {
+      "unavailable": "This widget could not be displayed.",
+      "retry": "Try again"
     }
   }
 }

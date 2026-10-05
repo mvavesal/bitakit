@@ -4,7 +4,7 @@ import type { Store } from './store.js';
 import type { ConfigContext, ConfigValues, ConfigDefinition } from './config-service.js';
 import type { AuthService, TranslationService } from './contracts.js';
 import type { SettingsAccess } from './settings/access.js';
-import type { SettingsDefinition } from './settings/define.js';
+import type { SettingsDefinition, SettingsSectionOptions } from './settings/define.js';
 import type { PresentationType } from './presentation.js';
 import type {
   ActionContext,
@@ -18,6 +18,8 @@ import type { FoundationApp, Namespace } from './app/types.js';
 import type { ServiceKey } from './service-key.js';
 import type { InterceptorSpec } from './interceptors/define.js';
 import type { Confirmation } from './confirmation.js';
+import type { Cleanup } from './lifecycle/cleanup.js';
+import type { SlotDefinition, SlotDefinitions } from './slots/define.js';
 
 /** Service IDs and aliases with their instance types. Generated from discovery; augmentable by hand. */
 export interface ServiceMap {
@@ -44,11 +46,11 @@ export type ServiceContext = {
   store<T>(initial: T): Store<T>;
   /** Awaited in dependency order before the app is ready. */
   onStart(hook: (context: { signal: AbortSignal }) => void | Promise<void>): void;
-  /** Runs when the runtime stops, in reverse order. */
+  /** Awaited when the runtime stops, in reverse dependency/registration order. */
   onStop(hook: () => void | Promise<void>): void;
 };
 export type ServiceOptions = {
-  /** Manual composition only; discovery derives `<plugin>.<file>`. */
+  /** Optional explicit ID; otherwise discovery derives `<plugin>.<file>`. */
   id?: string;
   /** Services this one needs inside `create`; also an explicit startup check. */
   requires?: readonly string[];
@@ -114,7 +116,10 @@ export type ExecuteContext<Input = unknown> = ActionContext<Input> & {
 export type Concurrency = 'exclusive' | 'per-input' | 'latest';
 export type DialogSpec = {
   component: PresentationType<'component'>;
-  /** A frame the host registered under `dialogs`; `dialog` is the default frame. */
+  /**
+   * A frame the host registered under `dialogs`. Built in: `dialog` (the default) and `command`,
+   * a search palette whose content leads with its own search field.
+   */
   kind?: string;
   size?: 'default' | 'wide';
 };
@@ -165,6 +170,8 @@ export type ActionSpecInput<Input = unknown, Result = unknown> = {
   /** `{} | null | undefined` instead of `unknown`, so a function here keeps its contextual types. */
   value?: Dynamic<Input, {} | null | undefined>;
   groups?: readonly (string | ActionGroup)[];
+  /** Explicit UI placements; groups remain logical membership. */
+  slots?: readonly import('./slots/action-placement.js').ActionSlotPlacement<Input>[];
   order?: number;
   dividerBefore?: boolean;
   shortcut?: ActionShortcut<Input>;
@@ -222,9 +229,17 @@ export function isActionSpec(value: unknown): value is ActionSpec {
 // Plugins
 // ---------------------------------------------------------------------------------------------
 
-export type Setup = (context: { app: PluginScope; services: Services }) => void | (() => void);
+export type Setup = (context: { app: PluginScope; services: Services }) => void | Cleanup;
 /** A component placed in a named slot of a layout. */
-export type PluginView = { slot: string; component: PresentationType<'component'>; order?: number };
+export type PluginView = {
+  slot: string;
+  component: PresentationType<'component'>;
+  order?: number;
+  id?: string;
+  key?: string;
+  availability?: import('./slots/types.js').SlotAvailability;
+  when?: import('./slots/types.js').SlotPredicate;
+};
 export type PluginPageDefinition = {
   path: string;
   component: PresentationType<'component'>;
@@ -238,7 +253,20 @@ export type ProviderDefinition = {
   requires?: readonly string[];
 };
 /** `ui/settings/page.tsx`: replaces the generated settings page of the plugin. */
-export type PluginSettingsPage = { component: PresentationType<'component'> };
+export type PluginSettingsPage = {
+  /** Wraps the entire page, including extension outlets, in the owner's access boundary. */
+  boundary?: PresentationType<'component'>;
+  /** False when the page renders its own shared PageHeader. */
+  showHeader?: boolean;
+  component?: PresentationType<'component'>;
+  /** Additional independently addressable pages, rendered by the existing settings host. */
+  pages?: readonly (SettingsSectionOptions & {
+    id: string;
+    showHeader?: boolean;
+    boundary?: PresentationType<'component'>;
+    component: PresentationType<'component'>;
+  })[];
+};
 export type PluginUI = {
   pages?: readonly PluginPageDefinition[];
   slots?: readonly PluginView[];
@@ -250,6 +278,8 @@ export type PluginUI = {
 /** Public display information only; package authors remain the source of truth. */
 export type PluginMetadata = {
   coverImage?: string;
+  /** Catalog labels; presentation only, never permissions or dependencies. */
+  tags?: readonly string[];
   icon?: PresentationType<'icon'>;
   name?: string;
   version?: string;
@@ -268,7 +298,7 @@ export type ContributionContext = { module: string; app: boolean; services: Serv
 export type ContributionInstaller<T = unknown> = (
   values: readonly T[],
   context: ContributionContext,
-) => void | (() => void);
+) => void | Cleanup;
 export type ContributionInstallers = {
   readonly [K in keyof ContributionMap]?: ContributionInstaller<ContributionMap[K]>;
 } & { readonly [kind: string]: ContributionInstaller<any> | undefined };
@@ -280,6 +310,8 @@ export type Plugin = {
   metadata?: PluginMetadata;
   services?: readonly ServiceDefinition<any>[] | Readonly<Record<string, ServiceDefinition<any>>>;
   actions?: readonly ActionSpec<any, any>[] | Readonly<Record<string, ActionSpec<any, any>>>;
+  /** Owned declarations; `ui.slots` contains components contributed to a target. */
+  slots?: SlotDefinitions | readonly SlotDefinition[];
   events?: EventsDefinition<any>;
   settings?: SettingsDefinition<any>;
   config?: ConfigValues | ConfigDefinition;

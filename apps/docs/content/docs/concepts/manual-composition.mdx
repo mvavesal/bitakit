@@ -7,7 +7,7 @@ Use this guide when building a standalone Node program or a provider package tha
 
 ## Explicit contracts across packages
 
-Use a shared contract when independent provider and consumer packages need an agreed type. Unlike the discovered examples in [Plugins and lifecycle](/docs/concepts/plugins), this standalone composition names its services through record keys because no file discovery runs:
+Use a shared contract when independent provider and consumer packages need an agreed type. Unlike the discovered examples in [the Counter learning path](/docs/concepts/plugins), this standalone composition names its services through record keys because no file discovery runs:
 
 ```ts
 import {
@@ -37,7 +37,7 @@ try {
   console.log(getService(runtime.services, clockService).now());
   console.log(runtime.services['example-clock'].system.now()); // the same instance
 } finally {
-  stop();
+  await stop();
 }
 ```
 
@@ -74,3 +74,30 @@ In a configured app, the generated `BitaKitProvider` owns that lifecycle. Do not
 For a test of one plugin folder, use `mountPlugin(directory)` from `@bitakit/core/testing`: it discovers the folder with the app conventions, mounts it and returns `services`, `execute(name, input)`, the recorded events and `stop()`.
 
 For a complete standalone feature, see the [manual To-do walkthrough](/docs/concepts/tutorial).
+
+## Slot availability
+
+```ts
+const host = definePlugin({
+  id: 'host',
+  slots: { toolbar: defineSlot({ accepts: 'actions' }) },
+});
+const editor = definePlugin({
+  id: 'editor',
+  actions: { save: defineAction({ execute: () => saveDocument() }) },
+  setup: ({ app }) => {
+    app.slots.attach('host.toolbar', { actionId: 'editor.save' }, { availability: 'wait' });
+    app.slots.watch('host.toolbar', (snapshot) => console.log(snapshot.phase));
+  },
+});
+```
+
+`wait` accepts a known definition and follows readiness; the default `require` rejects an
+unready owner. Unknown targets fail under both policies. Scope close removes attachments and
+observers. `runtime.slots` reads current state; `runtime.slot` is a notification on the existing
+event bus. Actions still execute through the one ActionList. Rendering belongs to the owner.
+
+Declared `ui.slots` component contributions use the same path. `PluginSlot` reads live component
+entries after runtime readiness; hiding the outlet does not remove the attachment. Contextual
+payloads and Action placements use the same contracts; App Preferences projects Settings automatically.
+See [host updates and inspection](/docs/concepts/runtime-management) for compatible live updates.

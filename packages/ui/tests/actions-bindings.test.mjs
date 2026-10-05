@@ -242,6 +242,15 @@ test('linkProps navigate client-side for internal hrefs, leave external and modi
   try {
     const outcomes = [];
     const docs = controls.docs.linkProps({ onExecuted: (result) => outcomes.push(result) });
+    const contextual = controls.docs.linkProps({ href: '/docs?q=labels' });
+    assert.equal(contextual.href, '/docs?q=labels');
+    contextual.onClick(fakeClick());
+    assert.equal(visits.pop(), '/docs?q=labels', 'native contextual URL and client navigation agree');
+    const unsafe = controls.docs.linkProps({ href: 'javascript:alert(1)' });
+    assert.equal(unsafe.href, undefined);
+    const unsafeEvent = fakeClick(); unsafe.onClick(unsafeEvent);
+    assert.equal(unsafeEvent.defaultPrevented, true);
+
     assert.equal(docs.href, '/docs');
     assert.equal(docs.title, 'Open the docs');
     assert.equal(docs['aria-disabled'], undefined);

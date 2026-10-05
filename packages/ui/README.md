@@ -3,11 +3,22 @@
 React bindings for the headless BitaKit runtime. The optional `./components` entry provides
 shared standard visual components; Core remains independent of React and UI libraries.
 
-- Main entry: `FoundationProvider`, action bindings, service and event hooks, plugin rendering
-  and configuration hooks.
-- `/actions`: `ActionProvider`, `useAction`, `useActionGroup`, `<Action>`, `ActionButton`,
-  `ActionLink` and `mergeProps` for standalone action lists.
-- `/testing`: `renderWithFoundation` for component tests (see Testing).
+## First binding
+
+In an app with the generated BitaKit provider and an existing `counter.increment` Action:
+
+```tsx
+import { Action } from '@bitakit/ui';
+import { Button } from '@bitakit/ui/components';
+
+<Action id="counter.increment">
+  <Button />
+</Action>;
+```
+
+The Action supplies the label and guarded execution. To define that Action first, follow the
+[small Counter lesson](../../apps/docs/content/docs/concepts/actions.mdx).
+The provider and binding options below are reference material.
 
 ## Provider
 
@@ -75,23 +86,30 @@ const pageSize = useSetting('todos.pageSize'); // { value, ready, writable, pend
 `useSetting(key)` reads one setting the runtime owns and writes through it; the value is the
 confirmed value, `disabled` covers not loaded, read-only and saving. Layout and settings
 hosts use `useSettingsCatalog()` (sections derived from every plugin's `settings.ts` and
-`ui/settings/page.tsx`), `useNavigation(groups)` (bound navigation groups plus the router's
-pathname, link and `isActive`), `useSlot(name)` (components plugins placed in a slot) and
+`ui/settings/page.tsx`), `useNavigation(slotName)` (bound navigation items plus the router's
+pathname, link and `isActive`), `useSlot(name, { payload })` (typed action/component/data items, payload, pending and error) and
 `useCurrentPage()` (the current plugin page with its `layout` name). Dialog actions name a
 frame kind (`dialog: { component, kind: 'sheet' }`); register frames on `FoundationProvider`
-through `dialogs={{ sheet: SheetFrame }}`.
+through `dialogs={{ sheet: SheetFrame }}`. Two kinds work without a registered frame: `dialog`
+(the default, with a visible header) and `command`, shadcn's CommandDialog composition for a
+search palette whose content leads with its own search field; the title stays available to
+assistive technology.
 
 `useServiceState(name, selector?, fallback?)` subscribes to the store a service exposes as
-`state` (or a `subscribe`/`getSnapshot` pair) and returns the fallback until the runtime is
-ready. `useEvent` subscribes to the runtime bus with component cleanup. `useFoundationApp()` returns the typed app facade (`app.services`,
+`state` (or a `subscribe`/`getSnapshot` pair) and returns the fallback until the service and
+its owner are ready. `useEvent` subscribes to the runtime bus with component cleanup. `useFoundationApp()` returns the typed app facade (`app.services`,
 `app.actions`, `app.config`, `app.has()`); `usePluginConfig(moduleId, path, fallback)` reads the
 config snapshot.
 
 ## Plugin UI
 
-`<PluginPage pathname? fallback? />` renders the plugin page registered for the current path
-and passes `params` (`ui/pages/tasks/[id].tsx` receives `{ id }`); `<PluginSlot name />` renders
-the components plugins placed in a slot. React providers from `ui/providers` wrap the app
+`<PluginPage pathname? fallback? unavailable? />` renders the plugin page registered for the current path
+and passes `params` (`ui/pages/tasks/[id].tsx` receives `{ id }`); `<PluginSlot name payload? />` renders
+the components plugins placed in a slot. Declared targets read owned live attachments;
+legacy targets retain the existing view path. Hiding an outlet never detaches its entries.
+Both paths retain the runtime-wide readiness barrier used by service hooks. `PluginSlot`
+passes the validated payload to each component. Action and data slots use `useSlot` and the
+owner's renderer. React providers from `ui/providers` wrap the app
 automatically. `DialogHost` and `ConfirmDialog` render `dialog` and `confirm` actions through the
 host's dialog primitives.
 
@@ -175,3 +193,62 @@ visual dependency and does not enforce server authorization. See
 
 Core contains no React imports or renderer entry points; this package augments Core's opaque
 presentation types with React types. Run `npm test --workspace @bitakit/ui`.
+
+### Awaited runtime replacement
+
+`FoundationProvider` uses Core's startup controller for fail-fast and isolation policies.
+Changing configuration waits for the previous runtime's complete async cleanup, including
+when intermediate configurations are skipped. Cleanup failure prevents automatic replacement.
+`renderWithFoundation(...).unmount()` awaits this cleanup; recorded events include
+`runtime.lifecycle`. Runtime state is available through `runtime.lifecycle.get()/watch()`.
+
+Placed Action items expose `item.action`; pass that control to `Action`, `ActionButton` or `ActionLink` to preserve the outlet's mapped input. Groups remain logical queries. `PluginSlot` passes the validated outlet payload to contributed components.
+
+Slot outlets accept `entryKey` to select a keyed component and return only entries whose optional
+`when({ payload })` predicate matches that occurrence. Render with `item.key`; outlet filtering
+never detaches the shared entry. `PluginSlot` forwards the parsed payload. The existing catalog
+also carries each page's opaque `boundary`, including inheritance for additional pages.
+
+`ActionControl.linkProps({ href })` lets a renderer adapt a URL for its route base/query while
+retaining safe URL checks, disabled guards and consistent native/client navigation.
+
+### Host updates and inspection
+
+`useFoundation().runtime.reconcilePlugins(nextPlugins)` supports explicit compatible plugin
+updates. Await its result from host management code. It preserves unrelated service instances
+and keeps unaffected pages/widgets mounted. `useFoundationReady()` means initial readiness;
+pass a plugin ID to observe that owner. `useService` and `useServiceState` follow ready instances
+without detaching unchanged sources. `PluginPage` accepts an `unavailable` fallback; `useSlot`
+exposes its declared owner's `phase`, with failed/blocked distinct from `pending`.
+Affected pages/projections can remount; affected dialogs close before replacement. Provider
+config prop changes still replace the whole runtime. This does not promise file-HMR state retention.
+
+```tsx
+import { useRuntimeInventory } from '@bitakit/ui';
+function RuntimeStatus() {
+  const snapshot = useRuntimeInventory();
+  return <output>{snapshot.live?.phase}</output>;
+}
+```
+
+The hook reads Core's shared versioned inventory with stable snapshots. It owns no application
+values. Use ordinary Action/service hooks for interactive operations. App Preferences and
+Devtools use this same inventory; static CLI fields may be explicitly unavailable.
+
+
+### Isolate a widget render failure
+
+`PluginSlot` isolates each component automatically. Healthy siblings remain mounted; its default
+fallback names the plugin/slot and uses the existing host Button for retry. Override one outlet
+with `errorFallback={({ error, retry }) => ...}` when needed. `SlotRenderError` includes `slot`,
+`plugin`, `contribution` and `cause`; default UI never prints raw causes or stacks. Reporting uses
+the existing provider `actionOptions.onError` callback.
+
+Custom `useSlot` renderers can wrap each entry in `SlotErrorBoundary` with `slot`, `plugin`,
+`contribution` and `children`. Keep the entry key stable and place the boundary inside access
+controls. Explicit retry or a changed owner definition/component resets an error; unrelated
+updates and equivalent stabilized payload objects do not. Context revalidation/hiding may unmount an occurrence and discard its local error. Retry does not restart services or attach twice.
+
+This client render boundary uses `react-error-boundary`; it does not handle slot payload/binding
+errors, server rendering, event handlers or later async failures. Suspense stays with the host.
+A failing custom fallback propagates normally. Core lifecycle and shared inventory are unchanged.

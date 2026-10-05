@@ -1,12 +1,20 @@
 'use client';
-import { Suspense, useSyncExternalStore } from 'react';
+import { SettingsAccountAccess } from './account.js';
+import BuildingIcon from 'reicon-react/icons/Building';
+import ShieldIcon from 'reicon-react/icons/Shield';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from '../components/ui/empty.js';
+import { Suspense, useSyncExternalStore, type ReactNode } from 'react';
 import { cn } from 'cn';
-import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import { getService } from '@bitakit/core';
-import { useFoundation, useServiceState, useTranslation } from '@bitakit/ui';
+import { useFoundation, useFoundationReady, useServiceState, useTranslation } from '@bitakit/ui';
 import {
   organizationService,
-  organizationGroups,
   isOrganizationWebsite,
   type OrganizationSnapshot,
 } from '@bitakit/organizations';
@@ -23,13 +31,16 @@ import {
   ItemMedia,
   ItemTitle,
   PageHeader,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
 } from '../components/ui/index.js';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '../components/ui/card.js';
 import { OrganizationDialog } from '../components/organizations/organization-dialog.js';
-import { GroupActions } from '../components/organizations/group-actions.js';
+import { SlotActions } from '../components/organizations/group-actions.js';
 import { OrganizationsPage } from '../components/organizations/pages.js';
 import { IncomingInvitations } from '../components/organizations/incoming-invitations.js';
 
@@ -74,57 +85,64 @@ export function OrganizationSettings({ embedded = false }: ViewProps) {
     );
   if (!state.activeId)
     return (
-      <p>
-        {translateUI(
-          'foundationUI.organizations.selectAnOrganization',
-          undefined,
-          'Select an organization.',
-        )}
-      </p>
+      <Empty role="status">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <BuildingIcon aria-hidden="true" />
+          </EmptyMedia>
+          <EmptyTitle>
+            {translateUI(
+              'foundationUI.organizations.selectAnOrganization',
+              undefined,
+              'Select an organization.',
+            )}
+          </EmptyTitle>
+          <EmptyDescription>
+            {translateUI(
+              'foundationUI.organizations.selectOrganizationHint',
+              undefined,
+              'Choose an organization from the organization menu to view its profile.',
+            )}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   return (
     <section className={cn('flex w-full flex-col gap-7', !embedded && 'mx-auto max-w-4xl')}>
-      <PageHeader
-        level={embedded ? 2 : 1}
-        title={
-          state.canManage
-            ? translateUI(
-                'foundationUI.organizations.organizationSettings',
-                undefined,
-                'Organization settings',
-              )
-            : translateUI(
-                'foundationUI.organizations.organizationProfile',
-                undefined,
-                'Organization profile',
-              )
-        }
-        subtitle={
-          state.canManage
-            ? translateUI(
-                'foundationUI.organizations.manageYourWorkspaceAppearanceAndDetails',
-                undefined,
-                'Manage your workspace appearance and details.',
-              )
-            : translateUI(
-                'foundationUI.organizations.informationAboutYourWorkspace',
-                undefined,
-                'Information about your workspace.',
-              )
-        }
-      />
+      {!embedded && (
+        <PageHeader
+          level={embedded ? 2 : 1}
+          title={
+            state.canManage
+              ? translateUI(
+                  'foundationUI.organizations.organizationSettings',
+                  undefined,
+                  'Organization settings',
+                )
+              : translateUI(
+                  'foundationUI.organizations.organizationProfile',
+                  undefined,
+                  'Organization profile',
+                )
+          }
+          subtitle={
+            state.canManage
+              ? translateUI(
+                  'foundationUI.organizations.manageYourWorkspaceAppearanceAndDetails',
+                  undefined,
+                  'Manage your workspace appearance and details.',
+                )
+              : translateUI(
+                  'foundationUI.organizations.informationAboutYourWorkspace',
+                  undefined,
+                  'Information about your workspace.',
+                )
+          }
+        />
+      )}
       <div className="flex min-w-0 flex-col gap-6">
         {state.canManage && service.capabilities.update ? (
           <OrganizationDialog
-            secondaryActions={
-              state.canDelete && service.capabilities.delete ? (
-                <GroupActions
-                  size="default"
-                  group={organizationGroups.danger}
-                  context={{ organizationId: state.activeId }}
-                />
-              ) : undefined
-            }
             embedded
             key={state.activeId}
             service={service}
@@ -176,95 +194,150 @@ export function OrganizationSettings({ embedded = false }: ViewProps) {
           </Item>
         )}
       </div>
+      {state.canDelete && service.capabilities.delete && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {translateUI('foundationUI.organizations.dangerZone', undefined, 'Danger zone')}
+            </CardTitle>
+            <CardDescription>
+              {translateUI(
+                'foundationUI.organizations.deleteWarning',
+                undefined,
+                'Deleting this organization permanently removes it and its memberships. This cannot be undone.',
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="items-end">
+            <SlotActions
+              variant="destructive"
+              size="default"
+              slot="organizations.danger"
+              context={{ organizationId: state.activeId }}
+            />
+          </CardContent>
+        </Card>
+      )}
     </section>
   );
 }
 
-const organizationTabs = ['profile', 'members', 'invitations'] as const;
-const organizationTab = parseAsStringLiteral(organizationTabs).withDefault('profile');
-
-function Loading() {
-  const translateUI = useTranslation();
+/** Profile content in the shared settings frame, which owns its heading. */
+export function OrganizationSettingsPage() {
+  const ready = useFoundationReady();
+  if (!ready) return null;
   return (
-    <p role="status">
-      {translateUI(
-        'foundationUI.organizations.loadingOrganizations',
-        undefined,
-        'Loading organizations…',
-      )}
-    </p>
+    <SettingsAccountAccess>
+      <OrganizationSettings embedded />
+    </SettingsAccountAccess>
   );
 }
-function OrganizationSettingsTabs() {
+
+/** Management remains permission-guarded even when navigating directly to its URL. */
+function MembersAccess({ children }: { children: ReactNode }) {
   const translateUI = useTranslation();
-  const [tab, setTab] = useQueryState('tab', organizationTab);
-  // Undefined until the runtime is ready; the views below read the service directly.
   const canManage = useServiceState(
     organizationService,
     (state) => (state as OrganizationSnapshot).canManage,
     undefined,
   );
-  if (canManage === undefined) return <Loading />;
-  const selected = tab === 'members' && !canManage ? 'profile' : tab;
-  return (
-    <Tabs value={selected} onValueChange={(value) => void setTab(organizationTab.parse(value))}>
-      {/* On narrow screens the bar scrolls instead of the page; the padding keeps the line
-          indicator below the active tab inside the scroll area. */}
-      <div className="overflow-x-auto pb-1">
-        <TabsList
-          variant="line"
-          aria-label={translateUI(
-            'foundationUI.organizations.organizationSettings',
-            undefined,
-            'Organization settings',
-          )}
-        >
-          <TabsTrigger value="profile">
-            {translateUI('foundationUI.organizations.profile', undefined, 'Profile')}
-          </TabsTrigger>
-          {canManage && (
-            <TabsTrigger value="members">
-              {translateUI(
-                'foundationUI.organizations.membersAndInvitations',
-                undefined,
-                'Members and invitations',
-              )}
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="invitations">
+  if (canManage === undefined) return null;
+  if (!canManage)
+    return (
+      <Empty role="status">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <ShieldIcon aria-hidden="true" />
+          </EmptyMedia>
+          <EmptyTitle>
             {translateUI(
-              'foundationUI.organizations.invitationsForMe',
+              'foundationUI.organizations.managementAccessRequired',
               undefined,
-              'Invitations for me',
+              'Management access required',
             )}
-          </TabsTrigger>
-        </TabsList>
-      </div>
-      <TabsContent value="profile">
-        <OrganizationSettings embedded />
-      </TabsContent>
-      {canManage && (
-        <TabsContent value="members">
-          <OrganizationMembersSettings embedded />
-        </TabsContent>
-      )}
-      <TabsContent value="invitations">
-        <IncomingInvitations embedded />
-      </TabsContent>
-    </Tabs>
+          </EmptyTitle>
+          <EmptyDescription>
+            {translateUI(
+              'foundationUI.organizations.managementUnavailable',
+              undefined,
+              'You do not have permission to manage this organization.',
+            )}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  return children;
+}
+
+export function OrganizationMembersAccess({ children }: { children: ReactNode }) {
+  return (
+    <SettingsAccountAccess>
+      <MembersAccess>{children}</MembersAccess>
+    </SettingsAccountAccess>
   );
 }
 
-/**
- * The plugin's settings page: the organization profile, its members and sent invitations
- * (only for members who can manage it) and the invitations addressed to the viewer. The host's
- * settings frame renders the page title and navigation; the selected tab is URL state (`tab`).
- */
-export function OrganizationSettingsPage() {
-  // Search parameters suspend during static rendering, so the URL-backed part has a boundary.
+function OrganizationProfileAccess({ children }: { children: ReactNode }) {
+  const state = useServiceState(
+    organizationService,
+    (state) => state as OrganizationSnapshot,
+    undefined,
+  );
+  if (!state?.loaded || !state.activeId) return <OrganizationSettings embedded />;
+  return children;
+}
+
+export function OrganizationSettingsAccess({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<Loading />}>
-      <OrganizationSettingsTabs />
-    </Suspense>
+    <SettingsAccountAccess>
+      <OrganizationProfileAccess>{children}</OrganizationProfileAccess>
+    </SettingsAccountAccess>
+  );
+}
+
+export function OrganizationMembersPage() {
+  return (
+    <OrganizationMembersAccess>
+      <Suspense>
+        <OrganizationMembersSettings embedded />
+      </Suspense>
+    </OrganizationMembersAccess>
+  );
+}
+
+export function PersonalInvitationsPage() {
+  const ready = useFoundationReady();
+  if (!ready) return null;
+  return (
+    <SettingsAccountAccess>
+      <Suspense>
+        <IncomingInvitations embedded />
+      </Suspense>
+    </SettingsAccountAccess>
+  );
+}
+
+function InvitationsAccess({ children }: { children: ReactNode }) {
+  const state = useServiceState(
+    organizationService,
+    (state) => state as OrganizationSnapshot,
+    undefined,
+  );
+  const service = getService(useFoundation().runtime.services, organizationService);
+  if (!state?.loaded || state.incomingInvitationsError || !service.capabilities.invitations)
+    return (
+      <Suspense>
+        <IncomingInvitations embedded />
+      </Suspense>
+    );
+  return children;
+}
+
+/** Provider loading/verification errors gate extensions together with the native invitation body. */
+export function PersonalInvitationsAccess({ children }: { children: ReactNode }) {
+  return (
+    <SettingsAccountAccess>
+      <InvitationsAccess>{children}</InvitationsAccess>
+    </SettingsAccountAccess>
   );
 }

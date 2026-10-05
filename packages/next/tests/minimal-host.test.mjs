@@ -233,7 +233,9 @@ test('the generated Next entry compiles with strict unused-local checks', async 
       'src/consumer.tsx',
       [
         "import { useAction, useServiceState } from '@bitakit/ui';",
-        "import { BitaKitProvider, createBitaKitConfig } from './bitakit.gen';",
+        "import { BitaKitProvider } from './bitakit.gen';",
+        "import { createBitaKitConfig } from './bitakit.gen.config';",
+        "import type { BitaKitConfig } from './bitakit.gen';",
         'export function Consumer() {',
         "  const add = useAction('todos.add', 'Milk');",
         "  const items = useServiceState('todos.items', (state) => state.items, []);",
@@ -244,7 +246,7 @@ test('the generated Next entry compiles with strict unused-local checks', async 
         "  useAction('todos.add', 42);",
         '  return <BitaKitProvider notify={(message, kind) => console.log(kind, message, first, add?.title)}><button {...add?.props()} /></BitaKitProvider>;',
         '}',
-        'export const config = createBitaKitConfig();',
+        'export const config: BitaKitConfig = createBitaKitConfig();',
       ].join('\n'),
     );
     await put(

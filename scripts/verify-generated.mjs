@@ -202,10 +202,12 @@ async function verify(name, scenario) {
       smoke(
         server.url,
         scenario.visits,
-        scenario.auth ? async (page) => {
-          await verifyAuthStyles(page, server.url, artifacts);
-          await verifyDeveloperTheme(page, server.url, artifacts);
-        } : undefined,
+        scenario.auth
+          ? async (page) => {
+              await verifyAuthStyles(page, server.url, artifacts);
+              await verifyDeveloperTheme(page, server.url, artifacts);
+            }
+          : undefined,
       ),
     );
   } finally {

@@ -89,3 +89,12 @@ Native client options such as `baseURL` are supported; `plugins` append further 
 - `src/plugin.ts` (`./plugin`): the package plugin entry the manifest names.
 - `src/organizations.ts`, `src/organization-session.ts` (`./organizations`): organization backend.
 - `src/email.ts` (`./email`), `src/client.ts` (`./client`).
+
+### Native session display compatibility
+
+`createBetterAuthClient` retains Better Auth's native client and extensions. Its public fetch
+success hook supplies `Unknown` for missing/blank user-agent display values in list-sessions
+responses, because native HeroUI session cards cannot parse an empty user agent. It keeps
+every session/token, delegates the caller's hook and leaves storage, authorization and all
+other endpoint payloads unchanged. Hosts providing a different native client do not receive
+this preset behavior automatically.

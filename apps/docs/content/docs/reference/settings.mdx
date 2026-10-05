@@ -1,0 +1,86 @@
+---
+title: Settings reference
+description: Page extensions, toolbar Actions, additional pages and access boundaries.
+---
+
+Start with [one setting](/docs/concepts/settings). These examples assume App Preferences is installed and mounted.
+
+For Shell's built-in Appearance page, custom palettes and personal theme copies, see
+[Themes and appearance](/docs/concepts/theming) and the [Theme reference](/docs/reference/theming).
+
+## Choose an extension point
+
+| Target                                          | Contribution                | Context                                            |
+| ----------------------------------------------- | --------------------------- | -------------------------------------------------- |
+| `app-preferences.navigation`                    | Navigation Action           | Native destination                                 |
+| `app-preferences.navigation.header`             | Widget                      | No payload                                         |
+| `app-preferences.navigation.group.before/after` | Widgets                     | `{ groupId }` (category ID)                        |
+| `app-preferences.page.header/before/footer`     | Widgets                     | `{ pageId }`, inside the page access boundary      |
+| `app-preferences.navigation.footer`             | Widget                      | No payload                                         |
+| `app-preferences.page.after`                    | Ordered widgets             | `{ pageId }`                                       |
+| `app-preferences.page.toolbar`                  | Actions                     | `{ pageId }` mapped to input                       |
+| `app-preferences.page.body`                     | Catalog-projected component | Keyed by page ID; do not register a competing body |
+
+```tsx
+// audit/ui/slots/app-preferences.page.after.tsx
+import type { SlotPredicate } from '@bitakit/core';
+import type { SlotProps } from '@bitakit/ui';
+export const order = 20;
+export const when: SlotPredicate<'app-preferences.page.after'> = ({ payload }) =>
+  payload.pageId === 'billing';
+export default function Audit({ payload }: SlotProps<'app-preferences.page.after'>) {
+  return <p>Audit information for {payload.pageId}</p>;
+}
+```
+
+Multiple plugins can extend the same page. `when` filters each outlet separately after validation;
+it never detaches another outlet's contribution. Use standard service/setting hooks inside widgets.
+
+```ts
+// audit/actions/export.ts
+import { defineAction } from '@bitakit/core';
+export default defineAction<string>({
+  title: 'Export audit',
+  slots: [{ name: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }],
+  visible: ({ input }) => input === 'billing',
+  execute: ({ input }) => console.log(input),
+});
+```
+
+Existing Action bindings handle visibility, disabled/pending state and execution. A destination
+Action with `href` can instead join `app-preferences.navigation`; groups do not select placement.
+
+## Customize a page
+
+`ui/settings/page.tsx` replaces generated content and receives `{ section, renderField }`.
+Use `renderField(field)` to retain standard controls. The default export may also be:
+
+```tsx
+export default {
+  component: BillingPage,
+  boundary: BillingAccess,
+  pages: [{ id: 'history', title: 'History', component: HistoryPage }],
+};
+```
+
+The owner supplies those components. `BillingAccess` wraps `children` using the existing access
+policy and fallback. It encloses the full page, including extension widgets and toolbar Actions.
+Additional pages inherit the boundary or override it. With a default component export, declare
+`export const boundary = BillingAccess`. Keep server/storage authorization in its existing layer.
+
+The additional page has stable ID `billing/history`; paths and translated titles do not change
+identity. Set `showHeader: false` only when a page owns its heading. The host's route, nuqs search,
+category grouping and live translations remain unchanged. Mount the existing `SettingsRoute`,
+or compose `SettingsShell` and `SettingsPage`; no extra provider or manual page registry is needed.
+
+## Same page, different frame
+
+`SettingsShell embedded` uses the same navigation and page regions inside a host dialog
+or `AppShell.Drawer`. Keep one root BitaKitProvider. The host owns opening/closing and
+the route; Settings owns catalog projection and fields. There is no second registration.
+Navigation header/group/footer extensions belong to the navigation shell, not a page's
+access boundary. Page header, toolbar, before/body/after/footer all remain inside its boundary.
+
+Dotted names are explicit extension targets, not a second page hierarchy. Categories group
+navigation; page IDs select the keyed body. Replace a page with `ui/settings/page.tsx`,
+never by registering a competing body for its catalog key.

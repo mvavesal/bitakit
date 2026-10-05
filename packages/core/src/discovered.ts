@@ -10,6 +10,9 @@ import {
   type ActionEntry,
 } from './definitions.js';
 import { resolveContribution } from './conventions.js';
+import { actionIdPattern } from './conventions.js';
+import { isSlotDefinition, type ResolvedSlotDefinition, type SlotEntry } from './slots/define.js';
+import { FoundationStartupError } from './startup-error.js';
 import type { ContractName } from './service-key.js';
 import { defineInterceptor, type InterceptorSpec } from './interceptors/define.js';
 import {
@@ -42,15 +45,20 @@ export function discoveredFile<T, const P extends string>(
 ): DiscoveredFile<T, P> {
   return { value, path, source };
 }
-function expand(files: readonly DiscoveredFile[], leaf: (value: any) => boolean, arrays = false) {
+function expand(
+  files: readonly DiscoveredFile[],
+  leaf: (value: any) => boolean,
+  arrays = false,
+  failure = (message: string, _source: string): Error => new Error(message),
+) {
   const results: { value: any; path: string[]; source: string }[] = [];
   const seen = new Map<string, string>();
   function visit(value: any, segments: string[], source: string) {
     if (leaf(value)) {
       const key = segments.join('.');
-      if (!key) throw new Error(`Collection needs named entries: ${source}`);
+      if (!key) throw failure(`Collection needs named entries: ${source}`, source);
       if (seen.has(key))
-        throw new Error(`Duplicate contribution "${key}": ${seen.get(key)} and ${source}`);
+        throw failure(`Duplicate contribution "${key}": ${seen.get(key)} and ${source}`, source);
       seen.set(key, source);
       results.push({ value, path: segments, source });
       return;
@@ -60,8 +68,9 @@ function expand(files: readonly DiscoveredFile[], leaf: (value: any) => boolean,
       return;
     }
     if (!isConfigObject(value))
-      throw new Error(
+      throw failure(
         `Invalid contribution in ${source}: ${typeof value === 'function' ? 'class and factory exports are no longer discovered; export defineAction({ ... }) or defineService((context) => ...)' : 'expected a define* result or a record of them'}.`,
+        source,
       );
     for (const [key, entry] of Object.entries(value))
       visit(entry, [...segments, ...key.split('.')], source);
@@ -100,6 +109,37 @@ export function discoverServices(
       id: service.id ?? [moduleId, ...path].filter(Boolean).join('.'),
     };
     setContributionSource(definition, source);
+    return definition;
+  });
+}
+/** Slot leaves use the same record/path expansion as Actions and services. Explicit IDs are absolute. */
+export function discoverSlots(
+  files: readonly DiscoveredFile[],
+  moduleId = '',
+): ResolvedSlotDefinition[] {
+  const seen = new Map<string, string>();
+  return expand(
+    files,
+    isSlotDefinition,
+    false,
+    (message, source) =>
+      new FoundationStartupError(message, moduleId || 'app', { source, app: !moduleId }),
+  ).map(({ value, path, source }) => {
+    const id = value.id ?? [moduleId, ...path].filter(Boolean).join('.');
+    if (typeof id !== 'string' || !actionIdPattern.test(id))
+      throw new FoundationStartupError(`Invalid slot ID "${id}" in ${source}.`, moduleId || 'app', {
+        source,
+        app: !moduleId,
+      });
+    if (seen.has(id))
+      throw new FoundationStartupError(
+        `Duplicate slot "${id}": ${seen.get(id)} and ${source}.`,
+        moduleId || 'app',
+        { source, app: !moduleId },
+      );
+    seen.set(id, source);
+    const definition = Object.freeze({ ...value, id });
+    setContributionPath(definition, path, source);
     return definition;
   });
 }
@@ -252,6 +292,18 @@ type ServiceTree<T, P extends string> = [ServiceInstance<T>] extends [never]
   : { readonly [K in ServiceId<T, P>]: ServiceInstance<T> } & ServiceAlias<T, ServiceInstance<T>>;
 export type DiscoveredServiceEntry<F, Module extends string = ''> =
   F extends DiscoveredFile<infer T, infer P> ? ServiceTree<T, Join<Module, P>> : {};
+
+export type SlotTree<T, P extends string> = T extends { kind: 'slot' }
+  ? SlotEntry<T, P>
+  : T extends object
+    ? [keyof T & string] extends [never]
+      ? {}
+      : UnionToIntersection<
+          { [K in keyof T & string]: SlotTree<T[K], Join<P, K>> }[keyof T & string]
+        >
+    : {};
+export type DiscoveredSlotEntry<F, Module extends string = ''> =
+  F extends DiscoveredFile<infer T, infer P> ? SlotTree<T, Join<Module, P>> : {};
 
 export type DiscoveredEventsEntry<F, Module extends string> =
   F extends DiscoveredFile<infer T, any> ? EventsOf<T, Module> : {};

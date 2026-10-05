@@ -84,10 +84,33 @@ test('ui/pages, ui/slots and ui/providers modules map to definitions from their 
     component: Component,
     order: 2,
   });
+  assert.deepEqual(
+    pluginSlot(
+      { default: Component, id: 'badge', key: 'main', order: 3, availability: 'wait' },
+      'header',
+    ),
+    {
+      slot: 'header',
+      component: Component,
+      id: 'badge',
+      key: 'main',
+      order: 3,
+      availability: 'wait',
+    },
+  );
+  assert.equal(pluginSlot({ default: { component: Component } }, 'header').slot, 'header');
   assert.deepEqual(pluginProvider({ default: Component, requires: ['theme'] }, 'query'), {
     id: 'query',
     component: Component,
     requires: ['theme'],
   });
   assert.deepEqual(pluginProvider({ default: Component, id: 'named' }, 'query').id, 'named');
+});
+
+test('discovered settings exports retain both legacy components and multiple page descriptors', async () => {
+  const { pluginSettingsPage } = await import('../dist/core.js');
+  const component = () => null;
+  assert.equal(pluginSettingsPage({ default: component }).component, component);
+  const definition = { pages: [{ id: 'members', title: 'Members', component }] };
+  assert.equal(pluginSettingsPage({ default: definition }), definition);
 });

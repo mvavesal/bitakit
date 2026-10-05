@@ -21,7 +21,11 @@
       "invitedAs": "Invited as",
       "loadingInvitations": "Loading invitations…",
       "noMatchingInvitationsFound": "No matching invitations found.",
-      "youHaveNoPendingInvitations": "You have no pending invitations."
+      "youHaveNoPendingInvitations": "No invitations yet",
+      "actionRequired": "Invitations could not be loaded",
+      "unavailable": "Invitations unavailable",
+      "tryAnotherSearch": "Try another name or clear your search.",
+      "invitationHelp": "You currently have no invitations. When an organization invites you, it will appear here."
     },
     "invitation_email_input": {
       "email": "Email",
@@ -79,7 +83,12 @@
       "confirmRoleChange": "Confirm role change",
       "confirmRemoval": "Confirm removal",
       "promoteConfirm": "Make {name} an administrator? Administrators can manage the organization and its members.",
-      "demoteConfirm": "Make {name} a member? They will lose their administrative permissions."
+      "demoteConfirm": "Make {name} a member? They will lose their administrative permissions.",
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name must be at most 100 characters.",
+      "invalidSlug": "Use lowercase letters, numbers and single hyphens.",
+      "slugTooLong": "The identifier must be at most 80 characters.",
+      "invalidWebsite": "Invalid URL."
     },
     "pages": {
       "invitations": "Invitations",
@@ -157,7 +166,12 @@
       "youCanViewTheseDetailsButCannotEditThem": "You can view these details but cannot edit them.",
       "profile": "Profile",
       "membersAndInvitations": "Members and invitations",
-      "invitationsForMe": "Invitations for me"
+      "invitationsForMe": "Invitations for me",
+      "dangerZone": "Danger zone",
+      "deleteWarning": "Deleting this organization permanently removes it and its memberships. This cannot be undone.",
+      "managementUnavailable": "You do not have permission to manage this organization.",
+      "managementAccessRequired": "Management access required",
+      "selectOrganizationHint": "Choose an organization from the organization menu to view its profile."
     },
     "auth_page_layout": {
       "backToApplication": "Back to application"
@@ -250,14 +264,29 @@
   },
   "better-auth-ui": {
     "settings": {
-      "title": "Account",
-      "description": "Profile, email, password, two-factor authentication, linked accounts and active sessions."
+      "title": "Profile",
+      "description": "Your profile picture and personal details.",
+      "pages": {
+        "security": {
+          "title": "Security",
+          "description": "Email, password, two-factor authentication, linked accounts and active sessions."
+        }
+      }
     }
   },
   "organizations-ui": {
     "settings": {
-      "title": "Organization",
-      "description": "Profile, members and invitations of the active organization."
+      "title": "Organization profile",
+      "description": "Manage the profile of the active organization.",
+      "pages": {
+        "members": {
+          "title": "Members and invitations"
+        },
+        "invitations": {
+          "title": "My invitations",
+          "description": "Invitations to join other organizations with your account."
+        }
+      }
     }
   }
 }

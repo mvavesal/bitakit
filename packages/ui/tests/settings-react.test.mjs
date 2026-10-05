@@ -15,6 +15,7 @@ import {
   useSetting,
   useSettingsCatalog,
   useSlot,
+  defineSlot,
 } from '../dist/index.js';
 
 installDom();
@@ -108,8 +109,8 @@ test('useSlot and useNavigation hand layouts the data PluginSlot and the menus r
       ],
     },
     actions: {
-      home: defineAction({ title: 'Home', href: '/', groups: ['navigation'] }),
-      docs: defineAction({ title: 'Docs', href: '/docs', groups: ['navigation'], order: 2 }),
+      home: defineAction({ title: 'Home', href: '/', groups: ['navigation'], slots: ['shell.navigation'] }),
+      docs: defineAction({ title: 'Docs', href: '/docs', groups: ['navigation'], slots: ['shell.navigation'], order: 2 }),
     },
   });
   let slot;
@@ -122,14 +123,14 @@ test('useSlot and useNavigation hand layouts the data PluginSlot and the menus r
   const view = await mount(
     h(
       FoundationProvider,
-      { config: { plugins: [tools] }, ui: testUI, actionOptions: { pathname: '/docs' } },
+      { config: { slots: { 'shell.navigation': defineSlot({ accepts: 'actions' }) }, plugins: [tools] }, ui: testUI, actionOptions: { pathname: '/docs' } },
       h(Consumer),
     ),
   );
   try {
     await act(tick);
     assert.deepEqual(
-      slot.map((entry) => [entry.key, entry.plugin, entry.order]),
+      slot.items.map((entry) => [entry.key, entry.plugin, entry.order]),
       [
         ['tools:1', 'tools', 1],
         ['tools:0', 'tools', 2],
@@ -137,8 +138,8 @@ test('useSlot and useNavigation hand layouts the data PluginSlot and the menus r
     );
     assert.equal(view.container.querySelector('section').textContent, 'firstbadge');
     assert.deepEqual(
-      navigation.groups.map((group) => [group.id, group.items.map((item) => item.title)]),
-      [['navigation', ['Home', 'Docs']]],
+      navigation.items.map(item => item.title),
+      ['Home', 'Docs'],
     );
     assert.equal(navigation.pathname, '/docs');
     assert.equal(navigation.isActive('/docs?tab=1'), true);

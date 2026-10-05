@@ -17,7 +17,15 @@ import { InviteDialog } from '../components/organizations/invite-dialog.js';
 import { defineAction, getService, type Contribution, type Services } from '@bitakit/core';
 import { organizationService } from '@bitakit/organizations';
 import { organizationGroups } from '@bitakit/organizations';
+import type { SlotPayload } from '@bitakit/core';
+import type {} from '../slots.js';
 import type { OrganizationService } from '@bitakit/organizations';
+const memberPlacement = [
+  {
+    name: 'organizations.member.menu' as const,
+    input: ({ payload }: { payload: SlotPayload<'organizations.member.menu'> }) => payload,
+  },
+];
 const ids = {
   page: 'organizations.open',
   create: 'organizations.create',
@@ -105,6 +113,7 @@ export function organizationActions(options: {
         title: operation === 'accept' ? 'Accept' : 'Decline',
         icon: operation === 'accept' ? AcceptIcon : CancelIcon,
         groups: [organizationGroups.incoming],
+        slots: [{ name: 'organizations.incoming', input: ({ payload }) => payload }],
         enabled: idle,
         visible: ({ input, services }) => {
           const service = organizations(services);
@@ -142,12 +151,14 @@ export function organizationActions(options: {
       id: 'organizations.edit',
       title: 'Edit organization',
       groups: [organizationGroups.management],
+      slots: [{ name: 'organizations.management', input: ({ payload }) => payload }],
       dialog: EditOrganization,
     }),
     defineAction({
       id: 'organizations.delete',
       title: 'Delete organization',
       groups: [organizationGroups.danger],
+      slots: [{ name: 'organizations.danger', input: ({ payload }) => payload }],
       dialog: DeleteOrganization,
     }),
     defineAction({
@@ -155,6 +166,7 @@ export function organizationActions(options: {
       icon: RemoveIcon,
       title: 'Remove',
       groups: [organizationGroups.member],
+      slots: memberPlacement,
       enabled: idle,
       visible: ({ input, services }) => {
         const state = organizations(services).getSnapshot();
@@ -169,6 +181,7 @@ export function organizationActions(options: {
         title: targetRole === 'admin' ? 'Make administrator' : 'Make member',
         icon: targetRole === 'admin' ? RoleIcon : DemoteIcon,
         groups: [organizationGroups.member],
+        slots: memberPlacement,
         enabled: idle,
         visible: ({ input, services }) => {
           const state = organizations(services).getSnapshot();
@@ -181,6 +194,7 @@ export function organizationActions(options: {
     defineAction({
       id: ids.invite,
       groups: [organizationGroups.members],
+      slots: [{ name: 'organizations.members', input: ({ payload }) => payload }],
       title: 'Invite member',
       icon: UserAddIcon,
       dialog: { component: InviteMember, size: 'wide' },
@@ -245,6 +259,13 @@ export function organizationActions(options: {
                 ? organizationGroups.invitation
                 : organizationGroups.member,
         ],
+        slots: suspension
+          ? memberPlacement
+          : id === ids.retry
+            ? [{ name: 'organizations.toolbar', input: ({ payload }) => payload }]
+            : id === ids.select
+              ? [{ name: 'organizations.organization', input: ({ payload }) => payload }]
+              : [{ name: 'organizations.invitation', input: ({ payload }) => payload }],
         enabled: ({ services }) => {
           const state = organizations(services).getSnapshot();
           return !state.pending && (!administrative || state.canManage);

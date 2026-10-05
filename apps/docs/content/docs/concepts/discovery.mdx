@@ -5,9 +5,30 @@ description: Let the build generate imports and types from your plugin folders.
 
 **Owner:** the Node-only `@bitakit/discovery` package. Framework adapters connect it to the build. Installing Core alone does not scan folders.
 
-## One feature, one folder
+The folder is the feature's map for both developers and AI coding agents: each supported kind
+has a predictable home, and generated types describe the resulting IDs. Prefer explicit code?
+[Programmatic composition](/docs/concepts/manual-composition) uses the same `define*` helpers
+and runtime without requiring this folder convention.
 
-This is the complete reference of what discovery reads. Every entry is optional; most plugins use two or three of them, so start with the [two-file plugin](/docs/concepts/plugins) and come back here when a feature needs more.
+## Start with one file
+
+```text
+src/plugins/counter/ui/pages/index.tsx → /counter
+```
+
+Discovery connects this page without a registration file. As the feature grows:
+
+```text
+services/value.ts     → services.counter.value
+actions/increment.ts  → counter.increment
+slots/toolbar.ts      → counter.toolbar
+```
+
+<Diagram name="discovery-boundary" />
+
+## Full folder reference
+
+This is the complete reference of what discovery reads. Every entry is optional; most plugins use two or three of them, so start with the [one-file plugin](/docs/concepts/plugins) and come back here when a feature needs more.
 
 ```text
 src/plugins/todos/
@@ -15,6 +36,7 @@ src/plugins/todos/
 ├── actions/add.ts            defineAction    → todos.add
 ├── events.ts                 defineEvents    → todos.changed
 ├── settings.ts               defineSettings  → settings.todos.pageSize (generated settings page)
+├── slots/header.ts           defineSlot     → todos.header (owned contract)
 ├── configs/limits.ts         defineConfig    → app.config.todos.limits
 ├── interceptors/audit.ts     defineInterceptor
 ├── setup.ts                  plugin setup (optional)
@@ -40,30 +62,30 @@ Every immediate folder under `src/plugins` is a plugin; its folder name is the p
 
 A TypeScript or TSX file participates when it has a default export; discovery detects the export with the TypeScript parser and never executes the module. Files without a default export are reported as skipped; prefix helper files with `-` to silence that. Declaration files and anything under `server/` are excluded. Everything under `ui/` that is not in `pages/`, `slots/` or `providers/` is an ordinary component, never a contribution; everything under `ui/` is React, and nothing outside it may import React.
 
-| File                       | Meaning                                                                  |
-| -------------------------- | ------------------------------------------------------------------------ |
-| `actions/add.ts`           | Action `todos.add`                                                       |
-| `services/items.ts`        | Service `todos.items`, reached as `services.todos.items`                 |
-| `events.ts`                | The plugin's events, `todos.<name>`                                      |
+| File                       | Meaning                                                                   |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `actions/add.ts`           | Action `todos.add`                                                        |
+| `services/items.ts`        | Service `todos.items`, reached as `services.todos.items`                  |
+| `events.ts`                | The plugin's events, `todos.<name>`                                       |
 | `settings.ts`              | The plugin's settings, `todos.<name>`, shown on a generated settings page |
-| `ui/settings/page.tsx`     | Replaces the generated settings page of the plugin                       |
-| `configs/limits.ts`        | Config subtree `limits`; `configs/actions/add.ts` configures `todos.add` |
-| `interceptors/audit.ts`    | Interceptor, plugin-local by default                                     |
-| `ui/pages/tasks/[id].tsx`  | Page `/todos/tasks/:id`, receives `params.id`                            |
-| `ui/slots/app-bar.end.tsx` | Component in slot `app-bar.end`                                          |
-| `ui/providers/query.tsx`   | React provider `todos.query`                                             |
+| `ui/settings/page.tsx`     | Replaces the generated settings page of the plugin                        |
+| `configs/limits.ts`        | Config subtree `limits`; `configs/actions/add.ts` configures `todos.add`  |
+| `interceptors/audit.ts`    | Interceptor, plugin-local by default                                      |
+| `ui/pages/tasks/[id].tsx`  | Page `/todos/tasks/:id`, receives `params.id`                             |
+| `ui/slots/app-bar.end.tsx` | Component in slot `app-bar.end`                                           |
+| `ui/providers/query.tsx`   | React provider `todos.query`                                              |
 
 A default export may also be a record of definitions (`actions/index.ts` exporting `{ add, clear }` equals two files). Duplicate logical paths are errors that name both files. Class and factory action exports are not discovered.
 
 ## Automatic loading, step by step
 
 1. The framework adapter (`withBitaKit` in `next.config.ts`, `bitakit()` in `vite.config.ts`) runs discovery before the build and watches during development.
-2. Discovery writes `src/bitakit.gen.tsx` (`createBitaKitConfig()`, `BitaKitProvider` and the typed `ServiceMap`, `ActionMap`, `EventMap`, `ConfigMap` and `SlotMap`), `src/bitakit.gen.css` (styles of installed packages) and `src/bitakit.gen.messages.json` (plugin locales).
+2. Discovery writes `src/bitakit.gen.tsx` (the React provider) and `src/bitakit.gen.config.ts` (`createBitaKitConfig()` and the typed maps), `src/bitakit.gen.css` (styles of installed packages) and `src/bitakit.gen.messages.json` (plugin locales).
 3. The root layout renders `<BitaKitProvider>` from `@/bitakit.gen`, which mounts the runtime.
 4. Core creates the services, registers the actions and installs interceptors and UI.
 5. Bindings read the live action state and service stores.
 
-Ignore `src/bitakit.gen.*` in Git. Production changes require a new build. Browser code never scans the filesystem. Automatic registration does not create a route or render a menu by itself; a page comes from `ui/pages`, a navigation entry from `groups: ['navigation']`.
+Ignore `src/bitakit.gen.*` in Git. Production changes require a new build. Browser code never scans the filesystem. Automatic registration does not create a route or render a menu by itself; a page comes from `ui/pages`, a navigation entry needs a URL Action placed in the owner's slot, for example `slots: ['shell.navigation']`.
 
 `npx bitakit info` lists what discovery finds; `npx bitakit doctor` checks the wiring, pages, links, service names and styles; `npx bitakit generate [--watch]` runs the generator by hand.
 
@@ -92,3 +114,59 @@ Other options: `directory` and `plugins.directory` move the roots, `plugins.auto
 A package becomes a plugin by declaring `bitakit: { plugin: './plugin' }` in its `package.json`. Direct dependencies and the plugin packages they depend on are activated; the package's styles join `bitakit.gen.css`. `bitakit build` produces that entry from the same folders apps use, so a plugin can move between `src/plugins/<id>` of an app and `src/` of a package unchanged. Installing an arbitrary npm dependency does not activate it.
 
 Use [manual composition](/docs/concepts/manual-composition) when you do not have a discovery-enabled host, and read [type safety](/docs/concepts/type-safety) for the generated contracts.
+
+## Declare extension points
+
+```ts
+// src/plugins/shell/slots/header/actions.ts
+import { defineSlot } from '@bitakit/core';
+export default defineSlot({ accepts: 'actions', policy: 'list' });
+```
+
+`slots/header.actions.ts`, `slots/header/actions.ts`, `slots/header/index.ts` exporting
+`{ actions: defineSlot(...) }`, and manual `slots: { header: { actions: defineSlot(...) } }`
+produce the same `shell.header.actions` contract. Choose one spelling; duplicate declarations
+are errors. App-root names have no prefix. Explicit IDs are absolute; manual arrays need IDs.
+
+| Field     | Contract                                                                              |
+| --------- | ------------------------------------------------------------------------------------- |
+| `accepts` | `actions`, `component`, or `data` (with `schema`)                                     |
+| `payload` | Existing zod/Standard Schema describing context from the owner                        |
+| `policy`  | `list` by default, `single`, or `keyed`; conflicting occupants never silently replace |
+
+Generated `SlotMap` carries definition types. `SlotPayload<'name'>` and `SlotData<'name'>`
+expose the schema outputs; both also accept a definition type directly. Core keeps components
+opaque and has no React dependency. `runtime.modules[].slots` exposes declared inventory.
+
+Declarations alone do not render anything or mark their owner ready. Keep current Action bindings,
+groups and `ui/slots` contributions until the placement migration. Legacy config/manifest slot
+names remain `LegacySlotMap` hints, not owned contracts. Declared component targets now
+use the scope-owned attachment path with wait by default; files can export id/key/order/availability.
+Hiding an outlet does not remove its contributions. Doctor reports readable contracts,
+duplicates and unresolved expressions; it cannot prove that an outlet is mounted.
+
+Use `bitakit add slot-definition shell/header/actions` for a declaration. `bitakit add slot`
+still creates a component contribution. Built packages include types and a generated
+`plugin.slots.json` beside the entry for static inspection; source remains the authority.
+
+## Development refresh
+
+Framework hosts generate a component-only `bitakit.gen.tsx` and a client-side
+`bitakit.gen.config.ts` for configuration/type maps. Normal hosts keep importing
+`BitaKitProvider` from `bitakit.gen`. Advanced consumers that previously imported
+`createBitaKitConfig` there now import it from `bitakit.gen.config`. Without a framework,
+`bitakit.gen.ts` remains the configuration entry. Do not hand-edit generated files.
+
+The watcher writes complete files atomically and regenerates promptly on filesystem renames.
+A watch session reuses its audited installed-package graph for local source-only changes;
+package metadata, configuration selection, styles and external watched files invalidate it.
+The cache contains package discovery results, never application values or a second runtime.
+
+Next development checks cover add/edit/delete, whole-plugin removal and collection leaf removal,
+with a preserved document token and page draft. This is bundler Fast Refresh followed by an
+awaited composition replacement, not `reconcilePlugins` or arbitrary code hot replacement.
+Affected slot/form state can remount during composition replacement; compatible explicit
+runtime updates retain the documented owner-specific guarantees. Named components are the supported
+React refresh path. Structural provider changes, server code, dependency installation and
+changes outside a React refresh boundary can require a host restart/reload. Restart the dev
+server after changing Node-loaded generator/integration code. No universal HMR promise.

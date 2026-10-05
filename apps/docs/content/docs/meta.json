@@ -2,10 +2,11 @@
   "title": "Documentation",
   "pages": [
     "index",
-    "quickstart",
-    "cli",
     "concepts",
+    "reference",
+    "cli",
     "packages",
+    "local-development",
     "contributing"
   ]
 }

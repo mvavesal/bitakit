@@ -170,6 +170,8 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb, var(--border)) var(--scrollbar-track, transparent);
   }
   body {
     @apply bg-background text-foreground;
@@ -198,6 +200,8 @@
       [data-corner='round'],
       [data-slot='switch-thumb'],
       [data-slot='slider-thumb'],
+      .react-colorful__pointer,
+      .react-colorful__pointer-fill,
       [role='radio'],
       [role='switch'],
       input[type='radio'],
@@ -216,6 +220,12 @@
   }
 }
 
+@layer utilities {
+  [data-slot='select-content'] {
+    border-radius: var(--radius-xl);
+  }
+}
+
 /* Theme finish only. Component dimensions, radii and interaction logic stay in Vega. */
 @layer utilities {
   @media (forced-colors: none) {
@@ -224,6 +234,7 @@
       [data-slot='button'][data-variant='default'],
       [data-slot='button'][data-variant='secondary'],
       [data-slot='button'][data-variant='outline'],
+      [data-slot='select-trigger'],
       [data-slot='input'],
       [data-slot='textarea'],
       [data-slot='input-group'],
@@ -244,11 +255,18 @@
       [data-variant='secondary'],
       [data-variant='outline']
     ) {
-      --control-depth-shadow:
-        var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight), inset 0 -1px 0 var(--control-edge),
-        0 1px 2px var(--control-shadow), 0 2px 3px -1px var(--control-shadow));
+      --control-depth-shadow: var(
+        --theme-shadow-control,
+        inset 0 1px 0 var(--control-highlight),
+        inset 0 -1px 0 var(--control-edge),
+        0 1px 2px var(--control-shadow),
+        0 2px 3px -1px var(--control-shadow)
+      );
       background-color: var(--control-fill);
-      background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-top), var(--control-bottom)));
+      background-image: var(
+        --theme-control-gradient,
+        linear-gradient(to bottom, var(--control-top), var(--control-bottom))
+      );
     }
 
     [data-slot='button'][data-variant='default'] {
@@ -258,10 +276,14 @@
       --control-idle-border: color-mix(in oklab, var(--primary), black 16%);
     }
 
+    [data-slot='select-trigger'],
     [data-slot='button']:is([data-variant='secondary'], [data-variant='outline']) {
-      --control-depth-shadow:
-        var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight),
-        0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%));
+      --control-depth-shadow: var(
+        --theme-shadow-control,
+        inset 0 1px 0 var(--control-highlight),
+        0 1px 2px color-mix(in oklab, var(--control-shadow), transparent 50%)
+      );
+      background-color: var(--control-surface);
       --control-fill: var(--control-surface);
       --control-top: var(--control-fill);
       --control-bottom: color-mix(
@@ -290,11 +312,22 @@
           [data-variant='secondary'],
           [data-variant='outline']
         ):hover:not(:disabled, [aria-disabled='true']) {
-        background-image: var(--theme-control-gradient, linear-gradient(
-          to bottom,
-          color-mix(in oklab, var(--control-top), var(--foreground) var(--theme-control-hover-mix, 3%)),
-          color-mix(in oklab, var(--control-bottom), var(--foreground) var(--theme-control-hover-mix, 3%))
-        ));
+        background-image: var(
+          --theme-control-gradient,
+          linear-gradient(
+            to bottom,
+            color-mix(
+              in oklab,
+              var(--control-top),
+              var(--foreground) var(--theme-control-hover-mix, 3%)
+            ),
+            color-mix(
+              in oklab,
+              var(--control-bottom),
+              var(--foreground) var(--theme-control-hover-mix, 3%)
+            )
+          )
+        );
       }
     }
 
@@ -306,9 +339,15 @@
         :disabled,
         [aria-disabled='true']
       ) {
-      --control-depth-shadow:
-        var(--theme-control-pressed-shadow, inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight));
-      background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-bottom), var(--control-top)));
+      --control-depth-shadow: var(
+        --theme-control-pressed-shadow,
+        inset 0 1px 2px var(--control-inset-shadow),
+        0 1px 0 var(--control-highlight)
+      );
+      background-image: var(
+        --theme-control-gradient,
+        linear-gradient(to bottom, var(--control-bottom), var(--control-top))
+      );
     }
 
     /* Only the outer field is surfaced. Borderless search and group interiors stay flat. */
@@ -318,14 +357,20 @@
       [data-slot='input-group'],
       [data-slot='combobox-chips']
     ):not(.border-0, .border-none, .shadow-none) {
-      --control-depth-shadow:
-        var(--theme-shadow-field, inset 0 1px 1px var(--control-inset-shadow), 0 1px 2px var(--control-shadow));
+      --control-depth-shadow: var(
+        --theme-shadow-field,
+        inset 0 1px 1px var(--control-inset-shadow),
+        0 1px 2px var(--control-shadow)
+      );
       background-color: var(--control-surface);
     }
 
     :is([data-slot='checkbox'], [data-slot='radio-group-item']) {
-      --control-depth-shadow:
-        var(--theme-shadow-control, inset 0 1px 2px var(--control-inset-shadow), 0 1px 0 var(--control-highlight));
+      --control-depth-shadow: var(
+        --theme-shadow-control,
+        inset 0 1px 2px var(--control-inset-shadow),
+        0 1px 0 var(--control-highlight)
+      );
       background-color: var(--control-surface);
     }
 
@@ -338,14 +383,20 @@
       [data-state='checked'],
       [data-state='indeterminate']
     ) {
-      --control-depth-shadow:
-        var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight), 0 1px 2px var(--control-shadow));
+      --control-depth-shadow: var(
+        --theme-shadow-control,
+        inset 0 1px 0 var(--control-highlight),
+        0 1px 2px var(--control-shadow)
+      );
       background-color: var(--primary);
-      background-image: var(--theme-control-gradient, linear-gradient(
-        to bottom,
-        color-mix(in oklab, var(--primary), white var(--control-primary-lift)),
-        color-mix(in oklab, var(--primary), black var(--control-primary-shade))
-      ));
+      background-image: var(
+        --theme-control-gradient,
+        linear-gradient(
+          to bottom,
+          color-mix(in oklab, var(--primary), white var(--control-primary-lift)),
+          color-mix(in oklab, var(--primary), black var(--control-primary-shade))
+        )
+      );
       color: var(--primary-foreground);
     }
 
@@ -357,22 +408,35 @@
     }
 
     [data-slot='switch'] {
-      --control-depth-shadow: var(--theme-shadow-control, inset 0 1px 2px var(--control-edge), 0 1px 0 var(--control-highlight));
+      --control-depth-shadow: var(
+        --theme-shadow-control,
+        inset 0 1px 2px var(--control-edge),
+        0 1px 0 var(--control-highlight)
+      );
     }
 
     [data-slot='switch'][data-state='checked'] {
       background-color: var(--primary);
-      background-image: var(--theme-control-gradient, linear-gradient(
-        to bottom,
-        color-mix(in oklab, var(--primary), black var(--control-primary-shade)),
-        var(--primary)
-      ));
+      background-image: var(
+        --theme-control-gradient,
+        linear-gradient(
+          to bottom,
+          color-mix(in oklab, var(--primary), black var(--control-primary-shade)),
+          var(--primary)
+        )
+      );
     }
 
     [data-slot='switch-thumb'] {
-      --control-depth-shadow:
-        var(--theme-shadow-control, inset 0 1px 0 var(--control-highlight), 0 1px 2px var(--control-shadow));
-      background-image: var(--theme-control-gradient, linear-gradient(to bottom, oklch(1 0 0 / 14%), oklch(0 0 0 / 4%)));
+      --control-depth-shadow: var(
+        --theme-shadow-control,
+        inset 0 1px 0 var(--control-highlight),
+        0 1px 2px var(--control-shadow)
+      );
+      background-image: var(
+        --theme-control-gradient,
+        linear-gradient(to bottom, oklch(1 0 0 / 14%), oklch(0 0 0 / 4%))
+      );
     }
   }
 }
@@ -405,14 +469,12 @@
     transition-property: color, background-color, border-color, box-shadow, transform;
     --primary-glow-light: transparent;
     --primary-glow-shade: transparent;
+    --control-hover-shadow:
+      inset 0 0 10px 2px var(--primary-glow-light), inset 0 0 2px 1px var(--primary-glow-shade);
     box-shadow:
-      var(--tw-inset-shadow, 0 0 #0000),
-      var(--tw-inset-ring-shadow, 0 0 #0000),
-      var(--tw-ring-offset-shadow, 0 0 #0000),
-      var(--tw-ring-shadow, 0 0 #0000),
-      var(--theme-control-hover-shadow, inset 0 0 10px 2px var(--primary-glow-light),
-        inset 0 0 2px 1px var(--primary-glow-shade)),
-      var(--control-depth-shadow, 0 0 #0000);
+      var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000),
+      var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+      var(--control-hover-shadow), var(--control-depth-shadow, 0 0 #0000);
     transition-duration: var(--theme-motion-duration, 280ms);
     transition-timing-function: var(--theme-motion-ease, ease-in-out);
   }
@@ -431,7 +493,15 @@
       ) {
       --primary-glow-light: var(--primary-hover-light);
       --primary-glow-shade: var(--primary-hover-shade);
-      background-image: var(--theme-control-gradient, linear-gradient(to bottom, var(--control-top), var(--control-bottom)));
+      --control-hover-shadow: var(
+        --theme-control-hover-shadow,
+        inset 0 0 10px 2px var(--primary-glow-light),
+        inset 0 0 2px 1px var(--primary-glow-shade)
+      );
+      background-image: var(
+        --theme-control-gradient,
+        linear-gradient(to bottom, var(--control-top), var(--control-bottom))
+      );
     }
   }
 }
@@ -488,4 +558,13 @@
   --dark--sidebar-accent-foreground: oklch(0.985 0 0);
   --dark--sidebar-border: oklch(1 0 0 / 8%);
   --dark--sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Shared Empty surface. Utilities and host themes can override this default. */
+@layer components {
+  :where([data-slot='empty']) {
+    border-width: var(--border-width);
+    border-style: dashed;
+    border-color: var(--border);
+  }
 }

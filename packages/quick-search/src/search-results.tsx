@@ -1,23 +1,25 @@
 'use client';
 import { useFoundation, useGroupTitle, useTranslation } from '@bitakit/ui';
-import { useRef } from 'react';
+import { useRef, type KeyboardEvent } from 'react';
 import LinkIcon from 'reicon-react/icons/Link';
+import SearchIcon from 'reicon-react/icons/Search';
+import XIcon from 'reicon-react/icons/Xmark';
 import { safeHref } from '@bitakit/core';
 import { useActions, useActionList, ActionLink, ActionShortcutLabel } from '@bitakit/ui/actions';
-import { Input } from '@bitakit/ui/components';
+import { Button } from '@bitakit/ui/components';
 import { Command } from 'cmdk';
 import type { ActionSnapshot, Destination, DestinationKind } from '@bitakit/core';
 
-/** Destination types to include. Omitted types keep their defaults: pages and settings on. */
+/** Destination types to include. Omitted types keep their defaults: pages, settings and plugins on. */
 export type QuickSearchResults = {
   /** Links to pages of the app and other navigation links. Default: true. */
   pages?: boolean;
   /** Pages of the Settings catalog. Default: true. */
   settings?: boolean;
-  /** Plugins, linked to their entry on the Plugins settings page of App Preferences. Default: false. */
+  /** Plugins, linked to their entry on the Plugins settings page of App Preferences. Default: true. */
   plugins?: boolean;
 };
-const defaults: Required<QuickSearchResults> = { pages: true, settings: true, plugins: false };
+const defaults: Required<QuickSearchResults> = { pages: true, settings: true, plugins: true };
 const kinds: Record<DestinationKind, string> = {
   plugin: 'Plugin',
   page: 'Page',
@@ -32,6 +34,18 @@ const switches: Record<DestinationKind, keyof QuickSearchResults> = {
 /** A projected kind (settings, plugin) describes a shared destination better than a page. */
 const better = (current?: Destination, next?: Destination) =>
   current && current.kind !== 'page' ? current : (next ?? current);
+/** Mod+Enter opens the selected result in a new tab, like a modified click on its link. */
+const openInNewTab = (event: KeyboardEvent<HTMLDivElement>) => {
+  if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey) || event.nativeEvent.isComposing)
+    return;
+  const link = event.currentTarget.querySelector<HTMLAnchorElement>(
+    '[cmdk-item][data-selected="true"] a[href]',
+  );
+  if (!link) return;
+  // Prevented events skip cmdk's own Enter handling, which would navigate in this tab.
+  event.preventDefault();
+  window.open(link.href, '_blank', 'noopener');
+};
 
 /**
  * Navigation only: results are the current visible URL Actions, never commands, dialogs or forms.
@@ -66,6 +80,7 @@ export function SearchResults({
     undefined,
     empty === 'No results found.' ? t('quickSearch.empty', undefined, empty) : empty,
   );
+  const closeLabel = t('quickSearch.close', undefined, 'Close');
   const include = { ...defaults, ...results };
   /** "Page · Todos": the result type and, unless the app owns it, the owning plugin's name. */
   const describe = (destination?: Destination) => {
@@ -105,10 +120,26 @@ export function SearchResults({
     groups.get(key)!.items.push({ action, kind: describe(destination) });
   }
   return (
-    <Command label={label} loop className="quick-search">
-      <Command.Input asChild autoFocus placeholder={placeholder} aria-label={placeholder}>
-        <Input />
-      </Command.Input>
+    <Command label={label} loop className="quick-search" onKeyDown={openInNewTab}>
+      <div className="quick-search-input">
+        <SearchIcon aria-hidden="true" />
+        <Command.Input
+          autoFocus
+          placeholder={placeholder}
+          aria-label={placeholder}
+          className="quick-search-control"
+        />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={closeLabel}
+          onClick={close}
+          // Keeps Enter and Space on the button instead of selecting the highlighted result.
+          onKeyDown={(event: KeyboardEvent) => event.stopPropagation()}
+        >
+          <XIcon aria-hidden="true" />
+        </Button>
+      </div>
       <Command.List className="quick-search-list">
         <Command.Empty className="quick-search-empty">{empty}</Command.Empty>
         {[...groups].map(([id, group]) => (
@@ -119,7 +150,34 @@ export function SearchResults({
           </Command.Group>
         ))}
       </Command.List>
+      <div className="quick-search-footer">
+        <span className="quick-search-hints">
+          <Hint keys={['Enter']} label={t('quickSearch.hints.open', undefined, 'Open')} />
+          <Hint keys={['Mod+Enter']} label={t('quickSearch.hints.newTab', undefined, 'New tab')} />
+        </span>
+        <span className="quick-search-hints">
+          <Hint
+            keys={['ArrowUp', 'ArrowDown']}
+            label={t('quickSearch.hints.navigate', undefined, 'Navigate')}
+          />
+          <Hint keys={['Escape']} label={closeLabel} />
+        </span>
+      </div>
     </Command>
+  );
+}
+
+/** A keyboard hint in the footer, with platform key labels from the shared shortcut formatter. */
+function Hint({ keys, label }: { keys: string[]; label: string }) {
+  return (
+    <span className="quick-search-hint">
+      {keys.map((key) => (
+        <kbd key={key} className="quick-search-key">
+          <ActionShortcutLabel keys={key} />
+        </kbd>
+      ))}
+      {label}
+    </span>
   );
 }
 
@@ -167,15 +225,19 @@ function SearchResult({
       >
         {Icon && <Icon aria-hidden="true" />}
         <span className="quick-search-text">
-          <span>{action.title}</span>
+          <span className="quick-search-title">{action.title}</span>
           {action.description && (
             <span className="quick-search-description">{action.description}</span>
           )}
         </span>
-        {kind && <span className="quick-search-kind">{kind}</span>}
-        {action.shortcut && (
-          <span className="quick-search-shortcut">
-            <ActionShortcutLabel keys={action.shortcut.keys} />
+        {(kind || action.shortcut) && (
+          <span className="quick-search-meta">
+            {action.shortcut && (
+              <span className="quick-search-shortcut">
+                <ActionShortcutLabel keys={action.shortcut.keys} />
+              </span>
+            )}
+            {kind && <span className="quick-search-kind">{kind}</span>}
           </span>
         )}
       </ActionLink>

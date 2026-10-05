@@ -67,7 +67,7 @@ test('renderWithFoundation mounts a plugin page, records events from startup on 
     await click(view.container.querySelector('button'));
     assert.equal(view.container.querySelector('output').textContent, 'Write tests');
     await act(async () => view.runtime.actions.execute('notes.add'));
-    assert.deepEqual(view.events.recorded, [
+    assert.deepEqual(view.events.recorded.filter((event) => event.type !== 'runtime.lifecycle'), [
       { type: 'notes.opened', data: undefined },
       { type: 'notes.added', data: { title: 'Write tests' } },
       { type: 'notes.added', data: { title: 'From the action' } },

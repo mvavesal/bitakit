@@ -100,3 +100,53 @@ npx bitakit build --check  # type-check only
 
 The package's `package.json` declares `bitakit: { plugin: './plugin' }`; apps that install the
 built package discover the plugin automatically.
+
+
+### Slot declaration or UI contribution
+
+```sh
+bitakit add slot-definition notes/header/tools  # slots/header/tools.ts, owned by notes
+bitakit add slot notes/app-bar/end              # ui/slots/app-bar/end.tsx, contributes UI
+```
+
+In a plugin package, omit the plugin prefix. `bitakit build` compiles definitions and augments
+`SlotMap`; the generated `dist/plugin.slots.json` is a derived static inventory for Doctor.
+Keep it with the published entry. Doctor reports duplicate contracts, component/contract
+mismatches and unresolved computed records without executing plugin source. It does not prove
+that a UI outlet is mounted or that a plugin is ready.
+
+
+`bitakit build` preserves `settings.ts` and `ui/settings/page.tsx` in the package factory and
+emits SettingsMap augmentations. Custom/extra page descriptors, named page boundaries and
+slot `when` exports pass through the same normalizers used for local app discovery.
+
+## Inspection and explicit placement migration
+
+`bitakit info` and `bitakit info --json` use the shared inventory schema:
+
+```json
+{ "version": 1, "static": { "plugins": [] }, "live": null }
+```
+
+This replaces the old raw discovery JSON. Files remain `resolution: "file"` with an unavailable
+ID until resolved; installed package entrypoints can have `pluginId`/`declarations: null`.
+The CLI does not execute plugins to invent live readiness. Config and Settings values are omitted.
+
+```sh
+bitakit add slot-definition notes/toolbar
+bitakit add settings-page notes
+bitakit migrate --navigation-slot shell.navigation --dry-run
+# Review the diff before running the same explicit migration without --dry-run.
+bitakit doctor
+```
+
+Doctor warns about literal `groups: ['navigation']` Actions without explicit placement when
+Shell is installed. The opt-in migration adds the chosen `slots` target and retains logical
+groups. It skips spread-based ambiguous objects; imported/computed declarations require manual
+review. No group name is automatically reinterpreted as a slot. Migration scans the app source
+root; externally included plugin directories require their own review. For a legacy 0.1 layout,
+finish/review the layout migration before previewing placement changes.
+
+`settings-page` writes `ui/settings/page.tsx` and uses the existing `renderField` callback;
+`@bitakit/app-preferences` must be installed. It creates neither a value store nor navigation
+Actions. Templates never overwrite existing files.

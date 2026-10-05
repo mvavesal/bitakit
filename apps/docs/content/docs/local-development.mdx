@@ -1,0 +1,54 @@
+---
+title: Use this checkout
+description: Create a learning app from the exact package sources in this repository.
+---
+
+Use this setup when the API you are reading is not in your installed release.
+It produces the same minimal Next.js app as the [quickstart](/docs/quickstart).
+Run the first two steps from the BitaKit repository root.
+
+## 1. Install and pack
+
+```sh
+npm ci
+npm run pack -- .tmp/docs-packages core discovery ui app-preferences next cli
+```
+
+The script builds local packages and puts their npm archives in `.tmp/docs-packages`.
+App Preferences is included for the later Settings lesson; it is not installed in the initial app.
+
+## 2. Create the learning app
+
+```sh
+node packages/create-app/src/cli.mjs ../my-app \
+  --framework next --features none --yes \
+  --packages-dir "$PWD/.tmp/docs-packages"
+```
+
+The destination must not already exist. The official Next.js scaffold and external dependencies
+require an internet connection; BitaKit itself comes from your local archives.
+
+## 3. Run it
+
+```sh
+cd ../my-app
+npm run dev
+```
+
+Open the printed address, then continue with [the one-file Counter page](/docs/concepts/plugins).
+
+## Later: install the Settings UI
+
+When you reach the Settings lesson, install the archive you packed. The command below runs from
+BitaKit's repository root and installs into the sibling learning app:
+
+```sh
+npm --prefix ../my-app install "$PWD/.tmp/docs-packages/bitakit-app-preferences-0.2.0.tgz"
+```
+
+The generator's local package overrides keep dependencies on the same packed set.
+Then follow [mount the Settings route](/docs/concepts/settings#3-show-the-settings-page).
+
+Repack when testing newer source changes. The packing script replaces BitaKit archives in its
+destination; use a dedicated directory. Full generator verification is covered in
+[contributing](/docs/contributing#verify-the-generator-before-release).

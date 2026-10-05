@@ -47,11 +47,15 @@ the same validation after compiling a plugin. Development watches the installed 
 invalid update invalidates the generated stylesheet until corrected. Errors identify the
 package and file. An opt-in manifest hidden by package exports is diagnosed instead of skipped.
 
-These safeguards apply to declared package styles and explicit package-owned JS exports
-with relative static/literal dynamic imports. Wildcard JS exports, computed imports, external
-vendor script graphs and extensionless CSS subpaths are not comprehensively audited; the
-remaining graph-validation work is tracked in `REVIEW.md`. They do not sandbox arbitrary
-scripts, runtime-created style elements or CSS injected outside this contract.
+Discovery resolves literal relative and vendor runtime imports (including extensionless CSS
+export aliases), and audits every emitted file matching JS wildcard exports. Computed
+`import()`/`require()` and unresolved required imports fail with package/file diagnostics.
+Missing optional peers remain unavailable until installed; installing them makes their graph
+subject to the same audit. Unmodified vendor CSS imports are allowed only when their target
+already belongs to the validated eager root stylesheet graph. Plugin-owned JS CSS imports
+remain rejected. Explicit `bitakit.theme` entries are trusted theme authority. These checks
+are an import contract, not a sandbox for arbitrary scripts, runtime-created style elements
+or CSS injected outside this contract.
 Doctor checks static root integration; computed cascade correctness is
 verified by `scripts/verify-generated.mjs` in clean packed-package consumers.
 
@@ -78,3 +82,62 @@ Run `npm test --workspace @bitakit/next` and `npm test --workspace @bitakit/cli`
 ## License
 
 MIT
+
+#### Additional settings pages
+
+`ui.settings` accepts the existing `{ component }` and optional `pages` entries
+`{ id, component, title, path?, category?, order?, description?, icon?, shortcut? }`.
+Discovery's `ui/settings/page.tsx` default export may provide the same object. Core keeps
+components opaque; the shared UI catalog projects the declarations into settings routes and
+navigation. This adds no service registry, value store or host routing code.
+
+
+Plugin catalog metadata supports optional `tags: readonly string[]` and `coverImage`.
+Local plugin manifests use `metadata`; `bitakit build` copies these fields from package.json.
+Tags are catalog labels, not access rules. App Preferences derives filter choices from this
+metadata and stores the selected tags in the repeated `pluginTag` URL parameters. Missing covers fall
+back to the plugin icon.
+
+
+## Owned slots
+
+`slots/**/*.ts` exports `defineSlot` declarations; `ui/slots/**/*.tsx` still contributes UI.
+Both use the existing entry traversal. Dotted files, nested folders and `index.ts` records
+resolve to the same IDs. Plugin names are qualified; app names are plain. Generated `SlotMap`
+contains the definition types, including payload/data schemas. Legacy name-only declarations
+from manifests or `bitakit.config.ts` generate `LegacySlotMap` hints and never replace a contract.
+
+`describeFoundation` exposes `slotDeclarations` (static hints) and `unresolvedSlots`. It uses
+the shared TypeScript-based definition inspection without executing source. Local constant
+records and literal IDs are readable; imported/computed records stay unresolved. This is not
+runtime validation. A package built with `bitakit build` carries generated `plugin.slots.json`
+next to its plugin entry so Doctor can inspect the same hints without importing client code.
+Keep the sidecar in the published `dist`; never edit or maintain it separately from source.
+
+Declared `ui/slots` targets use runtime-owned attachment with wait by default. Namespace exports
+`id`, `key`, `order` and `availability` are preserved, including through `bitakit build`; the
+generated `pluginSlot` call records the source file for attribution. Target definitions and
+component files remain separate. Unknown legacy targets are not promoted to declarations.
+
+
+## Development refresh
+
+Framework hosts generate a component-only `bitakit.gen.tsx` and a client-side
+`bitakit.gen.config.ts` for configuration/type maps. Normal hosts keep importing
+`BitaKitProvider` from `bitakit.gen`. Advanced consumers that previously imported
+`createBitaKitConfig` there now import it from `bitakit.gen.config`. Without a framework,
+`bitakit.gen.ts` remains the configuration entry. Do not hand-edit generated files.
+
+The watcher writes complete files atomically and regenerates promptly on filesystem renames.
+A watch session reuses its audited installed-package graph for local source-only changes;
+package metadata, configuration selection, styles and external watched files invalidate it.
+The cache contains package discovery results, never application values or a second runtime.
+
+Next development checks cover add/edit/delete, whole-plugin removal and collection leaf removal,
+with a preserved document token and page draft. This is bundler Fast Refresh followed by an
+awaited composition replacement, not `reconcilePlugins` or arbitrary code hot replacement.
+Affected slot/form state can remount during composition replacement; compatible explicit
+runtime updates retain Phase 8's owner-specific guarantees. Named components are the supported
+React refresh path. Structural provider changes, server code, dependency installation and
+changes outside a React refresh boundary can require a host restart/reload. Restart the dev
+server after changing Node-loaded generator/integration code. No universal HMR promise.

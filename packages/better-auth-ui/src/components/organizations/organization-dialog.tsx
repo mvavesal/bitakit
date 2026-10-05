@@ -33,6 +33,15 @@ const organizationFormSchema = z.object({
   website: organizationWebsiteSchema,
 });
 
+const validationKeys: Record<string, string> = {
+  'Enter a name.': 'foundationUI.organization_dialog.nameRequired',
+  'The name must be at most 100 characters.': 'foundationUI.organization_dialog.nameTooLong',
+  'Use lowercase letters, numbers and single hyphens.':
+    'foundationUI.organization_dialog.invalidSlug',
+  'The identifier must be at most 80 characters.': 'foundationUI.organization_dialog.slugTooLong',
+  'Invalid URL.': 'foundationUI.organization_dialog.invalidWebsite',
+};
+
 export function OrganizationDialog({
   service,
   organizationId,
@@ -47,6 +56,8 @@ export function OrganizationDialog({
   secondaryActions?: ReactNode;
 }) {
   const translateUI = useTranslation();
+  const validationMessage = (message?: string) =>
+    message ? translateUI(validationKeys[message] ?? message, undefined, message) : undefined;
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
   const initial = state.organizations.find((item) => item.id === organizationId);
   const [saved, setSaved] = useState(false);
@@ -105,31 +116,31 @@ export function OrganizationDialog({
         })(event);
       }}
     >
-      <FieldGroup>
-        <FieldSet>
-          {embedded && (
-            <FieldLegend>
-              {translateUI('foundationUI.organization_dialog.appearance', undefined, 'Appearance')}
-            </FieldLegend>
-          )}
-          <Surface>
-            <Content>
+      <Surface>
+        <Content>
+          <FieldGroup>
+            <FieldSet>
+              {embedded && (
+                <FieldLegend>
+                  {translateUI(
+                    'foundationUI.organization_dialog.appearance',
+                    undefined,
+                    'Appearance',
+                  )}
+                </FieldLegend>
+              )}
               <OrganizationLogoField disabled={busy} initialLogo={initial?.logo ?? ''} />
-            </Content>
-          </Surface>
-        </FieldSet>
-        <FieldSet>
-          {embedded && (
-            <FieldLegend>
-              {translateUI('foundationUI.organization_dialog.general', undefined, 'General')}
-            </FieldLegend>
-          )}
-          <Surface>
-            <Content>
+            </FieldSet>
+            <FieldSet>
+              {embedded && (
+                <FieldLegend>
+                  {translateUI('foundationUI.organization_dialog.general', undefined, 'General')}
+                </FieldLegend>
+              )}
               <FieldGroup
                 className={
                   embedded
-                    ? "gap-0 [&>div+div]:border-t-(length:--border-width) [&>div+div]:pt-(--card-spacing) [&>div:not(:last-child)]:pb-(--card-spacing)"
+                    ? 'gap-0 [&>div+div]:border-t-(length:--border-width) [&>div+div]:pt-(--card-spacing) [&>div:not(:last-child)]:pb-(--card-spacing)'
                     : undefined
                 }
               >
@@ -163,7 +174,9 @@ export function OrganizationDialog({
                       disabled={busy}
                     />
                     {errors.name && (
-                      <FieldError id="org-name-error">{errors.name.message}</FieldError>
+                      <FieldError id="org-name-error">
+                        {validationMessage(errors.name.message)}
+                      </FieldError>
                     )}
                   </FieldContent>
                 </Field>
@@ -202,7 +215,9 @@ export function OrganizationDialog({
                       disabled={busy}
                     />
                     {errors.slug && (
-                      <FieldError id="org-slug-error">{errors.slug.message}</FieldError>
+                      <FieldError id="org-slug-error">
+                        {validationMessage(errors.slug.message)}
+                      </FieldError>
                     )}
                   </FieldContent>
                 </Field>
@@ -240,74 +255,76 @@ export function OrganizationDialog({
                       disabled={busy}
                     />
                     {errors.website && (
-                      <FieldError id="org-website-error">{errors.website.message}</FieldError>
+                      <FieldError id="org-website-error">
+                        {validationMessage(errors.website.message)}
+                      </FieldError>
                     )}
                   </FieldContent>
                 </Field>
               </FieldGroup>
-            </Content>
-          </Surface>
-        </FieldSet>
-        {saved && (
-          <p role="status">
-            {translateUI(
-              'foundationUI.organization_dialog.changesSaved',
-              undefined,
-              'Changes saved.',
+            </FieldSet>
+            {saved && (
+              <p role="status">
+                {translateUI(
+                  'foundationUI.organization_dialog.changesSaved',
+                  undefined,
+                  'Changes saved.',
+                )}
+              </p>
             )}
-          </p>
-        )}
-        {changed && (
-          <p role="alert">
-            {translateUI(
-              'foundationUI.organization_dialog.theWorkspaceChangedOpenItAgain',
-              undefined,
-              'The workspace changed. Open it again.',
+            {changed && (
+              <p role="alert">
+                {translateUI(
+                  'foundationUI.organization_dialog.theWorkspaceChangedOpenItAgain',
+                  undefined,
+                  'The workspace changed. Open it again.',
+                )}
+              </p>
             )}
-          </p>
-        )}
-        {error && (
-          <p role="alert">
-            {translateUI(
-              'foundationUI.organization_dialog.savingFailedCheckYourInputAndPermissions',
-              undefined,
-              'Saving failed. Check your input and permissions.',
+            {error && (
+              <p role="alert">
+                {translateUI(
+                  'foundationUI.organization_dialog.savingFailedCheckYourInputAndPermissions',
+                  undefined,
+                  'Saving failed. Check your input and permissions.',
+                )}
+              </p>
             )}
-          </p>
-        )}
-        <div
-          data-slot="organization-form-actions"
-          className="flex flex-wrap items-center justify-end gap-2"
-        >
-          {secondaryActions && <div className="mr-auto">{secondaryActions}</div>}
-          {!embedded && (
-            <Button variant="outline" type="button" disabled={busy} onClick={close}>
-              {translateUI('foundationUI.organization_dialog.cancel', undefined, 'Cancel')}
-            </Button>
-          )}
-          <Button disabled={busy || changed || state.pending} type="submit">
-            {busy
-              ? translateUI('foundationUI.organization_dialog.saving', undefined, 'Saving…')
-              : state.pending
-                ? translateUI(
-                    'foundationUI.organization_dialog.loadingOrganizationDetails',
-                    undefined,
-                    'Loading organization details…',
-                  )
-                : organizationId
-                  ? translateUI(
-                      'foundationUI.organization_dialog.saveChanges',
-                      undefined,
-                      'Save changes',
-                    )
-                  : translateUI(
-                      'foundationUI.organization_dialog.createOrganization',
-                      undefined,
-                      'Create organization',
-                    )}
-          </Button>
-        </div>
-      </FieldGroup>
+            <div
+              data-slot="organization-form-actions"
+              className="flex flex-wrap items-center justify-end gap-2"
+            >
+              {secondaryActions && <div className="mr-auto">{secondaryActions}</div>}
+              {!embedded && (
+                <Button variant="outline" type="button" disabled={busy} onClick={close}>
+                  {translateUI('foundationUI.organization_dialog.cancel', undefined, 'Cancel')}
+                </Button>
+              )}
+              <Button disabled={busy || changed || state.pending} type="submit">
+                {busy
+                  ? translateUI('foundationUI.organization_dialog.saving', undefined, 'Saving…')
+                  : state.pending
+                    ? translateUI(
+                        'foundationUI.organization_dialog.loadingOrganizationDetails',
+                        undefined,
+                        'Loading organization details…',
+                      )
+                    : organizationId
+                      ? translateUI(
+                          'foundationUI.organization_dialog.saveChanges',
+                          undefined,
+                          'Save changes',
+                        )
+                      : translateUI(
+                          'foundationUI.organization_dialog.createOrganization',
+                          undefined,
+                          'Create organization',
+                        )}
+              </Button>
+            </div>
+          </FieldGroup>
+        </Content>
+      </Surface>
     </form>
   );
 }
@@ -325,6 +342,8 @@ export function ConfirmOrganizationAction({
   close(): void;
 }) {
   const translateUI = useTranslation();
+  const validationMessage = (message?: string) =>
+    message ? translateUI(validationKeys[message] ?? message, undefined, message) : undefined;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
   const [member] = useState(() =>

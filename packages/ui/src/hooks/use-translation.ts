@@ -32,7 +32,7 @@ export function useTranslation(): Translate {
     const translate: Translate = (key, values, fallback = key) =>
       runtime?.text(key, fallback, values) ?? fallback;
     translate.getCatalog = (namespace) =>
-      ready && runtime ? runtime.services.i18n?.getCatalog?.(namespace) : undefined;
+      ready && runtime?.hasService('i18n') ? runtime.services.i18n?.getCatalog?.(namespace) : undefined;
     translate.has = (key) => runtime?.translator().has?.(key) ?? false;
     return translate;
   }, [runtime, revision, ready]);

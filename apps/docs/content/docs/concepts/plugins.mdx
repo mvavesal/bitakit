@@ -1,149 +1,55 @@
 ---
-title: Plugins and lifecycle
-description: One feature in one folder, connected by the runtime.
+title: 2. Add a page
+description: Create a plugin with a single page file.
 ---
 
-**Owner:** `@bitakit/core`. Plugins are trusted application code. They group services, actions, events and UI; Core does not render their UI.
+Start in the minimal app from the [quickstart](/docs/quickstart).
+A **plugin** groups the files for one feature. Start with just a page; add behavior only when
+you need it. We will grow one plugin called **counter** throughout these lessons.
 
-Most plugins are two or three files. Everything else on this page is optional: add a folder only when a feature needs it.
+[Read more about plugin files →](/docs/concepts/discovery)
 
-## Start with two files
+## 1. Create one file
 
-In an app with BitaKit discovery configured, a plugin is a folder under `src/plugins`. Add a service and an action; their paths supply their names.
-
-```text
-src/plugins/todos/
-  services/tasks.ts
-  actions/add.ts
-```
-
-The CLI writes these files from templates (`npx bitakit add service todos/tasks`, `npx bitakit add action todos/add`); `npx bitakit add plugin todos` creates a complete plugin in one go. See the [command line](/docs/cli) page.
-
-### The service owns the tasks
-
-```ts
-// src/plugins/todos/services/tasks.ts
-import { defineService } from '@bitakit/core';
-
-export type Task = { id: number; title: string };
-
-export default defineService(({ store }) => {
-  const state = store<{ items: Task[] }>({ items: [] });
-  return {
-    state,
-    list: () => state.get().items,
-    add(title: string) {
-      state.set((s) => ({ items: [...s.items, { id: Date.now(), title }] }));
-    },
-  };
-});
-```
-
-The `id` on a task is application data, not a service registration ID. `store()` keeps the tasks in memory; this example does not persist them.
-
-### The action calls the service
-
-```ts
-// src/plugins/todos/actions/add.ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction<string>({
-  title: 'Add task',
-  execute: ({ services, input }) => services.todos.tasks.add(input),
-});
-```
-
-`defineAction<string>` declares the input, the task title.
-
-### The paths supply the identities
-
-| Source                           | Automatically derived identity                           |
-| -------------------------------- | -------------------------------------------------------- |
-| Plugin folder `todos/`           | Plugin `todos`                                           |
-| Service file `services/tasks.ts` | Service `todos.tasks`, reached as `services.todos.tasks` |
-| Action file `actions/add.ts`     | Action `todos.add`                                       |
-
-Neither contribution needs an explicit ID. Discovery generates the imports, registration and types into `src/bitakit.gen.tsx`, and TypeScript checks the service name and the input. `npx bitakit add plugin todos` creates a complete plugin with these conventions.
-
-## Use it
-
-Bind the action to a button on any page of your app, for example `src/app/page.tsx`:
+Create `src/plugins/counter/ui/pages/index.tsx`:
 
 ```tsx
 'use client';
-
-import { Action, useServiceState } from '@bitakit/ui';
-
-export default function Page() {
-  const tasks = useServiceState('todos.tasks', (state) => state.items, []);
-  return (
-    <>
-      <Action id="todos.add" input="Buy milk">
-        <button />
-      </Action>
-      <ul>
-        {tasks.map((task) => (
-          <li key={task.id}>{task.title}</li>
-        ))}
-      </ul>
-    </>
-  );
-}
-```
-
-You see an **Add task** button. Each click runs `todos.add` with the input `Buy milk`; the button is disabled while the action runs, and the list re-renders because `useServiceState` follows the store. You wrote no click handler and no subscription.
-
-## Grow only when you need to
-
-The two files above are a complete plugin. When a feature needs more, each addition is one more file in the same folder: `events.ts` for typed events, `settings.ts` for user settings (they get a generated settings page), `configs/<name>.ts` for developer configuration, `ui/pages/<path>.tsx` for pages, `ui/slots/<slot>.tsx` for a component in a layout slot, `ui/dialogs/<name>.tsx` for dialogs an action opens, `ui/providers/<name>.tsx` for React providers, `interceptors/<name>.ts` to observe actions and `locales/<lang>.json` for translations. Everything under `ui/` is React; nothing outside it may import React. The [complete folder reference](/docs/concepts/discovery) lists every entry with the ID it gets.
-
-## Add a page
-
-A file under `ui/pages` exports a component; its path is the URL below `/<plugin>`:
-
-```tsx
-// src/plugins/todos/ui/pages/index.tsx  → /todos
-'use client';
-
 import { PageHeader } from '@bitakit/ui/components';
 
-export default function TodosPage() {
-  return <PageHeader title="Tasks" />;
+export default function CounterPage() {
+  return <PageHeader title="Counter" />;
 }
 ```
 
-`ui/pages/tasks/[id].tsx` serves `/todos/tasks/:id` and receives `params.id`. The app renders plugin pages from one catch-all route; apps created with `@bitakit/create-app` include it:
+## 2. Open the page
 
-```tsx
-// src/app/[...path]/page.tsx
-'use client';
+With the dev server running, visit **`/counter`**. You should see the Counter heading.
+If you create files while the server is stopped, `npm run typecheck` generates their types before checking them.
 
-import { PluginPage } from '@bitakit/ui';
+That single file is a plugin. Its folder supplies the name; discovery connects its page.
 
-export default function Page() {
-  return <PluginPage fallback={<p>Page not found.</p>} />;
-}
+```text
+src/plugins/counter/
+└── ui/pages/index.tsx   → /counter
 ```
 
-Routes of the app itself take precedence, and a navigation action (`defineAction({ title: 'Tasks', href: '/todos', groups: ['navigation'] })`) only creates a link, never a page. Duplicate or invalid paths fail at startup.
+## 3. Understand the names
 
-To place a smaller component inside a screen the app owns, export it from `ui/slots/<slot>.tsx` instead and render `<PluginSlot name="dashboard.content" />` once where it belongs. Slot components appear when the plugin starts and disappear with it.
+| Path                   | Meaning                            |
+| ---------------------- | ---------------------------------- |
+| `counter/`             | Plugin ID `counter`                |
+| `ui/pages/index.tsx`   | The plugin's root page, `/counter` |
+| `ui/pages/history.tsx` | Another page, `/counter/history`   |
 
-## Dependencies and setup
+Only create the files the feature needs. A `plugin.config.ts`, service, Action, event or slot is not required to show this page.
 
-`plugin.config.ts` is optional and declares what discovery cannot derive:
+**Next:** [Give the Counter a value →](/docs/concepts/services)
 
-```ts
-// src/plugins/todos/plugin.config.ts
-export default { dependencies: ['shell'], metadata: { name: 'Todos' } };
-```
+## Later: scaffold a larger feature
 
-Dependencies order startup; a missing or cyclic dependency is a startup error naming both plugins. `setup.ts` default-exports a function that runs once after the plugin's actions are registered, with `{ app, services }`, and may return a cleanup. Use it to attach actions to groups the plugin does not own; put async work in a service `onStart` instead.
+`npx bitakit add plugin notes` creates a fuller example with a service, events, Actions and a page.
+It is useful once those concepts are familiar. For the learning path, continue growing the Counter one file at a time.
 
-## What happens automatically
-
-The configured host discovers the files. Core creates the services in dependency order, registers the actions, installs interceptors and UI, runs `setup` and releases everything when the provider unmounts. You do not create an ActionList, mount a runtime or write a stop function for each feature.
-
-In development, a plugin that fails to start is turned off together with the plugins that depend on it, and a startup report names the plugin, the cause and the file. The rest of the app keeps running, and a page that still needs one of its services explains that instead of crashing. Production builds fail fast.
-
-Next, read [Services](/docs/concepts/services) and [Actions](/docs/concepts/actions). Manual runtime ownership is covered in [Advanced — manual composition](/docs/concepts/manual-composition).
+For explicit dependencies or a reusable package, see the [service reference](/docs/reference/services)
+and [package guide](/docs/packages).

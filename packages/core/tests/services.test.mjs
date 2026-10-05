@@ -61,11 +61,11 @@ test('services form a namespaced tree: services.<plugin>.<name>, never a flat ke
     assert.equal(runtime.app.has('todos.nothing'), false);
     assert.equal(runtime.app.optional, undefined);
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('exposeAs and provides add top-level aliases onto the same instance', () => {
+test('exposeAs and provides add top-level aliases onto the same instance', async () => {
   const key = serviceKey('mailer');
   const session = {
     getSnapshot: () => ({ user: null, pending: false, error: undefined }),
@@ -98,11 +98,11 @@ test('exposeAs and provides add top-level aliases onto the same instance', () =>
       assert.equal(runtime.app.has(name), true, name);
     assert.deepEqual(Object.keys(runtime.services).sort(), ['auth', 'mail', 'mailer', 'outbox']);
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('record services take <plugin>.<key>; array entries need an explicit id; app keys are not prefixed', () => {
+test('record services take <plugin>.<key>; array entries need an explicit id; app keys are not prefixed', async () => {
   const runtime = createRuntime({
     services: { clock: defineService(() => ({ now: () => 1 })) },
     plugins: [
@@ -121,7 +121,7 @@ test('record services take <plugin>.<key>; array entries need an explicit id; ap
     assert.equal(runtime.app.has('clock'), true);
     assert.deepEqual(Object.keys(runtime.app.config), ['app', 'todos', 'notes']);
   } finally {
-    stop();
+    await stop();
   }
   assert.throws(
     () =>
@@ -179,11 +179,11 @@ test('host services are reachable by contract name and satisfy requires; require
     assert.deepEqual(seen, ['u1', 0]);
     assert.equal((await runtime.actions.execute('todos.who')).value, 'u1');
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('app.services explains not-ready before mount and after stop; runtime.services is live while mounted', () => {
+test('app.services explains not-ready before mount and after stop; runtime.services is live while mounted', async () => {
   const runtime = createRuntime({ plugins: [definePlugin({ id: 'todos', services: { tasks } })] });
   assert.throws(
     () => runtime.app.services.todos,
@@ -196,7 +196,7 @@ test('app.services explains not-ready before mount and after stop; runtime.servi
   assert.equal(runtime.app.ready, true);
   const first = runtime.services.todos.tasks;
   assert.equal(runtime.app.services.todos.tasks, first);
-  stop();
+  await stop();
   assert.equal(runtime.app.ready, false);
   assert.equal(runtime.app.has('todos.tasks'), false);
   assert.throws(
@@ -208,7 +208,7 @@ test('app.services explains not-ready before mount and after stop; runtime.servi
   again();
 });
 
-test('a service factory receives one context object and may read its dependencies lazily', () => {
+test('a service factory receives one context object and may read its dependencies lazily', async () => {
   const seen = [];
   const runtime = createRuntime({
     configOverrides: { todos: { limit: 3 } },
@@ -237,7 +237,7 @@ test('a service factory receives one context object and may read its dependencie
     assert.equal(runtime.services.todos.stats.limit, 3);
     assert.equal(runtime.services.todos.stats.count(), 0);
   } finally {
-    stop();
+    await stop();
   }
   assert.throws(() => defineService({ id: 'x' }), /expects a factory function/);
 });

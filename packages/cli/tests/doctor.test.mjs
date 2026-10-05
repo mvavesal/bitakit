@@ -430,3 +430,35 @@ test('doctor reports plugin dependency cycles and enabled plugins that depend on
   assert.equal(status(results, /Plugin dependencies are consistent/), 'ok');
   assert.equal(find(results, /form a cycle|disabled plugins/), undefined);
 });
+
+test('doctor reads slot contracts without executing source and attributes duplicate IDs', async (t) => {
+  const root = await project(nextApp({
+    'src/plugins/shell/slots/index.ts': `
+      import { defineSlot as slot } from '@bitakit/core';
+      throw new Error('must never execute');
+      const footer = slot({ accepts: 'component' });
+      export default { sidebar: { footer } };
+    `,
+    'src/plugins/notes/ui/slots/shell.sidebar.footer.tsx': 'export default () => null;',
+  }), t);
+  let { results } = await doctor({ cwd: root });
+  assert.equal(status(results, /Slot files target declared slots/), 'ok');
+  await write(root, { 'src/plugins/other/slots/logo.ts': `import { defineSlot } from '@bitakit/core'; export default defineSlot({ id: 'shell.sidebar.footer', accepts: 'component' });` });
+  ({ results } = await doctor({ cwd: root }));
+  const duplicate = find(results, /Duplicate slot declarations/);
+  assert.equal(duplicate.status, 'error');
+  assert.match(duplicate.details.join(' '), /other\/slots\/logo.ts.*shell\/slots\/index.ts|shell\/slots\/index.ts.*other\/slots\/logo.ts/);
+});
+
+test('doctor reports unresolved contracts and mismatched component targets honestly', async (t) => {
+  const root = await project(nextApp({
+    'src/slots/menu.ts': `import { defineSlot } from '@bitakit/core'; export default defineSlot({ accepts: 'actions' });`,
+    'src/slots/dynamic.ts': 'export { default } from "./-shared";',
+    'src/slots/-shared.ts': 'export default {}',
+    'src/plugins/notes/ui/slots/menu.tsx': 'export default () => null;',
+  }), t);
+  const { results } = await doctor({ cwd: root });
+  const result = results.find((entry) => entry.details?.some((item) => item.includes('contract accepts actions')));
+  assert.equal(result.status, 'warn');
+  assert.match(result.details.join(' '), /Static inspection cannot resolve.*slots\/dynamic.ts/);
+});

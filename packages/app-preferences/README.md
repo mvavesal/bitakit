@@ -34,6 +34,17 @@ Declare settings in any plugin (or the app) and they appear on a generated page:
 ```ts
 // src/plugins/todos/settings.ts
 import { defineSettings, setting } from '@bitakit/core';
+export default defineSettings({ pageSize: setting({ default: 20 }) });
+```
+
+Open `/settings/todos`: its navigation entry, page and number control are generated.
+Read the value with `useSetting('todos.pageSize')` in React. Start here; all options below are optional.
+
+### Later: labels, controls and categories
+
+```ts
+// src/plugins/todos/settings.ts
+import { defineSettings, setting } from '@bitakit/core';
 
 export default defineSettings(
   {
@@ -52,7 +63,7 @@ export default defineSettings(
 );
 ```
 
-- One section per module that declares visible settings or a settings page. Its URL segment is
+- A default section per module that declares visible settings or a settings page; optional additional pages share the same catalog. Its URL segment is
   `path` (default: the plugin ID, `general` for the app).
 - Fields render in a card; settings with a `group` get their own titled card. `hidden` settings
   stay off generated pages but keep working through `useSetting` and `<SettingField settingKey>`.
@@ -89,6 +100,73 @@ export default function TodoSettings({ section }: { section: SettingsCatalogSect
 The page header (title and description) is rendered around it. Controls are exported for
 custom layouts; each takes `SettingControlProps<T>` (`field`, `id`, `value`, `onChange`,
 `disabled`, `describedBy`) and only renders a value and reports a new one.
+
+### Settings extension slots
+
+Install the ordinary `appPreferencesPlugin` (automatically discovered in generated hosts).
+Its existing catalog now projects one navigation Action and one keyed body per visible page.
+Authors keep `settings.ts` and `ui/settings/page.tsx`; no manual body or navigation registration.
+
+| Slot                                | Content         | Context/selection                                                    |
+| ----------------------------------- | --------------- | -------------------------------------------------------------------- |
+| `app-preferences.navigation`        | Actions         | Catalog pages plus explicitly placed destination Actions             |
+| `app-preferences.navigation.footer` | Components      | Sidebar widgets                                                      |
+| `app-preferences.page.body`         | Keyed component | `entryKey` is the catalog page ID; maintained by the catalog adapter |
+| `app-preferences.page.after`        | Component list  | `{ pageId }`; several ordered extensions can target the same page    |
+| `app-preferences.page.toolbar`      | Actions         | `{ pageId }` maps to each Action's input                             |
+
+```tsx
+// audit/ui/slots/app-preferences.page.after.tsx
+import type { SlotPredicate } from '@bitakit/core';
+import type { SlotProps } from '@bitakit/ui';
+export const order = 20;
+export const when: SlotPredicate<'app-preferences.page.after'> = ({ payload }) =>
+  payload.pageId === 'billing/history';
+export default function Audit({ payload }: SlotProps<'app-preferences.page.after'>) {
+  return <p>History for {payload.pageId}</p>;
+}
+```
+
+`when` is a pure per-outlet predicate. It receives the parsed payload and does not change global
+attachment state. For reactive behavior within a widget use the existing service/setting hooks;
+for toolbar Actions use `visible`/`enabled` and the mapped input.
+
+```ts
+// audit/actions/export.ts
+export default defineAction<string>({
+  title: 'Export',
+  slots: [{ name: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }],
+  visible: ({ input }) => input === 'billing/history',
+  execute: ({ input, services }) => services.audit.export(input),
+});
+```
+
+A custom page still receives `{ section, renderField }`. `showHeader: false` gives the page
+ownership of its heading. Additional pages retain IDs such as `billing/history`, independently
+of URL overrides and translations; each additional page can also specify `showHeader`.
+
+```tsx
+// billing/ui/settings/page.tsx
+export default {
+  component: BillingPage,
+  boundary: BillingAccess, // ({ children }) => allowed ? children : existing access UI
+  pages: [{ id: 'history', title: 'History', component: HistoryPage }],
+};
+```
+
+The optional boundary encloses the header, toolbar, body and extensions. Extra pages inherit it
+or declare their own. A default component export can use `export const boundary = BillingAccess`.
+Reuse the owning integration's access policy; this UI boundary does not authorize storage or
+server operations. First-party account/organization pages share their existing guards with their
+extensions. Duplicate body keys fail; extend `page.after` instead of replacing a projected body.
+
+Navigation uses live Action controls with native links and guarded `linkProps({ href })` for
+route-base/search adaptation. Existing nuqs search, fields, category grouping and translation
+remain. A plain destination Action uses `slots: ['app-preferences.navigation']` and defaults to
+the General category; groups never choose its placement. Search for catalog pages still includes
+field labels/options. Source or host removal releases projections through the existing lifecycle;
+compatible explicit host updates also rebuild composition-reading projections. Structural changes
+still require whole-composition replacement.
 
 ### Persist settings on a server
 
@@ -141,9 +219,9 @@ The seven controls are `SwitchControl`, `SelectControl`, `RadioControl`, `CardsC
 `TextControl`, `TextareaControl` and `NumberControl`. `embedded` on `SettingsShell` drops the
 back link and keeps the sidebar open on wide screens, for a host dialog.
 
-`@bitakit/app-preferences/foundation` (default export): `appPreferencesPlugin({ basePath?, groups? })`.
+`@bitakit/app-preferences/foundation` (default export): `appPreferencesPlugin({ basePath?, groups?, slots? })`.
 `basePath` (default `/settings`) must match the route; `groups` (default `['navigation']`) are
-the Action groups of the "Settings" entry (an empty list keeps it out of navigation).
+the logical groups of the "Settings" entry. `slots` selects its placement targets; by default it joins Shell navigation when installed. `slots: []` omits navigation placement. Explicit unknown targets fail.
 
 ### URL Actions
 
@@ -181,9 +259,9 @@ The catalog resolves `<plugin>.settings.<name>.label|description`,
 | ------------------------------------------ | ------------------------------------------------------------------------------- |
 | `src/index.ts`, `src/foundation.ts`        | Public entries                                                                  |
 | `src/plugin.ts`                            | `appPreferencesPlugin`: own section, Plugins page, setup                        |
-| `src/navigation.ts`                        | URL Action projection of the catalog                                            |
+| `src/navigation.ts`                        | Owned navigation Action and keyed body projection                               |
 | `src/catalog.ts`                           | `settingsCatalog()`: the headless twin of `useSettingsCatalog()`                |
-| `src/composition.ts`                       | Stopgap: finds the composed modules for setup (see Limitations)                 |
+| `src/slots.ts`                             | Typed Settings navigation, body, extensions, toolbar and footer definitions     |
 | `src/categories.ts`, `src/search.ts`       | Category order and grouping, search matching                                    |
 | `src/paths.ts`, `src/text.ts`, `src/id.ts` | Paths, English texts and translation helpers, plugin ID                         |
 | `src/components/settings-*.tsx`            | Route, shell, navigation, pages, fields, overview                               |
@@ -194,11 +272,10 @@ The catalog resolves `<plugin>.settings.<name>.label|description`,
 
 ## Limitations
 
-- Core passes `setup` no module list yet. `src/composition.ts` finds the runtime that composed
-  the plugin through an app extension and the services view; it goes away once Core exposes the
-  composed modules (with their settings declarations) to setup.
-- Projected titles follow the `i18n` service. A host that translates only through the
-  `translate` prop of `FoundationProvider` gets English Action titles; the pages are translated.
+- Explicit compatible `runtime.reconcilePlugins` updates restart the composition-reading
+  catalog projection; structural changes and provider config prop changes replace the runtime.
+  `scopeModules`, `scopeTranslation` and scope-owned lifecycle observation reuse the catalog.
+  Both service and provider translations update titles without replacing body attachments.
 - `SettingsShell` owns a `SidebarProvider`. Inside another sidebar layout the central provider
   reports its `Mod+B` shortcut as already registered.
 
@@ -208,6 +285,91 @@ The catalog resolves `<plugin>.settings.<name>.label|description`,
 npm test --workspace @bitakit/app-preferences   # build, type check, node --test (jsdom)
 ```
 
-Dependencies: `@bitakit/core`, `@bitakit/ui`, `nuqs`, `radix-ui`, `reicon-react`; peer `react`.
+Dependencies: `@bitakit/core`, `@bitakit/ui`, `nuqs`, `radix-ui`, `reicon-react`, `zod`; peer `react`.
 Consumers: apps with a settings route, `@bitakit/shell`, Quick Search (through the projected
 Actions).
+
+### Multiple pages from one plugin
+
+Keep the existing `ui.settings.component` for the default page. Add `ui.settings.pages`
+with entries `{ id, component, title, description?, path?, category?, order?, icon?, shortcut?, showHeader?, boundary? }`.
+Paths are relative to `/settings`; without `path`, a page uses `<default section path>/<id>`.
+Each page has a stable catalog ID `<plugin>/<id>` while destination metadata retains the
+owning plugin ID. Additional pages do not duplicate setting fields or runtime stores.
+The React hook and navigation actions use the same catalog implementation in `@bitakit/ui`.
+A discovered `ui/settings/page.tsx` may export this object as its default export instead of a
+component. Existing component exports continue to work. The settings host owns the heading;
+content components should retain their forms and toolbars without duplicating the page title.
+Categories group navigation; they do not grant access. Pages and server APIs enforce permissions.
+
+### Plugin overview layout
+
+The settings shell constrains the viewport; the plugin list scrolls independently while its
+header and search stay visible. Plugin details list every catalog page by owning plugin ID,
+including App Preferences' own page. Versions use the standard Badge when metadata supplies
+a version; missing versions are not invented. `ui.settings.showHeader: false` lets a custom
+page own its header. The shared `PageHeader.before` slot places back navigation above the title.
+
+### Plugin catalog metadata
+
+Plugin metadata may declare `tags: readonly string[]` and `coverImage`. Tags are optional,
+case-sensitive catalog labels (prefer short stable lowercase names such as `security`),
+not permissions or dependencies. The catalog derives the tag choices from installed plugins;
+there is no tag registry. Multiple selected tags match any selected label and combine with text search; `pluginTag` and
+`pluginSearch` are nuqs URL state and survive detail/back navigation. Existing plugins without
+tags remain visible when no tag is selected. Names, descriptions and tags participate in text search.
+
+Declare metadata in `definePlugin({ metadata: { tags, coverImage } })`, local
+`plugin.config.ts` metadata, or the package.json `tags` / `coverImage` fields consumed by
+`bitakit build`. Discovery and package builds preserve both fields. Covers are optional;
+missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback).
+
+App Preferences uses the standard table and Radix ScrollArea in its owning visual package.
+Search and page headings stay outside the scroll viewport. The same ScrollArea is exported
+for composition; table scrolling is owned by that viewport rather than a nested native
+scroll container. Preserve the theme focus token and Radix data-orientation selectors when
+updating registry components. No app CSS is needed.
+
+The plugin table includes pagination (5, 10, 20 or 50 rows; default 10), stored in
+`pluginPage` and `pluginPageSize`. Search/tag/page-size changes reset to page one;
+out-of-range page links are normalized. Pagination stays outside the scroll viewport.
+Unknown versions display a dash, with a descriptive screen-reader label.
+
+The plugin overview consumes `useRuntimeInventory` for public metadata and declarations.
+React icons remain presentation values outside the serializable snapshot. Installed packages
+without a running instance are not synthesized into this runtime-only overview.
+`bitakit add settings-page <plugin>` scaffolds a custom page retaining `renderField`; generated
+navigation and body registration remain automatic.
+
+
+Settings bodies and extension widgets use the UI package's standard per-contribution render
+boundary. A failed custom/generated body identifies the page's plugin; siblings/navigation
+remain usable. The retry fallback stays inside the existing page access boundary and disappears
+when access is revoked. This does not change service startup policy or server authorization.
+
+
+## Shared layouts and extension regions
+
+Shell owns `brand`, `header.start/center/end`, `header.rows`, contextual `header.row.start/end`,
+`content.before/after`, `footer`, `drawer.header/body/footer`, `navigation.group.before/after`
+and optional `state.content/actions` under the `shell.` prefix. Existing `sidebar.header/footer`,
+`sidebar.body`, `app-bar.end` and the Action slot `shell.navigation` remain explicit contracts.
+`ShellSurface` is the shared base for `AppShell.Content` and `AppShell.FullPage`; named layouts
+use the existing `src/layouts/` convention. `blank` remains bare. Render children once.
+
+Use `AppShell.HeaderRow` with a unique row ID, `AppShell.NavigationGroup` with an explicit Action
+slot, and `AppShell.Drawer` with a unique drawer ID. Contributions filter rowId/groupId/drawerId
+through `when`; omitting it intentionally selects all occurrences. Radix Sheet retains focus
+and modality; side is logical start/end, with explicit/inherited Radix direction.
+
+`PageState`/error helpers accept `content` for composition and optional `surfaceId` for keyed
+message/list recovery regions. Core is never required for host-owned fallback/retry. Optional
+regions are guarded against missing/stopped runtimes and client render failures. This does not
+catch SSR or arbitrary asynchronous errors. Essential recovery stays outside failing plugins.
+
+App Preferences additionally owns `navigation.header`, `navigation.group.before/after` with
+`groupId`, and `page.header/before/footer` with `pageId`. Page regions remain inside the existing
+page access boundary. Navigation-shell regions are not protected by an individual page boundary.
+No second Settings catalog, store, route registry or layout engine is introduced.
+
+Progressive examples and the full region table: `apps/docs/content/docs/reference/layouts.mdx`.

@@ -1,35 +1,106 @@
 ---
-title: Build with BitaKit
-description: Your framework. Your features. A simpler way to connect them.
+title: Introduction
+description: Build your application from features that fit together.
 ---
 
-![BitaKit — Your app. Your building blocks.](/brand/bitakit-banner.png)
+## What is BitaKit?
 
-Build your next feature with less wiring. BitaKit connects your services, actions and plugins while you keep your framework and your app's behavior.
+BitaKit is a TypeScript foundation for applications built from **plugins**. A plugin is one
+feature: its pages, behavior, settings and extension points live together. BitaKit connects
+those pieces; your framework keeps its routes and rendering.
 
-Start small: create a service, add an action, and bind it. TypeScript carries the types from your definition to the caller. Add settings, an app shell or integrations when you need them.
+Work through predictable **file conventions**, or compose the same definitions directly with
+the **TypeScript API**. Both use the same plugin model and runtime.
 
-## Start here
+Start with a plugin for your feature, then give it a page. Add an Action when it needs a button, a setting when it needs a preference,
+and a slot when another plugin should be able to extend it.
 
-[Create your app](/docs/quickstart) with one command. Then [build your first plugin](/docs/concepts/plugins) in two files.
+## Why BitaKit?
 
-New to the terms? [Core concepts](/docs/concepts) explains each piece. Curious how Core works without a framework? The [To-do walkthrough](/docs/concepts/tutorial) runs it in plain Node (advanced).
+| When your app needs… | BitaKit gives you… |
+| --- | --- |
+| Features that can grow independently | A plugin folder containing the feature's own files. |
+| Clear locations for developers and AI coding agents | Conventional paths and generated types that make each feature easier to find and extend. |
+| Several people or agents extending the app | Feature ownership and explicit contracts between plugins. |
+| The same operation in several places | One Action, bound to buttons, links or menus. |
+| New UI inside an existing feature | Named slots that other plugins can target. |
+| Preferences with a Settings page | One declaration for saved values, fields and navigation. |
+| Communication and shared observation | Events and interceptors with runtime-owned cleanup. |
+
+BitaKit is useful when several features need these shared conventions. A small page can stay
+small: you do not need every capability, an optional UI package or a full manifest to start.
+
+## Files first, APIs when you need them
+
+If you know file-based conventions from frameworks such as Next.js, the idea will feel familiar:
+**the file's location tells BitaKit what it contributes**. In an app configured with the BitaKit
+framework adapter and provider, add a supported file with its default export; discovery generates
+the imports and types. You do not maintain a registration list for each new file.
+
+```text
+src/plugins/notes/
+├── actions/open.ts      → Action: notes.open
+├── settings.ts          → Notes preferences
+└── ui/pages/index.tsx   → Page: /notes
+```
+
+These are optional additions, not a required scaffold. The same conventions give developers and
+AI coding agents a shared map: Actions go in `actions/`, services in `services/`, and owned slot
+definitions in `slots/`.
+
+| How you prefer to work | How the same Action joins the Notes plugin |
+| --- | --- |
+| File conventions | Put a `defineAction` default export in `src/plugins/notes/actions/open.ts`. |
+| Programmatic API | Pass that Action definition as `open` in `definePlugin({ id: 'notes', actions: { open } })`, then include the plugin in your host composition. |
+
+Discovery runs during development and builds. It registers definitions; a page, Action binding
+or mounted slot still determines where UI appears.
+
+[Read more: file conventions and automatic discovery →](/docs/concepts/discovery)
+ · [Compose plugins through the API →](/docs/concepts/manual-composition)
 
 ## How the pieces fit
 
-- **Core** manages plugin lifecycle, services, actions, events and shared contracts.
-- **UI** connects the runtime to React. Framework integrations connect navigation and run discovery at build time.
-- **Plugins** own their functionality, UI and translations. Install only the capabilities you need.
-- **Your app** supplies product behavior, routes and configuration.
+1. **Keep each feature together.** Discovery connects its files and generates imports and types.
+2. **Extend through declared places.** Plugins contribute Actions or UI to slots the owner exposes.
+3. **Share the runtime, keep your framework.** Core owns execution, state and cleanup; React bindings
+   and optional visual plugins connect that behavior to your application.
 
-## Current availability
+<ArchitectureIllustration />
 
-The generator and the BitaKit packages are available on npm (0.1). These guides describe
-the next release, 0.2, which changes the plugin API; it is not on npm yet. TanStack Start is
-experimental.
+[Read more: architecture and package boundaries →](/docs/concepts/architecture)
 
-## Grow the documentation
+### Clear ownership, explicit contracts
 
-Each package can have its own guide in this site. Read
-[Contributing documentation](/docs/contributing) to add a page through a pull request.
-A documentation contribution does not install, publish or register a runtime plugin.
+Each developer or AI coding agent can work inside the feature it owns. Plugins connect through
+**service contracts, declared events and named slots**, so another feature can use or extend
+them without editing their internal files.
+
+<Diagram name="feature-contracts" />
+
+For example, Activity can listen to a Notes event and Tips can add a widget to the Notes footer.
+Neither needs to rewrite the Notes page or Core. Keeping changes local reduces accidental
+coupling and the risk of breaking shared foundations; compatible contracts and tests still matter.
+
+[Read more: shared service contracts →](/docs/concepts/manual-composition#explicit-contracts-across-packages)
+ · [Events →](/docs/concepts/events) · [Slots →](/docs/concepts/slots)
+
+## Try adding a piece
+
+Choose a numbered step to see its first example immediately, then add one small piece at a
+time. Define the plugin, add its page, extend its UI, then connect behavior. Each selection shows
+what changes and the exact file to write. Click an added region to revisit its code.
+
+<IntroductionIllustration />
+
+## Start here
+
+[Build your first feature →](/docs/concepts)
+
+The short guide grows one Counter from a page into a working plugin, one idea at a time.
+Already comfortable with the basics? Use [Patterns at a glance](/docs/concepts/patterns),
+the [Action API reference](/docs/reference/actions) or [optional packages](/docs/packages).
+
+These guides describe the **0.2 API in this checkout**. Keep the generator and BitaKit packages
+on matching versions. The [local package workflow](/docs/local-development) runs this source
+without requiring a published release. TanStack Start support remains experimental.

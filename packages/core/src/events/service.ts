@@ -19,6 +19,7 @@ export class EventService implements Events {
   private subscriptions = new Set<() => void>();
   private observers = new Set<(event: FoundationEvent) => void>();
   private declared = new Map<string, Declared>();
+  private reserved = new Set<string>();
   constructor(
     private onError: EventErrorHandler = (error, event) => {
       console.error(`Event handler failed for "${event.type}".`, error);
@@ -27,6 +28,8 @@ export class EventService implements Events {
 
   /** Registers a plugin's `events.ts`; its names live under `<plugin>.`. */
   declare(plugin: string, definition: EventsDefinition) {
+    if (this.reserved.has(plugin))
+      throw new Error(`Event namespace "${plugin}" is reserved by the runtime.`);
     const existing = this.declared.get(plugin);
     if (existing)
       throw new Error(`Plugin "${plugin}" declares its events twice. Keep one events.ts.`);
@@ -47,7 +50,25 @@ export class EventService implements Events {
     return this.declared.get(name.split('.')[0])?.cancelable.has(name) ?? false;
   }
 
+  /** Reserves a runtime-owned namespace and returns its private publishing capability. */
+  reserve(namespace: string): (name: string, data: unknown) => void {
+    if (this.declared.has(namespace) || this.reserved.has(namespace))
+      throw new Error(`Event namespace "${namespace}" is already owned.`);
+    this.reserved.add(namespace);
+    return (name, data) => {
+      if (!name.startsWith(`${namespace}.`))
+        throw new Error('Event is outside the reserved namespace.');
+      this.dispatch(name, data);
+    };
+  }
+
   emit = ((name: string, data?: unknown) => {
+    if (this.reserved.has(name.split('.')[0]))
+      throw new Error(`Event "${name}" is emitted only by the runtime.`);
+    return this.dispatch(name, data);
+  }) as Events['emit'];
+
+  private dispatch = (name: string, data?: unknown): void | Promise<boolean> => {
     const schema = this.declared.get(name.split('.')[0])?.schemas.get(name);
     const payload = schema ? schema.parse(data) : data;
     if (this.isCancelable(name)) return this.emitCancelable(name, payload);
@@ -68,7 +89,7 @@ export class EventService implements Events {
         console.error('Event observer failed.', error);
       }
     }
-  }) as Events['emit'];
+  };
 
   private async emitCancelable(name: string, data: unknown): Promise<boolean> {
     let cancelled = false;

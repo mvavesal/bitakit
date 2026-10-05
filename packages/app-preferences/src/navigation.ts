@@ -1,5 +1,7 @@
 import {
   ActionGroup,
+  scopeLifecycle,
+  type SlotAttachment,
   destinationMetadata,
   type ActionDefinition,
   type ActionIcon,
@@ -9,6 +11,7 @@ import {
 import PuzzleIcon from 'reicon-react/icons/Puzzle';
 import SettingIcon from 'reicon-react/icons/Setting';
 import { settingsCatalog, visibleSections, type SettingsCatalogModule } from './catalog.js';
+import { SettingsBody } from './components/settings-body.js';
 import { pluginId } from './id.js';
 import { sectionHref } from './paths.js';
 import { categoryTitle, message } from './text.js';
@@ -21,17 +24,13 @@ export type SettingsNavigationProjection = {
   readonly basePath: string;
   /** Action groups the "Settings" entry joins. */
   readonly groups: readonly string[];
+  readonly slots?: readonly string[];
 };
 type Target = ReturnType<PluginScope['actions']['getGroup']>;
 type Registration = { handle: ReturnType<Target['add']>; groups: string };
 
 const groupKey = (groups: readonly ActionGroup[] = []) =>
   groups.map((group) => `${group.id}\u0000${group.title ?? ''}`).join('\u0001');
-/** `defineSettings(..., { shortcut })` opens the page from the keyboard. */
-const shortcutOf = (modules: readonly SettingsCatalogModule[], id: string) => {
-  const keys = modules.find((module) => module.id === id)?.settings?.section?.shortcut;
-  return keys ? { keys } : undefined;
-};
 // Category names are free text; group IDs are not.
 const groupId = (prefix: string, name: string) =>
   `${prefix}.${name.replace(/[^a-zA-Z0-9._:/-]+/g, '-')}`;
@@ -79,8 +78,11 @@ function registry(target: Target) {
  */
 export function bindSettingsNavigation(
   scope: PluginScope,
-  { modules, appId, translation, basePath, groups }: SettingsNavigationProjection,
+  { modules, appId, translation, basePath, groups, slots }: SettingsNavigationProjection,
 ): () => void {
+  const lifecycle = scopeLifecycle(scope);
+  let closed = false;
+  const projections = new Map<string, { navigation: SlotAttachment; body: SlotAttachment }>();
   const sections = registry(scope.actions.getGroup('settings.pages'));
   const [entryGroup = 'settings.entry', ...entryGroups] = groups;
   const entry = registry(scope.actions.getGroup(entryGroup));
@@ -88,7 +90,16 @@ export function bindSettingsNavigation(
   const sync = () => {
     const { translate } = translation;
     const text = (key: string, fallback: string) => translation.text(key, fallback);
-    const catalog = settingsCatalog(modules, appId, translate);
+    if (closed) return;
+    const state = lifecycle.get();
+    const activeModules = modules.filter((module) => {
+      const phase = state.plugins.find((entry) => entry.id === module.id)?.phase;
+      return (
+        !['stopping', 'stopped', 'failed', 'blocked'].includes(phase ?? 'idle') &&
+        !['stopping', 'stopped', 'failed'].includes(state.phase)
+      );
+    });
+    const catalog = settingsCatalog(activeModules, appId, translate);
     sections.sync(
       visibleSections(catalog).map((section) => ({
         id: `settings.section.${section.id}`,
@@ -97,10 +108,10 @@ export function bindSettingsNavigation(
         href: sectionHref(basePath, section),
         icon: section.icon as ActionIcon | undefined,
         order: section.order,
-        shortcut: shortcutOf(modules, section.id),
+        shortcut: section.shortcut ? { keys: section.shortcut } : undefined,
         metadata: destinationMetadata({
           kind: 'settings',
-          plugin: section.app ? undefined : section.id,
+          plugin: section.app ? undefined : section.plugin,
         }),
         groups: [
           new ActionGroup(
@@ -110,6 +121,35 @@ export function bindSettingsNavigation(
         ],
       })),
     );
+    const ids = new Set(visibleSections(catalog).map((section) => section.id));
+    for (const [id, projection] of projections)
+      if (!ids.has(id)) {
+        projection.navigation.dispose();
+        projection.body.dispose();
+        projections.delete(id);
+      }
+    for (const section of visibleSections(catalog))
+      if (!projections.has(section.id)) {
+        const navigation = scope.slots.attach(
+          'app-preferences.navigation',
+          {
+            id: `page:${section.id}`,
+            actionId: `settings.section.${section.id}`,
+            order: section.order,
+          },
+          { availability: 'wait' },
+        );
+        const body = scope.slots.attach(
+          'app-preferences.page.body',
+          {
+            id: `page:${section.id}`,
+            key: section.id,
+            component: SettingsBody,
+          },
+          { availability: 'wait' },
+        );
+        projections.set(section.id, { navigation, body });
+      }
     entry.sync([
       {
         id: 'app-preferences.settings',
@@ -123,7 +163,7 @@ export function bindSettingsNavigation(
     const heading = new ActionGroup('settings.plugins.heading', message(translate, 'plugins'));
     plugins.sync(
       overview
-        ? modules
+        ? activeModules
             .filter((module) => module.id !== appId)
             .map((plugin) => ({
               id: `settings.plugins.${plugin.id}`,
@@ -140,11 +180,51 @@ export function bindSettingsNavigation(
     );
   };
   sync();
+  // The optional Shell entry is independent of the catalog's logical groups.
+  const targets = slots ?? (scope.slots.has('shell.navigation') ? ['shell.navigation'] : []);
+  const placements = targets.map((name) =>
+    scope.slots.attach(
+      name,
+      {
+        id: 'settings-entry',
+        actionId: 'app-preferences.settings',
+      },
+      { availability: 'wait' },
+    ),
+  );
   const unsubscribe = translation.subscribe(sync);
-  return () => {
+  // Declarations are immutable for this runtime. Re-sync only when available owners change.
+  let availability = '';
+  const stopWatching = lifecycle.subscribe((state) => {
+    const next = JSON.stringify([
+      state.phase === 'stopping' || state.phase === 'stopped' || state.phase === 'failed',
+      state.plugins
+        .filter((entry) => ['stopping', 'stopped', 'failed', 'blocked'].includes(entry.phase))
+        .map((entry) => entry.id),
+    ]);
+    if (next !== availability) {
+      availability = next;
+      sync();
+    }
+  });
+  const dispose = () => {
+    if (closed) return;
+    closed = true;
+    stopWatching();
     unsubscribe();
+    for (const placement of placements) placement.dispose();
+    for (const projection of projections.values()) {
+      projection.navigation.dispose();
+      projection.body.dispose();
+    }
+    projections.clear();
     sections.dispose();
     entry.dispose();
     plugins.dispose();
+  };
+  const release = scope.onClose(dispose);
+  return () => {
+    release();
+    dispose();
   };
 }

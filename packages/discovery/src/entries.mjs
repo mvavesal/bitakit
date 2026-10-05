@@ -44,6 +44,7 @@ export const contributionKinds = {
   services: { folder: 'services', suffixes: ['service'] },
   interceptors: { folder: 'interceptors', suffixes: ['interceptor'] },
   configs: { folder: 'configs', suffixes: [] },
+  slotDefinitions: { folder: 'slots', suffixes: [] },
   pages: { folder: 'ui/pages', legacy: 'pages', suffixes: ['page'] },
   slots: { folder: 'ui/slots', legacy: 'views', suffixes: ['view'] },
   providers: { folder: 'ui/providers', legacy: 'providers', suffixes: ['provider'] },
@@ -156,7 +157,12 @@ export async function discoverEntries(
     if (legacySuffix) segments.pop();
     if (!legacySuffix && segments.at(-1) === 'index') segments.pop();
     if (segments.some((segment) => !segment)) throw new Error(`Empty contribution path: ${file}`);
-    const sourceText = await readFile(file, 'utf8');
+    const sourceText = await readFile(file, 'utf8').catch((error) => {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    });
+    // An editor can remove a file between directory traversal and parsing.
+    if (sourceText === null) continue;
     const shown = path.relative(relativeTo, file).split(path.sep).join('/');
     if (!hasDefaultExport(file, sourceText)) {
       warnings.push(

@@ -1,50 +1,99 @@
 ---
 title: Interceptors
-description: Observe or gate actions and observe service calls across a feature.
+description: Observe an Action, add a gate, or trace a service call without changing its outcome.
 ---
 
-**Owner:** `@bitakit/core`. Interceptors attach cross-cutting behavior to existing execution and service calls. Keep feature operations in actions and services.
-
-One helper covers both targets. A file under `interceptors/` default-exports one definition or an array of them.
+Interceptors add behavior around existing operations. Start with one observation;
+keep the operation itself in its Action or service.
 
 ## Action interceptors
 
-```ts
-// src/plugins/todos/interceptors/audit.ts
-import { defineInterceptor } from '@bitakit/core';
+### 1. Choose what to log
 
-export default defineInterceptor({
-  action: 'todos.*', // exact IDs, 'todos.*' for one plugin, '*' for everything
-  order: 10,
-  before: ({ id, input, services }) => {
-    if (id === 'todos.clear' && !services.auth.getSnapshot().user) return false; // cancels
-  },
-  after: ({ id, result }) => console.debug('done', id, result),
-  onError: ({ id, error }) => console.error('failed', id, error),
-});
+This independent example assumes a Todos plugin with `todos.add`, `todos.list` and
+`todos.remove`. Select one Action, all Todos Actions, or all Actions in the application.
+The highlighted operations are observed; the code below is the whole file to create.
+
+<InterceptorIllustration kind="actions" />
+
+`after` logs completed runs. The interceptor does not replace the operation or its result.
+The wildcard matches Action IDs, not `groups` membership.
+
+### 2. Add a gate only when needed
+
+For the Counter tutorial, target `action: 'counter.increment'` and add this property to
+skip an increment when the count is already 10 or higher:
+
+```ts
+before: ({ services }) => services.counter.value.state.get().count < 10,
 ```
 
-`before` runs before `execute` and may return a promise; `false` skips the run with the reason `intercepted`. `after` and `onError` observe completed and failed runs. The context is the action's execute context plus `translate`. A definition without `action` observes every action of its own plugin.
+`false` skips execution with reason `intercepted`. A promise from `before` is awaited.
+This is a client execution rule; server authorization still belongs on the server.
 
-Plugin interceptors match only their own plugin's actions unless `scope: 'global'`. App interceptors (under `src/interceptors`) are global unless `scope: 'plugin'`. `order` sorts ascending, with registration order for ties. Without `interceptors.enabled` in `bitakit.config.ts`, every discovered app interceptor is active; a list selects them.
+<Diagram name="action-interceptors" />
+
+### 3. Observe failure
+
+In an Action interceptor, add this property when the feature needs error reporting:
+
+```ts
+onError: ({ id, error }) => console.error('Failed:', id, error),
+```
+
+A skipped run is not a failed run. `after` observes completed runs; `onError` observes failures,
+including a rejected `before` hook. Their return values do not replace the result, their promises
+are not awaited by execution, and their own failures are reported separately.
 
 ## Service interceptors
 
-```ts
-// src/plugins/todos/interceptors/service-calls.ts
-import { defineInterceptor } from '@bitakit/core';
+Select one method, every method on a service, or all services. Here `todos.items` has
+`add` and `list` methods. The observer logs the service and method names without modifying
+arguments or results.
 
-export default defineInterceptor({
-  service: 'todos.tasks',
-  method: 'list',
-  before: ({ args }) => console.debug('Listing tasks', args),
-  after: ({ result }) => console.debug('Task count:', result.length),
-  onError: ({ error }) => console.error(error),
-});
-```
+<InterceptorIllustration kind="services" />
 
-Known service methods infer arguments and awaited results. Omitting `method` observes every public method of the service.
+This observes calls through the service container, including calls outside an Action.
+Known service names infer method arguments and awaited result types. `service: 'todos.*'`
+also selects a service-name prefix; omit `method` to include every public method.
 
-Service hooks observe only: return values are ignored, callbacks are not awaited and callback failures are isolated. Do not mutate arguments or results. Original sync returns, promises and errors are preserved. Internal self-calls bypass these hooks. Every consumer sees the same wrapped service; runtime disposal disables observation and disposes the original instance.
+<Diagram name="service-interceptors" />
 
-`action` and `service` are mutually exclusive in one definition; export an array to combine them in one file.
+| Capability                     | Action interceptor                    | Service interceptor    |
+| ------------------------------ | ------------------------------------- | ---------------------- |
+| Inspect input                  | `input`                               | `args`                 |
+| Prevent execution              | `before` returns `false`              | No                     |
+| Await `before`                 | Yes                                   | No                     |
+| Observe completion/failure     | `after` / `onError`                   | `after` / `onError`    |
+| Replace result or wrap retries | No                                    | No                     |
+| Internal service self-call     | Only the enclosing Action is observed | Bypasses service hooks |
+
+Do not mutate arguments or results inside observers. Service callback errors are isolated;
+async callback results are ignored. Disposal disables observation and cleans up the owned instance.
+
+## Matching, order and context
+
+| Setting                                          | Behavior                                                             |
+| ------------------------------------------------ | -------------------------------------------------------------------- |
+| `action: 'counter.increment'`                    | One Action                                                           |
+| `action: 'counter.*'`                            | Matching Actions in that namespace                                   |
+| `action: ['counter.increment', 'counter.reset']` | Several targets                                                      |
+| No `action` or `service`                         | All Actions of the interceptor's plugin                              |
+| Plugin interceptor                               | Plugin scope by default; `scope: 'global'` opts in to other plugins  |
+| App interceptor under `src/interceptors/`        | Global by default; `scope: 'plugin'` restricts it                    |
+| `order`                                          | Lower values first; registration order breaks ties                   |
+| `service`                                        | Exact name, list, prefix wildcard or all services; aliases match too |
+| No `method`                                      | Every public method of the matching service                          |
+
+There is no separate “plugin hooks, then global hooks” stage. Matching Action definitions
+share the ordered sequence. `action` and `service` are mutually exclusive; default-export an
+array when one file contains multiple definitions.
+
+Action hooks receive the execution context (`id`, raw `input`, `signal`, opaque `environment`,
+`get`, `update`) plus `services`, `config`, `app` and `translate`. This is not the Action handler's
+full context: do not assume `settings` or `events` are directly available on an interceptor.
+Service hooks receive `service`, `method`, `args` and, where applicable, `result` or `error`.
+
+Without `interceptors.enabled` in `bitakit.config.ts`, all discovered app interceptors are active;
+a configured list selects them. See [Patterns at a glance](/docs/concepts/patterns) to choose
+between an interceptor, an event, a store and Action options.

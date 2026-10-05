@@ -16,7 +16,12 @@ export type AppBarProps = {
 export function AppBar({ left, center, right, bottom, className }: AppBarProps) {
   const foundation = useContext(FoundationContext);
   return (
-    <header className={cn("shrink-0 border-b-(length:--border-width) bg-sidebar", className)}>
+    <header
+      className={cn(
+        'shrink-0 wrap-anywhere border-b-(length:--border-width) bg-sidebar',
+        className,
+      )}
+    >
       <div className="grid min-h-14 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         <div className="flex min-w-0 items-center gap-3">{left}</div>
         <div className="order-last col-span-2 min-w-0 empty:hidden lg:order-none lg:col-span-1">
@@ -27,7 +32,9 @@ export function AppBar({ left, center, right, bottom, className }: AppBarProps) 
           {right}
         </div>
       </div>
-      {bottom != null && <div className="min-w-0 border-t-(length:--border-width) px-4 py-2">{bottom}</div>}
+      {bottom != null && (
+        <div className="min-w-0 border-t-(length:--border-width) empty:hidden">{bottom}</div>
+      )}
     </header>
   );
 }

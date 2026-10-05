@@ -26,18 +26,21 @@ export const notificationService = serviceKey<NotificationService, 'notification
 export function translatedNotifications(
   service: NotificationService,
   services: Services,
+  assertActive: () => void = () => {},
 ): NotificationService {
   const text = (value: string, values: NotificationOptions['values']) => {
-    const translate = services.i18n?.translate;
+    const translate = 'i18n' in services ? services.i18n?.translate : undefined;
     return translate ? resolveText(translate, value, value, values) : value;
   };
   return {
-    show: (message, options = {}) =>
-      service.show(text(message, options.values), {
+    show: (message, options = {}) => {
+      assertActive();
+      return service.show(text(message, options.values), {
         ...options,
         description:
           options.description === undefined ? undefined : text(options.description, options.values),
-      }),
+      });
+    },
     dismiss: (id) => service.dismiss(id),
   };
 }

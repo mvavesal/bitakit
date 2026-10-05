@@ -33,6 +33,8 @@ export async function installedContributions(root, selection, jiti) {
   const stylesheets = [];
   const packages = [];
   const slots = [];
+  const slotDeclarations = [];
+  const unresolvedSlots = [];
   const visited = new Set();
   const queue = Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies })
     .sort()
@@ -75,6 +77,18 @@ export async function installedContributions(root, selection, jiti) {
     if (metadata.plugin) {
       const plugin = specifier(metadata.plugin);
       plugins.push(plugin);
+      // `bitakit build` emits this optional, derived sidecar. Never execute a client entry in Node.
+      let entryFile;
+      try { entryFile = createRequire(from).resolve(plugin); }
+      catch (error) { if (!['MODULE_NOT_FOUND', 'ERR_PACKAGE_PATH_NOT_EXPORTED'].includes(error.code)) throw error; }
+      const slotInfo = entryFile && /\.[cm]?[jt]sx?$/.test(entryFile)
+        ? await readFile(entryFile.replace(/\.[cm]?[jt]sx?$/, '.slots.json'), 'utf8')
+          .then(JSON.parse).catch((error) => { if (error.code !== 'ENOENT') throw error; })
+        : undefined;
+      if (slotInfo?.version === 1) {
+        slotDeclarations.push(...slotInfo.definitions.map((item) => ({ ...item, file: `${name}/${item.file}` })));
+        unresolvedSlots.push(...slotInfo.unresolved.map((file) => `${name}/${file}`));
+      }
       if (metadata.configuration) configurations[plugin] = metadata.configuration;
       // Plugin IDs the package plugin depends on at runtime; the generator adds them to the plugin.
       const ids = list(metadata.dependencies);
@@ -123,6 +137,8 @@ export async function installedContributions(root, selection, jiti) {
     styleSources,
     packages,
     slots,
+    slotDeclarations,
+    unresolvedSlots,
   };
 }
 

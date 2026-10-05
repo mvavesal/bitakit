@@ -57,7 +57,7 @@ for (const failOld of [false, true]) {
   });
 }
 
-test('setting() and defineSettings() validate declarations and defaults', () => {
+test('setting() and defineSettings() validate declarations and defaults', async () => {
   const todos = defineSettings({
     pageSize: setting({ default: 20 }),
     theme: setting({
@@ -253,7 +253,7 @@ test('every context receives typed setting handles; presentation follows setting
     assert.equal(storage.data.get('user:anonymous/todos.pageSize'), 5);
     assert.equal(runtime.app.settings.todos.pageSize.get(), 5);
   } finally {
-    stop();
+    await stop();
   }
   assert.equal(runtime.settings.state('todos.pageSize').ready, false, 'unmount deactivates');
 });
@@ -318,11 +318,11 @@ test('a plugin provides the settings.storage contract; identity follows the auth
     assert.equal(runtime.settings.state('todos.policy').writable, false);
     assert.equal(listeners.size, 1, 'identity tracking adds no second subscription');
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('setting declarations are validated at startup with attribution', () => {
+test('setting declarations are validated at startup with attribution', async () => {
   assert.throws(
     () =>
       createRuntime({

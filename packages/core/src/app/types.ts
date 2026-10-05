@@ -4,6 +4,8 @@ import type { Plugin, ServiceDefinition, ServiceMap } from '../definitions.js';
 import type { ContractName } from '../service-key.js';
 import type { SettingsOf } from '../settings/define.js';
 import type { SettingsAccess } from '../settings/access.js';
+import type { SlotTree } from '../discovered.js';
+import type { SlotEntry } from '../slots/define.js';
 
 /** @deprecated Augment `ServiceMap`; kept so older generated hosts still compile. */
 export interface PublicServiceMap {}
@@ -58,6 +60,21 @@ export type PublicSettingsOf<Plugins extends readonly Plugin[]> = [Plugins[numbe
         : never
     >;
 
+/** Typed slot contracts from manual plugin records or explicit-ID arrays. */
+export type PublicSlotsOf<Plugins extends readonly Plugin[]> = [Plugins[number]] extends [never]
+  ? {}
+  : Intersection<
+      Plugins[number] extends infer P
+        ? P extends { id: infer Id extends string; slots: infer S }
+          ? S extends readonly (infer D)[]
+            ? [D] extends [never]
+              ? {}
+              : Intersection<D extends { id: infer Name extends string } ? SlotEntry<D, Name> : {}>
+            : SlotTree<S, Id>
+          : {}
+        : never
+    >;
+
 type AtPath<Path extends string, Value> = Path extends `${infer Head}.${infer Tail}`
   ? { readonly [K in Head]: AtPath<Tail, Value> }
   : { readonly [K in Path]: Value };
@@ -72,11 +89,12 @@ export interface FoundationApp<Services extends object = ServiceMap> extends App
   readonly events: import('../events/types.js').Events;
   readonly actions: FoundationActions;
   readonly config: Namespace<Immutable<ConfigMap>>;
-  /** Live, typed access; reading a missing or not-yet-ready service throws a named error. */
+  /** Live, typed access; missing reads throw. Use has/service hooks for owner readiness. */
   readonly services: Namespace<Services>;
   /** Typed setting handles of every plugin; values load after mount, defaults before. */
   readonly settings: SettingsAccess;
+  /** Initial startup completed; compatible updates retain this until full shutdown. */
   readonly ready: boolean;
-  /** Whether a service is available right now, by ID or alias. */
+  /** Whether a service and its owner are ready right now, by ID or alias. */
   has(service: string): boolean;
 }

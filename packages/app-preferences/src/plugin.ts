@@ -2,6 +2,7 @@ import { definePlugin, defineSettings, scopeModules, scopeTranslation } from '@b
 import PuzzleIcon from 'reicon-react/icons/Puzzle';
 import SettingIcon from 'reicon-react/icons/Setting';
 import { PluginsOverview } from './components/plugins-overview.js';
+import { settingsSlots } from './slots.js';
 import { pluginId } from './id.js';
 import { bindSettingsNavigation } from './navigation.js';
 import { defaultBasePath } from './paths.js';
@@ -11,6 +12,8 @@ export type AppPreferencesPluginOptions = {
   basePath?: string;
   /** Action groups the "Settings" entry joins. Default `['navigation']`. */
   groups?: readonly string[];
+  /** Explicit placement targets; default is Shell navigation when installed. Empty omits placement. */
+  slots?: readonly string[];
 };
 
 /**
@@ -23,7 +26,9 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) 
   const groups = options.groups ?? ['navigation'];
   return definePlugin({
     id: pluginId,
+    slots: settingsSlots,
     metadata: {
+      tags: ['system'],
       name: 'App Preferences',
       description: 'Settings pages, setting controls and their navigation.',
       icon: SettingIcon,
@@ -39,7 +44,7 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) 
         order: 90,
       },
     ),
-    ui: { settings: { component: PluginsOverview }, providers: [] },
+    ui: { settings: { component: PluginsOverview, showHeader: false }, providers: [] },
     setup: ({ app }) => {
       if (!basePath.startsWith('/'))
         throw new Error(`basePath "${basePath}" must start with "/", for example "/settings".`);
@@ -50,6 +55,7 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) 
         translation: scopeTranslation(app),
         basePath,
         groups,
+        slots: options.slots,
       });
     },
   });

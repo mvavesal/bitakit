@@ -84,6 +84,7 @@ export type {
   PublicServiceMap,
   PublicServicesOf,
   PublicSettingsOf,
+  PublicSlotsOf,
 } from './app/types.js';
 export { FoundationServiceError } from './app/service-error.js';
 export { resolveFoundationConfig, type FoundationOverrides } from './configuration.js';
@@ -94,12 +95,34 @@ export {
   type NormalizedPlugin,
 } from './runtime.js';
 export { FoundationStartupError, isFoundationStartupError } from './startup-error.js';
+export type { Cleanup } from './lifecycle/cleanup.js';
+export type {
+  LifecyclePhase,
+  LifecycleFailure,
+  LifecycleEntry,
+  LifecycleSnapshot,
+  LifecycleState,
+} from './lifecycle/state.js';
+export {
+  RuntimeController,
+  createRuntimeController,
+  describeStartupFailure,
+  failedPluginClosure,
+  pluginExposesService,
+} from './lifecycle/controller.js';
+export type {
+  FailurePolicy,
+  StartupFailure,
+  RuntimeControllerSnapshot,
+  RuntimeControllerOptions,
+} from './lifecycle/controller.js';
 export {
   PluginScope,
   scopeModule,
   scopePlugins,
   scopeModules,
   scopeTranslation,
+  scopeLifecycle,
   type ComposedPlugin,
   type ComposedModule,
   type ScopeModule,
@@ -123,7 +146,18 @@ export { destinationMetadata, type Destination, type DestinationKind } from './d
 export * from './actions/core.js';
 export { pluginMetadata } from './metadata.js';
 export * from './discovered.js';
-export type { PresentationTypes, PresentationType, SlotMap, SlotName } from './presentation.js';
+export type {
+  PresentationTypes,
+  PresentationType,
+  SlotMap,
+  LegacySlotMap,
+  SlotName,
+} from './presentation.js';
+export { defineSlot, isSlotDefinition } from './slots/define.js';
+export type * from './slots/define.js';
+export type * from './slots/types.js';
+export type { ActionSlotPlacement } from './slots/action-placement.js';
+export { SlotError } from './slots/runtime.js';
 export {
   configureAuthPaths,
   resolveAuthReturnTo,
@@ -131,3 +165,20 @@ export {
   type AuthPaths,
   type AuthSignInOptions,
 } from './auth-navigation.js';
+
+export type { PluginUpdateResult } from './lifecycle/reconcile.js';
+
+export {
+  createInventory,
+  inspectRuntime,
+  observeRuntimeInventory,
+  inventoryMetadata,
+} from './inspection/inventory.js';
+export type {
+  RuntimeInventory,
+  InventoryPlugin,
+  InventoryDeclaration,
+  InventoryMetadata,
+  InventoryKind,
+  InventoryLive,
+} from './inspection/inventory.js';

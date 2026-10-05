@@ -28,7 +28,7 @@ export type DiscoveryConfig = {
   providers?: { directory?: string; enabled?: readonly string[] };
   interceptors?: { directory?: string; enabled?: readonly string[] };
   groups?: readonly string[];
-  /** Slot names the app's layouts render, in addition to those installed shells declare. */
+  /** Legacy name hints only; declare owned contracts in src/slots with defineSlot. */
   slots?: readonly string[];
   /** Reject unknown action IDs at compile time (default true). */
   strict?: boolean;
@@ -67,15 +67,20 @@ export function watchFoundation(root: string, onError?: (error: unknown) => void
 export const watchBitaKit: typeof watchFoundation;
 export const styleLayers: string;
 export const stylePrelude: string;
-export function cssImports(css: string, from: string): { value: string; rule: import('postcss').AtRule }[];
+export function cssImports(
+  css: string,
+  from: string,
+): { value: string; rule: import('postcss').AtRule }[];
 export function resolveStylesheet(specifier: string, from: string): string;
-export function validatePackageStyles(packages: {
-  name: string;
-  manifestFile: string;
-  manifest: { exports?: unknown };
-  styles: string[];
-  theme: string[];
-}[]): Promise<string[]>;
+export function validatePackageStyles(
+  packages: {
+    name: string;
+    manifestFile: string;
+    manifest: { exports?: unknown };
+    styles: string[];
+    theme: string[];
+  }[],
+): Promise<string[]>;
 export function detectFramework(manifest: {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
@@ -88,6 +93,14 @@ export function loadDiscoveryConfig(
 ): Promise<{ config: DiscoveryConfig; file?: string; legacy: boolean }>;
 
 export type DescribedEntry = { path: string; file: string };
+/** Non-executing static hints. Computed/imported records remain explicitly unresolved. */
+export function describeDefinitions(
+  entries: DescribedEntry[],
+  options: { helper: string; moduleId?: string; properties?: string[] },
+): Promise<{
+  definitions: { id: string; file: string; [property: string]: string }[];
+  unresolved: string[];
+}>;
 export type DescribedModule = {
   id: string;
   directory: string;
@@ -102,6 +115,8 @@ export type DescribedModule = {
   layouts?: { name: string; file: string }[];
   pages: DescribedEntry[];
   slots: DescribedEntry[];
+  /** Owned contracts under slots/, distinct from ui/slots contributions. */
+  slotDefinitions: DescribedEntry[];
   providers: DescribedEntry[];
   configs: DescribedEntry[];
   interceptors: DescribedEntry[];
@@ -120,6 +135,14 @@ export type FoundationDescription = {
   styles: string[];
   /** Slot names installed layouts render, plus `slots` from bitakit.config.ts. */
   slots: string[];
+  slotDeclarations: {
+    id: string;
+    plugin: string;
+    file: string;
+    accepts?: string;
+    policy?: string;
+  }[];
+  unresolvedSlots: string[];
   warnings: string[];
 };
 export function describeFoundation(root: string): Promise<FoundationDescription>;
@@ -136,5 +159,10 @@ export type MigrationChange = {
 /** Rewrites a 0.1 project layout to the current one. `dryRun` only reports the changes. */
 export function migrateProject(
   root: string,
-  options?: { dryRun?: boolean },
+  options?: { dryRun?: boolean; navigationSlot?: string },
 ): Promise<{ changes: MigrationChange[] }>;
+
+export function navigationPlacement(
+  source: string,
+  target?: string,
+): { code: string; changed: number; missing: { line: number; safe: boolean }[] };

@@ -1,6 +1,9 @@
 'use client';
-import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
-import { useFoundation, useSetting } from '@bitakit/ui';
+import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import { useFoundation, useService, useSetting } from '@bitakit/ui';
+
+import { themeTokens } from '../../themes.js';
+import { themeService, type ThemeService } from '../../services/themes.js';
 
 const darkScheme = '(prefers-color-scheme: dark)';
 /** Where the default browser settings storage keeps `shell.mode` (device scope, JSON). */
@@ -70,11 +73,39 @@ export function ShellTheme({ children }: { children: ReactNode }) {
   useRootAttribute('data-shell-corners', confirmed(useSetting('shell.corners')));
   return (
     <>
+      <ThemeProjection dark={mode === 'dark' || (mode === 'system' && systemDark)} modeReady={mode !== undefined} />
       {runtime.settings.has('shell.preset') ? <PresetProjection /> : null}
       {children}
     </>
   );
 }
+/** Root tokens also reach portaled controls. Switching removes all previous overrides. */
+function ThemeProjection({ dark, modeReady }: { dark: boolean; modeReady: boolean }) {
+  const library = useSetting('shell.themeLibrary');
+  const service = useService(themeService) as ThemeService | undefined;
+  const tokens = useMemo(() => library.ready && modeReady && service
+    ? themeTokens(service.active(), dark ? 'dark' : 'light')
+    : undefined, [library.ready, library.value, service, dark, modeReady]);
+  useEffect(() => {
+    if (!tokens) return;
+    const style = document.documentElement.style;
+    const previous = Object.keys(tokens).map((key) => {
+      const name = `--${key}`;
+      const value = style.getPropertyValue(name);
+      const priority = style.getPropertyPriority(name);
+      style.setProperty(name, tokens[key]!);
+      return { name, value, priority };
+    });
+    return () => {
+      for (const { name, value, priority } of previous) {
+        if (value) style.setProperty(name, value, priority);
+        else style.removeProperty(name);
+      }
+    };
+  }, [tokens]);
+  return null;
+}
+
 function PresetProjection() {
   useRootAttribute('data-theme-preset', confirmed(useSetting('shell.preset')));
   return null;

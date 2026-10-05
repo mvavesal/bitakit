@@ -82,11 +82,12 @@ export function SelectControl({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {options.map((option, index) => (
-          <SelectItem key={index} value={String(index)}>
-            {option.label}
-          </SelectItem>
-        ))}
+        {options.map((option, index) => {
+          const Icon = iconOf(option.icon);
+          return <SelectItem key={index} value={String(index)}>
+            <span className="flex items-center gap-2">{Icon && <Icon className="size-4 shrink-0" aria-hidden="true" />}{option.label}</span>
+          </SelectItem>;
+        })}
       </SelectContent>
     </Select>
   );

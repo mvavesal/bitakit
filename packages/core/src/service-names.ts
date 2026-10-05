@@ -13,16 +13,12 @@ type Node = { leaf?: string; children: Map<string, Node> };
  * `services.todos.items`; aliases (`exposeAs`, contracts) are extra paths onto the same
  * instance. Resolution never creates instances; the container stays the only owner.
  */
-/** Contract names that read as `undefined` when nobody provides them, matching their optional types. */
-export const optionalContracts: ReadonlySet<string> = new Set(['auth', 'i18n']);
-
 export class ServiceNames {
   private readonly ids = new Map<string, string>();
   private readonly root: Node = { children: new Map() };
   constructor(
     entries: readonly ServiceEntry[],
     private readonly appId: string,
-    private readonly optional: ReadonlySet<string> = optionalContracts,
   ) {
     for (const entry of entries) {
       this.add(entry.id, entry.id, entry.plugin);
@@ -103,12 +99,10 @@ export class ServiceNames {
           const path = prefix ? `${prefix}.${name}` : name;
           const child = node.children.get(name);
           if (!child) {
-            if (this.optional.has(path)) return undefined;
             throw new FoundationServiceError(path, notReady?.() ? 'not-ready' : 'unregistered');
           }
           if (child.leaf !== undefined) {
             if (!Object.hasOwn(instances, child.leaf)) {
-              if (this.optional.has(path)) return undefined;
               throw new FoundationServiceError(path, notReady?.() ? 'not-ready' : 'missing');
             }
             return instances[child.leaf];

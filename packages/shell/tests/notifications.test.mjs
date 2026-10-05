@@ -53,7 +53,7 @@ test('the service uses the HeroUI queue, translates through i18n and stops with 
   service.dismiss(saved);
   assert.ok(!toast.getQueue().visibleToasts.some((item) => item.key === saved));
   toast.close(native);
-  stop();
+  await stop();
   assert.equal(runtime.app.has('notifications'), false);
   assert.throws(() => service.show('Late'), /no longer active/);
   toast.clear();

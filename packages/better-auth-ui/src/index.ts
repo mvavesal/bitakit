@@ -7,3 +7,5 @@ export { betterAuthUIPlugin, betterAuthUIService } from './plugin.js';
 export type { BetterAuthUIConfiguration, BetterAuthUIOptions } from './plugin.js';
 export { AccountSettingsPage, type AccountSettingsPageProps } from './settings/account.js';
 export { createBetterAuthIntegration, type BetterAuthIntegrationOptions } from './integration.js';
+
+export { AccountProfileSettings, AccountSecuritySettings } from './settings/account.js';

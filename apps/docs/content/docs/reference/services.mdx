@@ -1,0 +1,82 @@
+---
+title: Service reference
+description: Dependencies, startup hooks, cleanup and service contracts.
+---
+
+Start with [one service and one store](/docs/concepts/services). Use this reference when the service needs another plugin or owns an external resource.
+
+## Use a service from another plugin
+
+Any contribution can use any service. List one that belongs to another plugin in `requires` when you want startup to report a missing plugin instead of the first click:
+
+```ts
+// src/plugins/reports/actions/summary.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  title: 'Summary',
+  requires: ['billing.invoices'],
+  execute: ({ services }) => services.billing.invoices.total(),
+});
+```
+
+`billing.invoices` is the ID of the `invoices` service in the `billing` plugin. A service lists the services its factory reads in the second argument of `defineService`, even within the same plugin: that sets the creation order and lets BitaKit report cycles:
+
+```ts
+export default defineService(({ services }) => ({ total: () => services.billing.invoices.sum() }), {
+  requires: ['billing.invoices'],
+});
+```
+
+A service that is not listed still fails with a named error, with suggestions for close names, when it is first read.
+
+## Lifecycle and resources
+
+Core creates one instance per runtime, in dependency order, makes it available to every contribution and stops it in reverse order when the runtime stops. Put async startup work in `onStart` and cleanup in `onStop`:
+
+```ts
+export default defineService(({ store, onStart, onStop }) => {
+  const state = store<{ items: Task[] }>({ items: [] });
+  onStart(async ({ signal }) => {
+    const response = await fetch('/api/tasks', { signal });
+    state.set({ items: await response.json() });
+  });
+  onStop(() => state.set({ items: [] }));
+  return { state };
+});
+```
+
+The app is ready after every `onStart` has completed. A factory or start hook that throws is a startup error that names the plugin and the file; in development the plugin is turned off and the rest of the app keeps running.
+
+Stop aborts startup and owned Actions, waits for their completion, then awaits all cleanup
+in reverse order. Required services stay available to dependent cleanup. Repeated calls
+share one completion; failures aggregate after the remaining disposers run. Always await
+stop before creating a replacement. Hooks must not await their own runtime's stop.
+
+A headless host can select `createRuntimeController(config, { failures: 'isolate' })`;
+`fail-fast` is the default. Isolation rebuilds the whole remaining composition after
+cleanup, rather than preserving individual service instances. React uses this same policy
+and waits for previous cleanup when configuration changes.
+
+Read `runtime.lifecycle.get()` or subscribe with `runtime.lifecycle.watch(listener)` for
+current plugin/service readiness and later updates. The event bus emits `runtime.lifecycle`
+for notifications; plugins cannot emit that runtime-owned event. Startup remains serial.
+Optional service consumers must check `app.has(name)` before reading. Missing direct reads
+(including `auth` and `i18n`) throw; `?.` alone does not check registration.
+
+Your service still owns its behavior and data. `store()` is in-memory state: BitaKit does not persist it, and `store.optimistic(apply, commit)` helps when the commit may fail. Use [events](/docs/concepts/events) when another plugin needs to react to a change.
+
+<Diagram name="service-lifecycle" />
+
+## Names, contracts and aliases
+
+Services are named `<plugin>.<file>` and nested accordingly: `services/billing/invoices.ts` in plugin `finance` is `services.finance.billing.invoices`. Two options change that:
+
+- `provides: contract` registers the instance under a shared contract key as well, such as `auth` or `i18n`. Contracts are created with `defineContract<T>('auth')` and shared between the package that provides a service and the plugins that use it.
+- `exposeAs: 'clock'` adds a flat alias in `services`. Use it only for deliberate flattening; two services with the same name fail at startup.
+
+```ts
+export default defineService(() => createAuthClient(), { provides: authService });
+```
+
+Most application features only need the files above. For packages or standalone programs without discovery, see [Advanced — manual composition](/docs/concepts/manual-composition).

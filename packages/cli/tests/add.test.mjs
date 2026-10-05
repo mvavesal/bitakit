@@ -46,7 +46,7 @@ test('add plugin writes a service, its events, actions, a navigation link and a 
   const open = await file('actions/open.ts');
   assert.match(
     open,
-    /export default defineAction\(\{ title: 'User notes', href: '\/user-notes', groups: \['navigation'\] \}\)/,
+    /export default defineAction\(\{ title: 'User notes', href: '\/user-notes', groups: \['navigation'\], slots: \["shell\.navigation"\] \}\)/,
   );
   assert.doesNotMatch(open, /defineURLAction/);
   const page = await file('ui/pages/index.tsx');
@@ -242,4 +242,32 @@ test('findProject reads bitakit.config.ts, flags foundation.config.ts and keeps 
   assert.match(failed.configError?.message ?? '', /not-installed/);
   await assert.rejects(addPlugin('notes', { cwd: broken }), /not-installed/);
   await assert.rejects(findProject(path.parse(broken).root), /No package\.json found/);
+});
+
+test('slot-definition scaffolds an owned contract separately from a UI slot contribution', async (t) => {
+  const root = await project(nextApp(), t);
+  await addPlugin('notes', { cwd: root, minimal: true });
+  const definition = await addContribution('slot-definition', 'notes/header/tools', { cwd: root });
+  assert.deepEqual(relative(root, definition.created), ['src/plugins/notes/slots/header/tools.ts']);
+  assert.match(
+    await read(root, 'src/plugins/notes/slots/header/tools.ts'),
+    /defineSlot\(\{ accepts: 'component', policy: 'list' \}\)/,
+  );
+  const view = await addContribution('slot', 'notes/header/tools', { cwd: root });
+  assert.deepEqual(relative(root, view.created), ['src/plugins/notes/ui/slots/header/tools.tsx']);
+});
+
+test('custom settings page scaffold retains canonical fields without duplicate registration', async (t) => {
+  const root = await project(nextApp(), t);
+  await addPlugin('notes', { cwd: root, minimal: true });
+  const result = await addContribution('settings-page', 'notes', { cwd: root });
+  assert.deepEqual(relative(root, result.created), ['src/plugins/notes/ui/settings/page.tsx']);
+  const source = await read(root, 'src/plugins/notes/ui/settings/page.tsx');
+  assert.match(source, /section.fields.map\(renderField\)/);
+  assert.doesNotMatch(source, /defineAction|slots.attach|useState/);
+  await assert.rejects(addContribution('settings-page', 'notes', { cwd: root }), /already exists/);
+  await assert.rejects(
+    addContribution('settings-page', 'notes/nested', { cwd: root }),
+    /once per plugin/,
+  );
 });

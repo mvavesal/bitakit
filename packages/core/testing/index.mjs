@@ -11,6 +11,7 @@ import {
   discoverSettings,
   discoverInterceptors,
   discoverServices,
+  discoverSlots,
   discoveredFile,
 } from '../dist/core.js';
 
@@ -83,6 +84,7 @@ export async function mountPlugin(directory = 'src', options = {}) {
     dependencies: manifest.dependencies,
     metadata: manifest.metadata,
     services: discoverServices(await load(module.services), id),
+    slots: discoverSlots(await load(module.slotDefinitions), id),
     actions: discoverActions(await load(module.actions), id),
     events: discoverEvents(await load(module.events)),
     settings: discoverSettings(await load(module.settings)),
@@ -99,16 +101,21 @@ export async function mountPlugin(directory = 'src', options = {}) {
     recorded.push({ type: event.type, data: event.data }),
   );
   const { actions } = runtime;
-  const stop = runtime.mount();
+  let completion;
   const release = () => {
-    unobserve();
-    stop();
+    if (!completion) {
+      unobserve();
+      completion = runtime.stop();
+    }
+    return completion;
   };
   try {
+    runtime.mount();
     await runtime.ready;
   } catch (error) {
-    // A failed onStart leaves the runtime mounted; release what the start created before reporting.
-    release();
+    try { await release(); } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], 'Plugin startup and cleanup failed.');
+    }
     throw error;
   }
   return {
@@ -122,6 +129,6 @@ export async function mountPlugin(directory = 'src', options = {}) {
     /** Executes `<plugin>.<name>` (or a full action ID) and returns the execution outcome. */
     execute: (name, input) => actions.execute(name.includes('.') ? name : `${id}.${name}`, input),
     stop: release,
-    [Symbol.dispose]: release,
+    [Symbol.asyncDispose]: release,
   };
 }

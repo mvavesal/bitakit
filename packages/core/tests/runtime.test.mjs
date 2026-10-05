@@ -28,7 +28,7 @@ test('createRuntime creates the ActionList unless one is passed, and accepts hos
   try {
     assert.equal((await runtime.actions.execute('notes.count')).value, 4);
   } finally {
-    stop();
+    await stop();
   }
   const actions = createActionList();
   const auth = { signOut: () => {} };
@@ -82,16 +82,16 @@ test('a pending action survives translation updates; scopes clean up on stop and
   await pending;
   assert.equal(calls, 1);
   assert.equal(list.get('users.invite').pending, false);
-  cleanup();
+  await cleanup();
   assert.deepEqual(Object.keys(list.getState().actions), []);
   const again = runtime.mount();
   assert.ok(list.get('users.invite'));
   assert.equal(list.get('users.invite').groups[0].id, 'users.menu');
-  again();
+  await again();
   assert.deepEqual(Object.keys(list.getState().actions), []);
 });
 
-test('failed setup rolls back actions, placements and services without touching host actions', () => {
+test('failed setup rolls back actions, placements and services without touching host actions', async () => {
   const list = createActionList([{ id: 'host', title: 'Host' }]);
   let stopped = 0;
   const runtime = new FoundationRuntime(list, {
@@ -120,8 +120,10 @@ test('failed setup rolls back actions, placements and services without touching 
       error.plugin === 'broken' &&
       /Setup failed/.test(error.message),
   );
+  await runtime.stopped;
   assert.deepEqual(Object.keys(list.getState().actions), ['host']);
   assert.equal(list.get('host').groups.length, 0);
+  await runtime.stopped;
   assert.equal(stopped, 1);
 });
 
@@ -146,12 +148,12 @@ test('setup receives the plugin scope and services, and its cleanup runs on stop
   const stop = runtime.mount();
   assert.equal((await runtime.actions.execute('demo.dynamic')).value, 'dynamic');
   assert.equal(runtime.actions.get('demo.dynamic').groups[0].id, 'demo.menu');
-  stop();
+  await stop();
   assert.equal(runtime.actions.get('demo.dynamic'), undefined);
   assert.deepEqual(log, [['setup', 'service', 'function'], ['added', 'function'], ['cleanup']]);
 });
 
-test('service dependency failures are explicit and release created services', () => {
+test('service dependency failures are explicit and release created services', async () => {
   let stopped = 0;
   const runtime = createRuntime({
     plugins: [
@@ -176,10 +178,11 @@ test('service dependency failures are explicit and release created services', ()
         error.message,
       ),
   );
+  await runtime.stopped;
   assert.equal(stopped, 1);
 });
 
-test('plugin messages fall back per key without mutating host dictionaries', () => {
+test('plugin messages fall back per key without mutating host dictionaries', async () => {
   const app = {
     en: { users: { last: 'English' } },
     de: { users: { title: 'App', fallback: 'Deutsch' } },
@@ -195,7 +198,7 @@ test('plugin messages fall back per key without mutating host dictionaries', () 
   assert.equal(app.de.users.title, 'App');
 });
 
-test('host catalogs override plugin keys and add a language with per-key fallback', () => {
+test('host catalogs override plugin keys and add a language with per-key fallback', async () => {
   const plugins = {
     en: { shell: { title: 'Shell', help: 'Help' } },
     de: { shell: { title: 'Rahmen' } },
@@ -210,7 +213,7 @@ test('host catalogs override plugin keys and add a language with per-key fallbac
   assert.equal(plugins.en.shell.title, 'Shell');
 });
 
-test('a group keeps its title whichever registration or configured entry mentions it first', () => {
+test('a group keeps its title whichever registration or configured entry mentions it first', async () => {
   const titled = () =>
     defineAction({
       id: 'todos.export',
@@ -235,7 +238,7 @@ test('a group keeps its title whichever registration or configured entry mention
           `${label}: ${id}`,
         );
     } finally {
-      stop();
+      await stop();
     }
   }
   const runtime = createRuntime({});

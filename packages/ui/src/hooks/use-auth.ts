@@ -24,7 +24,7 @@ export function useAuth() {
   const { runtime, signOutIntent, setSignOutIntent } = useFoundation();
   const { navigate, pathname } = useContext(UIContext);
   const ready = useSyncExternalStore(runtime.subscribeReady, runtime.isReady, () => false);
-  const service = ready ? runtime.services.auth : undefined;
+  const service = ready && runtime.hasService('auth') ? runtime.services.auth : undefined;
   const source = useMemo(
     () => ({
       subscribe: service ? (listener: () => void) => service.subscribe(listener) : idle,

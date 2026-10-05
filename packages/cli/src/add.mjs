@@ -9,7 +9,9 @@ import {
   layoutFile,
   pageFile,
   settingsFile,
+  settingsPageFile,
   slotFile,
+  slotDefinitionFile,
   dialogFile,
   providerFile,
   pluginFiles,
@@ -51,7 +53,11 @@ export async function addPlugin(name, { cwd, minimal = false } = {}) {
     throw new Error(`"${name}" is reserved for app routes. Choose another plugin name.`);
   const root = path.join(project.pluginsDirectory, name);
   if (await exists(root)) throw new Error(`${root} already exists. Nothing was changed.`);
-  const created = await writeNewFiles(root, pluginFiles(name, { minimal }));
+  const manifest = project.manifest;
+  const navigationSlot = { ...manifest.devDependencies, ...manifest.dependencies }['@bitakit/shell']
+    ? 'shell.navigation'
+    : undefined;
+  const created = await writeNewFiles(root, pluginFiles(name, { minimal, navigationSlot }));
   return { project, root, created, title: titleOf(name), path: minimal ? undefined : `/${name}` };
 }
 
@@ -63,13 +69,19 @@ export const contributionKinds = [
   'config',
   'events',
   'settings',
+  'settings-page',
   'layout',
   'slot',
+  'slot-definition',
   'dialog',
   'provider',
 ];
 /** Declared once per plugin, in one root file. */
-const singleFile = { events: 'events.ts', settings: 'settings.ts' };
+const singleFile = {
+  events: 'events.ts',
+  settings: 'settings.ts',
+  'settings-page': 'ui/settings/page.tsx',
+};
 
 /**
  * `bitakit add <kind> <plugin>/<name>` in an app, or `<name>` in a plugin package. Nested names
@@ -142,7 +154,9 @@ export async function addContribution(kind, target, { cwd } = {}) {
     config: () => ({ [`configs/${name}.ts`]: configFile(dotted) }),
     events: () => ({ 'events.ts': eventsFile(plugin) }),
     settings: () => ({ 'settings.ts': settingsFile(plugin) }),
+    'settings-page': () => ({ 'ui/settings/page.tsx': settingsPageFile() }),
     slot: () => ({ [`ui/slots/${name}.tsx`]: slotFile(plugin, dotted) }),
+    'slot-definition': () => ({ [`slots/${name}.ts`]: slotDefinitionFile() }),
     dialog: () => ({ [`ui/dialogs/${name}.tsx`]: dialogFile(plugin, dotted) }),
     provider: () => ({ [`ui/providers/${name}.tsx`]: providerFile(plugin, dotted) }),
   }[kind];

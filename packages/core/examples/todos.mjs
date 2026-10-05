@@ -14,5 +14,5 @@ try {
   await actions.execute('todos.delete', 2);
   console.log('After:', (await actions.execute('todos.list')).value);
 } finally {
-  stop();
+  await stop();
 }

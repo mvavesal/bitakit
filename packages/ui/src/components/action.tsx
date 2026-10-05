@@ -13,10 +13,10 @@ import { UIContext } from '../providers/action-context.js';
 import { mergeProps } from '../utils/merge-props.js';
 
 export type ActionKind = 'button' | 'link' | 'toggle' | 'choice' | 'menuItem';
-export type ActionProps<Id extends ActionId = ActionId> = {
-  /** An action ID, a typed reference, or a control from `useActionGroup`. */
+export type ActionProps<Id extends string = ActionId> = {
+  /** An action ID, a typed reference, or a control from `useActionGroup` or `useSlot`. */
   id: ActionTarget<Id>;
-  input?: ActionInput<Id>;
+  input?: ActionInput<NoInfer<Id>>;
   /** Defaults to `link` for actions with an href, otherwise `button`. */
   kind?: ActionKind;
   onError?: (error: unknown) => void;
@@ -34,7 +34,7 @@ export type ActionProps<Id extends ActionId = ActionId> = {
  * chained, classes joined, `disabled` combined) and fills an empty child with the action's icon
  * and title. Renders nothing while the action is hidden or not registered.
  */
-export function Action<Id extends ActionId>({
+export function Action<const Id extends string>({
   id,
   input,
   kind,

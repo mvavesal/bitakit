@@ -59,7 +59,7 @@ test('action interceptors match by glob within their plugin by default; app-leve
       'global:notes.run',
     ]);
   } finally {
-    stop();
+    await stop();
   }
   assert.equal(matchesTarget('todos.*', 'todos.run'), true);
   assert.equal(matchesTarget('todos.*', 'todosx.run'), false);
@@ -116,7 +116,7 @@ test('before gates (false → intercepted, CANCEL → cancelled); after and onEr
     );
     assert.deepEqual(log, ['second', 'error:todos.fail:todos failed']);
   } finally {
-    stop();
+    await stop();
   }
 });
 
@@ -147,7 +147,7 @@ test('async before hooks are awaited and the guards are re-checked afterwards', 
     assert.deepEqual(await running, { status: 'skipped', reason: 'disabled' });
     assert.equal(runtime.actions.get('todos.run').pending, false);
   } finally {
-    stop();
+    await stop();
   }
 });
 
@@ -219,7 +219,7 @@ test('service interceptors observe method calls by ID or alias without changing 
     raw.save('Raw');
     assert.equal(log.length, before, 'calls that bypass the public surface are not observed');
   } finally {
-    stop();
+    await stop();
   }
   const before = log.length;
   service.save('Disposed');
@@ -248,11 +248,11 @@ test('observer failures and frozen instances never change the service outcome; P
     assert.equal(runtime.services.source.read(), result);
     assert.equal(await result, 42);
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('an interceptor targets actions or a service, never both; requires are checked at startup', () => {
+test('an interceptor targets actions or a service, never both; requires are checked at startup', async () => {
   assert.throws(
     () => defineInterceptor({ action: 'a', service: 'b', before() {} }),
     /either actions or a service/,
@@ -317,6 +317,6 @@ test('action interceptors receive services, the target action config, the app an
       has: 'function',
     });
   } finally {
-    stop();
+    await stop();
   }
 });

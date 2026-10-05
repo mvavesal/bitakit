@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mount, settle, setMedia, click } from './support.mjs';
+import { mount, settle, setMedia, click, deferred } from './support.mjs';
 import { Component, createElement as h, act, useEffect } from 'react';
 import {
   FoundationProvider,
@@ -12,7 +12,7 @@ import {
   useSetting,
   useSlot,
 } from '@bitakit/ui';
-import { SidebarProvider } from '@bitakit/ui/components';
+import { Sidebar, SidebarProvider, SidebarTrigger } from '@bitakit/ui/components';
 import { AppShell, shellPlugin, useShellLayout } from '../dist/index.js';
 
 const contribution = (name) => () => h('span', { 'data-contribution': name }, name);
@@ -20,17 +20,31 @@ let refreshed = 0;
 const tools = definePlugin({
   id: 'tools',
   actions: {
-    home: defineAction({ title: 'Home', href: '/', groups: ['navigation'], order: 1 }),
-    docs: defineAction({ title: 'Docs', href: '/docs', groups: ['navigation'], order: 2 }),
+    home: defineAction({
+      title: 'Home',
+      href: '/',
+      groups: ['navigation'],
+      slots: ['shell.navigation'],
+      order: 1,
+    }),
+    docs: defineAction({
+      title: 'Docs',
+      href: '/docs',
+      groups: ['navigation'],
+      slots: ['shell.navigation'],
+      order: 2,
+    }),
     status: defineAction({
       title: 'Status',
       href: 'https://status.example.com',
       groups: ['navigation'],
+      slots: ['shell.navigation'],
       order: 3,
     }),
     refresh: defineAction({
       title: 'Refresh',
       groups: ['navigation'],
+      slots: ['shell.navigation'],
       order: 4,
       execute() {
         refreshed++;
@@ -40,6 +54,7 @@ const tools = definePlugin({
       title: 'Users',
       href: '/admin/users',
       groups: ['admin', 'navigation'],
+      slots: ['shell.navigation'],
       order: 5,
     }),
   },
@@ -65,7 +80,7 @@ const RouterLink = (props) => h('a', { ...props, 'data-router-link': '' });
 
 function setup({ layout = 'sidebar', layouts, plugins } = {}) {
   const config = {
-    plugins: plugins ?? [shellPlugin({ groups: ['navigation', 'admin'] }), tools],
+    plugins: plugins ?? [shellPlugin(), tools],
     ...(layouts ? { ui: { layouts } } : {}),
   };
   const services = {
@@ -90,6 +105,84 @@ function setup({ layout = 'sidebar', layouts, plugins } = {}) {
 const texts = (elements) => [...elements].map((element) => element.textContent);
 const link = (scope, title) =>
   [...scope.querySelectorAll('a')].find((a) => a.textContent === title);
+
+test('toolbar Actions keep bindings, mapped inputs and native links across Shell layouts', async () => {
+  const calls = [];
+  const completion = deferred();
+  const toolbar = definePlugin({
+    id: 'toolbar-demo',
+    actions: {
+      run: defineAction({
+        title: ({ input }) => `Run ${input}`,
+        slots: [
+          { name: 'shell.toolbar', key: 'first', input: () => 'first' },
+          { name: 'shell.toolbar', key: 'second', input: () => 'second' },
+        ],
+        execute: ({ input }) => {
+          calls.push(input);
+          return completion.promise;
+        },
+      }),
+      page: defineAction({
+        title: ({ settings }) => `Current ${settings.shell.layout.get()}`,
+        href: ({ settings }) => `/${settings.shell.layout.get()}`,
+        slots: ['shell.toolbar'],
+      }),
+      disabled: defineAction({
+        title: 'Disabled tool',
+        enabled: false,
+        slots: ['shell.toolbar'],
+        execute: () => calls.push('disabled'),
+      }),
+      hidden: defineAction({
+        title: 'Hidden tool',
+        visible: false,
+        slots: ['shell.toolbar'],
+        execute() {},
+      }),
+      groupOnly: defineAction({ title: 'Group only', groups: ['shell.toolbar'], execute() {} }),
+    },
+    ui: { slots: [{ slot: 'shell.header.end', component: contribution('custom-header') }] },
+  });
+  const { tree, runtime, navigated } = setup({ plugins: [shellPlugin(), toolbar] });
+  const view = await mount(tree('/', h(AppShell, null, 'Page')));
+  try {
+    await settle();
+    for (const layout of ['sidebar', 'navbar']) {
+      await act(() => runtime().settings.set('shell.layout', layout));
+      const group = view.container.querySelector('[role="group"][aria-label="App actions"]');
+      assert.ok(group, `${layout} renders the toolbar`);
+      assert.equal(group.closest('header') !== null, true);
+      assert.deepEqual(texts(group.querySelectorAll('button')), [
+        'Run first',
+        'Run second',
+        'Disabled tool',
+      ]);
+      assert.equal(group.textContent.includes('Hidden tool'), false);
+      assert.equal(group.textContent.includes('Group only'), false);
+      const target = link(group, `Current ${layout}`);
+      assert.equal(target.getAttribute('href'), `/${layout}`);
+      assert.equal(target.hasAttribute('data-router-link'), true);
+      await click(target);
+      assert.equal(navigated.at(-1), `/${layout}`);
+      assert.ok(view.container.querySelector('[data-contribution="custom-header"]'));
+      const disabled = [...group.querySelectorAll('button')].find(
+        (el) => el.textContent === 'Disabled tool',
+      );
+      await click(disabled);
+      assert.deepEqual(calls, []);
+    }
+    const buttons = view.container.querySelectorAll('[aria-label="App actions"] button');
+    await click(buttons[1]);
+    assert.deepEqual(calls, ['second'], 'the placement input reaches the single Action');
+    assert.equal(buttons[1].disabled, true, 'pending behavior belongs to the existing binding');
+    await act(async () => completion.resolve());
+    assert.equal(buttons[1].disabled, false);
+  } finally {
+    completion.resolve();
+    await view.unmount();
+  }
+});
 
 test('the default frame renders navigation, slots and the page in both layouts without remounting the page', async () => {
   const { tree, runtime } = setup();
@@ -118,8 +211,7 @@ test('the default frame renders navigation, slots and the page in both layouts w
     const sidebar = c.querySelector('[data-slot="sidebar"]');
     const nav = sidebar.querySelector('nav[aria-label="Main navigation"]');
     assert.deepEqual(texts(sidebar.querySelectorAll('[data-slot="sidebar-group-label"]')), [
-      'General',
-      'admin',
+      'Main navigation',
     ]);
     assert.deepEqual(
       [...nav.querySelectorAll('a, button')].map((item) => [
@@ -132,7 +224,6 @@ test('the default frame renders navigation, slots and the page in both layouts w
         ['A', 'Docs', '/docs'],
         ['A', 'Status', 'https://status.example.com'],
         ['BUTTON', 'Refresh', null],
-        ['A', 'Users', '/admin/users'],
         ['A', 'Users', '/admin/users'],
       ],
     );
@@ -234,13 +325,74 @@ test('mobile: the sidebar is a drawer the trigger opens and navigation closes', 
   }
 });
 
+test('sidebar trigger restores focus on mobile Escape, reflects expanded state, honors cancellation, and still toggles desktop', async () => {
+  const tree = ({ cancel = false } = {}) =>
+    h(
+      SidebarProvider,
+      null,
+      h(SidebarTrigger, {
+        'aria-label': 'Toggle test navigation',
+        onClick: cancel ? (event) => event.preventDefault() : undefined,
+      }),
+      h(Sidebar, { mobileTitle: 'Test navigation' }, h('button', null, 'First link')),
+    );
+
+  await setMedia({ mobile: true });
+  let view = await mount(tree());
+  try {
+    const trigger = view.container.querySelector('[data-slot="sidebar-trigger"]');
+    assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+    trigger.focus();
+    await click(trigger);
+    await settle();
+    assert.equal(trigger.getAttribute('aria-expanded'), 'true');
+    assert.ok(document.querySelector('[role="dialog"][data-mobile="true"]'));
+    await act(async () => {
+      document.activeElement.dispatchEvent(
+        new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      );
+    });
+    await settle();
+    assert.equal(document.querySelector('[role="dialog"][data-mobile="true"]'), null);
+    assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+    assert.equal(document.activeElement, trigger, 'Radix restores focus to its trigger');
+  } finally {
+    await view.unmount();
+  }
+
+  view = await mount(tree({ cancel: true }));
+  try {
+    const trigger = view.container.querySelector('[data-slot="sidebar-trigger"]');
+    await click(trigger);
+    await settle();
+    assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+    assert.equal(document.querySelector('[role="dialog"][data-mobile="true"]'), null);
+  } finally {
+    await view.unmount();
+    await setMedia({ mobile: false });
+  }
+
+  const desktop = await mount(tree());
+  try {
+    const trigger = desktop.container.querySelector('[data-slot="sidebar-trigger"]');
+    const sidebar = desktop.container.querySelector('[data-slot="sidebar"]');
+    assert.equal(sidebar.getAttribute('data-state'), 'expanded');
+    await click(trigger);
+    assert.equal(sidebar.getAttribute('data-state'), 'collapsed');
+    await click(trigger);
+    assert.equal(sidebar.getAttribute('data-state'), 'expanded');
+  } finally {
+    await desktop.unmount();
+  }
+});
+
 test('page layouts: blank renders the page bare, a named layout replaces the frame', async () => {
   function AdminLayout({ children }) {
     return h('section', { 'data-admin-layout': '' }, h(AppShell, { brand: 'Admin' }, children));
   }
   const { tree } = setup({
     layouts: { admin: AdminLayout },
-    plugins: [shellPlugin({ groups: ['navigation', 'admin'] }), tools, reports],
+    plugins: [shellPlugin(), tools, reports],
   });
   const page = h('p', { 'data-page': '' }, 'Page');
   const view = await mount(tree('/print', h(AppShell, null, page)));
@@ -273,12 +425,13 @@ test('page layouts: blank renders the page bare, a named layout replaces the fra
 
 test('a custom layout written only with the hooks renders every plugin contribution', async () => {
   const { tree, runtime } = setup();
-  const render = (entries) => entries.map((entry) => h(entry.component, { key: entry.key }));
+  const render = (view) =>
+    view.items.map((entry) => h(entry.component, { key: entry.key, payload: view.payload }));
   function HookLayout({ children }) {
-    const navigation = useNavigation(['navigation', 'admin']);
+    const navigation = useNavigation();
     const layout = useSetting('shell.layout');
-    const header = useSlot('sidebar.header');
-    const footer = useSlot('sidebar.footer');
+    const header = useSlot('sidebar.header', { payload: { collapsed: false } });
+    const footer = useSlot('sidebar.footer', { payload: { collapsed: false } });
     const end = useSlot('app-bar.end');
     return h(
       'div',
@@ -287,24 +440,18 @@ test('a custom layout written only with the hooks renders every plugin contribut
       h(
         'nav',
         null,
-        navigation.groups.map((group) =>
-          h(
-            'section',
-            { key: group.id, 'aria-label': group.title },
-            group.items.map((item) =>
-              item.href === undefined
-                ? h('button', { key: item.id, ...item.props() }, item.title)
-                : h(
-                    'a',
-                    {
-                      key: item.id,
-                      ...item.linkProps(),
-                      'aria-current': navigation.isActive(item.href) ? 'page' : undefined,
-                    },
-                    item.title,
-                  ),
-            ),
-          ),
+        navigation.items.map((item) =>
+          item.href === undefined
+            ? h('button', { key: item.id, ...item.props() }, item.title)
+            : h(
+                'a',
+                {
+                  key: item.id,
+                  ...item.linkProps(),
+                  'aria-current': navigation.isActive(item.href) ? 'page' : undefined,
+                },
+                item.title,
+              ),
         ),
       ),
       h('main', null, children),
@@ -341,8 +488,8 @@ test('a custom layout written only with the hooks renders every plugin contribut
 });
 
 test('components replace parts; explicit children compose the parts themselves', async () => {
-  function CustomSidebar({ groups, header }) {
-    return h('aside', { 'data-custom-sidebar': groups.join(',') }, header);
+  function CustomSidebar({ navigationSlot, header }) {
+    return h('aside', { 'data-custom-sidebar': navigationSlot ?? 'shell.navigation' }, header);
   }
   function CustomItem({ item, active, layout }) {
     return h(
@@ -361,7 +508,7 @@ test('components replace parts; explicit children compose the parts themselves',
     const c = view.container;
     assert.equal(
       c.querySelector('[data-custom-sidebar]').getAttribute('data-custom-sidebar'),
-      'navigation,admin',
+      'shell.navigation',
     );
     assert.equal(c.querySelector('[data-custom-sidebar]').textContent, 'Brand');
     assert.equal(c.querySelector('[data-slot="sidebar"]'), null);
@@ -445,5 +592,44 @@ test('AppShell explains a missing Shell plugin', async () => {
     await view.unmount();
   } finally {
     console.error = original;
+  }
+});
+
+test('one Action can have two keyed navigation placements without merging their inputs', async () => {
+  const links = definePlugin({
+    id: 'multi',
+    actions: {
+      open: defineAction({
+        slots: [
+          { name: 'shell.navigation', key: 'alpha', input: () => 'alpha' },
+          { name: 'shell.navigation', key: 'beta', input: () => 'beta' },
+        ],
+        title: ({ input }) => input,
+        href: ({ input }) => `/project/${input}`,
+      }),
+    },
+  });
+  const { tree, runtime } = setup({ plugins: [shellPlugin(), links] });
+  const view = await mount(tree('/project/alpha', h(AppShell, null, 'Page')));
+  try {
+    await settle();
+    for (const layout of ['sidebar', 'navbar']) {
+      await act(() => runtime().settings.set('shell.layout', layout));
+      const nav = view.container.querySelector('nav[aria-label="Main navigation"]');
+      assert.deepEqual(
+        [...nav.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]),
+        [
+          ['alpha', '/project/alpha'],
+          ['beta', '/project/beta'],
+        ],
+      );
+      assert.equal(
+        Object.keys(runtime().actions.getState().actions).filter((id) => id === 'multi.open')
+          .length,
+        1,
+      );
+    }
+  } finally {
+    await view.unmount();
   }
 });

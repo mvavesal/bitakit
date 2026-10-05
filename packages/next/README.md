@@ -35,8 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 }
 ```
 
-Discovery writes `src/bitakit.gen.tsx`, which exports `createBitaKitConfig()` and
-`BitaKitProvider`, a thin wrapper around this package's `FoundationProvider` with the
+Discovery writes `src/bitakit.gen.tsx`, which exports only the `BitaKitProvider` component. `src/bitakit.gen.config.ts` exports `createBitaKitConfig()` and the generated types, a thin wrapper around this package's `FoundationProvider` with the
 discovered configuration. Because the generated file is a real file, no bundler alias is
 needed: Turbopack and Webpack behave the same, and `next dev` and `next build` run without
 flags. Add `src/bitakit.gen.*` to `.gitignore`.
@@ -95,3 +94,26 @@ and `@bitakit/next/generated` were removed in Phase 5; use `withBitaKit` and `./
 
 Run `npm test --workspace @bitakit/next` for discovery integration tests. A different router
 would have its own thin adapter and reuse Core.
+
+
+## Development refresh
+
+Framework hosts generate a component-only `bitakit.gen.tsx` and a client-side
+`bitakit.gen.config.ts` for configuration/type maps. Normal hosts keep importing
+`BitaKitProvider` from `bitakit.gen`. Advanced consumers that previously imported
+`createBitaKitConfig` there now import it from `bitakit.gen.config`. Without a framework,
+`bitakit.gen.ts` remains the configuration entry. Do not hand-edit generated files.
+
+The watcher writes complete files atomically and regenerates promptly on filesystem renames.
+A watch session reuses its audited installed-package graph for local source-only changes;
+package metadata, configuration selection, styles and external watched files invalidate it.
+The cache contains package discovery results, never application values or a second runtime.
+
+Next development checks cover add/edit/delete, whole-plugin removal and collection leaf removal,
+with a preserved document token and page draft. This is bundler Fast Refresh followed by an
+awaited composition replacement, not `reconcilePlugins` or arbitrary code hot replacement.
+Affected slot/form state can remount during composition replacement; compatible explicit
+runtime updates retain Phase 8's owner-specific guarantees. Named components are the supported
+React refresh path. Structural provider changes, server code, dependency installation and
+changes outside a React refresh boundary can require a host restart/reload. Restart the dev
+server after changing Node-loaded generator/integration code. No universal HMR promise.

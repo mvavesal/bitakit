@@ -3,6 +3,12 @@
     "title": "Schnellsuche",
     "placeholder": "Seiten suchen …",
     "empty": "Keine Ergebnisse gefunden.",
+    "close": "Schließen",
+    "hints": {
+      "open": "Öffnen",
+      "newTab": "Neuer Tab",
+      "navigate": "Navigieren"
+    },
     "kinds": {
       "plugin": "Plugin",
       "page": "Seite",

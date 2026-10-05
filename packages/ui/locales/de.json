@@ -12,6 +12,10 @@
     },
     "navigation": {
       "general": "Allgemein"
+    },
+    "slot": {
+      "unavailable": "Dieses Widget konnte nicht angezeigt werden.",
+      "retry": "Erneut versuchen"
     }
   }
 }

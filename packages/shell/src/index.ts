@@ -21,9 +21,33 @@ export { ShellThemeScript } from './ui/providers/theme.js';
 export { shellPlugin } from './plugin.js';
 export { shellOptions, type ShellOptions, type ShellPreset } from './options.js';
 export {
+  PageState,
   NotFoundPage,
   ErrorPage,
   LoadingPage,
   AccessDeniedPage,
   type PageStateProps,
 } from './pages.js';
+
+export {
+  themeSchema,
+  themeCatalog,
+  themeKey,
+  themeTokens,
+  type ShellThemeDefinition,
+  type ShellThemeInput,
+  type ThemeEntry,
+} from './themes.js';
+export { themeService, type ThemeService } from './services/themes.js';
+
+export { shellSlots } from './slots.js';
+
+export {
+  ShellSurface,
+  ShellFullPage,
+  ShellFooter,
+  ShellHeaderRow,
+  ShellDrawer,
+  type ShellSurfaceProps,
+  type ShellDrawerProps,
+} from './components/regions.js';

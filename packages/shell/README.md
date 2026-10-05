@@ -4,8 +4,8 @@ The application frame for BitaKit apps: sidebar and navbar layouts that render n
 actions and plugin slots, page layouts, appearance settings projected onto the document, the
 pre-paint theme script, standalone page states and the shared notification surface.
 
-Shell owns no settings UI. It declares its settings with `defineSettings`; a settings UI such
-as `@bitakit/app-preferences` renders them. Navigation, slots and settings come from the
+Shell declares its settings with `defineSettings` and supplies its Appearance page through
+`ui.settings.component`; `@bitakit/app-preferences` supplies the surrounding settings shell. Navigation, slots and settings come from the
 `@bitakit/ui` hooks, and every visual part is built from the central components in
 `@bitakit/ui/components` with the host's theme tokens.
 
@@ -55,7 +55,7 @@ import type { ShellOptions } from '@bitakit/shell';
 
 export default defineConfig({
   defaults: {
-    groups: ['navigation', 'admin'],
+    navigationSlot: 'shell.navigation',
     presets: [{ id: 'ocean', label: 'Ocean' }],
   } satisfies ShellOptions,
 });
@@ -63,7 +63,7 @@ export default defineConfig({
 
 | Option    | Default          | Meaning                                                                      |
 | --------- | ---------------- | ---------------------------------------------------------------------------- |
-| `groups`  | `['navigation']` | Action groups the frame renders as navigation, in order                      |
+| `navigationSlot` | `'shell.navigation'` | Explicit Action slot rendered by the frame                      |
 | `presets` | none             | Theme presets offered next to `default`; see [Theme presets](#theme-presets) |
 
 `shellOptions` is the zod schema of these options (`defineConfig({ schema: shellOptions })`
@@ -84,13 +84,13 @@ or lose unsaved input. The top bar renders the `app-bar.end` slot in both layout
 
 | Prop         | Meaning                                                                      |
 | ------------ | ---------------------------------------------------------------------------- |
-| `groups`     | Navigation action groups; defaults to the `groups` option                    |
+| `navigationSlot` | Action slot; defaults to the `navigationSlot` option                    |
 | `brand`      | Sidebar header (sidebar layout) or start of the top bar (navbar layout)      |
 | `account`    | Sidebar footer (sidebar layout) or end of the top bar (navbar layout)        |
 | `header`     | Next to the sidebar trigger (sidebar layout), for example the page title     |
 | `components` | `{ Sidebar?, TopBar?, Content?, NavigationItem? }` replacing parts wholesale |
 
-Navigation entries are bound actions from `useNavigation(groups)`: actions with an `href`
+Navigation entries are bound actions from `useNavigation(slotName)`: actions with an `href`
 render as links (the framework link for internal paths), the others as buttons. The entry
 whose `href` matches the current pathname carries `aria-current="page"`.
 
@@ -119,8 +119,8 @@ renders the children as given instead of the default parts:
 
 | Part                      | Props                                                                 |
 | ------------------------- | --------------------------------------------------------------------- |
-| `AppShell.Sidebar`        | `groups?`, `header?` (before the slot), `footer?` (after the slot)    |
-| `AppShell.TopBar`         | `groups?`, `brand?`, `header?`, `end?` (after the `app-bar.end` slot) |
+| `AppShell.Sidebar`        | `navigationSlot?`, `header?` (before the slot), `footer?` (after the slot)    |
+| `AppShell.TopBar`         | `navigationSlot?`, `brand?`, `header?`, `end?` (after the `app-bar.end` slot) |
 | `AppShell.Content`        | `topBar?` (above the page inside the content area), `children`        |
 | `AppShell.NavigationItem` | `item` (bound action), `active`, `layout` (`'sidebar'` or `'navbar'`) |
 
@@ -137,16 +137,14 @@ The hooks give a layout everything the Shell renders, without any Shell part:
 import { Action, useNavigation, useSlot, useSetting } from '@bitakit/ui';
 
 export default function MinimalLayout({ children }: { children: ReactNode }) {
-  const { groups, isActive } = useNavigation(['navigation']);
-  const footer = useSlot('sidebar.footer');
+  const { items, isActive } = useNavigation();
+  const footer = useSlot('sidebar.footer', { payload: { collapsed: false } });
   const layout = useSetting('shell.layout').value;
   return (
     <div data-layout={layout}>
       <nav aria-label="Main navigation">
-        {groups
-          .flatMap((group) => group.items)
-          .map((item) => (
-            <Action key={item.id} id={item}>
+        {items.map((item) => (
+            <Action key={item.key} id={item}>
               {item.href === undefined ? (
                 <button type="button" />
               ) : (
@@ -156,8 +154,8 @@ export default function MinimalLayout({ children }: { children: ReactNode }) {
           ))}
       </nav>
       <main>{children}</main>
-      {footer.map(({ key, component: Contribution }) => (
-        <Contribution key={key} />
+      {footer.items.map(({ key, component: Contribution }) => (
+        <Contribution key={key} payload={footer.payload} />
       ))}
     </div>
   );
@@ -170,13 +168,19 @@ export default function MinimalLayout({ children }: { children: ReactNode }) {
 
 | Slot             | Rendered by                                  |
 | ---------------- | -------------------------------------------- |
+| `shell.navigation` | Sidebar/navbar Action items (`slots: ['shell.navigation']`) |
+| `shell.toolbar` | Standard Action buttons/links before `shell.header.end`, in both layouts |
 | `app-bar.end`    | The top bar in both layouts (`AppBar`)       |
 | `sidebar.header` | `AppShell.Sidebar`, after the `header` prop  |
 | `sidebar.footer` | `AppShell.Sidebar`, before the `footer` prop |
 
-A plugin contributes with `ui/slots/<slot>.tsx` (order with `export const order`). The sidebar
+For a toolbar Action, set `slots: ['shell.toolbar']` on its `defineAction` declaration. Shell
+uses the existing Action binding for its title, icon, visibility, disabled and pending state;
+`href` Actions render as native links. No widget file is needed.
+
+For custom content, a plugin contributes with `ui/slots/<slot>.tsx` (order with `export const order`). The sidebar
 slots are not rendered in the navbar layout; contributions that must always be visible belong
-in `app-bar.end`. The package manifest declares the three slots under `bitakit.slots`.
+in `app-bar.end`. The plugin owns typed `defineSlot` contracts; manifest names are legacy discovery hints.
 
 ## Appearance settings
 
@@ -278,3 +282,90 @@ to set the HTTP status.
 | `src/components/app-shell.tsx`       | `AppShell`, its parts, page layouts and `useShellLayout`        |
 | `src/components/page-states.tsx`     | Standalone page states                                          |
 | `src/components/ui/empty.tsx`        | The standard empty-state component used by the page states      |
+
+The composable shadcn `Empty`, `EmptyHeader`, `EmptyMedia`, `EmptyTitle`,
+`EmptyDescription` and `EmptyContent` are public exports from `@bitakit/shell/pages`.
+Compose titles, icons, descriptions and optional actions through children and normal props;
+no ShellProvider is required. They inherit the shared theme.
+
+
+### Theme library foundation
+
+Developer handbook: [Themes and appearance](../../apps/docs/content/docs/concepts/theming.mdx)
+starts with one JSON file; [Theme reference](../../apps/docs/content/docs/reference/theming.mdx)
+covers the manager, Actions, persistence and CSS integration.
+
+The ordinary `themes` service provides `list`, `active`, `select` and `saveCopy`.
+`shell.selectTheme` and `shell.saveThemeCopy` are framework actions. Selection and personal
+copies share the hidden user setting `shell.themeLibrary`, using Core settings persistence.
+Shell options accept an additive `themes` array. Each definition has `schemaVersion: 1`,
+`id`, `name`, and optional `shared`, `light`, `dark` CSS-variable maps (without the leading
+`--`). Identity includes the source; equal display names remain separate. Saving a copy
+requires a fresh personal ID and does not overwrite originals.
+
+The Shell provider projects JSON tokens onto the document root, follows light/dark mode,
+and restores previous values when switching or unmounting. BitaKit Default adds no overrides,
+preserving the current CSS finish. Shell bundles JSON files from `themes/` during its build. Discovery adds app files from
+`src/themes/**/*.json` (relative to the configured app source directory). Adding files requires
+regeneration/build; switching and saving personal copies happen at runtime. Duplicate IDs
+within a source are errors; equal names across sources remain separate.
+
+Appearance groups display/layout controls and theme selection, with an inline copy editor.
+The editor composes existing standard cards, inputs and popovers with react-colorful and
+Culori color conversion. Colors, radius, surface shadow and font family can be edited;
+unexposed tokens in a copied theme are retained. Empty values inherit central CSS. Personal
+copies use new IDs and cannot overwrite bundled/app definitions. The pre-paint script still
+only restores color scheme; user-scoped themes apply after settings identity resolution.
+
+Custom settings pages receive `renderField(field)` from App Preferences, so Shell reuses
+its canonical cards, controls, validation and reset behavior. A settings button beside the
+theme selector opens the editor. Personal themes update through `shell.updateTheme`;
+bundled/app themes create personal copies. Draft previews scope tokens to sample standard
+controls and explicitly pass that scope into the portaled sample dialog, without saving.
+
+The theme editor uses a full-width name, adjacent radius/shadow choices and a font-family
+selector. Existing custom token values remain selectable; choosing a preset is explicit.
+Color swatches and CSS values share the standard InputGroup, with a visible swatch border
+and copy feedback. Font choices use available system families and do not fetch remote fonts.
+
+Theme choice menus reuse the shared Button and DropdownMenu radio components. Saving keeps
+the editor open; subsequent saves update the personal copy. Disabled shadow tokens project
+as a transparent shadow so composed border and focus rings remain visible.
+
+Personal themes can be removed through `shell.deleteTheme` and the existing confirmation
+flow. The service rejects deletion of original themes and atomically selects BitaKit
+Default when removing the active personal theme. Theme options show source and light
+palette swatches; same-name entries from the same source also show a display ordinal.
+Color-picker pointer geometry is a functional circular exception in the central theme.
+
+The theme preview has its own Light/Dark controls. They change draft preview tokens and
+the sample dialog only, without writing `shell.mode` or applying the draft to the app.
+
+Sidebar component slots receive `{ payload: { collapsed: boolean } }`. `app-bar.end` has no payload. Use `slots` on Actions for placement; changing `groups` does not change Shell navigation.
+
+
+## Shared layouts and extension regions
+
+Shell owns `brand`, `header.start/center/end`, `header.rows`, contextual `header.row.start/end`,
+`content.before/after`, `footer`, `drawer.header/body/footer`, `navigation.group.before/after`
+and optional `state.content/actions` under the `shell.` prefix. Existing `sidebar.header/footer`,
+`sidebar.body`, `app-bar.end` and the Action slots `shell.navigation` and `shell.toolbar` remain explicit contracts.
+`ShellSurface` is the shared base for `AppShell.Content` and `AppShell.FullPage`; named layouts
+use the existing `src/layouts/` convention. `blank` remains bare. Render children once.
+
+Use `AppShell.HeaderRow` with a unique row ID, `AppShell.NavigationGroup` with an explicit Action
+slot, and `AppShell.Drawer` with a unique drawer ID. Contributions filter rowId/groupId/drawerId
+through `when`; omitting it intentionally selects all occurrences. Radix Sheet retains focus
+and modality; side is logical start/end, with explicit/inherited Radix direction.
+
+`PageState`/error helpers accept `content` for composition and optional `surfaceId` for keyed
+message/list recovery regions. Core is never required for host-owned fallback/retry. Optional
+regions are guarded against missing/stopped runtimes and client render failures. This does not
+catch SSR or arbitrary asynchronous errors. Essential recovery stays outside failing plugins.
+
+App Preferences additionally owns `navigation.header`, `navigation.group.before/after` with
+`groupId`, and `page.header/before/footer` with `pageId`. Page regions remain inside the existing
+page access boundary. Navigation-shell regions are not protected by an individual page boundary.
+No second Settings catalog, store, route registry or layout engine is introduced.
+
+Progressive examples and the full region table: `apps/docs/content/docs/reference/layouts.mdx`.

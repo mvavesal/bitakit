@@ -47,17 +47,38 @@
       "website": "Website",
       "projectWebsite": "Projektwebsite",
       "support": "Support",
-      "supportLink": "Hilfe und Fehler melden"
+      "supportLink": "Hilfe und Fehler melden",
+      "pluginName": "Plugin",
+      "tags": "Tags",
+      "filterTags": "Nach Tag filtern",
+      "clearTags": "Tags zurücksetzen",
+      "pagination": "Plugin-Seitennavigation",
+      "perPage": "Pro Seite",
+      "pageSummary": "{total} Ergebnisse · Seite {page} von {pages}",
+      "previousPage": "Zurück",
+      "nextPage": "Weiter"
     }
   },
   "settings": {
     "categories": {
-      "general": { "title": "Allgemein" },
-      "appearance": { "title": "Darstellung" },
-      "account": { "title": "Konto" },
-      "organization": { "title": "Organisation" },
-      "plugins": { "title": "Plugins" },
-      "administration": { "title": "Verwaltung" }
+      "general": {
+        "title": "Allgemein"
+      },
+      "appearance": {
+        "title": "Darstellung"
+      },
+      "account": {
+        "title": "Konto"
+      },
+      "organization": {
+        "title": "Organisation"
+      },
+      "plugins": {
+        "title": "Plugins"
+      },
+      "administration": {
+        "title": "Verwaltung"
+      }
     }
   },
   "plugins": {

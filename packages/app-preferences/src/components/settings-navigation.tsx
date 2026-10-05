@@ -1,5 +1,6 @@
 'use client';
-import { useSettingsCatalog } from '@bitakit/ui';
+import { safeHref } from '@bitakit/core';
+import { PluginSlot, useSettingsCatalog, useSlot, type SettingsCatalogSection } from '@bitakit/ui';
 import {
   Button,
   SidebarGroup,
@@ -7,7 +8,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from '@bitakit/ui/components';
-import { visibleSections } from '../catalog.js';
 import { groupByCategory } from '../categories.js';
 import { normalizePath, sectionHref, withQuery } from '../paths.js';
 import { searchSettings } from '../search.js';
@@ -17,21 +17,15 @@ import { useCategoryTitle, useMessages } from './use-messages.js';
 
 export type SettingsNavigationProps = {
   basePath?: string;
-  /** The current path; the router's pathname when omitted. Its entry is marked current. */
   pathname?: string;
-  /** Shows only the pages that match; navigation links keep it. */
+  /** Shows matching destinations; links between catalog pages preserve this query. */
   query?: string;
 };
-
-/**
- * The settings pages grouped by category, in category and section order. Renders sidebar
- * groups, so it belongs inside `SettingsShell` or another sidebar.
- */
 export function SettingsNavigation(props: SettingsNavigationProps) {
   return <NavigationList {...props} />;
 }
 
-/** `SettingsNavigation` with a callback after a link is followed, used to close the drawer. */
+/** Slot membership owns placement; the catalog supplies only page grouping and field search. */
 export function NavigationList({
   basePath,
   pathname,
@@ -41,8 +35,29 @@ export function NavigationList({
   const location = useSettingsLocation({ basePath, pathname });
   const messages = useMessages();
   const categoryTitle = useCategoryTitle();
-  const results = searchSettings(visibleSections(useSettingsCatalog()), query);
-  const groups = groupByCategory(results, (result) => result.section.category, categoryTitle);
+  const catalog = useSettingsCatalog();
+  const view = useSlot('app-preferences.navigation');
+  if (view.error) throw view.error;
+  const entries = view.items.flatMap((item) => {
+    if (!safeHref(item.action.href)) return [];
+    const source = catalog.find((section) => `settings.section.${section.id}` === item.actionId);
+    const section: SettingsCatalogSection = {
+      ...(source ?? {
+        id: item.actionId,
+        plugin: item.plugin,
+        app: false,
+        path: '',
+        category: 'general',
+        fields: [],
+        order: item.order ?? 0,
+      }),
+      title: item.action.title,
+      description: item.action.description,
+    };
+    if (!searchSettings([section], query).length) return [];
+    return [{ item, section, source }];
+  });
+  const groups = groupByCategory(entries, (entry) => entry.section.category, categoryTitle);
   const current = location.pathname === undefined ? undefined : normalizePath(location.pathname);
   const { Link } = location;
   return (
@@ -52,34 +67,43 @@ export function NavigationList({
           <SidebarGroupLabel asChild>
             <h2>{group.title}</h2>
           </SidebarGroupLabel>
+          <PluginSlot
+            name="app-preferences.navigation.group.before"
+            payload={{ groupId: group.id }}
+          />
           <SidebarMenu>
-            {group.items.map(({ section }) => {
-              const href = sectionHref(location.basePath, section);
-              const active = href === current;
-              const Icon = iconOf(section.icon);
+            {group.items.map(({ item, source }) => {
+              // A SettingsRoute can be mounted under an explicit base path. Other destinations keep their URL.
+              const href = source
+                ? withQuery(sectionHref(location.basePath, source), query)
+                : item.action.href!;
+              const active = normalizePath(href) === current;
+              const Icon = iconOf(item.action.icon);
+              const props = item.action.linkProps({ href, onExecuted: onNavigate });
+              const EntryLink = props.href ? Link : 'a';
               return (
-                <SidebarMenuItem key={section.id}>
+                <SidebarMenuItem key={item.key}>
                   <Button
                     asChild
                     variant={active ? 'secondary' : 'ghost'}
                     className="w-full justify-start"
                   >
-                    <Link
-                      href={withQuery(href, query)}
-                      aria-current={active ? 'page' : undefined}
-                      onClick={onNavigate}
-                    >
+                    <EntryLink {...props} aria-current={active ? 'page' : undefined}>
                       {Icon && <Icon aria-hidden="true" data-icon="inline-start" />}
-                      <span className="truncate">{section.title}</span>
-                    </Link>
+                      <span className="truncate">{item.action.title}</span>
+                    </EntryLink>
                   </Button>
                 </SidebarMenuItem>
               );
             })}
           </SidebarMenu>
+          <PluginSlot
+            name="app-preferences.navigation.group.after"
+            payload={{ groupId: group.id }}
+          />
         </SidebarGroup>
       ))}
-      {!groups.length && (
+      {!groups.length && !view.pending && (
         <p role="status" className="px-4 text-sm text-muted-foreground">
           {messages('noResults')}
         </p>

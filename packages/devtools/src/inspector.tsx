@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState, useSyncExternalStore, type ElementType, type ReactNode } from 'react';
-import type { FoundationEvent, FoundationRuntime, Plugin } from '@bitakit/core';
-import type { NormalizedPlugin } from '@bitakit/core';
-import { useFoundation, useFoundationNavigation } from '@bitakit/ui';
+import type { FoundationEvent, FoundationRuntime } from '@bitakit/core';
+import type { InventoryPlugin } from '@bitakit/core';
+import { useFoundation, useFoundationNavigation, useRuntimeInventory } from '@bitakit/ui';
 import { useActions } from '@bitakit/ui/actions';
 import { Badge, Button, Input, PageHeader, Separator } from '@bitakit/ui/components';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card.js';
@@ -10,17 +10,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './com
 export type InspectorProps = {
   /** ID of the plugin to inspect, for example "notes". */
   plugin: string;
+  /** Diagnostic threshold only; never cancels work or releases the cleanup barrier. */
+  stalledAfterMs?: number;
 };
 
 /**
  * A live developer view of one plugin in the running app: its pages, actions (runnable with
- * JSON input), services, emitted events and resolved configuration. Reads the existing runtime;
+ * JSON input), services, emitted events and configuration declarations. Reads the existing runtime;
  * it keeps no copy of plugin state. Intended for playgrounds and development builds.
  */
-export function Inspector({ plugin }: InspectorProps) {
+export function Inspector({ plugin, stalledAfterMs = 10000 }: InspectorProps) {
   const { runtime } = useFoundation();
   const ready = useSyncExternalStore(runtime.subscribeReady, runtime.isReady, () => false);
-  const module = runtime.modules.find((item) => item.id === plugin);
+  const inventory = useRuntimeInventory();
+  const module = inventory.static.plugins.find((item) => item.id === plugin);
   if (!module)
     return (
       <PageHeader
@@ -36,24 +39,82 @@ export function Inspector({ plugin }: InspectorProps) {
         trailing={
           <>
             <Badge variant="secondary">{plugin}</Badge>
+            <Badge variant="outline">
+              {inventory.live?.plugins.find((item) => item.id === plugin)?.phase ?? 'unavailable'}
+            </Badge>
             {module.metadata?.version && <Badge variant="outline">{module.metadata.version}</Badge>}
           </>
         }
       />
+      <RuntimeStatus plugin={plugin} stalledAfterMs={stalledAfterMs} />
       {ready ? (
         <>
           <Pages module={module} />
           <Actions module={module} runtime={runtime} />
           <Services module={module} runtime={runtime} />
           <Events runtime={runtime} />
-          <Configuration plugin={plugin} runtime={runtime} />
+          <Configuration plugin={plugin} />
         </>
       ) : (
         <p role="status" className="text-muted-foreground">
-          Starting the plugin…
+          Runtime is {inventory.live?.phase ?? 'unavailable'}.
         </p>
       )}
     </div>
+  );
+}
+
+function RuntimeStatus({ plugin, stalledAfterMs }: { plugin: string; stalledAfterMs: number }) {
+  const { live } = useRuntimeInventory();
+  const [now, setNow] = useState(() => Date.now());
+  const operation = live?.operation;
+  useEffect(() => {
+    if (!operation) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [operation]);
+  const elapsed = operation ? Math.max(0, now - operation.startedAt) : 0;
+  const pending = [...(live?.plugins ?? []), ...(live?.services ?? [])].filter(
+    (entry) =>
+      ('plugin' in entry ? entry.plugin === plugin : entry.id === plugin) &&
+      ['starting', 'stopping'].includes(entry.phase),
+  );
+  const slots = live?.slots.filter((slot) => slot.plugin === plugin) ?? [];
+  return (
+    <Section
+      title="Runtime status"
+      description="Lifecycle and attachments, not proof that an outlet is mounted or visible."
+    >
+      {operation && (
+        <p role="status">
+          {operation.kind} · {Math.floor(elapsed / 1000)}s · cleanup: {live?.cleanup}
+          {elapsed >= stalledAfterMs &&
+            ' — Taking longer than expected. Inspect the named hooks; a deadline does not release cleanup. Restart the host only after stopping its process.'}
+        </p>
+      )}
+      <Rows
+        empty="No pending lifecycle work for this plugin."
+        items={pending.map((entry) => (
+          <span key={entry.id}>
+            {entry.id} · {entry.phase} · {Math.floor(Math.max(0, now - entry.since) / 1000)}s
+          </span>
+        ))}
+      />
+      <Rows
+        empty="No declared slots."
+        items={slots.map((slot) => (
+          <span key={slot.id}>
+            {slot.id} · {slot.phase} · {slot.count} attached · mounted/visible/render failures:
+            unavailable
+          </span>
+        ))}
+      />
+      <p className="text-muted-foreground">
+        For contextual filtering or payload errors, read useSlot().diagnostics in the actual outlet.
+        Render failures name the contribution in its recovery UI and SlotRenderError report.
+      </p>
+    </Section>
   );
 }
 
@@ -91,33 +152,34 @@ function Rows({ items, empty }: { items: ReactNode[]; empty: string }) {
   );
 }
 
-function Pages({ module }: { module: NormalizedPlugin }) {
+function Pages({ module }: { module: InventoryPlugin }) {
   const { Link } = useFoundationNavigation();
   const Anchor: ElementType = Link ?? 'a';
   return (
     <Section title="Pages" description="Plugin pages, rendered by the app's catch-all route.">
       <Rows
         empty="This plugin has no pages."
-        items={(module.pages ?? []).map((page) => (
-          <Button key={page.path} asChild variant="link" className="self-start px-0">
-            <Anchor href={page.path}>{page.path}</Anchor>
-          </Button>
-        ))}
+        items={(module.declarations ?? [])
+          .filter((item) => item.kind === 'page' && item.id)
+          .map((page) => (
+            <Button key={page.id!} asChild variant="link" className="self-start px-0">
+              <Anchor href={page.id!}>{page.id!}</Anchor>
+            </Button>
+          ))}
       />
     </Section>
   );
 }
 
-function Actions({ module, runtime }: { module: NormalizedPlugin; runtime: FoundationRuntime }) {
+function Actions({ module, runtime }: { module: InventoryPlugin; runtime: FoundationRuntime }) {
   const snapshots = useActions();
+  const inventory = useRuntimeInventory();
   const ids = new Set(
-    (module.actions ?? []).flatMap((action) =>
-      typeof action === 'object' && action.id ? [action.id] : [],
-    ),
+    inventory.live?.actions
+      .filter((action) => action.plugin === module.id)
+      .map((action) => action.id),
   );
-  const own = Object.values(snapshots).filter(
-    (action) => ids.has(action.id) || action.id.startsWith(`${module.id}.`),
-  );
+  const own = Object.values(snapshots).filter((action) => ids.has(action.id));
   return (
     <Section
       title="Actions"
@@ -192,7 +254,7 @@ function ActionRow({ id, runtime }: { id: string; runtime: FoundationRuntime }) 
   );
 }
 
-function Services({ module, runtime }: { module: NormalizedPlugin; runtime: FoundationRuntime }) {
+function Services({ module, runtime }: { module: InventoryPlugin; runtime: FoundationRuntime }) {
   // Services form a tree: `todos.items` lives at services.todos.items.
   const services = new Proxy({} as Record<string, unknown>, {
     get: (_target, id) =>
@@ -212,17 +274,21 @@ function Services({ module, runtime }: { module: NormalizedPlugin; runtime: Foun
     >
       <Rows
         empty="This plugin has no services."
-        items={(module.services ?? []).map((service) => (
-          <div key={service.id} className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">services.{service.exposeAs ?? service.id}</span>
-              <span className="text-muted-foreground">{service.id}</span>
+        items={(module.declarations ?? [])
+          .filter((item) => item.kind === 'service' && item.id)
+          .map((service) => (
+            <div key={service.id} className="flex flex-col gap-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">services.{service.id}</span>
+                <span className="text-muted-foreground">{service.id}</span>
+              </div>
+              <span className="wrap-anywhere text-muted-foreground">
+                {runtime.isReady(module.id)
+                  ? methods(services[service.id!]).join(', ') || 'No methods'
+                  : 'Owner unavailable'}
+              </span>
             </div>
-            <span className="wrap-anywhere text-muted-foreground">
-              {methods(services[service.id]).join(', ') || 'No methods'}
-            </span>
-          </div>
-        ))}
+          ))}
       />
     </Section>
   );
@@ -262,15 +328,22 @@ function Events({ runtime }: { runtime: FoundationRuntime }) {
   );
 }
 
-function Configuration({ plugin, runtime }: { plugin: string; runtime: FoundationRuntime }) {
-  const snapshot = runtime.configuration.plugin(plugin).snapshot();
+function Configuration({ plugin }: { plugin: string }) {
+  const inventory = useRuntimeInventory();
+  const keys =
+    inventory.static.plugins
+      .find((item) => item.id === plugin)
+      ?.declarations?.filter((item) => item.kind === 'config')
+      .map((item) => item.id) ?? [];
   return (
     <Section
       title="Configuration"
-      description="Resolved defaults and app overrides (configs/ and bitakit.config.ts)."
+      description="Declared configuration; values are omitted from the inventory."
     >
-      {snapshot && Object.keys(snapshot).length ? (
-        <pre className="overflow-x-auto text-xs">{JSON.stringify(snapshot, null, 2)}</pre>
+      {keys.length ? (
+        <pre className="overflow-x-auto text-xs">
+          {JSON.stringify({ declarations: keys, values: 'omitted' }, null, 2)}
+        </pre>
       ) : (
         <p className="text-muted-foreground">This plugin has no configuration.</p>
       )}

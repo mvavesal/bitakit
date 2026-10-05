@@ -3,6 +3,6 @@ import type { ShellOptions } from '@bitakit/shell';
 
 export default defineConfig({
   defaults: {
-    groups: ['navigation'],
+    navigationSlot: 'shell.navigation',
   } satisfies ShellOptions,
 });

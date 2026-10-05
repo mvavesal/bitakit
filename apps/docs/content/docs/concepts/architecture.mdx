@@ -1,0 +1,38 @@
+---
+title: Architecture map
+description: See which layer owns execution, state, rendering and discovery.
+---
+
+Use this map after the [small Counter tutorial](/docs/concepts).
+You do not need to configure every layer to create a plugin.
+
+<ArchitectureIllustration />
+
+| Part                    | Owns                                                                               | Does not own                                      |
+| ----------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Discovery               | File parsing, generated imports/types and package metadata                         | Browser execution or runtime package installation |
+| Core                    | Lifecycle, services, Action execution, events, Settings values and slot attachment | React or rendering                                |
+| UI bindings             | Reactive reads, bound controls, contextual slot selection                          | Product layout or a second value store            |
+| Shell / App Preferences | App frame, region outlets and Settings presentation                                | A second runtime or routing engine                |
+| Host                    | Composition, native routes, central theme and trusted server integration           | Per-plugin bootstrap registries                   |
+
+## Read the flow you need
+
+| Question                                         | Diagram and example                                                         |
+| ------------------------------------------------ | --------------------------------------------------------------------------- |
+| How do files become a running plugin?            | [Discovery](/docs/concepts/discovery#automatic-loading-step-by-step)        |
+| How can several controls use one operation?      | [Action bindings](/docs/concepts/actions#2-bind-a-button)                   |
+| How does an operation update every control?      | [The Action loop](/docs/concepts/actions#the-action-loop)                    |
+| What can block an Action or observe its failure? | [Action interception](/docs/concepts/interceptors#action-interceptors)      |
+| How is service interception different?           | [Service observation](/docs/concepts/interceptors#service-interceptors)     |
+| How do plugins notify each other?                | [Event delivery](/docs/concepts/events#3-listen-from-another-plugin)        |
+| How does UI follow changing values?              | [Service state](/docs/concepts/services#2-display-its-value)                |
+| Who owns startup and cleanup?                    | [Service lifecycle](/docs/reference/services#lifecycle-and-resources)       |
+| What do starting, ready and stopping mean?       | [Runtime state chart](/docs/concepts/runtime-management#startup-and-shutdown-states) |
+| Where does a contributed widget appear?          | [Slots](/docs/concepts/slots) and [layout anatomy](/docs/reference/layouts) |
+| How does a declaration become a Settings page?   | [Settings](/docs/concepts/settings)                                         |
+| What survives a compatible plugin update?        | [Runtime management](/docs/concepts/runtime-management)                     |
+
+The diagrams describe this checkout's implemented APIs. They do not imply arbitrary hot code
+loading, server Action transports or a Harness layer. Exact guarantees and limits remain next
+to the examples in each guide. Use [Patterns at a glance](/docs/concepts/patterns) to choose a mechanism.

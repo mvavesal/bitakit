@@ -65,8 +65,8 @@ import type { ShellOptions } from '@bitakit/shell';
 // Shell options: https://github.com/mvavesal/bitakit/tree/main/packages/shell
 export default defineConfig({
   defaults: {
-    // Action groups shown in the navigation; theme presets are CSS under [data-theme-preset="<id>"].
-    groups: ['navigation'],
+    // Action slot shown in the navigation; theme presets are CSS under [data-theme-preset="<id>"].
+    navigationSlot: 'shell.navigation',
   } satisfies ShellOptions,
 });
 `;
@@ -77,39 +77,65 @@ export function readme(plan, { routes }) {
 
 A ${plan.framework === 'tanstack' ? 'TanStack Start' : 'Next.js'} app built with [BitaKit](https://github.com/mvavesal/bitakit).
 
+## 1. Run your app
+
 \`\`\`sh
-npm run dev        # start the dev server
-npm run build      # production build
-npm run typecheck  # types, including generated plugin types
+npm run dev
 \`\`\`
 
-## Add a feature
+Open the address printed in the terminal. Your framework and BitaKit are already connected.
+
+## 2. Add one page
+
+Create \`src/plugins/counter/ui/pages/index.tsx\`:
+
+\`\`\`tsx
+'use client';
+import { PageHeader } from '@bitakit/ui/components';
+
+export default function CounterPage() {
+  return <PageHeader title="Counter" />;
+}
+\`\`\`
+
+Visit **/counter**. That is a complete plugin: one folder, one page. Discovery connects it.
+
+## 3. Grow one step at a time
+
+Follow the [Counter learning path](https://github.com/mvavesal/bitakit/tree/main/apps/docs/content/docs/concepts).
+Add a service for shared state, an Action for a button, a slot for an extension point,
+and Settings only when the feature needs a saved preference.
+
+| Add when needed | File |
+| --- | --- |
+| Shared behavior and state | \`src/plugins/<name>/services/<file>.ts\` |
+| An operation for a control | \`src/plugins/<name>/actions/<file>.ts\` |
+| More pages | \`src/plugins/<name>/ui/pages\` |
+| A saved preference | \`src/plugins/<name>/settings.ts\` |
+| A UI extension point | \`src/plugins/<name>/slots/<file>.ts\` |
+| Your own framework routes | \`${routes}\` |
+${shell ? '| Shell options | `src/configs/shell.ts` |\n' : ''}
+
+## 4. Check your work
+
+\`\`\`sh
+npm run typecheck
+npx bitakit doctor
+\`\`\`
+
+The type check generates \`src/bitakit.gen.*\`; do not edit those files. Doctor reports wiring
+problems. Use \`npm run build\` when ready to check a production build.
+
+## Later: a fuller example
 
 \`\`\`sh
 npx bitakit add plugin notes
 \`\`\`
 
-This creates \`src/plugins/notes/\` with a service, typed events, actions, a navigation link and
-a page at \`/notes\`. The dev server picks it up automatically: there is no registry to edit.
-A plugin can also be a single file: \`src/plugins/notes/ui/pages/index.tsx\` is already a page at
-\`/notes\`; add services and actions when the feature needs behavior.
+This scaffolds a service, typed events, Actions and a page at /notes. It is a fuller example,
+not a required plugin shape. A navigation entry appears only in its explicitly selected slot.
 ${plan.sample ? '\nThe `todos` plugin in `src/plugins/todos` is a working sample. Delete the folder to remove it.\n' : ''}
-| Folder | What goes there |
-| --- | --- |
-| \`src/plugins/<name>/services\` | Data and behavior (\`defineService\`), reached as \`services.<name>.<file>\` |
-| \`src/plugins/<name>/actions\` | Operations for buttons, menus and links (\`defineAction\`), ID \`<name>.<file>\` |
-| \`src/plugins/<name>/events.ts\` | Typed events (\`defineEvents\`), named \`<name>.<event>\` |
-| \`src/plugins/<name>/settings.ts\` | User settings (\`defineSettings\`), keys \`<name>.<setting>\`, with a generated page under \`/settings\` |
-| \`src/plugins/<name>/ui/pages\` | Pages; the file path is the URL (\`ui/pages/index.tsx\` → \`/<name>\`) |
-| \`src/plugins/<name>/ui/slots\` | Components placed in layout slots (\`ui/slots/app-bar.end.tsx\`) |
-| \`${routes}\` | Your own routes, as usual for the framework |
-${shell ? '| `src/configs/shell.ts` | App Shell options |\n' : ''}
-Check the project at any time:
-
-\`\`\`sh
-npx bitakit doctor
-\`\`\`
-${shell ? '\nSettings are at `/settings`. Preferences are stored in the browser.\n' : ''}`;
+${plan.features.includes('preferences') ? '\nSettings are at `/settings`. Declare them once in a plugin’s `settings.ts`; pages and navigation are generated.\n' : ''}`;
 }
 
 /** Guidance for coding assistants, appended to the framework's own AGENTS.md. */
@@ -122,28 +148,31 @@ This app is organized in BitaKit plugins. Discovery generates \`src/bitakit.gen.
 time; there is no registry, provider or import list to edit. One concept, one way:
 
 - One feature = one folder in \`src/plugins/<name>/\`. The folder name is the plugin ID.
-- Start small: a plugin is complete with one or two files (a page, or a service and an action).
-  Add a folder only when the feature needs it; never scaffold every kind.
+- Start examples with one page, then add a service and an Action in separate steps.
+  Add a folder only when needed; keep optional properties and lifecycle details for later lessons.
   - \`services/<file>.ts\`: \`defineService(({ store, events }) => ({ ... }))\`. Reached everywhere as
-    \`services.<name>.<file>\`. Put state in \`store()\`; actions and pages follow it automatically.
+    \`services.<name>.<file>\`. State uses \`store()\`; resources use \`onStart\`/awaited \`onStop\`. Await runtime \`stop()\` before replacement.
   - \`actions/<file>.ts\`: \`defineAction({ title, execute })\`, ID \`<name>.<file>\`. Presentation fields may
     be functions: \`enabled: ({ services, input }) => ...\`. \`href\` makes a link, \`dialog\` opens a dialog,
-    \`groups: ['navigation']\` adds it to the app navigation.
+    \`slots: ['shell.navigation']\` places it in Shell navigation; \`slots: ['shell.toolbar']\` places a standard button/link in the header. No widget file is needed for either. Groups only organize queries.
   - \`events.ts\`: \`defineEvents({ changed: event<Payload>() })\`, emitted and observed as \`<name>.changed\`.
   - \`settings.ts\`: \`defineSettings({ pageSize: setting({ default: 20 }) })\`, read as \`settings.<name>.pageSize.get()\`
     in services and actions and \`useSetting('<name>.pageSize')\` in React. Settings get a generated page under
-    \`/settings\`; \`ui/settings/page.tsx\` replaces it. Persistence is the \`settings.storage\` contract (browser by default).
+    \`/settings\`; \`ui/settings/page.tsx\` replaces it. Additional pages use \`ui.settings.pages\`; the same catalog projects their routes, navigation Actions and keyed page bodies. Slot extensions use \`app-preferences.page.after\` with \`when({ payload })\`; page \`boundary\` encloses content and extensions. Persistence is the \`settings.storage\` contract (browser by default).
+  - \`slots/<file>.ts\`: \`defineSlot({ accepts: 'actions' | 'component' | 'data', policy: 'list' | 'single' | 'keyed' })\` (data requires schema). Owned contracts; data requires schema. Attach with scoped \`app.slots.attach(name, content, { availability: 'wait' })\`; cleanup is automatic.
   - \`ui/pages/<path>.tsx\`: a page component; the file path is the URL. \`ui/slots/<slot>.tsx\`: a component
-    placed in a layout slot. Everything under \`ui/\` is React; nothing else may import React.
-- In React: \`useServiceState('<name>.<file>', (state) => ...)\` for reactive data,
+    attached when both owners are ready; \`PluginSlot\` isolates widget render errors automatically. Everything under \`ui/\` is React; nothing else may import React.
+- In React: \`useServiceState('<name>.<file>', (state) => ...)\` for reactive data from a ready owner,
   \`<Action id="<name>.<file>" input={...}><Button /></Action>\` to bind any control, \`useEvent('<name>.changed', fn)\`.
 - Create files with the CLI: \`npx bitakit add plugin <name>\`,
-  \`npx bitakit add action|service|page|interceptor|config <name>/<file>\`, \`npx bitakit add events|settings <name>\`.
+  \`npx bitakit add action|service|page|interceptor|config|slot-definition <name>/<file>\`, \`npx bitakit add events|settings|settings-page <name>\`.
 - App layouts live in \`src/layouts/<name>.tsx\`; a page opts in with \`export const layout = '<name>'\` (\`'blank'\` for none).
-- After changes run \`npx bitakit doctor\` and \`npm run typecheck\`.
+- Inspect declarations with \`npx bitakit info --json\` (static only); verify with \`npx bitakit doctor\` and \`npm run typecheck\`.
 - App-owned routes stay native framework routes in \`${routes}\`.
 - Use the standard components from \`@bitakit/ui/components\` and the app theme; do not restyle them locally.
 - Visual packages declare exported CSS in \`bitakit.styles\` and intentional theme mappings in \`bitakit.theme\`, and export \`./package.json\`. Do not import package CSS from JavaScript, including lazy modules; Discovery owns the root CSS graph and layer order.
+- For Shell Actions use shell.navigation or shell.toolbar. For custom header content use ui/slots/shell.header.end.tsx. Settings pages stay automatic; extend page regions instead of registering them again.
+- The generated provider is component-only; advanced createBitaKitConfig imports use bitakit.gen.config.
 - Never edit generated files: \`src/bitakit.gen.*\`.
 
 <!-- END:bitakit-agent-rules -->

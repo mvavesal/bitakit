@@ -15,7 +15,7 @@ import { createActionList, FoundationRuntime } from '@bitakit/core';
 import { betterAuthClient } from '@bitakit/better-auth';
 import UserIcon from 'reicon-react/icons/User';
 
-test('Foundation plugin uses native paths, keeps full provider options and declares its account settings page', () => {
+test('Foundation plugin uses native paths, keeps full provider options and declares independent profile and security settings pages', () => {
   const authClient = createAuthClient({ baseURL: 'http://localhost:9999' });
   const plugin = betterAuthUIPlugin({
     provider: {
@@ -32,14 +32,15 @@ test('Foundation plugin uses native paths, keeps full provider options and decla
   assert.ok(paths.includes('/account/security'));
   assert.ok(paths.includes('/organization/people'));
   assert.ok(!paths.some((path) => path.startsWith('/settings/')), 'settings pages are not routes');
-  // One settings section: an empty declaration that carries the presentation, and its page.
+  // Profile owns the default declaration; security is an additional settings page.
   assert.deepEqual(plugin.settings.settings, {});
-  assert.equal(plugin.settings.section.title, 'Account');
+  assert.equal(plugin.settings.section.title, 'Profile');
   assert.equal(plugin.settings.section.category, 'account');
   assert.equal(plugin.settings.section.order, 0);
   assert.equal(plugin.settings.section.path, 'account', 'the account page has its own path');
   assert.equal(plugin.settings.section.icon, UserIcon);
   assert.equal(typeof plugin.ui.settings.component, 'function');
+  assert.deepEqual(plugin.ui.settings.pages.map(({ id, path, category }) => ({ id, path, category })), [{ id: 'security', path: 'account/security', category: 'account' }]);
   for (const legacy of ['pages', 'providers', 'views', 'setup'])
     assert.equal(plugin[legacy], undefined, legacy);
   // The client is a service the host provides; the factory takes no host objects.

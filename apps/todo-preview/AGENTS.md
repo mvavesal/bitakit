@@ -22,7 +22,7 @@ time; there is no registry, provider or import list to edit. One concept, one wa
     `services.<name>.<file>`. Put state in `store()`; actions and pages follow it automatically.
   - `actions/<file>.ts`: `defineAction({ title, execute })`, ID `<name>.<file>`. Presentation fields may
     be functions: `enabled: ({ services, input }) => ...`. `href` makes a link, `dialog` opens a dialog,
-    `groups: ['navigation']` adds it to the app navigation.
+    `slots: ['shell.navigation']` places it in Shell; groups only organize queries.
   - `events.ts`: `defineEvents({ changed: event<Payload>() })`, emitted and observed as `<name>.changed`.
   - `settings.ts`: `defineSettings({ pageSize: setting({ default: 20 }) })`, read as `settings.<name>.pageSize.get()`
     in services and actions and `useSetting('<name>.pageSize')` in React. Settings get a generated page under

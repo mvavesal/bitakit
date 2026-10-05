@@ -2,7 +2,6 @@
 import {
   Children,
   createContext,
-  createElement,
   isValidElement,
   useContext,
   useEffect,
@@ -20,9 +19,9 @@ import {
   useNavigation,
   useSetting,
   useSlot,
+  PluginSlot,
   useTranslation,
   type ActionControl,
-  type SlotEntry,
 } from '@bitakit/ui';
 import {
   AppBar,
@@ -46,7 +45,17 @@ import {
   navigationMenuTriggerStyle,
   useSidebar,
 } from '@bitakit/ui/components';
+import {
+  renderRegion,
+  ShellSurface,
+  ShellFullPage,
+  ShellFooter,
+  ShellHeaderRow,
+  ShellDrawer,
+  type ShellSurfaceProps,
+} from './regions.js';
 import type { ShellLayout } from '../appearance.js';
+import { ShellToolbar } from './toolbar.js';
 
 export type NavigationItemProps = {
   /** A bound navigation action from `useNavigation`. */
@@ -57,15 +66,15 @@ export type NavigationItemProps = {
   layout: ShellLayout;
 };
 export type AppShellSidebarProps = {
-  /** Navigation action groups; defaults to the `AppShell` groups, then the Shell option. */
-  groups?: readonly string[];
+  /** Explicit Action slot; defaults to AppShell, then the Shell option. */
+  navigationSlot?: string;
   /** Before the `sidebar.header` slot, for example the brand. */
   header?: ReactNode;
   /** After the `sidebar.footer` slot, for example the account menu. */
   footer?: ReactNode;
 };
 export type AppShellTopBarProps = {
-  groups?: readonly string[];
+  navigationSlot?: string;
   /** Navbar layout: the start of the bar. */
   brand?: ReactNode;
   /** Sidebar layout: next to the sidebar trigger, for example the page title. */
@@ -83,12 +92,14 @@ export type AppShellComponents = {
   Sidebar?: ComponentType<AppShellSidebarProps>;
   TopBar?: ComponentType<AppShellTopBarProps>;
   Content?: ComponentType<AppShellContentProps>;
+  Surface?: ComponentType<ShellSurfaceProps>;
+  Footer?: ComponentType<ShellSurfaceProps>;
   NavigationItem?: ComponentType<NavigationItemProps>;
 };
 export type AppShellProps = {
   children?: ReactNode;
-  /** Navigation action groups; defaults to the Shell option `groups` (`['navigation']`). */
-  groups?: readonly string[];
+  /** Explicit Action slot; defaults to the Shell option navigationSlot. */
+  navigationSlot?: string;
   components?: AppShellComponents;
   /** Sidebar header in the sidebar layout, start of the top bar in the navbar layout. */
   brand?: ReactNode;
@@ -100,13 +111,13 @@ export type AppShellProps = {
 
 type NamedLayouts = Readonly<Record<string, ComponentType<{ children?: ReactNode }>>>;
 type ShellScope = {
-  groups?: readonly string[];
+  navigationSlot?: string;
   components: AppShellComponents;
   /** Rendering inside a named page layout: a nested AppShell draws the frame. */
   inLayout: boolean;
 };
 const noComponents: AppShellComponents = {};
-const defaultGroups: readonly string[] = ['navigation'];
+const defaultSlot = 'shell.navigation';
 const ShellContext = createContext<ShellScope>({ components: noComponents, inLayout: false });
 
 function requireShell(runtime: FoundationRuntime) {
@@ -120,17 +131,14 @@ export function useShellLayout(): ShellLayout {
   requireShell(useFoundation().runtime);
   return useSetting('shell.layout').value as ShellLayout;
 }
-function useShellGroups(groups: readonly string[] | undefined): readonly string[] {
+function useShellNavigationSlot(slot: string | undefined): string {
   const { runtime } = useFoundation();
   const scope = useContext(ShellContext);
-  const explicit = groups ?? scope.groups;
+  const explicit = slot ?? scope.navigationSlot;
   if (explicit) return explicit;
   requireShell(runtime);
-  return runtime.configuration.plugin('shell').get('groups', defaultGroups);
+  return runtime.configuration.plugin('shell').get('navigationSlot', defaultSlot);
 }
-const renderSlot = (entries: readonly SlotEntry[]) =>
-  entries.map((entry) => createElement(entry.component, { key: entry.key }));
-
 /** One navigation entry: a link for actions with an href, otherwise a button. */
 function NavigationItem({ item, active, layout }: NavigationItemProps) {
   const { Link } = useFoundationNavigation();
@@ -167,17 +175,53 @@ function NavigationItem({ item, active, layout }: NavigationItemProps) {
   );
 }
 
+/** One explicit navigation group; its Action slot still owns placement. */
+function AppShellNavigationGroup({
+  id,
+  title,
+  navigationSlot,
+}: {
+  id: string;
+  title: ReactNode;
+  navigationSlot: string;
+}) {
+  const navigation = useNavigation(navigationSlot);
+  const Item = useContext(ShellContext).components.NavigationItem ?? NavigationItem;
+  if (navigation.error) throw navigation.error;
+  if (!navigation.items.length) return null;
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{title}</SidebarGroupLabel>
+      <PluginSlot name="shell.navigation.group.before" payload={{ groupId: id }} />
+      <SidebarMenu>
+        {navigation.items.map((item) => (
+          <SidebarMenuItem key={item.key}>
+            <Item item={item} active={navigation.isActive(item.href)} layout="sidebar" />
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+      <PluginSlot name="shell.navigation.group.after" payload={{ groupId: id }} />
+    </SidebarGroup>
+  );
+}
+
 /** Vertical navigation with the `sidebar.header` and `sidebar.footer` slots; a drawer on mobile. */
-function AppShellSidebar({ groups, header, footer }: AppShellSidebarProps) {
+function AppShellSidebar({ navigationSlot, header, footer }: AppShellSidebarProps) {
   const t = useTranslation();
-  const navigation = useNavigation(useShellGroups(groups));
-  const top = useSlot('sidebar.header');
-  const bottom = useSlot('sidebar.footer');
+  const navigation = useNavigation(useShellNavigationSlot(navigationSlot));
+  const { state } = useSidebar();
+  const payload = { collapsed: state === 'collapsed' };
+  const top = useSlot('sidebar.header', { payload });
+  const bottom = useSlot('sidebar.footer', { payload });
+  const brand = useSlot('shell.brand');
   const Item = useContext(ShellContext).components.NavigationItem ?? NavigationItem;
   const { setOpenMobile } = useSidebar();
   // The mobile drawer closes after navigating.
   useEffect(() => setOpenMobile(false), [navigation.pathname, setOpenMobile]);
   const label = t('shell.ui.navigation', undefined, 'Main navigation');
+  if (navigation.error) throw navigation.error;
+  if (top.error) throw top.error;
+  if (bottom.error) throw bottom.error;
   return (
     <Sidebar
       variant="inset"
@@ -188,33 +232,35 @@ function AppShellSidebar({ groups, header, footer }: AppShellSidebarProps) {
         'Links to the areas of this app.',
       )}
     >
-      {header != null || top.length ? (
+      {header != null || top.items.length || brand.items.length ? (
         <SidebarHeader>
           {header}
-          {renderSlot(top)}
+          <PluginSlot name="shell.brand" />
+          {renderRegion('sidebar.header', top)}
         </SidebarHeader>
       ) : null}
       <SidebarContent>
-        {navigation.groups.length ? (
+        {navigation.items.length ? (
           <nav aria-label={label}>
-            {navigation.groups.map((group) => (
-              <SidebarGroup key={group.id}>
-                <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-                <SidebarMenu>
-                  {group.items.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <Item item={item} active={navigation.isActive(item.href)} layout="sidebar" />
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroup>
-            ))}
+            <SidebarGroup>
+              <SidebarGroupLabel>{label}</SidebarGroupLabel>
+              <PluginSlot name="shell.navigation.group.before" payload={{ groupId: 'main' }} />
+              <SidebarMenu>
+                {navigation.items.map((item) => (
+                  <SidebarMenuItem key={item.key}>
+                    <Item item={item} active={navigation.isActive(item.href)} layout="sidebar" />
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+              <PluginSlot name="shell.navigation.group.after" payload={{ groupId: 'main' }} />
+            </SidebarGroup>
           </nav>
         ) : null}
+        <PluginSlot name="sidebar.body" payload={payload} />
       </SidebarContent>
-      {bottom.length || footer != null ? (
+      {bottom.items.length || footer != null ? (
         <SidebarFooter>
-          {renderSlot(bottom)}
+          {renderRegion('sidebar.footer', bottom)}
           {footer}
         </SidebarFooter>
       ) : null}
@@ -226,62 +272,84 @@ function AppShellSidebar({ groups, header, footer }: AppShellSidebarProps) {
  * The app bar. Sidebar layout: sidebar trigger and `header`. Navbar layout: `brand`, the
  * navigation menu and `end`. `AppBar` renders the `app-bar.end` slot in both layouts.
  */
-function AppShellTopBar({ groups, brand, header, end }: AppShellTopBarProps) {
+function AppShellTopBar({ navigationSlot, brand, header, end }: AppShellTopBarProps) {
   const t = useTranslation();
   const layout = useShellLayout();
-  const navigation = useNavigation(useShellGroups(groups));
+  const navigation = useNavigation(useShellNavigationSlot(navigationSlot));
   const Item = useContext(ShellContext).components.NavigationItem ?? NavigationItem;
+  if (navigation.error) throw navigation.error;
   if (layout === 'sidebar')
     return (
       <AppBar
         left={
           <>
             <SidebarTrigger aria-label={t('shell.ui.toggle', undefined, 'Toggle navigation')} />
+            <PluginSlot name="shell.header.start" />
             {header}
           </>
         }
-        right={end}
+        center={<PluginSlot name="shell.header.center" />}
+        right={
+          <>
+            <ShellToolbar />
+            <PluginSlot name="shell.header.end" />
+            {end}
+          </>
+        }
+        bottom={<PluginSlot name="shell.header.rows" />}
       />
     );
-  // One entry per action, in group order; an action in two groups appears once.
-  const items = [
-    ...new Map(
-      navigation.groups.flatMap((group) => group.items).map((item) => [item.id, item]),
-    ).values(),
-  ];
+  const items = navigation.items;
   return (
     <AppBar
-      left={brand}
-      center={
-        items.length ? (
-          <NavigationMenu
-            viewport={false}
-            aria-label={t('shell.ui.navigation', undefined, 'Main navigation')}
-            className="min-w-0 max-w-full justify-start"
-          >
-            <NavigationMenuList className="flex-wrap justify-start gap-1">
-              {items.map((item) => (
-                <NavigationMenuItem key={item.id}>
-                  <Item item={item} active={navigation.isActive(item.href)} layout="navbar" />
-                </NavigationMenuItem>
-              ))}
-            </NavigationMenuList>
-          </NavigationMenu>
-        ) : undefined
+      left={
+        <>
+          {brand}
+          <PluginSlot name="shell.brand" />
+          <PluginSlot name="shell.header.start" />
+        </>
       }
-      right={end}
+      center={
+        <>
+          <PluginSlot name="shell.header.center" />
+          {items.length ? (
+            <NavigationMenu
+              viewport={false}
+              aria-label={t('shell.ui.navigation', undefined, 'Main navigation')}
+              className="min-w-0 max-w-full justify-start"
+            >
+              <NavigationMenuList className="flex-wrap justify-start gap-1">
+                {items.map((item) => (
+                  <NavigationMenuItem key={item.key}>
+                    <Item item={item} active={navigation.isActive(item.href)} layout="navbar" />
+                  </NavigationMenuItem>
+                ))}
+              </NavigationMenuList>
+            </NavigationMenu>
+          ) : null}
+        </>
+      }
+      right={
+        <>
+          <ShellToolbar />
+          <PluginSlot name="shell.header.end" />
+          {end}
+        </>
+      }
+      bottom={<PluginSlot name="shell.header.rows" />}
     />
   );
 }
 
 /** The content area: `SidebarInset` with the page width wrapper. */
 function AppShellContent({ children, topBar }: AppShellContentProps) {
+  const Surface = useContext(ShellContext).components.Surface ?? ShellSurface;
+  const Footer = useContext(ShellContext).components.Footer ?? ShellFooter;
   return (
     <SidebarInset className="min-w-0">
       {topBar}
-      <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-6 p-4 md:p-6">
-        {children}
-      </div>
+      <Surface>{children}</Surface>
+      <Footer />
     </SidebarInset>
   );
 }
@@ -297,7 +365,7 @@ const layoutsOf = (runtime: FoundationRuntime) =>
  */
 function AppShellRoot({
   children,
-  groups,
+  navigationSlot,
   components = noComponents,
   brand,
   account,
@@ -307,9 +375,9 @@ function AppShellRoot({
   const parent = useContext(ShellContext);
   const page = useCurrentPage();
   const layout = useShellLayout();
-  const resolved = useShellGroups(groups);
+  const resolved = useShellNavigationSlot(navigationSlot);
   const scope = useMemo<ShellScope>(
-    () => ({ groups: resolved, components, inLayout: false }),
+    () => ({ navigationSlot: resolved, components, inLayout: false }),
     [resolved, components],
   );
   const name = parent.inLayout ? undefined : page?.layout;
@@ -338,7 +406,7 @@ function AppShellRoot({
   const navbar = layout === 'navbar';
   const topBar = (
     <TopBarPart
-      groups={resolved}
+      navigationSlot={resolved}
       brand={brand}
       header={header}
       end={navbar ? account : undefined}
@@ -352,7 +420,11 @@ function AppShellRoot({
             children
           ) : (
             <>
-              {navbar ? topBar : <SidebarPart groups={resolved} header={brand} footer={account} />}
+              {navbar ? (
+                topBar
+              ) : (
+                <SidebarPart navigationSlot={resolved} header={brand} footer={account} />
+              )}
               <ContentPart topBar={navbar ? undefined : topBar}>{children}</ContentPart>
             </>
           )}
@@ -367,5 +439,11 @@ export const AppShell = Object.assign(AppShellRoot, {
   Sidebar: AppShellSidebar,
   TopBar: AppShellTopBar,
   Content: AppShellContent,
+  Surface: ShellSurface,
+  FullPage: ShellFullPage,
+  Footer: ShellFooter,
+  HeaderRow: ShellHeaderRow,
+  Drawer: ShellDrawer,
   NavigationItem,
+  NavigationGroup: AppShellNavigationGroup,
 });

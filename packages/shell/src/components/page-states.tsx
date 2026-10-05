@@ -1,6 +1,8 @@
 'use client';
-import type { ReactNode } from 'react';
-import { useTranslation } from '@bitakit/ui';
+import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
+import { PluginSlot, useSlot, useTranslation, useOptionalFoundation } from '@bitakit/ui';
+import { ErrorBoundary } from 'react-error-boundary';
+import { renderRegion } from './regions.js';
 import SearchIcon from 'reicon-react/icons/SearchNormal';
 import WarningIcon from 'reicon-react/icons/Warning';
 import LockIcon from 'reicon-react/icons/Lock';
@@ -14,14 +16,23 @@ import {
   EmptyTitle,
 } from './ui/empty.js';
 
+const idle = () => () => {};
+const notReady = () => false;
+
 export type PageStateProps = {
+  /** Optional local identity for shell.state.content/actions. No runtime is required. */
+  surfaceId?: string;
+  /** Replace the message region through ordinary composition. */
+  content?: ReactNode;
   title?: ReactNode;
   description?: ReactNode;
   /** Host-owned links and controls; these components do not navigate. */
   children?: ReactNode;
 };
 
-function PageState({
+export function PageState({
+  surfaceId,
+  content,
   title,
   description,
   children,
@@ -31,18 +42,46 @@ function PageState({
   icon?: ReactNode;
   loading?: boolean;
 }) {
+  const foundation = useOptionalFoundation();
+  const read = useCallback(() => !!foundation?.runtime.isReady('shell'), [foundation?.runtime]);
+  const ready = useSyncExternalStore(
+    foundation?.runtime.lifecycle.subscribe ?? idle,
+    read,
+    notReady,
+  );
+  const extensions = surfaceId && ready && foundation?.runtime.slots.has('shell.state.content');
+  const message = content ?? (
+    <EmptyHeader>
+      {icon && <EmptyMedia variant="icon">{icon}</EmptyMedia>}
+      <EmptyTitle role="heading" aria-level={1}>
+        {title}
+      </EmptyTitle>
+      {description != null && <EmptyDescription>{description}</EmptyDescription>}
+    </EmptyHeader>
+  );
   return (
     <Empty role={loading ? 'status' : undefined} aria-busy={loading || undefined}>
-      <EmptyHeader>
-        {icon && <EmptyMedia variant="icon">{icon}</EmptyMedia>}
-        <EmptyTitle role="heading" aria-level={1}>
-          {title}
-        </EmptyTitle>
-        {description != null && <EmptyDescription>{description}</EmptyDescription>}
-      </EmptyHeader>
+      {extensions ? (
+        <ErrorBoundary fallback={message} resetKeys={[surfaceId, foundation?.runtime]}>
+          <StateContent id={surfaceId!} fallback={message} />
+        </ErrorBoundary>
+      ) : (
+        message
+      )}
       {children != null && <EmptyContent>{children}</EmptyContent>}
+      {extensions && (
+        <ErrorBoundary fallback={null} resetKeys={[surfaceId, foundation?.runtime]}>
+          <PluginSlot name="shell.state.actions" payload={{ surfaceId: surfaceId! }} />
+        </ErrorBoundary>
+      )}
     </Empty>
   );
+}
+
+function StateContent({ id, fallback }: { id: string; fallback: ReactNode }) {
+  const view = useSlot('shell.state.content', { payload: { surfaceId: id }, entryKey: id });
+  const content = renderRegion('shell.state.content', view, () => fallback);
+  return content.length ? content : fallback;
 }
 
 /** Presentation only: use the framework's native not-found route to set the HTTP status. */
@@ -71,12 +110,16 @@ export function ErrorPage({
   description,
   reset,
   children,
+  surfaceId,
+  content,
 }: PageStateProps & {
   reset?: () => void;
 }) {
   const t = useTranslation();
   return (
     <PageState
+      surfaceId={surfaceId}
+      content={content}
       icon={<WarningIcon aria-hidden="true" />}
       title={title ?? t('shell.pages.error.title', undefined, 'Something went wrong')}
       description={

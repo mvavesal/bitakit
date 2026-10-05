@@ -19,7 +19,7 @@ const translator = (messages) =>
     { has: (key) => Object.hasOwn(messages, key) },
   );
 
-test('IDs come from record keys or discovery paths; explicit IDs win; titles fall back to the last segment', () => {
+test('IDs come from record keys or discovery paths; explicit IDs win; titles fall back to the last segment', async () => {
   assert.equal(
     resolveContribution(defineAction({ execute() {} }), 'users.invite').id,
     'users.invite',
@@ -52,11 +52,11 @@ test('IDs come from record keys or discovery paths; explicit IDs win; titles fal
     assert.equal(runtime.actions.get('users.invite').title, 'Invite');
     assert.equal(runtime.actions.get('users.admin.reset').title, 'Reset');
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('title, description and tooltip accept keys or literals, prefer <id>.* catalog keys and follow the locale', () => {
+test('title, description and tooltip accept keys or literals, prefer <id>.* catalog keys and follow the locale', async () => {
   const runtime = createRuntime({
     plugins: [
       definePlugin({
@@ -103,11 +103,11 @@ test('title, description and tooltip accept keys or literals, prefer <id>.* cata
     assert.equal(get('archive').title, 'Archive');
     assert.equal(get('archive').description, undefined);
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('ID collisions roll back without deleting existing host actions', () => {
+test('ID collisions roll back without deleting existing host actions', async () => {
   const list = createActionList([{ id: 'users.invite', title: 'Host' }]);
   const runtime = new FoundationRuntime(list, {
     plugins: [
@@ -118,6 +118,7 @@ test('ID collisions roll back without deleting existing host actions', () => {
     ],
   });
   assert.throws(() => runtime.mount(), /already registered/);
+  await runtime.stopped;
   assert.deepEqual(Object.keys(list.getState().actions), ['users.invite']);
   assert.equal(list.get('users.invite').title, 'Host');
 });

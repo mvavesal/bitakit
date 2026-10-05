@@ -38,11 +38,11 @@ test('Action references preserve guards, current state, ownership and internal e
     assert.deepEqual(Object.keys(runtime.app.actions.documents), ['create']);
     assert.throws(() => runtime.app.actions.documents.private.execute(), /Internal Action/);
   } finally {
-    stop();
+    await stop();
   }
 });
 
-test('public app access reuses instances and fails clearly before mount and after disposal', () => {
+test('public app access reuses instances and fails clearly before mount and after disposal', async () => {
   const documents = { open: () => 'document' };
   let stopped = 0;
   const runtime = createRuntime({
@@ -78,13 +78,13 @@ test('public app access reuses instances and fails clearly before mount and afte
   assert.equal(app.config.app, runtime.configuration.plugin('app').snapshot());
   assert.deepEqual(app.config.editor, {});
   assert.equal(Object.isFrozen(app), true);
-  stop();
+  await stop();
   assert.equal(stopped, 1);
   assert.equal(app.ready, false);
   assert.throws(() => app.services.documents, /Foundation service "documents" is unavailable/);
 });
 
-test('unknown services report a structured error; reserved lookups stay undefined', () => {
+test('unknown services report a structured error; reserved lookups stay undefined', async () => {
   const runtime = createRuntime({ plugins: [definePlugin({ id: 'editor' })] });
   const stop = runtime.mount();
   try {
@@ -102,7 +102,7 @@ test('unknown services report a structured error; reserved lookups stay undefine
     assert.equal('unknown' in runtime.app.services, false);
     assert.deepEqual(Object.keys(runtime.app.services), []);
   } finally {
-    stop();
+    await stop();
   }
   assert.deepEqual(Object.keys(runtime.app.services), [], 'not mounted: nothing to enumerate');
 });

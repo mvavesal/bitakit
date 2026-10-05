@@ -5,8 +5,9 @@ import type { SettingsAccess } from './settings/access.js';
 import type { ServiceNames } from './service-names.js';
 import { FoundationStartupError, isFoundationStartupError, moduleLabel } from './startup-error.js';
 import { createStore, isObservable, isStore } from './store.js';
+import { cleanupSequence, cleanupFailure, type Cleanup } from './lifecycle/cleanup.js';
+import type { LifecyclePhase } from './lifecycle/state.js';
 
-/** Name resolution and module ownership for error attribution. */
 export type ServiceScope = {
   names: ServiceNames;
   appId: string;
@@ -14,17 +15,21 @@ export type ServiceScope = {
   sourceOf(definition: ServiceDefinition<any>): string | undefined;
 };
 export type Observable = { subscribe(listener: () => void): () => void };
-type StartHook = {
+type OwnedService = {
+  id: string;
   module: string;
   source?: string;
-  run(context: { signal: AbortSignal }): void | Promise<void>;
+  starts: ((context: { signal: AbortSignal }) => void | Promise<void>)[];
+  stops: Cleanup[];
+  release: Cleanup;
+  active: boolean;
+  starting: boolean;
+  stopping: boolean;
+  observed: Set<Observable>;
+  completion?: Promise<void>;
 };
 
-/**
- * Creates every service in dependency order and hands each factory one context object.
- * Returns the instances by ID, everything observable the runtime should follow, and the
- * start hooks to await before the app is ready.
- */
+/** Allocates ownership before initialization, so partial factory failures can be fully stopped. */
 export function createServices(
   definitions: readonly ServiceDefinition<any>[],
   provided: Readonly<Record<string, unknown>> = {},
@@ -35,64 +40,74 @@ export function createServices(
   scope?: ServiceScope,
   idOf: (definition: ServiceDefinition<any>) => string = (definition) => definition.id!,
   settings: SettingsAccess = Object.freeze({}) as SettingsAccess,
+  onPhase: (id: string, phase: LifecyclePhase, error?: unknown) => void = () => {},
 ) {
   let active = true;
+  let initialized = false;
+  let stopping = false;
+  let completion: Promise<void> | undefined;
   const pending = new Map<string, ServiceDefinition<any>>();
   const instances: Record<string, unknown> = Object.create(null);
   const observed = new Set<Observable>();
-  const startHooks: StartHook[] = [];
-  const stopHooks: { module: string; run(): void | Promise<void> }[] = [];
-  const cleanups: (() => void)[] = [];
+  const providedSources = new Set<Observable>();
+  const owned: OwnedService[] = [];
   for (const [id, instance] of Object.entries(provided)) {
     instances[id] = decorate(id, instance, () => active);
-    if (isObservable(instance)) observed.add(instance);
-  }
-  const dispose = () => {
-    active = false;
-    const errors: unknown[] = [];
-    for (const hook of stopHooks.splice(0).reverse()) {
-      try {
-        const result = hook.run();
-        if (result && typeof (result as Promise<void>).then === 'function')
-          void (result as Promise<void>).catch((error) =>
-            console.error(`[bitakit] onStop in ${hook.module} failed.`, error),
-          );
-      } catch (error) {
-        errors.push(error);
-      }
+    if (isObservable(instance)) {
+      observed.add(instance);
+      providedSources.add(instance);
     }
-    for (const cleanup of cleanups.splice(0).reverse()) {
-      try {
-        cleanup();
-      } catch (error) {
-        errors.push(error);
-      }
-    }
-    observed.clear();
-    if (errors.length) throw new AggregateError(errors, 'Service cleanup failed.');
-  };
-  for (const definition of definitions) {
-    const id = idOf(definition);
-    if (!id) throw new Error('A service needs an ID: pass { id } for manual composition.');
-    if (pending.has(id) || Object.hasOwn(instances, id))
-      throw new Error(`Duplicate service "${id}".`);
-    pending.set(id, definition);
   }
-  const module = (definition: ServiceDefinition<any>) => scope?.moduleOf(definition) ?? '';
   const requirements = (definition: ServiceDefinition<any>) =>
     (definition.requires ?? []).map((name) => ({
       name,
       key: scope ? scope.names.key(name) : name,
     }));
   const view = scope ? scope.names.tree(instances) : (instances as unknown as Services);
-  try {
+  const attributed = (error: unknown, service: OwnedService, phase: string) => {
+    if (phase === 'onStart' && isFoundationStartupError(error)) return error;
+    const message = `${phase} in ${scope ? moduleLabel(service.module, scope.appId) : service.module} failed: ${error instanceof Error ? error.message : String(error)}`;
+    if (phase === 'onStart')
+      return new FoundationStartupError(message, service.module, {
+        cause: error,
+        source: service.source,
+        app: service.module === scope?.appId,
+      });
+    return Object.assign(new Error(message, { cause: error }), {
+      name: 'FoundationCleanupError',
+      plugin: service.module,
+      service: service.id,
+      source: service.source,
+    });
+  };
+  const install = (entries: readonly ServiceDefinition<any>[]) => {
+    for (const definition of entries) {
+      const id = idOf(definition);
+      if (!id) throw new Error('A service needs an ID: pass { id } for manual composition.');
+      if (pending.has(id) || Object.hasOwn(instances, id))
+        throw new Error(`Duplicate service "${id}".`);
+      pending.set(id, definition);
+    }
     while (pending.size) {
       let progressed = false;
       for (const [id, definition] of pending) {
         if (requirements(definition).some(({ key }) => !Object.hasOwn(instances, key))) continue;
-        const owner = module(definition);
+        const owner = scope?.moduleOf(definition) ?? '';
         const eventScope = createEventScope(events, owner || undefined);
-        cleanups.push(eventScope.dispose);
+        const service: OwnedService = {
+          id,
+          module: owner,
+          source: scope?.sourceOf(definition),
+          starts: [],
+          stops: [],
+          release: eventScope.dispose,
+          active: true,
+          starting: false,
+          stopping: false,
+          observed: new Set(),
+        };
+        owned.push(service);
+        onPhase(id, 'starting');
         let instance: unknown;
         try {
           instance = definition.create({
@@ -103,53 +118,139 @@ export function createServices(
             store: (initial) => {
               const store = createStore(initial);
               observed.add(store);
+              service.observed.add(store);
               return store;
             },
-            onStart: (hook) =>
-              startHooks.push({ module: owner, source: scope?.sourceOf(definition), run: hook }),
-            onStop: (hook) => stopHooks.push({ module: owner, run: hook }),
+            onStart: (hook) => {
+              if (service.starting || service.stopping || stopping)
+                throw new Error('Register onStart during service creation.');
+              service.starts.push(hook);
+            },
+            onStop: (hook) => {
+              if (service.stopping || stopping)
+                throw new Error('Service cleanup registration is closed.');
+              service.stops.push(hook);
+            },
           });
         } catch (error) {
+          onPhase(id, 'failed', error);
           if (!scope || isFoundationStartupError(error)) throw error;
           throw new FoundationStartupError(
             `Service "${id}" in ${moduleLabel(owner, scope.appId)} failed to start: ${error instanceof Error ? error.message : String(error)}`,
             owner,
-            { cause: error, source: scope.sourceOf(definition), app: owner === scope.appId },
+            { cause: error, source: service.source, app: owner === scope.appId },
           );
         }
-        if (isObservable(instance)) observed.add(instance);
+        if (isObservable(instance)) {
+          observed.add(instance);
+          service.observed.add(instance);
+        }
         if (instance && typeof instance === 'object')
           for (const value of Object.values(instance as Record<string, unknown>))
-            if (isStore(value)) observed.add(value);
-        instances[id] = decorate(id, instance, () => active);
+            if (isStore(value)) {
+              observed.add(value);
+              service.observed.add(value);
+            }
+        instances[id] = decorate(id, instance, () => active && service.active);
         pending.delete(id);
         progressed = true;
       }
       if (!progressed) throw unresolved(pending, instances, requirements, scope, idOf);
     }
-  } catch (error) {
-    dispose();
-    throw error;
-  }
-  const start = async (signal: AbortSignal) => {
-    for (const hook of startHooks) {
+  };
+  const initialize = () => {
+    if (initialized) throw new Error('Services are already initialized.');
+    initialized = true;
+    install(definitions);
+  };
+  const start = async (signal: AbortSignal, modules?: ReadonlySet<string>) => {
+    for (const service of owned) {
+      if (modules && !modules.has(service.module)) continue;
       if (signal.aborted) return;
+      service.starting = true;
       try {
-        await hook.run({ signal });
+        for (const hook of service.starts) {
+          if (signal.aborted) return;
+          await hook({ signal });
+        }
+        if (!signal.aborted) onPhase(service.id, 'ready');
       } catch (error) {
-        if (isFoundationStartupError(error)) throw error;
-        throw new FoundationStartupError(
-          `onStart in ${scope ? moduleLabel(hook.module, scope.appId) : hook.module} failed: ${error instanceof Error ? error.message : String(error)}`,
-          hook.module,
-          { cause: error, source: hook.source, app: scope ? hook.module === scope.appId : false },
-        );
+        onPhase(service.id, 'failed', error);
+        throw attributed(error, service, 'onStart');
       }
     }
   };
+  const stopService = (service: OwnedService): Promise<void> => {
+    if (service.completion) return service.completion;
+    service.stopping = true;
+    let resolve!: () => void, reject!: (error: unknown) => void;
+    service.completion = new Promise<void>((done, fail) => {
+      resolve = done;
+      reject = fail;
+    });
+    onPhase(service.id, 'stopping');
+    void cleanupSequence([...service.stops].reverse(), (errors) => {
+      try {
+        service.release();
+      } catch (error) {
+        errors.push(error);
+      }
+      service.active = false;
+      for (const source of service.observed) {
+        if (
+          !providedSources.has(source) &&
+          !owned.some((other) => other !== service && other.active && other.observed.has(source))
+        )
+          observed.delete(source);
+      }
+      delete instances[service.id];
+      onPhase(service.id, errors.length ? 'failed' : 'stopped', errors[0]);
+      cleanupFailure(
+        errors.map((error) => attributed(error, service, 'onStop')),
+        `Service "${service.id}" cleanup failed.`,
+      );
+    }).then(resolve, reject);
+    return service.completion;
+  };
+  const disposeModules = async (modules: ReadonlySet<string>) => {
+    const selected = owned.filter((service) => modules.has(service.module));
+    await cleanupSequence(
+      [...selected].reverse().map((service) => () => stopService(service)),
+      (errors) => {
+        for (const service of selected) owned.splice(owned.indexOf(service), 1);
+        for (const [id, definition] of pending)
+          if (modules.has(scope?.moduleOf(definition) ?? '')) pending.delete(id);
+        cleanupFailure(errors, 'Service cleanup failed.');
+      },
+    );
+  };
+  const dispose = (): Promise<void> => {
+    if (completion) return completion;
+    stopping = true;
+    let resolve!: () => void, reject!: (error: unknown) => void;
+    completion = new Promise<void>((done, fail) => {
+      resolve = done;
+      reject = fail;
+    });
+    void cleanupSequence(
+      [...owned].reverse().map((service) => () => stopService(service)),
+      (errors) => {
+        active = false;
+        observed.clear();
+        cleanupFailure(errors, 'Service cleanup failed.');
+      },
+    ).then(resolve, reject);
+    return completion;
+  };
   return {
-    services: Object.freeze(instances) as Readonly<Record<string, unknown>>,
+    services: instances as Readonly<Record<string, unknown>>,
     observed,
-    hasStartHooks: startHooks.length > 0,
+    initialize,
+    install,
+    disposeModules,
+    get hasStartHooks() {
+      return owned.some((service) => service.starts.length > 0);
+    },
     start,
     dispose,
   };

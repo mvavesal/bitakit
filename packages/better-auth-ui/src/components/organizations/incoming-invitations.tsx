@@ -1,7 +1,9 @@
 'use client';
 import { useAuth } from '@better-auth-ui/react';
 import { useTranslation } from '@bitakit/ui';
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore, type ReactNode } from 'react';
+import EnvelopeIcon from 'reicon-react/icons/Envelope';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '../ui/empty.js';
 import { cn } from 'cn';
 import { parseAsString, useQueryState } from 'nuqs';
 import { useFoundation } from '@bitakit/ui';
@@ -19,8 +21,7 @@ import { Badge } from '../ui/index.js';
 import SearchIcon from 'reicon-react/icons/Search';
 import { MemberRoleIcon, MemberStatusIcon } from './people-icons.js';
 import { organizationService } from '@bitakit/organizations';
-import { organizationGroups } from '@bitakit/organizations';
-import { GroupActions } from './group-actions.js';
+import { SlotActions } from './group-actions.js';
 function InvitationDate({ value }: { value?: string }) {
   const { locale } = useAuth();
   const translateUI = useTranslation();
@@ -46,7 +47,13 @@ function InvitationDate({ value }: { value?: string }) {
   );
 }
 /** `embedded`: rendered inside a host frame that owns the page title and width. */
-export function IncomingInvitations({ embedded = false }: { embedded?: boolean }) {
+export function IncomingInvitations({
+  embedded = false,
+  emptyState,
+}: {
+  embedded?: boolean;
+  emptyState?: ReactNode;
+}) {
   const translateUI = useTranslation();
   const service = getService(useFoundation().runtime.services, organizationService);
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
@@ -61,9 +68,21 @@ export function IncomingInvitations({ embedded = false }: { embedded?: boolean }
       .toLocaleLowerCase()
       .includes(search.trim().toLocaleLowerCase()),
   );
+  const empty = (title: string, description?: string) => (
+    <Empty role="status">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <EnvelopeIcon aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
+      </EmptyHeader>
+    </Empty>
+  );
   return (
     <section className={cn('flex w-full min-w-0 flex-col gap-6', !embedded && 'mx-auto max-w-5xl')}>
       <PageHeader
+        showTitle={!embedded}
         level={embedded ? 2 : 1}
         title={translateUI(
           'foundationUI.incoming_invitations.invitationsForMe',
@@ -76,23 +95,31 @@ export function IncomingInvitations({ embedded = false }: { embedded?: boolean }
           'Invitations to join other organizations with your account.',
         )}
         trailing={
-          <GroupActions
-            group={organizationGroups.toolbar}
-            context={{ organizationId: null }}
-            iconOnly
-          />
+          <SlotActions slot="organizations.toolbar" context={{ organizationId: null }} iconOnly />
         }
       />
       {state.incomingInvitationsError ? (
-        <p role="status">{state.incomingInvitationsError}</p>
+        empty(
+          translateUI(
+            'foundationUI.incoming_invitations.actionRequired',
+            undefined,
+            'Invitations could not be loaded',
+          ),
+          state.incomingInvitationsError,
+        )
       ) : !service.capabilities.invitations ? (
-        <p className="text-sm text-muted-foreground">
-          {translateUI(
+        empty(
+          translateUI(
+            'foundationUI.incoming_invitations.unavailable',
+            undefined,
+            'Invitations unavailable',
+          ),
+          translateUI(
             'foundationUI.incoming_invitations.thisProviderDoesNotSupportInvitations',
             undefined,
             'This provider does not support invitations.',
-          )}
-        </p>
+          ),
+        )
       ) : (
         <div className="flex min-w-0 flex-col gap-4">
           <InputGroup className="w-full sm:max-w-xs">
@@ -139,152 +166,172 @@ export function IncomingInvitations({ embedded = false }: { embedded?: boolean }
               )}
             </p>
           )}
-          <Table className="min-w-3xl table-fixed">
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  {translateUI(
-                    'foundationUI.incoming_invitations.organization',
-                    undefined,
-                    'Organization',
-                  )}
-                </TableHead>
-                <TableHead className="w-28">
-                  {translateUI('foundationUI.incoming_invitations.role', undefined, 'Role')}
-                </TableHead>
-                <TableHead className="w-28">
-                  {translateUI('foundationUI.incoming_invitations.status', undefined, 'Status')}
-                </TableHead>
-                <TableHead className="w-32">
-                  {translateUI(
-                    'foundationUI.incoming_invitations.invitedOn',
-                    undefined,
-                    'Invited on',
-                  )}
-                </TableHead>
-                <TableHead className="w-32">
-                  {translateUI(
-                    'foundationUI.incoming_invitations.validUntil',
-                    undefined,
-                    'Valid until',
-                  )}
-                </TableHead>
-                <TableHead className="w-12">
-                  <span className="sr-only">
-                    {translateUI('foundationUI.incoming_invitations.actions', undefined, 'Actions')}
-                  </span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {incoming.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="whitespace-normal">
-                    <div className="flex items-center gap-3">
-                      <Avatar aria-hidden="true">
-                        {(item.organizationLogo ??
-                          state.organizations.find((org) => org.id === item.organizationId)
-                            ?.logo) && (
-                          <AvatarImage
-                            src={
-                              (item.organizationLogo ??
-                                state.organizations.find((org) => org.id === item.organizationId)
-                                  ?.logo)!
-                            }
-                            alt=""
-                          />
-                        )}
-                        <AvatarFallback>
-                          {item.organizationName.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex min-w-0 flex-col gap-1 [overflow-wrap:anywhere]">
-                        <span className="font-medium">{item.organizationName}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {translateUI(
-                            'foundationUI.incoming_invitations.invitedAs',
-                            undefined,
-                            'Invited as',
-                          )}{' '}
-                          {item.email}
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      <MemberRoleIcon role={item.role} />
-                      {(
-                        {
-                          owner: translateUI(
-                            'foundationUI.incoming_invitations.owner',
-                            undefined,
-                            'Owner',
-                          ),
-                          admin: translateUI(
-                            'foundationUI.incoming_invitations.admin',
-                            undefined,
-                            'Admin',
-                          ),
-                          member: translateUI(
-                            'foundationUI.incoming_invitations.member',
-                            undefined,
-                            'Member',
-                          ),
-                        } as Record<string, string>
-                      )[item.role] ?? item.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      <MemberStatusIcon status="pending" />
-                      {translateUI(
-                        'foundationUI.incoming_invitations.pending',
-                        undefined,
-                        'Pending',
-                      )}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <InvitationDate value={item.createdAt} />
-                  </TableCell>
-                  <TableCell>
-                    <InvitationDate value={item.expiresAt} />
-                  </TableCell>
-                  <TableCell>
-                    <GroupActions
-                      menu
-                      group={organizationGroups.incoming}
-                      context={{ organizationId: null, invitationId: item.id }}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!incoming.length && (
+          {!incoming.length ? (
+            !state.loaded ? (
+              empty(
+                translateUI(
+                  'foundationUI.incoming_invitations.loadingInvitations',
+                  undefined,
+                  'Loading invitations…',
+                ),
+              )
+            ) : search ? (
+              empty(
+                translateUI(
+                  'foundationUI.incoming_invitations.noMatchingInvitationsFound',
+                  undefined,
+                  'No matching invitations found.',
+                ),
+                translateUI(
+                  'foundationUI.incoming_invitations.tryAnotherSearch',
+                  undefined,
+                  'Try another name or clear your search.',
+                ),
+              )
+            ) : (
+              (emptyState ??
+              empty(
+                translateUI(
+                  'foundationUI.incoming_invitations.youHaveNoPendingInvitations',
+                  undefined,
+                  'No invitations yet',
+                ),
+                translateUI(
+                  'foundationUI.incoming_invitations.invitationHelp',
+                  undefined,
+                  'You currently have no invitations. When an organization invites you, it will appear here.',
+                ),
+              ))
+            )
+          ) : (
+            <Table className="min-w-3xl table-fixed">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                    {!state.loaded
-                      ? translateUI(
-                          'foundationUI.incoming_invitations.loadingInvitations',
-                          undefined,
-                          'Loading invitations…',
-                        )
-                      : search
-                        ? translateUI(
-                            'foundationUI.incoming_invitations.noMatchingInvitationsFound',
-                            undefined,
-                            'No matching invitations found.',
-                          )
-                        : translateUI(
-                            'foundationUI.incoming_invitations.youHaveNoPendingInvitations',
-                            undefined,
-                            'You have no pending invitations.',
-                          )}
-                  </TableCell>
+                  <TableHead>
+                    {translateUI(
+                      'foundationUI.incoming_invitations.organization',
+                      undefined,
+                      'Organization',
+                    )}
+                  </TableHead>
+                  <TableHead className="w-28">
+                    {translateUI('foundationUI.incoming_invitations.role', undefined, 'Role')}
+                  </TableHead>
+                  <TableHead className="w-28">
+                    {translateUI('foundationUI.incoming_invitations.status', undefined, 'Status')}
+                  </TableHead>
+                  <TableHead className="w-32">
+                    {translateUI(
+                      'foundationUI.incoming_invitations.invitedOn',
+                      undefined,
+                      'Invited on',
+                    )}
+                  </TableHead>
+                  <TableHead className="w-32">
+                    {translateUI(
+                      'foundationUI.incoming_invitations.validUntil',
+                      undefined,
+                      'Valid until',
+                    )}
+                  </TableHead>
+                  <TableHead className="w-12">
+                    <span className="sr-only">
+                      {translateUI(
+                        'foundationUI.incoming_invitations.actions',
+                        undefined,
+                        'Actions',
+                      )}
+                    </span>
+                  </TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {incoming.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="whitespace-normal">
+                      <div className="flex items-center gap-3">
+                        <Avatar aria-hidden="true">
+                          {(item.organizationLogo ??
+                            state.organizations.find((org) => org.id === item.organizationId)
+                              ?.logo) && (
+                            <AvatarImage
+                              src={
+                                (item.organizationLogo ??
+                                  state.organizations.find((org) => org.id === item.organizationId)
+                                    ?.logo)!
+                              }
+                              alt=""
+                            />
+                          )}
+                          <AvatarFallback>
+                            {item.organizationName.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex min-w-0 flex-col gap-1 [overflow-wrap:anywhere]">
+                          <span className="font-medium">{item.organizationName}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {translateUI(
+                              'foundationUI.incoming_invitations.invitedAs',
+                              undefined,
+                              'Invited as',
+                            )}{' '}
+                            {item.email}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        <MemberRoleIcon role={item.role} />
+                        {(
+                          {
+                            owner: translateUI(
+                              'foundationUI.incoming_invitations.owner',
+                              undefined,
+                              'Owner',
+                            ),
+                            admin: translateUI(
+                              'foundationUI.incoming_invitations.admin',
+                              undefined,
+                              'Admin',
+                            ),
+                            member: translateUI(
+                              'foundationUI.incoming_invitations.member',
+                              undefined,
+                              'Member',
+                            ),
+                          } as Record<string, string>
+                        )[item.role] ?? item.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        <MemberStatusIcon status="pending" />
+                        {translateUI(
+                          'foundationUI.incoming_invitations.pending',
+                          undefined,
+                          'Pending',
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <InvitationDate value={item.createdAt} />
+                    </TableCell>
+                    <TableCell>
+                      <InvitationDate value={item.expiresAt} />
+                    </TableCell>
+                    <TableCell>
+                      <SlotActions
+                        menu
+                        slot="organizations.incoming"
+                        context={{ organizationId: null, invitationId: item.id }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       )}
     </section>

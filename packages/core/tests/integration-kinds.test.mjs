@@ -34,7 +34,7 @@ async function fixture(run) {
   }
 }
 
-test('contributions install per module in dependency order before actions and setup; cleanup is owned', () => {
+test('contributions install per module in dependency order before actions and setup; cleanup is owned', async () => {
   const events = [];
   const widgets = (values, { module, app, services }) => {
     events.push(`install ${module} ${app} ${values.join(',')} ${typeof services}`);
@@ -79,7 +79,7 @@ test('contributions install per module in dependency order before actions and se
     'app setup',
   ]);
   events.length = 0;
-  stop();
+  await stop();
   assert.deepEqual(
     events.filter((event) => event.startsWith('cleanup')),
     ['cleanup app', 'cleanup content'],
@@ -88,7 +88,7 @@ test('contributions install per module in dependency order before actions and se
   unsubscribe();
 });
 
-test('a kind without installer or with two installers is an actionable mount error', () => {
+test('a kind without installer or with two installers is an actionable mount error', async () => {
   const missing = new FoundationRuntime(createActionList(), {
     plugins: [{ id: 'content', contributions: { widgets: [1] } }],
   });
@@ -109,7 +109,7 @@ test('a kind without installer or with two installers is an actionable mount err
   empty.mount()();
 });
 
-test('runtime-issued scopes identify their module; foreign scopes are rejected', () => {
+test('runtime-issued scopes identify their module; foreign scopes are rejected', async () => {
   const seen = [];
   const runtime = new FoundationRuntime(createActionList(), {
     appId: 'app',
@@ -127,7 +127,7 @@ test('runtime-issued scopes identify their module; foreign scopes are rejected',
   );
 });
 
-test('runtime-issued scopes list the composed plugins by ID and metadata, without the app', () => {
+test('runtime-issued scopes list the composed plugins by ID and metadata, without the app', async () => {
   const seen = [];
   const runtime = new FoundationRuntime(createActionList(), {
     appId: 'app',
@@ -154,7 +154,7 @@ test('runtime-issued scopes list the composed plugins by ID and metadata, withou
   );
 });
 
-test('integration kinds are validated: names are unique and not built in, folders are relative and unique', () => {
+test('integration kinds are validated: names are unique and not built in, folders are relative and unique', async () => {
   const kind = {
     name: 'widgets',
     directory: './widgets/',
@@ -399,3 +399,20 @@ test('discovery emits imports for integration kinds per module under contributio
       /Duplicate contribution kind "widgets"/,
     );
   }));
+
+test('owned slot definitions reserve a built-in kind and respect module entry selection', async () => {
+  assert.throws(() => contributionKindSpecs([{ name: 'slotDefinitions', directory: 'slots', from: 'x', normalize: 'x' }]), /Invalid contribution kind name|built in/);
+  await fixture(async (root, put) => {
+    await put('src/plugins/shell/plugin.config.ts', `export default { entries: { slotDefinitions: 'extension-points' } };`);
+    await put('src/plugins/shell/extension-points/logo.ts', `import { defineSlot } from '@bitakit/core'; export default defineSlot({ accepts: 'component', policy: 'single' });`);
+    await put('src/plugins/shell/slots/ignored.ts', `throw new Error('overridden folder must not load'); export default {};`);
+    const result = await generateFoundation(root, { quiet: true });
+    const generated = await createJiti(import.meta.url, { moduleCache: false, alias: { '@bitakit/core': coreRuntime } }).import(result.generated);
+    const runtime = new FoundationRuntime(createActionList(), generated.createBitaKitConfig());
+    assert.deepEqual(runtime.modules[1].slots.map((slot) => slot.id), ['shell.logo']);
+    const description = await describeFoundation(root);
+    assert.deepEqual(description.slotDeclarations.map((slot) => slot.id), ['shell.logo']);
+    await put('src/plugins/shell/plugin.config.ts', `export default { entries: { slotDefinitions: false } };`);
+    assert.deepEqual((await describeFoundation(root)).slotDeclarations, []);
+  });
+});

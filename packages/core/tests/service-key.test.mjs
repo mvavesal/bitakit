@@ -9,7 +9,7 @@ import {
   serviceKey,
 } from '../dist/core.js';
 
-test('typed keys use the shared plugin container with dependency order and reverse cleanup', () => {
+test('typed keys use the shared plugin container with dependency order and reverse cleanup', async () => {
   const base = serviceKey('base');
   const derived = defineContract('derived');
   const stopped = [];
@@ -48,11 +48,11 @@ test('typed keys use the shared plugin container with dependency order and rever
     () => getService({ nested: {} }, serviceKey('nested.deep')),
     /Missing service "nested\.deep"/,
   );
-  stop();
+  await stop();
   assert.deepEqual(stopped, ['derived', 'base']);
 });
 
-test('empty keys and two providers of one contract fail before execution', () => {
+test('empty keys and two providers of one contract fail before execution', async () => {
   assert.throws(() => serviceKey('  '), /must not be empty/);
   const key = serviceKey('same');
   assert.throws(

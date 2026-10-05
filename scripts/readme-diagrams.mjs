@@ -181,7 +181,7 @@ function architecture(t) {
       'arrow',
     ),
   );
-  parts.push(text(axis + 10, 150, 'binds actions', { size: 12, fill: t.muted }));
+  parts.push(text(axis + 10, 150, 'binds via @bitakit/ui', { size: 12, fill: t.muted }));
 
   // Plugin groups.
   parts.push(
@@ -205,7 +205,7 @@ function architecture(t) {
   ];
   const kit = [
     ['shell', 'app layout'],
-    ['settings', 'preferences'],
+    ['preferences', 'Settings UI'],
     ['search', '⌘K palette'],
     ['auth', 'Better Auth'],
     ['i18n', 'next-intl'],
@@ -229,7 +229,7 @@ function architecture(t) {
       anchor: 'end',
     }),
   );
-  const owned = ['services', 'actions', 'events', 'configs', 'overrides', 'interceptors'];
+  const owned = ['services', 'actions', 'events', 'settings', 'slots', 'configs', 'overrides', 'interceptors'];
   const pillGap = 10;
   const pillW = (760 - pillGap * (owned.length - 1)) / owned.length;
   owned.forEach((label, i) => {
@@ -262,10 +262,10 @@ function architecture(t) {
   );
   parts.push(rect(40, adapterY, 800, 52, { rx: 10, fill: t.box, stroke: t.boxStroke }));
   parts.push(
-    text(60, adapterY + 22, 'BitaKit framework adapter', { size: 13, weight: 600, fill: t.text }),
+    text(60, adapterY + 22, 'BitaKit discovery + framework adapter', { size: 13, weight: 600, fill: t.text }),
   );
   parts.push(
-    text(60, adapterY + 40, 'discovers src/plugins/** at build time · connects navigation', {
+    text(60, adapterY + 40, 'imports + types at build time · no browser file scanning', {
       size: 12,
       fill: t.muted,
     }),
@@ -274,7 +274,7 @@ function architecture(t) {
   return svg(
     W,
     H,
-    'BitaKit architecture: your pages bind actions in BitaKit Core; your plugins and optional BitaKit plugins snap onto Core, which owns services, actions, events, configs, overrides and interceptors; a framework adapter discovers plugin files at build time and generates their registration and types.',
+    'BitaKit architecture: your pages use @bitakit/ui to bind actions in headless Core; your plugins and optional BitaKit plugins share Core services, actions, events, settings, slots, configs, overrides and interceptors; discovery and the framework adapter generate imports and types at build time.',
     parts.join(''),
   );
 }

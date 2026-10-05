@@ -317,3 +317,49 @@ test('SettingsOverview lists pages with their fields, searches and resets the se
     await controlled.unmount();
   }
 });
+
+test('additional plugin pages render through the same route with one heading and separate navigation', async () => {
+  const config = {
+    plugins: [
+      appPreferencesPlugin(),
+      definePlugin({
+        id: 'multi',
+        ui: {
+          settings: {
+            pages: [
+              {
+                id: 'members',
+                title: 'Members',
+                category: 'organization',
+                component: () => h('p', null, 'Member content'),
+              },
+              {
+                id: 'invitations',
+                title: 'My invitations',
+                path: 'account/invitations',
+                category: 'account',
+                component: () => h('p', null, 'Incoming content'),
+              },
+            ],
+          },
+        },
+      }),
+    ],
+  };
+  const view = await renderApp(h(SettingsRoute, { pathname: '/settings/multi/members' }), {
+    config,
+  });
+  try {
+    assert.deepEqual(headings(view.container), ['Members']);
+    assert.match(view.container.textContent, /Member content/);
+    assert.ok(view.container.querySelector('a[href="/settings/account/invitations"]'));
+    assert.equal(
+      view.container
+        .querySelector('a[href="/settings/multi/members"]')
+        .getAttribute('aria-current'),
+      'page',
+    );
+  } finally {
+    await view.unmount();
+  }
+});

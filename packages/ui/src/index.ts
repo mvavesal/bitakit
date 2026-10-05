@@ -12,10 +12,17 @@ export {
 export type { FoundationProviderProps } from './types/provider.js';
 export { ActionMenu } from './components/action-menu.js';
 export { ActionBoundary } from './components/action-boundary.js';
-export { useFoundation } from './providers/foundation-context.js';
+export { useFoundation, useOptionalFoundation } from './providers/foundation-context.js';
 export { useFoundationApp } from './hooks/use-foundation-app.js';
 export type { FoundationUI, FoundationLabels } from './types/ui.js';
 export { PluginSlot, useFoundationReady } from './components/plugin-slot.js';
+export {
+  SlotErrorBoundary,
+  SlotRenderError,
+  type SlotErrorBoundaryProps,
+  type SlotErrorFallbackProps,
+  type SlotErrorFallback,
+} from './components/slot-error-boundary.js';
 export { PluginPage, useCurrentPage } from './components/plugin-page.js';
 export { useFoundationNavigation } from './hooks/use-foundation-navigation.js';
 export { useGroupTitle } from './hooks/use-group-title.js';
@@ -33,7 +40,28 @@ export {
   type SettingsCatalogField,
   type SettingsCatalogOption,
 } from './hooks/use-settings-catalog.js';
-export { useSlot, type SlotEntry } from './hooks/use-slot.js';
+export {
+  useSlot,
+  type SlotEntry,
+  type SlotView,
+  type SlotDiagnostics,
+  type SlotProps,
+  type SlotOptions,
+  type SlotActionEntry,
+  type SlotComponentEntry,
+  type SlotDataEntry,
+} from './hooks/use-slot.js';
 export { useNavigation, type Navigation } from './hooks/use-navigation.js';
 export { useAuth } from './hooks/use-auth.js';
 export { AuthBoundary, type AuthBoundaryProps } from './components/auth-boundary.js';
+
+export {
+  settingsCatalog,
+  visibleSections,
+  catalogText,
+  catalogField,
+  type SettingsCatalogModule,
+  type CatalogText,
+} from './settings/catalog.js';
+
+export { useRuntimeInventory } from './hooks/use-runtime-inventory.js';

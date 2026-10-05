@@ -1,14 +1,15 @@
 'use client';
 import type { ElementType, ComponentProps, ReactNode } from 'react';
-import type { ActionId, ActionInput, ActionReference, ExecutionResult } from '@bitakit/core';
+import type { ActionId, ActionInput, ExecutionResult } from '@bitakit/core';
+import type { ActionTarget } from '../hooks/use-action.js';
 import { Action } from './action.js';
 
 export type ActionButtonProps<
-  Id extends ActionId = ActionId,
+  Id extends string = ActionId,
   C extends ElementType = 'button',
 > = Omit<ComponentProps<C>, 'onClick' | 'children'> & {
-  action: Id | ActionReference<Id>;
-  input?: ActionInput<Id>;
+  action: ActionTarget<Id>;
+  input?: ActionInput<NoInfer<Id>>;
   /** The component to render; defaults to a native button. */
   as?: C;
   onError?: (error: unknown) => void;
@@ -18,7 +19,7 @@ export type ActionButtonProps<
 };
 
 /** Sugar over `<Action>`: a button bound to an action, rendered as `as` or a native button. */
-export function ActionButton<Id extends ActionId, C extends ElementType = 'button'>({
+export function ActionButton<const Id extends string, C extends ElementType = 'button'>({
   action,
   input,
   as,

@@ -14,7 +14,7 @@ export type QuickSearchOptions = {
   empty?: string;
   /** Uses the root ActionProvider shortcut owner; false disables the shortcut. */
   shortcut?: string | false;
-  /** Result types to include; omitted types keep their defaults (pages and settings on). */
+  /** Result types to include; omitted types keep their defaults (pages, settings and plugins on). */
   results?: QuickSearchResults;
 };
 
@@ -32,6 +32,7 @@ export function quickSearchPlugin(options: QuickSearchOptions = {}) {
         icon: SearchIcon,
         shortcut: shortcut ? { keys: shortcut } : undefined,
         dialog: {
+          kind: 'command',
           size: 'wide',
           component: ({ close }: { close: () => void }) => (
             <SearchResults

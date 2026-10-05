@@ -1,5 +1,10 @@
 # Developer theme contract
 
+For the step-by-step guide and built-in Appearance manager, read
+[Themes and appearance](../../apps/docs/content/docs/concepts/theming.mdx).
+The [Theme reference](../../apps/docs/content/docs/reference/theming.mdx) covers JSON files,
+runtime selection and how they combine with this CSS contract.
+
 A host defines its theme once. Shared controls, Shell, App Preferences, Quick Search,
 Better Auth UI/organization screens and Devtools consume the same CSS variables. Core has
 no CSS or React dependency. This contract uses ordinary CSS custom properties, Tailwind
@@ -53,18 +58,18 @@ still belong after the generated package entry.
 
 ## Supported customization
 
-| Axis | Tokens | Scope |
-| --- | --- | --- |
-| Palette | `--background`, `--foreground`, `--card`, `--card-foreground`, `--popover`, `--popover-foreground`, `--primary`, `--primary-foreground`, `--secondary`, `--muted`, `--muted-foreground`, `--accent`, `--accent-foreground`, `--destructive`, `--input`, `--border`, `--ring` | Existing semantic color roles; native auth colors map to these roles. Preserve readable foreground/background pairs. |
-| Navigation | `--light--sidebar*`, `--dark--sidebar*` | Existing separate sidebar palettes, including foreground, accent, primary, border and ring. |
-| Typography | `--font-sans`, `--font-heading`, Tailwind `--text-xs`, `--text-sm`, `--text-base`, etc., and `--font-weight-*` | Shared and native typography, including Quick Search. Font assets are supplied by the host. |
-| Geometry | `--radius`, `--corner-shape` | Shared radius scale and supported squircle surfaces; text inputs and functional circular controls retain their round-curve exceptions. |
-| Borders/focus | `--border-width`, `--focus-ring-width`, `--border`, `--input`, `--ring` | Component border strokes, surface rings and keyboard-focus width. Borderless internal controls stay borderless. |
-| Surface shadows | `--theme-shadow-surface`, `--theme-shadow-overlay` | Cards/Shell surfaces and floating menus/dialogs/toasts respectively. |
-| Control shadows | `--theme-shadow-control`, `--theme-shadow-field` | Button/toggle depth and surfaced text fields. Focus/validation rings are composed separately and remain visible. |
-| Hover/pressed | `--theme-control-hover-shadow`, `--theme-control-hover-mix`, `--theme-control-pressed-shadow`, `--theme-control-pressed-scale`, `--theme-control-pressed-offset` | The existing button interaction finishes. Disabled states and native interaction semantics remain upstream. |
-| Gradients | `--theme-control-gradient` | Filled control backgrounds; `none` gives flat controls. Existing `--control-*` palette/depth tokens remain available. |
-| Motion | `--theme-motion-duration`, `--theme-motion-ease` | Component transitions and entry/exit motion. Defaults retain their existing per-component timings. Reduced-motion preference forces this duration to zero. |
+| Axis            | Tokens                                                                                                                                                                                                                                                                       | Scope                                                                                                                                                      |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Palette         | `--background`, `--foreground`, `--card`, `--card-foreground`, `--popover`, `--popover-foreground`, `--primary`, `--primary-foreground`, `--secondary`, `--muted`, `--muted-foreground`, `--accent`, `--accent-foreground`, `--destructive`, `--input`, `--border`, `--ring` | Existing semantic color roles; native auth colors map to these roles. Preserve readable foreground/background pairs.                                       |
+| Navigation      | `--light--sidebar*`, `--dark--sidebar*`                                                                                                                                                                                                                                      | Existing separate sidebar palettes, including foreground, accent, primary, border and ring.                                                                |
+| Typography      | `--font-sans`, `--font-heading`, Tailwind `--text-xs`, `--text-sm`, `--text-base`, etc., and `--font-weight-*`                                                                                                                                                               | Shared and native typography, including Quick Search. Font assets are supplied by the host.                                                                |
+| Geometry        | `--radius`, `--corner-shape`                                                                                                                                                                                                                                                 | Shared radius scale and supported squircle surfaces; text inputs and functional circular controls retain their round-curve exceptions.                     |
+| Borders/focus   | `--border-width`, `--focus-ring-width`, `--border`, `--input`, `--ring`                                                                                                                                                                                                      | Component border strokes, surface rings and keyboard-focus width. Borderless internal controls stay borderless.                                            |
+| Surface shadows | `--theme-shadow-surface`, `--theme-shadow-overlay`                                                                                                                                                                                                                           | Cards/Shell surfaces and floating menus/dialogs/toasts respectively.                                                                                       |
+| Control shadows | `--theme-shadow-control`, `--theme-shadow-field`                                                                                                                                                                                                                             | Button/toggle depth and surfaced text fields. Focus/validation rings are composed separately and remain visible.                                           |
+| Hover/pressed   | `--theme-control-hover-shadow`, `--theme-control-hover-mix`, `--theme-control-pressed-shadow`, `--theme-control-pressed-scale`, `--theme-control-pressed-offset`                                                                                                             | The existing button interaction finishes. Disabled states and native interaction semantics remain upstream.                                                |
+| Gradients       | `--theme-control-gradient`                                                                                                                                                                                                                                                   | Filled control backgrounds; `none` gives flat controls. Existing `--control-*` palette/depth tokens remain available.                                      |
+| Motion          | `--theme-motion-duration`, `--theme-motion-ease`                                                                                                                                                                                                                             | Component transitions and entry/exit motion. Defaults retain their existing per-component timings. Reduced-motion preference forces this duration to zero. |
 
 Layout dimensions, icon sizes, data visualizations and domain-specific illustrations are
 not a universal appearance API. Arbitrary external widgets do not become compatible merely
@@ -82,3 +87,12 @@ coverage when updating upstream components; never replace the mappings with loca
 The underlying mechanisms are documented by
 [Tailwind theme variables](https://tailwindcss.com/docs/theme) and
 [HeroUI's theme variables](https://heroui.com/en/docs/react/migration/styling).
+
+Empty surfaces (`data-slot="empty"`) share a subtle dashed border using `--border-width`
+and `--border`. This default lives in the components layer, so host utilities or theme rules
+can customize it without changing package components.
+
+Native scroll containers inherit the central base-layer thin scrollbar rule. Optional
+`--scrollbar-thumb` and `--scrollbar-track` override the default border/transparent colors.
+Radix ScrollArea remains the standard custom scroll component for constrained tables;
+ordinary settings pages need no local scrollbar CSS. Native geometry remains browser-owned.

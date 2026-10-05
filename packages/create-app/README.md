@@ -2,19 +2,38 @@
 
 Create a BitaKit app with **Next.js** or **TanStack Start** (experimental), or a standalone plugin package.
 
+## 1. Create a minimal app
+
+With a matching published package set:
+
 ```sh
-npx @bitakit/create-app my-app
+npx @bitakit/create-app@0.2 my-app --framework next --features none --yes
 cd my-app
 npm run dev
 ```
 
-The generator asks for a framework, the features you want and whether to add a sample plugin, installs everything and prints the next steps. Open the printed address: your app is running, with BitaKit already connected to the framework's router. You did not write any setup code.
+For unpublished source changes, use the [local package workflow](../../apps/docs/content/docs/local-development.mdx).
+Open the printed address: BitaKit is already connected.
 
-For the shortest path to a first feature, create a minimal app without prompts:
+## 2. Add one page
 
-```sh
-npx @bitakit/create-app my-app --framework next --features none --yes
+Create `src/plugins/counter/ui/pages/index.tsx`:
+
+```tsx
+'use client';
+import { PageHeader } from '@bitakit/ui/components';
+export default function CounterPage() {
+  return <PageHeader title="Counter" />;
+}
 ```
+
+Visit `/counter`. Then follow the [Counter lessons](../../apps/docs/content/docs/concepts/index.mdx)
+to add a service, an Action, a slot and Settings one step at a time.
+
+## 3. Choose extras later
+
+Run `npx @bitakit/create-app my-app` for interactive choices. The flags below are reference;
+the minimal app above needs no additional options.
 
 ## Options
 

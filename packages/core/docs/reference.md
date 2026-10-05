@@ -239,7 +239,7 @@ const stop = runtime.mount();
 await runtime.ready;
 runtime.services.todos.items.add('Milk');
 await runtime.actions.execute('todos.add', 'Milk');
-stop();
+await stop();
 ```
 
 `createRuntime(config, { actions?, services? })` creates the ActionList unless you pass one
@@ -366,7 +366,7 @@ try {
   plugin.services.todos.items.state.get().items;
   plugin.events.recorded; // every event emitted while mounted
 } finally {
-  plugin.stop();
+  await plugin.stop();
 }
 ```
 
@@ -397,3 +397,20 @@ from `ui/pages` or `ui/slots`), `defineSetup`, `defineServiceInterceptor`, the o
 `defineService({ create, dispose })`, action `resolve` and `watch`, `publicServices`,
 `foundation.config.ts`, `foundation-generate`, `withFoundation`, and `@bitakit/next/generated`
 (throws with guidance). Run `bitakit migrate` to rewrite a 0.1 project.
+
+
+## Slot attachments
+
+`defineSlot` declares an owned contract. In setup, `app.slots.attach(name, content, options)`
+creates a scope-owned reference; content is exactly one of component/data/actionId, with
+optional id/order and a required key for keyed slots. Default availability is require; wait
+accepts known unready owners. Both follow later availability and require a ready contributor.
+Unknown targets fail. Data uses the contract schema; actions reference the existing ActionList.
+
+The handle exposes get/subscribe/watch/ready/dispose. ready resolves on first attachment,
+rejects on invalid data or disposal before attachment. watch provides current state and future
+updates; scope close removes attachments and observers immediately, before async teardown.
+Hosts read runtime.slots and release their own observers. runtime.slot is a notification on
+the existing bus, never a separate registration mechanism. Definitions, attachment lifetime
+and mounted outlet lifetime are separate. Action placement and contextual rendering are later
+work; the current UI component binding retains its runtime-wide readiness barrier.

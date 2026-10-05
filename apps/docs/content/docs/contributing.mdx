@@ -29,6 +29,33 @@ Document the package's real installation command and release status.
 Include a minimal example verified against the public API.
 ```
 
+## Write a lesson people can finish
+
+1. Start with one visible result and the fewest files needed.
+2. Keep the first example free of optional properties. Add one capability per later step.
+3. Name the exact file and say whether a block replaces it or edits one property.
+4. Show what should happen, then link to the next lesson.
+5. Put exhaustive tables, alternative APIs and lifecycle details in the reference section.
+
+Use the Counter learning path for the core concepts. Package-specific guides may use their
+own small example. Use the existing Markdown, code blocks, Callout and navigation components;
+no custom visual treatment is needed. Verify copied examples against the current generated types.
+
+## Add a visual that explains something
+
+Use the interactive examples in [Actions](/docs/concepts/actions), [Settings](/docs/concepts/settings)
+and [Slots](/docs/concepts/slots) as the style references. Keep each visual and its code together
+in the relevant section; do not add a separate gallery or repeat it at the end. For a flow, add Mermaid text to
+`apps/docs/components/diagrams/charts.mjs`, then place `<Diagram name="your-chart" />` beside
+its example. Keep the title, caption and implementation references with the shared chart.
+For UI anatomy, reuse `SettingsIllustration` or `SlotIllustration`; they show the code for the
+selected region with the existing Fumadocs controls and theme.
+
+Do not create another diagram engine or export separate light/dark screenshots. Follow
+`.agents/skills/foundation-development/documentation-visuals.md` for the shared style and
+maintenance checklist. Run `npm run test --workspace @bitakit/docs` to check illustrated slot
+contracts, then verify keyboard use, both themes and narrow layouts in the browser.
+
 ## Review expectations
 
 Write in English. Distinguish released functionality, local previews and experimental support.
@@ -63,10 +90,10 @@ npm install
 ### 2. Prepare local packages
 
 The generator can install packed BitaKit packages before they are published.
-Build and pack the four packages a minimal app installs, including the `@bitakit/cli` dev dependency:
+Build and pack the packages a minimal app installs, including discovery and the CLI:
 
 ```sh
-npm run pack -- .tmp/docs-packages core ui next cli
+npm run pack -- .tmp/docs-packages core discovery ui next cli
 ```
 
 The script builds each package first and removes older BitaKit archives from that directory.

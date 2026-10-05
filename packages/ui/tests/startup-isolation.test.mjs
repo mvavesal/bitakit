@@ -268,3 +268,110 @@ test('without isolation startup errors propagate: synchronous ones from render, 
     /onStart in plugin "slow" failed: sync failed/,
   );
 });
+
+test('replacement waits for async cleanup and skips intermediate compositions', async () => {
+  const cleanup = deferred();
+  const log = [];
+  const plugin = (id, stop) =>
+    definePlugin({
+      id,
+      services: {
+        value: defineService(({ onStop }) => {
+          log.push(`start:${id}`);
+          onStop(stop ?? (() => {}));
+          return {};
+        }),
+      },
+    });
+  const first = plugin('first', async () => {
+    log.push('stopping:first');
+    await cleanup.promise;
+    log.push('stopped:first');
+  });
+  const second = plugin('second');
+  const third = plugin('third');
+  const tree = (plugins) =>
+    h(FoundationProvider, { ui: testUI, plugins, isolateFailures: false }, h('main'));
+  const view = await mount(tree([first]));
+  try {
+    await view.render(tree([second]));
+    await view.render(tree([third]));
+    assert.deepEqual(log, ['start:first', 'stopping:first']);
+    await act(async () => {
+      cleanup.resolve();
+      await tick();
+    });
+    assert.deepEqual(log, ['start:first', 'stopping:first', 'stopped:first', 'start:third']);
+  } finally {
+    cleanup.resolve();
+    await view.unmount();
+  }
+});
+
+test('failed previous cleanup prevents replacement from starting', async () => {
+  let nextStarted = false;
+  const first = definePlugin({
+    id: 'first',
+    services: {
+      value: defineService(({ onStop }) => {
+        onStop(async () => {
+          throw new Error('connection still open');
+        });
+        return {};
+      }),
+    },
+  });
+  const next = definePlugin({
+    id: 'next',
+    services: {
+      value: defineService(() => {
+        nextStarted = true;
+        return {};
+      }),
+    },
+  });
+  const tree = (plugins) =>
+    h(FoundationProvider, { ui: testUI, plugins, isolateFailures: true }, h('main'));
+  const view = await mount(tree([first]));
+  try {
+    await silenced(() => view.render(tree([next])));
+    assert.equal(nextStarted, false);
+    assert.match(view.container.textContent, /cleanup failed/);
+  } finally {
+    await silenced(() => view.unmount());
+  }
+});
+
+test('isolating a plugin removes its projected providers and config overrides', async () => {
+  function BrokenProvider({ children }) {
+    return h('section', { 'data-broken-provider': true }, children);
+  }
+  const plugin = definePlugin({
+    ...broken,
+    config: { retry: 1 },
+    ui: { providers: [{ id: 'broken-context', component: BrokenProvider }] },
+  });
+  const dependentProvider = definePlugin({
+    id: 'dependent-provider',
+    ui: {
+      providers: [
+        { id: 'dependent-context', requires: ['broken-context'], component: BrokenProvider },
+      ],
+    },
+  });
+  const view = await render({
+    isolateFailures: true,
+    config: {
+      plugins: [healthy, plugin, dependentProvider],
+      configOverrides: { broken: { retry: 2 } },
+    },
+  });
+  try {
+    assert.equal(view.list.get('healthy.ping')?.enabled, true);
+    assert.equal(view.container.querySelector('[data-broken-provider]'), null);
+    assert.match(view.container.textContent, /dependent-provider/);
+    assert.doesNotMatch(view.container.textContent, /The app failed to start/);
+  } finally {
+    await view.unmount();
+  }
+});
