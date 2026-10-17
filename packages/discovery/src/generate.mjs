@@ -61,7 +61,8 @@ export function detectFramework(manifest = {}) {
 
 /**
  * Writes `src/bitakit.gen.tsx` (configuration, provider and type declarations),
- * `src/bitakit.gen.css` (package styles) and `src/bitakit.gen.messages.json` (plugin locales).
+ * `src/bitakit.gen.css` (package styles, after `bitakit.gen.layers.css` with the layer order) and
+ * `src/bitakit.gen.messages.json` (plugin locales).
  * Only static imports are generated; contribution modules are never executed here.
  */
 export async function generateBitaKit(root, { quiet = false, packageCache } = {}) {
@@ -687,9 +688,16 @@ export function BitaKitProvider(props: Omit<ComponentProps<typeof BitaKitRuntime
     await removeGenerated(path.join(output, 'bitakit.gen.config.ts'));
   }
   await removeGenerated(path.join(output, `bitakit.gen.${extension === 'tsx' ? 'ts' : 'tsx'}`));
+  // Turbopack emits imported stylesheets before the importer's own rules, so the layer order
+  // statement would follow the first package rule. A layer-only file imported first keeps
+  // theme, base, components, utilities in that order with every bundler.
+  await writeChanged(
+    path.join(output, 'bitakit.gen.layers.css'),
+    `/* ${generatedHeader.slice(3)} The cascade layer order, imported first. */\n${stylePrelude}\n`,
+  );
   await writeChanged(
     path.join(output, 'bitakit.gen.css'),
-    `/* ${generatedHeader.slice(3)} Styles of installed packages, theme last. */\n${stylePrelude}\n${(installed.styles ?? []).map((specifier) => `@import ${quote(specifier)};`).join('\n')}\n`,
+    `/* ${generatedHeader.slice(3)} Styles of installed packages, theme last. */\n${stylePrelude}\n${['./bitakit.gen.layers.css', ...(installed.styles ?? [])].map((specifier) => `@import ${quote(specifier)};`).join('\n')}\n`,
   );
   const messagesFile = path.join(output, 'bitakit.gen.messages.json');
   if (Object.keys(allMessages).length)

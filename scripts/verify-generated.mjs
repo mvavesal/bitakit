@@ -40,6 +40,15 @@ const addItem = async (page) => {
     .filter({ hasText: /^Verify the generator/ })
     .waitFor({ state: 'detached' });
 };
+// A plugin package's playground uses the full plugin template, not the Todo sample.
+const addPluginItem = async (page) => {
+  await page.getByLabel('New item').fill('Verify the generator');
+  await page.getByRole('button', { name: 'Add item' }).click();
+  await page.getByText('Verify the generator').waitFor();
+  await page.getByRole('button', { name: 'Clear all' }).click();
+  await page.getByRole('button', { name: 'Confirm' }).click();
+  await page.getByText('Verify the generator').waitFor({ state: 'detached' });
+};
 const app = (framework, sample) => ({
   args: ['--framework', framework, ...(sample ? ['--sample'] : ['--features', 'none'])],
   visits: sample
@@ -174,7 +183,7 @@ async function verify(name, scenario) {
       await step('browser', () =>
         smoke(server.url, [
           ['/', 'Add item'],
-          [`/${scenario.plugin}`, 'Add and remove items', addItem],
+          [`/${scenario.plugin}`, 'Add and remove items', addPluginItem],
         ]),
       );
     } finally {

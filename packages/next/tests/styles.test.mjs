@@ -77,7 +77,7 @@ test('valid lazy plugins use one eager generated stylesheet with the canonical p
   const css = await readFile(path.join(f.root, 'src/bitakit.gen.css'), 'utf8');
   assert.match(
     css,
-    /@layer theme, base, components, utilities;\n@import "test-plugin\/styles.css";/,
+    /@layer theme, base, components, utilities;\n@import "\.\/bitakit\.gen\.layers\.css";\n@import "test-plugin\/styles.css";/,
   );
   assert.equal(css.match(/test-plugin\/styles.css/g).length, 1);
 });
