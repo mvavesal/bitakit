@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -7,6 +8,10 @@ import { promisify } from 'node:util';
 
 export const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url));
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
+/** The repository's release line, so stubbed installs match the real packages some tests link. */
+export const releaseVersion = JSON.parse(
+  readFileSync(new URL('../../core/package.json', import.meta.url), 'utf8'),
+).version;
 
 /** A temporary project from a map of files; objects are written as JSON. Removed after the test. */
 export async function project(files, t) {
@@ -36,13 +41,17 @@ export async function link(root, name, from) {
 export const nextApp = (extra = {}) => ({
   'package.json': {
     name: 'demo',
-    dependencies: { next: '16.0.0', '@bitakit/core': '^0.2.0', '@bitakit/shell': '^0.2.0' },
+    dependencies: {
+      next: '16.0.0',
+      '@bitakit/core': `^${releaseVersion}`,
+      '@bitakit/shell': `^${releaseVersion}`,
+    },
     scripts: { dev: 'next dev', build: 'next build' },
   },
-  'node_modules/@bitakit/core/package.json': { name: '@bitakit/core', version: '0.2.0' },
+  'node_modules/@bitakit/core/package.json': { name: '@bitakit/core', version: releaseVersion },
   'node_modules/@bitakit/shell/package.json': {
     name: '@bitakit/shell',
-    version: '0.2.0',
+    version: releaseVersion,
     bitakit: { plugin: './plugin', styles: './styles.css' },
   },
   'node_modules/@bitakit/shell/styles.css': '.shell { display: flex; }',

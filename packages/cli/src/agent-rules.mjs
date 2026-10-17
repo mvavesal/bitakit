@@ -9,6 +9,17 @@ export const agentRulesBegin = '<!-- BEGIN:bitakit-agent-rules -->';
 export const agentRulesEnd = '<!-- END:bitakit-agent-rules -->';
 
 /**
+ * Claude Code reads `CLAUDE.md`, not `AGENTS.md`, so the app's `CLAUDE.md` imports the rules with
+ * `@AGENTS.md`. Returns the file to write: a new one, or `existing` with the import appended;
+ * `existing` is returned unchanged when it already imports AGENTS.md.
+ */
+export function claudeFileFor(existing) {
+  const text = existing?.trim() ? existing : undefined;
+  if (!text) return '@AGENTS.md\n';
+  return /^@AGENTS\.md\s*$/m.test(text) ? existing : `${text.trimEnd()}\n\n@AGENTS.md\n`;
+}
+
+/**
  * The guidance block for coding assistants in an app's AGENTS.md, shared by create-app and
  * `bitakit init`. Ordered by learning level: where each task goes first, then the rules, then
  * the advanced kinds by name only. `routes` is the framework's own route folder; `shell` adds

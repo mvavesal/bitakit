@@ -9,7 +9,7 @@ go?". This guide shows what an agent gets from a BitaKit app and how to brief it
 ## What the agent reads
 
 Apps created with `npx @bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that points
-to it). `npx bitakit init` appends the same block to an existing app. It fits on one screen:
+to it, which is the file Claude Code reads). `npx bitakit init` does the same for an existing app. The rules fit on one screen:
 
 - a table that maps each task to its file, from a page to extending a feature you do not own;
 - the rules: start small, bind every control to its Action, React only under `ui/`, and do not

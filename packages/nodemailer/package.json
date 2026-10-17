@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/nodemailer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -19,8 +19,8 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.0",
-    "@bitakit/email": "^0.2.0",
+    "@bitakit/core": "^0.2.1",
+    "@bitakit/email": "^0.2.1",
     "nodemailer": "10.0.10"
   },
   "devDependencies": {

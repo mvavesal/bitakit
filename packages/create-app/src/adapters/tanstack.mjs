@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { viteConfigImport } from '@bitakit/cli';
+import { claudeFileFor, viteConfigImport } from '@bitakit/cli';
 import {
   agentRules,
   configureProject,
@@ -165,9 +165,12 @@ export const Route = createFileRoute('/$')({
       });
     await writeProjectFiles(plan.target, files);
     const rules = await readFile(path.join(plan.target, 'AGENTS.md'), 'utf8').catch(() => '');
+    const claude = await readFile(path.join(plan.target, 'CLAUDE.md'), 'utf8').catch(
+      () => undefined,
+    );
     await writeProjectFiles(plan.target, {
       'AGENTS.md': `${rules ? `${rules.trimEnd()}\n\n` : ''}${agentRules(plan, tanstack)}`,
-      'CLAUDE.md': '@AGENTS.md\n',
+      'CLAUDE.md': claudeFileFor(claude),
       'README.md': readme(plan, tanstack),
     });
   },

@@ -21,7 +21,7 @@ npx bitakit init
 In an existing Next.js or TanStack Start app, `init` writes `bitakit.config.ts`, wraps
 `next.config` with `withBitaKit` (or adds `bitakit()` to the Vite plugins), mounts
 `<BitaKitProvider>` around `{children}` of the root layout, adds the catch-all route that renders
-`<PluginPage />`, ignores `src/bitakit.gen.*` and appends the agent rules to `AGENTS.md`. It prints what it wrote (`+` new file, `~`
+`<PluginPage />`, ignores `src/bitakit.gen.*`, appends the agent rules to `AGENTS.md` and makes `CLAUDE.md` import it (an existing `CLAUDE.md` only gains the `@AGENTS.md` line). It prints what it wrote (`+` new file, `~`
 changed file) and what it skipped. Files that already carry the wiring are never touched, so it
 is safe to run again; a shape it cannot edit (for example a CommonJS `next.config.js`) is
 skipped with the line to add by hand. Packages are not installed: `init` lists the missing ones

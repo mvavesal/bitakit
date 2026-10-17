@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
-import { agentRules, bitakitIdentity } from '../src/index.mjs';
+import { agentRules, bitakitIdentity, claudeFileFor } from '../src/index.mjs';
 
 const repository = new URL('../../../', import.meta.url);
 const read = (file) => readFile(new URL(file, repository), 'utf8');
@@ -26,4 +26,13 @@ test('published package descriptions name BitaKit, never the old Foundation name
     assert.match(manifest.description ?? '', /BitaKit/, `${manifest.name} description`);
     assert.doesNotMatch(manifest.description, /Foundation/, `${manifest.name} description`);
   }
+});
+
+test('CLAUDE.md imports AGENTS.md: created when missing, appended once, otherwise left alone', () => {
+  assert.equal(claudeFileFor(undefined), '@AGENTS.md\n');
+  assert.equal(claudeFileFor('  \n'), '@AGENTS.md\n');
+  assert.equal(claudeFileFor('# Rules\n'), '# Rules\n\n@AGENTS.md\n');
+  const imported = '# Rules\n\n@AGENTS.md\n\nMore.\n';
+  assert.equal(claudeFileFor(imported), imported);
+  assert.equal(claudeFileFor(claudeFileFor('# Rules\n')), '# Rules\n\n@AGENTS.md\n');
 });

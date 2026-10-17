@@ -55,7 +55,7 @@ Features bring their prerequisites: Shell adds App Preferences, and Quick Search
 - Build-time discovery (`withBitaKit` in `next.config.ts`, or the `bitakit()` Vite plugin) and `<BitaKitProvider>` from the generated `src/bitakit.gen.tsx` in the root layout: files in `src/plugins/<name>/` become plugins without a registry.
 - A catch-all route that renders plugin pages, and the generated package stylesheet `src/bitakit.gen.css` imported once. `src/bitakit.gen.*` is ignored by Git.
 - With Shell: the application layout, the theme script in the root layout, settings pages and `src/configs/shell.ts`. In Next.js, your home page is then `src/app/(app)/page.tsx`.
-- `README.md` and `AGENTS.md` for your project, and the `bitakit` command (`@bitakit/cli`, with `@bitakit/discovery` for `bitakit.config.ts`) as dev dependencies: `npx bitakit add plugin notes` adds a feature, `npx bitakit doctor` checks the project. In an existing app, `npx bitakit init` writes the same wiring.
+- `README.md`, `AGENTS.md` and a `CLAUDE.md` that imports it (Claude Code reads `CLAUDE.md`) for your project, and the `bitakit` command (`@bitakit/cli`, with `@bitakit/discovery` for `bitakit.config.ts`) as dev dependencies: `npx bitakit add plugin notes` adds a feature, `npx bitakit doctor` checks the project. In an existing app, `npx bitakit init` writes the same wiring.
 
 The generator does not create a backend, authentication, a database or email; those are separate integrations.
 

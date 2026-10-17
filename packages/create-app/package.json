@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/create-app",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Create a BitaKit app (Next.js or TanStack Start) or a standalone plugin package.",
   "type": "module",
   "bin": {
@@ -18,14 +18,14 @@
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/cli": "^0.2.0",
+    "@bitakit/cli": "^0.2.1",
     "@clack/prompts": "1.8.1",
     "commander": "15.0.0",
     "create-next-app": "16.4.2",
     "execa": "^9.6.0",
     "validate-npm-package-name": "^7.0.0",
     "@tanstack/cli": "0.71.0",
-    "@bitakit/discovery": "^0.2.0"
+    "@bitakit/discovery": "^0.2.1"
   },
   "license": "MIT",
   "repository": {

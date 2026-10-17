@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addPlugin, doctor } from '../src/index.mjs';
-import { catchAll, find, nextApp, project, status, write } from './helpers.mjs';
+import { releaseVersion, catchAll, find, nextApp, project, status, write } from './helpers.mjs';
 
 test('doctor passes a wired app once a route renders its plugin pages', async (t) => {
   const root = await project(
@@ -18,7 +18,7 @@ test('doctor passes a wired app once a route renders its plugin pages', async (t
   );
   await addPlugin('notes', { cwd: root });
   let { results } = await doctor({ cwd: root });
-  assert.equal(status(results, /All 2 @bitakit packages are 0\.2\.0/), 'ok');
+  assert.equal(status(results, new RegExp(`All 2 @bitakit packages are ${releaseVersion}`)), 'ok');
   assert.equal(status(results, /One copy of @bitakit\/core/), 'ok');
   assert.equal(status(results, /next\.config wraps the configuration with withBitaKit/), 'ok');
   assert.equal(status(results, /root layout mounts the BitaKit provider/), 'ok');

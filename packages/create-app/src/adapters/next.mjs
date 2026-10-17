@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { nextConfigFile, wrapNextConfig } from '@bitakit/cli';
+import { claudeFileFor, nextConfigFile, wrapNextConfig } from '@bitakit/cli';
 import {
   agentRules,
   configureProject,
@@ -142,8 +142,13 @@ export default function Page() {
       });
     await writeProjectFiles(plan.target, files);
     const rules = await readFile(path.join(plan.target, 'AGENTS.md'), 'utf8').catch(() => '');
+    const claude = await readFile(path.join(plan.target, 'CLAUDE.md'), 'utf8').catch(
+      () => undefined,
+    );
     await writeProjectFiles(plan.target, {
       'AGENTS.md': `${rules ? `${rules.trimEnd()}\n\n` : ''}${agentRules(plan, next)}`,
+      // create-next-app writes AGENTS.md only; Claude Code needs CLAUDE.md to load it.
+      'CLAUDE.md': claudeFileFor(claude),
       'README.md': readme(plan, next),
     });
   },

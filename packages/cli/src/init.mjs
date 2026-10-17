@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
-import { agentRules, agentRulesBegin } from './agent-rules.mjs';
+import { agentRules, agentRulesBegin, claudeFileFor } from './agent-rules.mjs';
 import { exists, findProject } from './project.mjs';
 import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
 
@@ -119,7 +119,8 @@ function wrapLayout(source, fileName, specifier, framework) {
 /**
  * Wires an existing Next.js or TanStack Start app: `bitakit.config.ts`, the config wrapper or
  * Vite plugin, the provider in the root layout, the catch-all route for plugin pages, the
- * `.gitignore` entry and the agent rules in `AGENTS.md` (the same block create-app writes).
+ * `.gitignore` entry and the agent rules in `AGENTS.md` (the same block create-app writes), which
+ * `CLAUDE.md` imports.
  * Files that already carry the wiring are never touched.
  * Returns `written` (absolute paths; `created` is false for an edited file), `skipped` with the
  * reason for each, and the BitaKit packages the app still has to install.
@@ -244,6 +245,12 @@ export async function initProject({ cwd } = {}) {
       agents === undefined,
     );
   }
+  // Claude Code loads CLAUDE.md, so it imports the rules; an existing file only gets the import line.
+  const claudeFile = at('CLAUDE.md');
+  const claude = await read(claudeFile);
+  const claudeNext = claudeFileFor(claude);
+  if (claudeNext === claude) skip(claudeFile, 'already imports AGENTS.md');
+  else await put(claudeFile, claudeNext, claude === undefined);
   const install = [
     '@bitakit/core',
     '@bitakit/discovery',

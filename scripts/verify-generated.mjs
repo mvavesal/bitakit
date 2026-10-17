@@ -4,7 +4,7 @@
 // that fails on any console or page error. Needs the npm registry and Playwright's Chromium.
 // Usage: node scripts/verify-generated.mjs [--only next-sample,notes-plugin] [--keep]
 import { execFileSync, spawn } from 'node:child_process';
-import { mkdtemp, readdir, rm, mkdir } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, mkdir } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -162,6 +162,14 @@ async function verify(name, scenario) {
       work,
     ),
   );
+  // Agent rules must reach the agent: AGENTS.md carries them, CLAUDE.md makes Claude Code load them.
+  await step('agent rules', async () => {
+    const read = (file) => readFile(path.join(work, name, file), 'utf8');
+    if (!(await read('AGENTS.md')).includes('BEGIN:bitakit-agent-rules'))
+      throw new Error('AGENTS.md has no BitaKit rules block.');
+    if (!/^@AGENTS\.md$/m.test(await read('CLAUDE.md')))
+      throw new Error('CLAUDE.md does not import AGENTS.md.');
+  });
   if (scenario.auth) {
     const archives = Object.fromEntries(
       (await readdir(packs)).map((file) => [

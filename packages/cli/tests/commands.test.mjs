@@ -261,7 +261,7 @@ test('init wires a bare Next app and a bare TanStack Start app, skips what is wi
   assert.equal(init.code, 0, init.stderr);
   assert.match(
     init.stdout,
-    /Written:\n {2}\+ bitakit\.config\.ts\n {2}~ next\.config\.ts\n {2}~ src\/app\/layout\.tsx\n {2}\+ src\/app\/\[\.\.\.path\]\/page\.tsx\n {2}~ \.gitignore\n {2}\+ AGENTS\.md\n/,
+    /Written:\n {2}\+ bitakit\.config\.ts\n {2}~ next\.config\.ts\n {2}~ src\/app\/layout\.tsx\n {2}\+ src\/app\/\[\.\.\.path\]\/page\.tsx\n {2}~ \.gitignore\n {2}\+ AGENTS\.md\n {2}\+ CLAUDE\.md\n/,
   );
   assert.doesNotMatch(init.stdout, /Skipped:/);
   assert.match(init.stdout, /npm install @bitakit\/discovery @bitakit\/ui @bitakit\/next\n/);
@@ -289,6 +289,8 @@ test('init wires a bare Next app and a bare TanStack Start app, skips what is wi
   assert.match(agents, /^<!-- BEGIN:bitakit-agent-rules -->/);
   assert.match(agents, /native framework routes in `src\/app`/);
   assert.doesNotMatch(agents, /shell\.navigation/, 'Shell guidance only when Shell is installed');
+  // Claude Code loads CLAUDE.md, which imports the rules.
+  assert.equal(await read(next, 'CLAUDE.md'), '@AGENTS.md\n');
 
   // A second run changes nothing: every step reports the wiring it found.
   const before = await read(next, 'src/app/layout.tsx');
@@ -307,6 +309,7 @@ test('init wires a bare Next app and a bare TanStack Start app, skips what is wi
   );
   assert.match(again.stdout, /- \.gitignore \(already ignores the generated files\)/);
   assert.match(again.stdout, /- AGENTS\.md \(already has the BitaKit rules\)/);
+  assert.match(again.stdout, /- CLAUDE\.md \(already imports AGENTS\.md\)/);
   assert.equal(await read(next, 'src/app/layout.tsx'), before);
   const nextReport = JSON.parse((await bitakit(next, 'doctor', '--json')).stdout);
   assert.deepEqual(
