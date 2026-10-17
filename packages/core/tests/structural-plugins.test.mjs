@@ -329,7 +329,7 @@ test('inventory distinguishes disabled installations from removed plugins', asyn
 });
 
 test('required service aliases order activation and prevent unsafe provider removal', async (t) => {
-  const contract = defineContract('documents');
+  const contract = defineContract('documents').of();
   const provider = definePlugin({
     id: 'notes',
     services: { data: defineService(() => ({ title: 'Notes' }), { provides: contract }) },

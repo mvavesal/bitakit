@@ -1,4 +1,11 @@
-import { resolveText, serviceKey, type Services, type Translator } from '@bitakit/core';
+import {
+  defineContract,
+  getService,
+  resolveText,
+  translationService,
+  type Services,
+  type Translator,
+} from '@bitakit/core';
 
 export type NotificationId = string | number;
 export type NotificationOptions = Readonly<{
@@ -15,9 +22,7 @@ export interface NotificationService {
   dismiss(id: NotificationId): void;
 }
 /** The literal name types `app.services.notifications` wherever the plugin is installed. */
-export const notificationService = serviceKey<NotificationService, 'notifications'>(
-  'notifications',
-);
+export const notificationService = defineContract('notifications').of<NotificationService>();
 
 /**
  * Translates the message and description once at the service boundary, through the `i18n`
@@ -29,7 +34,7 @@ export function translatedNotifications(
   assertActive: () => void = () => {},
 ): NotificationService {
   const text = (value: string, values: NotificationOptions['values']) => {
-    const translate = 'i18n' in services ? services.i18n?.translate : undefined;
+    const translate = 'i18n' in services ? getService(services, translationService).translate : undefined;
     return translate ? resolveText(translate, value, value, values) : value;
   };
   return {

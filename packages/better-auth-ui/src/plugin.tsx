@@ -6,7 +6,7 @@ import {
   defineService,
   defineSettings,
   getService,
-  serviceKey,
+  defineContract,
   type PluginPageDefinition,
 } from '@bitakit/core';
 import { useService, useTranslation } from '@bitakit/ui';
@@ -24,7 +24,7 @@ import {
 
 /** Full native configuration, never a reduced copy of its auth options. */
 export type BetterAuthUIConfiguration = Omit<AuthProviderProps, 'children'>;
-export const betterAuthUIService = serviceKey<BetterAuthUIConfiguration>('better-auth-ui');
+export const betterAuthUIService = defineContract('better-auth-ui').of<BetterAuthUIConfiguration>();
 /**
  * Options from `configs/better-auth-ui.ts` (package manifest `configuration: 'better-auth-ui'`).
  * The Better Auth client is never an option: it arrives through the `betterAuthClient` contract.

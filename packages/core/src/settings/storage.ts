@@ -1,4 +1,4 @@
-import { serviceKey } from '../service-key.js';
+import { defineContract } from '../service-key.js';
 import type { SettingScope } from './define.js';
 
 /** Who a stored value belongs to. Storage decides how to key and authorize it. */
@@ -22,7 +22,7 @@ export interface SettingsStorage {
  * The storage contract. Browser storage is the default; a host persists settings on a server
  * with one service: `defineService(() => ({ load, save }), { provides: settingsStorage })`.
  */
-export const settingsStorage = serviceKey<SettingsStorage>('settings.storage');
+export const settingsStorage = defineContract('settings.storage').of<SettingsStorage>();
 
 /** The slot a value lives in, or undefined when the scope has no owner yet. */
 export function settingsOwner(context: SettingsContext): string | undefined {

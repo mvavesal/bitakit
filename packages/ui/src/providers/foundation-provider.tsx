@@ -110,7 +110,7 @@ function FoundationRuntimeProvider({
   const [waitingForStop, setWaitingForStop] = useState(false);
   if (
     translate &&
-    (services.i18n ||
+    ((services as Readonly<Record<string, unknown>>).i18n ||
       selected.plugins?.some((plugin) =>
         Object.values(plugin.services ?? {}).some(
           (service) => service.provides === 'i18n' || service.id === 'i18n',

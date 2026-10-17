@@ -1,8 +1,10 @@
 'use client';
 import { useCallback, useContext, useMemo, useSyncExternalStore, useEffect, useRef } from 'react';
 import {
+  authService,
   authSignInHref,
   configureAuthPaths,
+  getService,
   resolveAuthReturnTo,
   type AuthSnapshot,
   type AuthSignInOptions,
@@ -24,7 +26,10 @@ export function useAuth() {
   const { runtime, signOutIntent, setSignOutIntent } = useFoundation();
   const { navigate, pathname } = useContext(UIContext);
   const ready = useSyncExternalStore(runtime.subscribeReady, runtime.isReady, () => false);
-  const service = ready && runtime.hasService('auth') ? runtime.services.auth : undefined;
+  // The installed auth contract, read through its typed key; undefined until it is available.
+  const current = () =>
+    runtime.hasService('auth') ? getService(runtime.services, authService) : undefined;
+  const service = ready ? current() : undefined;
   const source = useMemo(
     () => ({
       subscribe: service ? (listener: () => void) => service.subscribe(listener) : idle,
@@ -67,13 +72,13 @@ export function useAuth() {
     try {
       await service.signOut();
     } catch (error) {
-      if (runtime.isReady() && runtime.services.auth === service) setSignOutIntent?.(null);
+      if (runtime.isReady() && current() === service) setSignOutIntent?.(null);
       throw error;
     }
-    if (!runtime.isReady() || runtime.services.auth !== service) return;
+    if (!runtime.isReady() || current() !== service) return;
     if (paths) setSignOutIntent?.({ service, completed: true, fromPath: currentPath });
     // A removed/replaced adapter must not redirect a newer runtime after completion.
-    if (paths && runtime.isReady() && runtime.services.auth === service) {
+    if (paths && runtime.isReady() && current() === service) {
       if (!navigate) throw new Error('Authentication navigation requires an ActionProvider.');
       navigate(paths.afterSignOut);
     }

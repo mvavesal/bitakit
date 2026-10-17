@@ -23,11 +23,11 @@ definition; it does not start or register another service.
 ```ts
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getService, serviceKey } from '@bitakit/core';
+import { defineContract, getService } from '@bitakit/core';
 import { mountPlugin } from '@bitakit/core/testing';
 import type counterValue from '../src/plugins/counter/services/value.ts';
 
-const counterService = serviceKey<ReturnType<typeof counterValue.create>>('counter.value');
+const counterService = defineContract('counter.value').of<ReturnType<typeof counterValue.create>>();
 
 test('increment changes the shared Counter value', async () => {
   const plugin = await mountPlugin('src/plugins/counter');

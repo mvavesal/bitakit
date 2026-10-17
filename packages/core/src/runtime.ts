@@ -43,7 +43,8 @@ import { SettingsStore, type SettingEntry } from './settings/store.js';
 import { createSettingsAccess, type SettingsAccess } from './settings/access.js';
 import { createLocalSettingsStorage, type SettingsStorage } from './settings/storage.js';
 import { isSettingsDefinition, type SettingSpec } from './settings/define.js';
-import type { AuthService } from './contracts.js';
+import { translationService, type AuthService } from './contracts.js';
+import { getService } from './service-key.js';
 import { createServices, type Observable } from './services.js';
 import { createFoundationApp } from './app/access.js';
 import type { FoundationApp } from './app/types.js';
@@ -1042,7 +1043,7 @@ export class FoundationRuntime implements ContributionHost {
       });
   }
   private connectTranslation() {
-    const i18n = this.hasService('i18n') ? this.services.i18n : undefined;
+    const i18n = this.hasService('i18n') ? getService(this.services, translationService) : undefined;
     if (!i18n) return;
     this.setTranslations(i18n.translate);
     this.extensionCleanups.push(i18n.subscribe(() => this.setTranslations(i18n.translate)));

@@ -424,7 +424,12 @@ async function providedKeys(root, entries) {
     const declared = new Map();
     const used = [];
     const nameOf = (node) =>
+      // `defineContract('name').of<T>()` carries its name in the inner call.
       ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === 'of'
+        ? nameOf(node.expression.expression)
+        : ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
       ['serviceKey', 'defineContract'].includes(node.expression.text) &&
       node.arguments[0] &&

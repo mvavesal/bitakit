@@ -371,8 +371,11 @@ test('doctor checks that every requires entry names a service, an alias, a contr
       },
       'src/plugins/pay/services/gateway.ts':
         "import { defineService, serviceKey } from '@bitakit/core';\nconst payments = serviceKey<{}, 'payments'>('payments');\nexport default defineService(() => ({}), { provides: payments });\n",
+      // The documented form keeps the name in the inner call: defineContract('ledger').of<T>().
+      'src/plugins/pay/services/ledger.ts':
+        "import { defineContract, defineService } from '@bitakit/core';\nconst ledger = defineContract('ledger').of<{}>();\nexport default defineService(() => ({}), { provides: ledger });\n",
       'src/plugins/shop/services/cart.ts': service(
-        "{ requires: ['payments', 'pay.gateway', 'auth', 'billing.invoices'] }",
+        "{ requires: ['payments', 'pay.gateway', 'auth', 'billing.invoices', 'ledger'] }",
       ),
     }),
     t,
@@ -391,7 +394,7 @@ test('doctor checks that every requires entry names a service, an alias, a contr
       "import { defineService } from '@bitakit/core';\nimport { other } from '../keys';\nexport default defineService(() => ({}), { provides: other });\n",
   });
   ({ results } = await doctor({ cwd: bare }));
-  assert.equal(status(results, /All 4 service requirements can be satisfied/), 'ok');
+  assert.equal(status(results, /All 5 service requirements can be satisfied/), 'ok');
 });
 
 test('doctor reports plugin dependency cycles and enabled plugins that depend on disabled ones', async (t) => {

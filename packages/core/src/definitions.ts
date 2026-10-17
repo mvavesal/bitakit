@@ -2,7 +2,6 @@ import type { Events } from './events/types.js';
 import type { EventsDefinition } from './events/define.js';
 import type { Store } from './store.js';
 import type { ConfigContext, ConfigValues, ConfigDefinition } from './config-service.js';
-import type { AuthService, TranslationService } from './contracts.js';
 import type { SettingsAccess } from './settings/access.js';
 import type { SettingsDefinition, SettingsSectionOptions } from './settings/define.js';
 import type { PresentationType } from './presentation.js';
@@ -22,10 +21,7 @@ import type { Cleanup } from './lifecycle/cleanup.js';
 import type { SlotDefinition, SlotDefinitions } from './slots/define.js';
 
 /** Service IDs and aliases with their instance types. Generated from discovery; augmentable by hand. */
-export interface ServiceMap {
-  auth?: AuthService;
-  i18n?: TranslationService;
-}
+export interface ServiceMap {}
 /** What every contribution sees as `services`: `services.<plugin>.<name>`, plus contract aliases. */
 export type Services = Namespace<ServiceMap>;
 export type Translator = ((key: string, values?: MessageValues) => string) & {

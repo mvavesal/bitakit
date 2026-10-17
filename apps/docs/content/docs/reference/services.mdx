@@ -85,7 +85,7 @@ Your service still owns its behavior and data. `store()` is in-memory state: Bit
 
 Services are named `<plugin>.<file>` and nested accordingly: `services/billing/invoices.ts` in plugin `finance` is `services.finance.billing.invoices`. Two options change that:
 
-- `provides: contract` registers the instance under a shared contract key as well, such as `auth` or `i18n`. Contracts are created with `defineContract<T>('auth')` and shared between the package that provides a service and the plugins that use it.
+- `provides: contract` registers the instance under a shared contract key as well, such as `auth` or `i18n`. Contracts are created with `defineContract('auth').of<AuthService>()`: the name is written once and stays literal, so `provides` also types `services.auth` in generated hosts. Share the contract between the package that provides a service and the plugins that use it.
 - `exposeAs: 'clock'` adds a flat alias in `services`. Use it only for deliberate flattening; two services with the same name fail at startup. A service name cannot also be a namespace: use `better-auth-client`, not `auth.client`, while `auth` is a service.
 
 `id` is available for manual composition; discovery normally derives it. Missing access

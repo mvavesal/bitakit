@@ -21,7 +21,7 @@ import {
 interface Clock {
   now(): Date;
 }
-const clockService = defineContract<Clock>('clock');
+const clockService = defineContract('clock').of<Clock>();
 
 const clockPlugin = definePlugin({
   id: 'example-clock',

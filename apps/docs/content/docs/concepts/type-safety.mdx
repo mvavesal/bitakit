@@ -9,7 +9,7 @@ BitaKit is designed around type-safe feature composition. Define the contract at
 
 | Boundary                     | What TypeScript knows                                           |
 | ---------------------------- | --------------------------------------------------------------- |
-| `defineContract<T>('auth')`  | The shared provider and consumer contract                       |
+| `defineContract('auth').of<T>()` | The shared provider and consumer contract                       |
 | Discovered service factory   | Method arguments and return types of `services.<plugin>.<file>` |
 | Discovered action definition | Action ID, input and completed result                           |
 | `events.ts`                  | Event names, payloads and which events are cancelable           |

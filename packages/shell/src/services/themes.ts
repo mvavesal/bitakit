@@ -1,4 +1,4 @@
-import { serviceKey, type SettingHandle, type SaveResult } from '@bitakit/core';
+import { defineContract, type SettingHandle, type SaveResult } from '@bitakit/core';
 import {
   defaultTheme, themeCatalog, themeKey, themeSchema,
   type ShellThemeInput, type ThemeEntry, type ThemeLibrary,
@@ -14,7 +14,7 @@ export interface ThemeService {
   saveCopy(theme: ShellThemeInput): Promise<SaveResult>;
   subscribe(listener: () => void): () => void;
 }
-export const themeService = serviceKey<ThemeService, 'themes'>('themes');
+export const themeService = defineContract('themes').of<ThemeService>();
 
 /** Core owns confirmed values, persistence, pending state and identity transitions. */
 export function createThemeService(

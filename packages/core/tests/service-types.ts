@@ -1,4 +1,6 @@
 import {
+  authService,
+  defineContract,
   defineInterceptor,
   definePlugin,
   defineService,
@@ -38,9 +40,10 @@ const result: Promise<{ id: string }> = client.send({ to: 'test@example.com' });
 client.send({ recipient: 'test@example.com' });
 // @ts-expect-error Unknown methods are not exposed.
 client.deleteEverything();
-// @ts-expect-error Optional auth is not guaranteed merely by installing core.
+// @ts-expect-error Installing core alone does not add auth to the service map.
 services.auth.signOut();
-services.auth?.signOut();
+// Code that runs only with auth installed reads it through the typed contract key.
+getService(services, authService).signOut();
 
 // Services form a tree: services.<plugin>.<file>. The map is generated; here it is augmented by hand.
 declare module '../src/core.js' {
@@ -134,6 +137,11 @@ defineService(({ services }) => ({ other: services }), { provides: notifications
 // A contract declared with its literal name types the alias in the service map.
 const namedContract = serviceKey<Notifications, 'notifications'>('notifications');
 type _LiteralName = Check<Same<typeof namedContract, ContractKey<Notifications, 'notifications'>>>;
+// The documented form writes the name once and keeps it literal.
+const definedContract = defineContract('notifications').of<Notifications>();
+type _DefinedName = Check<Same<typeof definedContract, ContractKey<Notifications, 'notifications'>>>;
+// @ts-expect-error A type argument no longer goes on defineContract itself.
+defineContract<Notifications>('notifications');
 const shell = definePlugin({
   id: 'shell',
   services: {

@@ -2,7 +2,7 @@ import {
   definePlugin,
   defineService,
   getService,
-  serviceKey,
+  defineContract,
   authService,
   type AuthService,
   type AuthSnapshot,
@@ -42,9 +42,7 @@ export type BetterAuthClientService = { readonly client: BetterAuthClient };
  * `export default defineService(() => ({ client: authClient }), { provides: betterAuthClient })`.
  * The name is not `auth.client`: `auth` is already the authentication service itself.
  */
-export const betterAuthClient = serviceKey<BetterAuthClientService, 'better-auth-client'>(
-  'better-auth-client',
-);
+export const betterAuthClient = defineContract('better-auth-client').of<BetterAuthClientService>();
 /** Options from `configs/better-auth.ts` (package manifest `configuration: 'better-auth'`). */
 export type BetterAuthOptions = {
   paths?: AuthPaths;

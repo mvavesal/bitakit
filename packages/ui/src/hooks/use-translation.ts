@@ -1,6 +1,6 @@
 'use client';
 import { useContext, useMemo, useSyncExternalStore } from 'react';
-import type { Translator, TranslationCatalog } from '@bitakit/core';
+import { getService, translationService, type Translator, type TranslationCatalog } from '@bitakit/core';
 import { FoundationContext } from '../providers/foundation-context.js';
 
 export type Translate = ((
@@ -32,7 +32,9 @@ export function useTranslation(): Translate {
     const translate: Translate = (key, values, fallback = key) =>
       runtime?.text(key, fallback, values) ?? fallback;
     translate.getCatalog = (namespace) =>
-      ready && runtime?.hasService('i18n') ? runtime.services.i18n?.getCatalog?.(namespace) : undefined;
+      ready && runtime?.hasService('i18n')
+        ? getService(runtime.services, translationService).getCatalog?.(namespace)
+        : undefined;
     translate.has = (key) => runtime?.translator().has?.(key) ?? false;
     return translate;
   }, [runtime, revision, ready]);

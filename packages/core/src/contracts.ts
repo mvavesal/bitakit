@@ -25,6 +25,6 @@ export interface TranslationService {
   subscribe(listener: () => void): () => void;
 }
 
-import { serviceKey } from './service-key.js';
-export const authService = serviceKey<AuthService>('auth');
-export const translationService = serviceKey<TranslationService>('i18n');
+import { defineContract } from './service-key.js';
+export const authService = defineContract('auth').of<AuthService>();
+export const translationService = defineContract('i18n').of<TranslationService>();

@@ -11,7 +11,7 @@ import {
 
 test('typed keys use the shared plugin container with dependency order and reverse cleanup', async () => {
   const base = serviceKey('base');
-  const derived = defineContract('derived');
+  const derived = defineContract('derived').of();
   const stopped = [];
   const runtime = createRuntime({
     plugins: [
@@ -71,3 +71,12 @@ test('empty keys and two providers of one contract fail before execution', async
     /Two services are named "same" \(duplicate\.one and duplicate\.two\)/,
   );
 });
+
+test('defineContract writes the name once and returns the same key from of()', () => {
+  const contract = defineContract('notes');
+  assert.equal(typeof contract.of, 'function');
+  assert.equal(contract.of(), 'notes');
+  assert.equal(contract.of(), serviceKey('notes'));
+  assert.throws(() => defineContract('  '), /must not be empty/);
+});
+

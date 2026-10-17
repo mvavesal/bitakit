@@ -109,9 +109,11 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   re-evaluates function-valued action fields and feeds `useServiceState`. Services never
   notify by hand. `requires` is an optional startup check that also orders creation; a
   missing service fails with a named error either way. `provides` registers a contract
-  alias (`defineContract<T>('auth')`), and the instance must satisfy the contract; a key
-  created as `serviceKey<T, 'notifications'>('notifications')` carries its literal name and
-  types `services.notifications` in every host. A contract name must not sit under an existing
+  alias (`defineContract('auth').of<AuthService>()`, the one documented form; the name is
+  written once and stays literal), and the instance must satisfy the contract; the literal name
+  types `services.<name>` in every host that installs the provider. Core code reads contracts
+  through `getService(services, key)`; `ServiceMap` has no hand-written `auth`/`i18n` entries.
+  `serviceKey<T, 'name'>('name')` remains the low-level form. A contract name must not sit under an existing
   service name (`auth.client` fails while `auth` is a service; use `better-auth-client`).
   Host objects reach package plugins as services (`provides`), never as factory arguments; a
   Proxy client whose `subscribe` is not an observable must be wrapped (`{ client }`) because
