@@ -289,7 +289,8 @@ test('TanStack apps get the same frame through native file routes and the Vite p
   assert.doesNotMatch(rootRoute, /BitaKitRuntimeProvider/);
   assert.match(rootRoute, /import \{ ShellThemeScript \} from '@bitakit\/shell';/);
   assert.match(rootRoute, /<head>\n\s+<HeadContent \/>\n\s+<ShellThemeScript \/>\n\s+<\/head>/);
-  assert.doesNotMatch(rootRoute, /suppressHydrationWarning/);
+  // ShellThemeScript sets the color scheme on <html> before hydration, as in the Next template.
+  assert.match(rootRoute, /<html lang="en" suppressHydrationWarning>/);
   assert.match(await read(plan.target, 'src/routes/_app.tsx'), /<AppShell>/);
   assert.match(
     await read(plan.target, 'src/routes/_app.$.tsx'),

@@ -148,6 +148,9 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
   `useRuntimeInventory`, or CLI `info --json`. Version 1 separates static/live data and preserves
   null unavailable fields. Values, defaults, raw errors and executable payloads stay out of
   snapshots; interactive Devtools still uses its existing execution/store APIs.
+  `useRuntimeInventory` returns `live: null` during server rendering and hydration (the runtime
+  starts only in the browser); every React hook that reads runtime state needs a fixed server
+  snapshot so lazily hydrated routes cannot mismatch.
 - `bitakit add settings-page <plugin>` preserves automatic Settings registration. Navigation
   migration is explicit (`--navigation-slot` plus preview); grouping never implies placement.
 

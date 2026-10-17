@@ -576,3 +576,43 @@ test('structural activation preserves a draft while pages, slots and actions app
     await view.unmount();
   }
 });
+
+test('useRuntimeInventory hydrates without a mismatch when the runtime started before the route hydrated', async () => {
+  const { renderToString } = await import('react-dom/server');
+  const { hydrateRoot } = await import('react-dom/client');
+  const { createRuntime } = await import('@bitakit/core');
+  // The internal context stands in for a provider whose runtime is already running.
+  const { BitaKitContext } = await import('../dist/providers/foundation-context.js');
+  const status = () => {
+    const inventory = useRuntimeInventory();
+    return h('output', null, inventory.live?.phase ?? 'unavailable');
+  };
+  const tree = (runtime) =>
+    h(
+      BitaKitContext.Provider,
+      { value: { runtime, ui: testUI, labels: {}, notify() {} } },
+      h(status),
+    );
+  // The server never starts the runtime.
+  const html = renderToString(tree(createRuntime({ plugins: [] })));
+  assert.equal(html, '<output>unavailable</output>');
+  // A lazily hydrated route meets a client runtime that is already running.
+  const runtime = createRuntime({ plugins: [] });
+  const stop = runtime.mount();
+  await runtime.ready;
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  document.body.append(container);
+  const errors = [];
+  let root;
+  await act(async () => {
+    root = hydrateRoot(container, tree(runtime), {
+      onRecoverableError: (error) => errors.push(error),
+    });
+  });
+  assert.deepEqual(errors, []);
+  assert.equal(container.textContent, 'ready', 'the live phase follows right after hydration');
+  await act(async () => root.unmount());
+  container.remove();
+  await stop();
+});

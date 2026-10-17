@@ -42,7 +42,7 @@ export const Route = createRootRoute({
 
 function Document({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en"${shell ? ' suppressHydrationWarning' : ''}>
       <head>
         <HeadContent />
 ${shell ? '        <ShellThemeScript />\n' : ''}      </head>

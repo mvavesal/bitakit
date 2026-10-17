@@ -234,7 +234,8 @@ function RuntimeStatus() {
 ```
 
 The hook reads Core's shared versioned inventory with stable snapshots. It owns no application
-values. Use ordinary Action/service hooks for interactive operations. App Preferences and
+values. `live` is `null` during server rendering and hydration, because the runtime starts only
+in the browser; the live state follows right after hydration. Use ordinary Action/service hooks for interactive operations. App Preferences and
 Devtools use this same inventory; static CLI fields may be explicitly unavailable.
 
 
