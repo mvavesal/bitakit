@@ -134,6 +134,11 @@ async function smoke(url, visits, extra) {
       await act?.(page);
     }
     await extra?.(page);
+    // Package styles need Tailwind; an app whose integration was lost renders browser defaults.
+    const spacing = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--spacing').trim(),
+    );
+    if (!spacing) errors.push('Tailwind did not compile the app styles (--spacing is empty).');
   } finally {
     await browser.close();
   }

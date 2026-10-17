@@ -19,10 +19,24 @@ const missing = (target, file) => assert.rejects(access(path.join(target, file))
 
 // The official scaffolds are replaced by their minimal output; the real scaffold/install/build
 // path is verified against packed packages separately.
+const scaffoldedNextConfig = `import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    rules: {
+      "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" },
+    },
+  },
+};
+
+export default nextConfig;
+`;
+
 async function scaffoldNext(command, args) {
   assert.equal(command, process.execPath);
   assert.ok(args.includes('--skip-install'));
   assert.ok(args.includes('--disable-git'));
+  assert.ok(args.includes('--no-cache-components'));
   const target = args[1];
   await mkdir(path.join(target, 'src/app'), { recursive: true });
   await writeFile(
@@ -36,7 +50,8 @@ async function scaffoldNext(command, args) {
   await writeFile(path.join(target, 'src/app/page.tsx'), 'export default function Page() {}');
   await writeFile(path.join(target, 'src/app/layout.tsx'), 'export default function Layout() {}');
   await writeFile(path.join(target, 'src/app/globals.css'), '@import "tailwindcss";\n');
-  await writeFile(path.join(target, 'next.config.ts'), 'export default {};\n');
+  // create-next-app 16.4 wires Tailwind through a Turbopack loader rule in next.config.ts.
+  await writeFile(path.join(target, 'next.config.ts'), scaffoldedNextConfig);
   await writeFile(path.join(target, '.gitignore'), 'node_modules/\n');
   await writeFile(path.join(target, 'AGENTS.md'), '<!-- next rules -->\n');
 }
@@ -105,9 +120,15 @@ test('a bare app wraps next.config, mounts one provider, imports one generated s
     build: 'next build',
     typecheck: 'bitakit generate && next typegen && tsc --noEmit',
   });
+  // The scaffold's configuration is wrapped, not replaced, so Tailwind's loader keeps running.
   assert.equal(
     await read(plan.target, 'next.config.ts'),
-    "import { withBitaKit } from '@bitakit/next/config';\n\nexport default withBitaKit({});\n",
+    scaffoldedNextConfig
+      .replace(
+        'import type { NextConfig } from "next";',
+        'import type { NextConfig } from "next";\nimport { withBitaKit } from \'@bitakit/next/config\';',
+      )
+      .replace('export default nextConfig;', 'export default withBitaKit(nextConfig);'),
   );
   const layout = await read(plan.target, 'src/app/layout.tsx');
   assert.match(layout, /import \{ BitaKitProvider \} from '@\/bitakit\.gen';/);
@@ -389,7 +410,10 @@ test('a plugin package has the same folders as an app plugin, a headless test an
     /import \{ Inspector \} from '@bitakit\/devtools';[\s\S]*<Inspector plugin="my-notes" \/>/,
   );
   assert.match(await read(playground, 'src/app/layout.tsx'), /<BitaKitProvider>/);
-  assert.match(await read(playground, 'next.config.ts'), /withBitaKit\(\{\}\)/);
+  assert.match(
+    await read(playground, 'next.config.ts'),
+    /export default withBitaKit\(nextConfig\);/,
+  );
   await exists(playground, 'src/app/(app)/[...path]/page.tsx');
   await missing(playground, 'src/plugins');
 });

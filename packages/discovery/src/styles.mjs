@@ -31,28 +31,6 @@ export function cssImports(css, from) {
   return imports;
 }
 
-// Bundlers such as Turbopack resolve CSS imports without the "style" export condition.
-const resolveWithoutStyle = enhancedResolve.create.sync({
-  fileSystem: fs,
-  extensions: ['.js', '.mjs', '.cjs', '.css'],
-  conditionNames: ['import', 'require', 'default'],
-  mainFields: ['module', 'main'],
-});
-const isBare = (specifier) => !/^(?:\.|\/|[a-z][a-z0-9+.-]*:)/i.test(specifier);
-/**
- * True when a bare stylesheet import has no entry at all outside the "style" condition (such as
- * tw-animate-css). A package that also exports JavaScript (such as @heroui/styles) is left alone:
- * an alias would apply to its script imports as well.
- */
-function needsStyleCondition(specifier, from) {
-  try {
-    resolveWithoutStyle(path.dirname(from), specifier);
-    return false;
-  } catch {
-    return true;
-  }
-}
-
 export function resolveStylesheet(specifier, from) {
   const file = resolveStyle(path.dirname(from), specifier);
   if (!file || !file.endsWith('.css'))
@@ -60,13 +38,8 @@ export function resolveStylesheet(specifier, from) {
   return file;
 }
 
-/**
- * Installed styles are eager; lazy plugin code cannot establish a competing CSS entry.
- * `aliases`, when given, receives each bare package import (other than Tailwind, which the root
- * imports) that resolves only with the "style" condition, mapped to its stylesheet, so a bundler
- * without that condition can be given the file directly.
- */
-export async function validatePackageStyles(packages, { aliases } = {}) {
+/** Installed styles are eager; lazy plugin code cannot establish a competing CSS entry. */
+export async function validatePackageStyles(packages) {
   const visited = new Set();
   const sources = new Set();
   const known = new Map(packages.map((entry) => [entry.name, entry]));
@@ -154,14 +127,6 @@ export async function validatePackageStyles(packages, { aliases } = {}) {
           'Remote CSS is outside the validated package graph. Ship a declared local stylesheet.',
         );
       const dependency = resolveStylesheet(value, file);
-      if (
-        aliases &&
-        !aliases.has(value) &&
-        isBare(value) &&
-        !/^tailwindcss(?:\/|$)/.test(value) &&
-        needsStyleCondition(value, file)
-      )
-        aliases.set(value, dependency);
       // Importing Tailwind a second time is only a baseline library's responsibility.
       if (!baseline && !theme && /^tailwindcss(?:\/|$)/.test(value))
         fail(

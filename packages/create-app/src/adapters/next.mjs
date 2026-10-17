@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { nextConfigFile } from '@bitakit/cli';
+import { nextConfigFile, wrapNextConfig } from '@bitakit/cli';
 import {
   agentRules,
   configureProject,
@@ -59,6 +59,8 @@ export const next = {
         '--no-eslint',
         '--no-biome',
         '--no-react-compiler',
+        // The user's saved create-next-app preferences must not decide this with --yes.
+        '--no-cache-components',
         '--import-alias',
         '@/*',
         '--yes',
@@ -84,8 +86,14 @@ export const next = {
         ? 'Open Todos in the navigation, or add a feature with npx bitakit add plugin notes.'
         : 'Open /todos, or add a feature with npx bitakit add plugin notes.'
       : 'Edit this page, or add a feature with npx bitakit add plugin notes.';
+    // Wrap the scaffolded configuration: it carries the framework's own setup, such as the
+    // @tailwindcss/turbopack loader rule, which BitaKit's package styles need.
+    const scaffolded = await readFile(path.join(plan.target, 'next.config.ts'), 'utf8').catch(
+      () => undefined,
+    );
     const files = {
-      'next.config.ts': nextConfigFile,
+      'next.config.ts':
+        (scaffolded && wrapNextConfig(scaffolded, 'next.config.ts')) ?? nextConfigFile,
       'src/app/layout.tsx': layout(shell),
       'src/app/globals.css': projectStyles('..'),
     };

@@ -94,6 +94,7 @@ export async function doctor({ cwd } = {}) {
   results.push(await checkRequirements(project, description, scanned));
   results.push(...checkGraph(description));
   results.push(await checkStyles(project, description));
+  results.push(...(await checkTailwind(project, description)));
   results.push(checkIgnored(description), checkDeprecated(description), checkSlots(description));
   if (shell) {
     const missing = [];
@@ -718,6 +719,49 @@ function checkGraph(description) {
     });
   return results.length ? results : [{ status: 'ok', title: 'Plugin dependencies are consistent' }];
 }
+/**
+ * Package styles use Tailwind (`@source`, `@apply`, imports under the "style" condition), so the
+ * root stylesheet must be compiled by the framework's Tailwind integration. A replaced
+ * next.config that lost create-next-app's loader rule leaves the app unstyled without an error.
+ */
+async function checkTailwind(project, description) {
+  if (!description.styles.length || !['next', 'tanstack'].includes(project.framework)) return [];
+  const read = async (names) =>
+    (
+      await Promise.all(
+        names.map((name) => readFile(path.join(project.root, name), 'utf8').catch(() => '')),
+      )
+    ).join('\n');
+  if (project.framework === 'next') {
+    const config = await read(['next.config.ts', 'next.config.mjs', 'next.config.js']);
+    const postcss = await read([
+      'postcss.config.mjs',
+      'postcss.config.js',
+      'postcss.config.cjs',
+      'postcss.config.ts',
+    ]);
+    if (/@tailwindcss\/turbopack/.test(config) || /@tailwindcss\/postcss/.test(postcss))
+      return [{ status: 'ok', title: 'Tailwind compiles the app styles' }];
+    return [
+      {
+        status: 'error',
+        title: 'Tailwind does not compile the app styles',
+        fix: "Keep create-next-app's loader rule in next.config, inside withBitaKit({ ... }):\n\nturbopack: { rules: { '*.css': { loaders: ['@tailwindcss/turbopack'], as: '*.css' } } }\n\nor add postcss.config.mjs with the @tailwindcss/postcss plugin.",
+      },
+    ];
+  }
+  const vite = await read(['vite.config.ts', 'vite.config.mts', 'vite.config.js']);
+  return /@tailwindcss\/vite/.test(vite)
+    ? [{ status: 'ok', title: 'Tailwind compiles the app styles' }]
+    : [
+        {
+          status: 'error',
+          title: 'Tailwind does not compile the app styles',
+          fix: "Add tailwindcss() from '@tailwindcss/vite' to the Vite plugins.",
+        },
+      ];
+}
+
 async function checkStyles(project, description) {
   if (!description.styles.length) return { status: 'ok', title: 'No package styles to import' };
   const visited = new Set();

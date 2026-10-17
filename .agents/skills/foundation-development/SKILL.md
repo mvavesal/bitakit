@@ -663,10 +663,11 @@ not filenames. The pre-paint script restores mode only, not personal theme token
 
 App Shell owns theme management and its Appearance experience. Keep the existing visual
 finish as BitaKit Default; incoming sample CSS must not replace it. Discovery owns collecting
-app theme files, while Shell owns runtime selection and editing. Turbopack resolves CSS imports
-without the `style` export condition: discovery reports package imports that resolve only under
-it (`styleAliases`, such as `tw-animate-css`) and `withBitaKit` passes them to
-`turbopack.resolveAlias`; packages that also export scripts are never aliased. Persist user-created named
+app theme files, while Shell owns runtime selection and editing. Package styles need Tailwind to
+compile the root stylesheet (it inlines imports with the `style` condition, `@apply` and
+`@source`): keep the framework's own integration (create-next-app's `@tailwindcss/turbopack`
+loader rule, or `@tailwindcss/postcss`/`@tailwindcss/vite`). create-app and `bitakit init` wrap
+`next.config` instead of replacing it; doctor warns when the integration is missing. Persist user-created named
 copies through the existing settings storage contract, not a parallel store or writes to
 source files from the browser. Preserve original themes and light/dark variants. See
 `packages/shell/README.md` for the theme file format and lifecycle.

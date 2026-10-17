@@ -67,7 +67,7 @@ export default function Checks() {
     <h1>Native integration checks</h1>
     <p>Isolated local test accounts. Data is temporary; no email is sent.</p>
     {auth.user ? <div className="flex flex-wrap gap-2"><UserButton /><OrganizationSwitcher aria-label="Switch organization" /></div> : <Auth view="signIn" />}
-    <Link href="/settings/account">Account settings</Link>
+    <Link href="/settings/account/security">Security settings</Link>
     <Link href="/settings/shell">Appearance settings</Link>
     <button onClick={() => setShow(true)}>Load fixture plugin</button>
     {show && <Suspense fallback={<p>Loading plugin</p>}><Lazy /></Suspense>}
@@ -222,8 +222,8 @@ export async function verifyAuthStyles(page, url, artifacts, developmentTarget) 
       () => getComputedStyle(document.querySelector('.fixture-plugin')).padding === '16px',
     );
   }
-  await page.getByRole('link', { name: 'Account settings', exact: true }).click();
-  await page.getByRole('heading', { name: 'Account', exact: true, level: 1 }).waitFor();
+  await page.getByRole('link', { name: 'Security settings', exact: true }).click();
+  await page.getByRole('heading', { name: 'Security', exact: true, level: 1 }).waitFor();
   await page.locator('input[type="password"]').first().waitFor();
   const input = await page
     .locator('input[type="password"]')
@@ -271,7 +271,7 @@ export async function verifyAuthStyles(page, url, artifacts, developmentTarget) 
     }
   }
   await page.reload();
-  await page.getByRole('heading', { name: 'Account', exact: true, level: 1 }).waitFor();
+  await page.getByRole('heading', { name: 'Security', exact: true, level: 1 }).waitFor();
   await page.goto(url + '/settings/shell');
   await page.getByRole('radio', { name: 'Dark', exact: true }).click();
   await page

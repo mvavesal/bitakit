@@ -505,3 +505,23 @@ test('doctor reports unresolved contracts and mismatched component targets hones
   assert.equal(result.status, 'warn');
   assert.match(result.details.join(' '), /Static inspection cannot resolve.*slots\/dynamic.ts/);
 });
+
+test('doctor reports an app whose Tailwind integration was lost, and accepts the Turbopack loader rule', async (t) => {
+  const missing = await project({ ...nextApp(catchAll), 'postcss.config.mjs': '' }, t);
+  const lost = find((await doctor({ cwd: missing })).results, /Tailwind does not compile/);
+  assert.equal(lost.status, 'error');
+  assert.match(lost.fix, /@tailwindcss\/turbopack/);
+  const loader = await project(
+    {
+      ...nextApp(catchAll),
+      'postcss.config.mjs': '',
+      'next.config.ts':
+        "import { withBitaKit } from '@bitakit/next/config';\n\nexport default withBitaKit({ turbopack: { rules: { '*.css': { loaders: ['@tailwindcss/turbopack'], as: '*.css' } } } });\n",
+    },
+    t,
+  );
+  assert.equal(
+    status((await doctor({ cwd: loader })).results, /Tailwind compiles the app styles/),
+    'ok',
+  );
+});

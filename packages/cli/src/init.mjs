@@ -36,8 +36,12 @@ function importEdit(file, line) {
   return last ? { start: last.end, insert: `\n${line}` } : { start: 0, insert: `${line}\n` };
 }
 
-/** `export default config;` becomes `export default withBitaKit(config);`; other shapes are left alone. */
-function wrapConfig(source, fileName) {
+/**
+ * `export default config;` becomes `export default withBitaKit(config);` with its import, keeping
+ * everything the framework scaffold configured (for example Tailwind's Turbopack loader rule).
+ * Returns undefined for shapes it cannot edit safely.
+ */
+export function wrapNextConfig(source, fileName) {
   const file = parse(source, fileName);
   const exported = file.statements.find(
     (item) => ts.isExportAssignment(item) && !item.isExportEquals,
@@ -158,7 +162,7 @@ export async function initProject({ cwd } = {}) {
     else if (/withFoundation/.test(source))
       skip(file, 'uses the removed withFoundation; run "npx bitakit migrate"');
     else {
-      const wrapped = wrapConfig(source, file);
+      const wrapped = wrapNextConfig(source, file);
       if (wrapped) await put(file, wrapped);
       else
         skip(

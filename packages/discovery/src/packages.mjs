@@ -144,8 +144,7 @@ export async function installedContributions(root, selection, jiti) {
     }).sort())
       if (!visited.has(dependency)) queue.push({ name: dependency, from: file });
   }
-  const styleAliases = new Map();
-  const styleSources = await validatePackageStyles(stylesheets, { aliases: styleAliases });
+  const styleSources = await validatePackageStyles(stylesheets);
   return {
     plugins,
     pluginPackages,
@@ -154,7 +153,6 @@ export async function installedContributions(root, selection, jiti) {
     dependencies,
     styles: orderStyles(stylesheets),
     styleSources,
-    styleAliases,
     packages,
     slots,
     slotDeclarations,

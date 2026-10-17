@@ -10,6 +10,7 @@ export {
   nextConfigFile,
   nextConfigImport,
   viteConfigImport,
+  wrapNextConfig,
 } from './init.mjs';
 export { findProject, findProjectRoot, packagePluginId } from './project.mjs';
 export { appRoutes, catchAllRoute } from './routes.mjs';

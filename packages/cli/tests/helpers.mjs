@@ -48,6 +48,7 @@ export const nextApp = (extra = {}) => ({
   'node_modules/@bitakit/shell/styles.css': '.shell { display: flex; }',
   'next.config.ts':
     "import { withBitaKit } from '@bitakit/next/config';\n\nexport default withBitaKit({});\n",
+  'postcss.config.mjs': "export default { plugins: { '@tailwindcss/postcss': {} } };\n",
   'src/app/layout.tsx':
     "import './globals.css';\nimport { BitaKitProvider } from '@/bitakit.gen';\nexport default function Layout({ children }) { return <BitaKitProvider>{children}</BitaKitProvider>; }\n",
   'src/app/(app)/layout.tsx': "import { AppShell } from '@bitakit/shell';\n",
