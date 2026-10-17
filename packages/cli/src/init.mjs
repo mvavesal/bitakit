@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
+import { agentRules, agentRulesBegin } from './agent-rules.mjs';
 import { exists, findProject } from './project.mjs';
 import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
 
@@ -113,8 +114,9 @@ function wrapLayout(source, fileName, specifier, framework) {
 
 /**
  * Wires an existing Next.js or TanStack Start app: `bitakit.config.ts`, the config wrapper or
- * Vite plugin, the provider in the root layout, the catch-all route for plugin pages and the
- * `.gitignore` entry. Files that already carry the wiring are never touched.
+ * Vite plugin, the provider in the root layout, the catch-all route for plugin pages, the
+ * `.gitignore` entry and the agent rules in `AGENTS.md` (the same block create-app writes).
+ * Files that already carry the wiring are never touched.
  * Returns `written` (absolute paths; `created` is false for an edited file), `skipped` with the
  * reason for each, and the BitaKit packages the app still has to install.
  */
@@ -217,6 +219,23 @@ export async function initProject({ cwd } = {}) {
     );
 
   const dependencies = { ...project.manifest.dependencies, ...project.manifest.devDependencies };
+  const agents = await read(at('AGENTS.md'));
+  if (agents?.includes(agentRulesBegin)) skip(at('AGENTS.md'), 'already has the BitaKit rules');
+  else {
+    // The framework's own route folder: src/app or app for Next.js, src/routes for TanStack Start.
+    const routes =
+      project.framework === 'next'
+        ? (await exists(at('src/app')))
+          ? 'src/app'
+          : 'app'
+        : 'src/routes';
+    const rules = agentRules({ routes, shell: Boolean(dependencies['@bitakit/shell']) });
+    await put(
+      at('AGENTS.md'),
+      agents === undefined ? rules : `${agents.trimEnd()}\n\n${rules}`,
+      agents === undefined,
+    );
+  }
   const install = [
     '@bitakit/core',
     '@bitakit/discovery',

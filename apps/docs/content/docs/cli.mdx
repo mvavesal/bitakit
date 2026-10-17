@@ -67,6 +67,7 @@ Run it in the root of an existing Next.js or TanStack Start project. It wires th
 | The root layout                | Mounts `<BitaKitProvider>` around your pages                  |
 | A catch-all route              | Renders plugin pages with `<PluginPage />`                    |
 | `.gitignore`                   | Ignores the generated `src/bitakit.gen.*` files               |
+| `AGENTS.md`                    | Tells coding assistants where each task goes (one screen)     |
 
 `init` prints what it wrote (`+` new, `~` changed) and what it skipped. A file that already has the wiring is left alone, so running it twice is safe. It does not install packages: it lists the missing ones (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the adapter for your framework). Install them, then run `npx bitakit generate` and `npx bitakit doctor`.
 
