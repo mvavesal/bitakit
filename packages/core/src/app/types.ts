@@ -8,8 +8,6 @@ import type { ActionTree, SlotTree } from '../discovered.js';
 import type { CancelableOf, EventsOf } from '../events/define.js';
 import type { SlotEntry } from '../slots/define.js';
 
-/** @deprecated Augment `ServiceMap`; kept so older generated hosts still compile. */
-export interface PublicServiceMap {}
 /** Optional packages contribute their own typed facades without Core depending on them. */
 export interface AppExtensionMap {}
 
@@ -125,7 +123,8 @@ type Immutable<T> = T extends object ? { readonly [K in keyof T]: Immutable<T[K]
 export type BitaKitActions = Namespace<{ [K in KnownActionId]: ActionReference<K> }>;
 
 export interface BitaKitApp<Services extends object = ServiceMap> extends AppExtensionMap {
-  readonly events: import('../events/types.js').Events;
+  /** Listen only: a plugin emits its own events through the scoped `events` of its services and Actions. */
+  readonly events: Pick<import('../events/types.js').Events, 'on'>;
   readonly actions: BitaKitActions;
   readonly config: Namespace<Immutable<ConfigMap>>;
   /** Live, typed access; missing reads throw. Use has/service hooks for owner readiness. */

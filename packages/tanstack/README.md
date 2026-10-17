@@ -38,8 +38,8 @@ Vite setup runs before React and cannot be activated by a runtime plugin; instal
 package alone does not configure Vite.
 
 `bitakit.config.ts` (optional, `defineBitaKit`) holds discovery overrides; `npx bitakit migrate`
-rewrites a 0.1 project, and the deprecated `foundation()` and `defineFoundation` aliases remain
-until the packages are migrated.
+rewrites a 0.1 project and the 0.2 renames (`foundation()` → `bitakit()`, `defineFoundation` →
+`defineBitaKit`).
 
 ## Scope and verification
 

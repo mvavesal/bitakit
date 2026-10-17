@@ -19,7 +19,7 @@ export type {
 export { useActionGroup, useActionGroups, type BoundGroup } from '../hooks/use-action-group.js';
 export { Action, type ActionProps, type ActionKind } from '../components/action.js';
 export { ActionButton, type ActionButtonProps } from '../components/action-button.js';
-export { ActionLink } from '../components/action-link.js';
+export { ActionLink, type ActionLinkProps } from '../components/action-link.js';
 export { ActionShortcutLabel } from '../components/action-shortcut-label.js';
 export type { ActionShortcutOptions } from '../bindings/action-shortcuts.js';
 export { mergeProps } from '../utils/merge-props.js';

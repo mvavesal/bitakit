@@ -613,7 +613,6 @@ ${installed.plugins.length ? `type InstalledPlugins = [${installed.plugins.map((
 ${[...kindTypes.values()].map(({ kind, index, entries }) => `type KindMap${index} = ${entries.join(' & ')};\ndeclare module ${specifier(kind.from)} { interface ${kind.types.map} extends KindMap${index} {} }`).join('\n')}
 declare module '@bitakit/core' {
   interface ServiceMap extends DiscoveredServices, InstalledServices {}
-  interface PublicServiceMap extends InstalledServices {}
   interface ActionMap extends DiscoveredActions, InstalledActions {}
   interface EventMap extends DiscoveredEvents, InstalledEvents {}
   interface CancelableEventMap extends DiscoveredCancelable, InstalledCancelable {}

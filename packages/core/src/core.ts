@@ -82,7 +82,6 @@ export type {
   BitaKitApp,
   AppExtensionMap,
   Namespace,
-  PublicServiceMap,
   PublicActionsOf,
   PublicCancelableOf,
   PublicEventsOf,

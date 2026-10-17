@@ -392,7 +392,9 @@ test('lifecycle watchers get current readiness and cannot interfere with runtime
   const unwatch = runtime.lifecycle.watch((state) => states.push(state.phase));
   assert.equal(states[0], 'ready');
   assert.equal(Object.isFrozen(runtime.lifecycle.get().plugins), true);
-  assert.throws(() => runtime.app.events.emit('runtime.lifecycle', {}), /only by the runtime/);
+  // The app facade only listens; the runtime bus still refuses runtime-owned events.
+  assert.equal('emit' in runtime.app.events, false);
+  assert.throws(() => runtime.events.emit('runtime.lifecycle', {}), /only by the runtime/);
   const original = console.error;
   console.error = () => {};
   const off = runtime.lifecycle.subscribe(() => {

@@ -255,8 +255,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   For a standard toolbar control, use `defineAction({ ..., slots: ['shell.toolbar'] })`; no
   widget file is required. Shell reuses `Action` and the standard Button, including native links,
   live presentation, mapped placement input and guards. Component header slots remain unchanged.
-  In custom widgets, sugar bindings use `ActionButton action` / `ActionLink action`; only
-  the generic `Action` component uses `id`.
+  In custom widgets, sugar bindings use `ActionButton action` / `ActionLink action` (so `id` stays
+  the rendered element's HTML attribute); only the generic `Action` component uses `id`. Both
+  sugar bindings accept `onError`, `onExecuted` and `pending`.
 
 ## Lifecycle state and hosts
 

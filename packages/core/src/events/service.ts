@@ -184,7 +184,6 @@ export class EventService implements Events {
     this.subscriptions.add(unsubscribe);
     return unsubscribe;
   }) as Events['on'];
-  /** @deprecated Use `on`. */
 
   /** Diagnostics only: receives every event after delivery. It cannot change or stop delivery. */
   observe(listener: (event: BitaKitEvent) => void) {

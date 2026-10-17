@@ -30,7 +30,8 @@ export function createBitaKitApp(runtime: BitaKitRuntime): BitaKitApp {
     deleteProperty: () => false,
   });
   return Object.freeze({
-    events: runtime.events,
+    // The facade cannot emit: only the declaring plugin emits, through its scoped bus.
+    events: Object.freeze({ on: runtime.events.on.bind(runtime.events) }),
     actions: createActionAccess(runtime.actions),
     get config() {
       return Object.freeze(

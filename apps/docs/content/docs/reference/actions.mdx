@@ -20,7 +20,7 @@ The examples use the [tasks service at the end](#example-service); you do not ne
 | [`input`](#input)                                                             | schema                                         | none               | Validates and types the input; disabled while invalid    |
 | [`execute`](#execute)                                                         | `(context) => result`                          | none               | The operation itself                                     |
 | [`href`](#navigation-actions)                                                 | `string` or function                           | none               | Navigation target; rendered as a link                    |
-| [`dialog`, `dialogSize`](#dialog-actions)                                     | component, `'default' \| 'wide'`               | none               | Opens a dialog instead of running `execute`              |
+| [`dialog`](#dialog-actions)                                                   | component, or `{ component, kind?, size? }`    | none               | Opens a dialog instead of running `execute`              |
 | [`confirm`](#confirm)                                                         | `string`, `{ title, description }` or function | none               | Asks before running                                      |
 | [`concurrency`](#concurrency)                                                 | `'exclusive' \| 'per-input' \| 'latest'`       | `exclusive`        | What happens when the action is already running          |
 | [`requires`](#requires)                                                       | `string[]`                                     | none               | Services from other plugins this action needs            |
@@ -305,8 +305,7 @@ import { TaskDetails } from '../ui/dialogs/task-details';
 
 export default defineAction<number>({
   title: 'Task details',
-  dialog: TaskDetails,
-  dialogSize: 'wide',
+  dialog: { component: TaskDetails, size: 'wide' },
 });
 ```
 

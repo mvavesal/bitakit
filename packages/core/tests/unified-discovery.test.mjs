@@ -265,9 +265,9 @@ test('the generated file wires app and plugins: nested services, typed events, c
     assert.match(source, /export type BitaKitConfig = ReturnType<typeof createBitaKitConfig>/);
     assert.match(source, /\} satisfies BitaKitRuntimeConfig;/);
     assert.match(source, /declare module '@bitakit\/core' \{/);
+    assert.doesNotMatch(source, /PublicServiceMap/);
     for (const declaration of [
       /interface ServiceMap extends DiscoveredServices, InstalledServices \{\}/,
-      /interface PublicServiceMap extends InstalledServices \{\}/,
       /interface ActionMap extends DiscoveredActions, InstalledActions \{\}/,
       /interface EventMap extends DiscoveredEvents, InstalledEvents \{\}/,
       /interface CancelableEventMap extends DiscoveredCancelable, InstalledCancelable \{\}/,
