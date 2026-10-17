@@ -178,7 +178,7 @@ Headless services, actions and events are tested without React through `mountPlu
 `signOut`. `AuthBoundary` handles pending, authenticated, unauthenticated and error rendering
 through host-supplied content; it uses the existing navigation binding for login. It has no
 visual dependency and does not enforce server authorization. See
-[configuration and adapter examples](../core/docs/auth.md).
+[configuration and adapter examples](../../apps/docs/content/docs/reference/authentication.mdx).
 
 ## Source organization
 

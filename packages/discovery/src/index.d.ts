@@ -14,6 +14,8 @@ export type ContributionKindSpec = {
 export type DiscoveryConfig = {
   /** Installed opt-in packages are included by default; false disables all, or select by package name. */
   packages?: false | Readonly<Record<string, boolean>>;
+  /** Build-included package names offered for lazy host activation, instead of automatic startup. */
+  catalog?: readonly string[];
   /** The application module root; `./src` by default. Generated files are written here. */
   directory?: string;
   /** Contribution kinds provided by optional integrations. */
@@ -130,6 +132,8 @@ export type FoundationDescription = {
   plugins: (DescribedModule & { dependencies: readonly string[]; enabled: boolean })[];
   /** Plugin entry specifiers of installed opt-in packages. */
   packages: string[];
+  /** Included in the build, with activation chosen later by host management. */
+  catalogPackages: string[];
   /** Names of installed packages with BitaKit metadata. */
   installedPackages: string[];
   styles: string[];

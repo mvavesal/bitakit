@@ -29,6 +29,24 @@ export default defineBitaKit({ groups: ['navigation'] });
 `@bitakit/core/discovery` re-exports this package for one release, with `@bitakit/discovery` as an
 optional peer dependency of Core. Import `@bitakit/discovery` directly.
 
+## Trusted lazy package catalog
+
+Set `catalog: ['notes-plugin']` in `defineBitaKit` to include an installed opt-in package in a
+lazy catalog instead of the initial plugin array. Discovery emits `packageCatalog` in
+`bitakit.gen.config.ts` for framework hosts, or `bitakit.gen.ts` for plain hosts. Each entry
+contains its installed version and a `load()` using a literal dynamic import of the public
+plugin factory. Contribution types remain available through type-only imports. The provider
+module stays component-only. Package CSS remains audited and eager in `bitakit.gen.css`.
+
+Catalog names must identify installed, enabled plugin packages. Packages requiring host config
+remain in the startup composition. Runtime plugin dependencies are still explicit: select their
+providers too, or keep those providers in the startup composition. A catalog entry does not imply
+runtime installation or readiness; static inspection reports its enablement as unknown.
+
+Use the optional [package host adapter](../packages/README.md) to activate an authorized selection.
+New code or versions need a new host build. No browser filesystem scanning, remote npm install,
+signature verification, sandbox or installation persistence is added by this option.
+
 ## Package stylesheet contract
 
 Visual packages export `./package.json` and declare exported CSS in `bitakit.styles`.

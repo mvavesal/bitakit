@@ -619,7 +619,7 @@ Renders its children while the action is enabled, nothing while it is hidden, an
 
 ### `useActions`
 
-All public action snapshots, for lists such as a command palette: `Object.values(useActions()).filter((action) => action.visible)`. These snapshots have no input; use `useAction(id, input)` for input-specific state. `useActions({ internal: true })` includes internal actions.
+All public action snapshots, for lists such as a command palette: `Object.values(useActions()).filter((action) => action.visible)`. These snapshots have no input; use `useAction(id, input)` for input-specific state. The current low-level `useActions({ internal: true })` option exposes internal registrations too; do not use it for menus, search, shortcuts or other public Action surfaces.
 
 ### Actions are files
 
@@ -699,3 +699,27 @@ export default defineService(({ store }) => {
   };
 });
 ```
+
+
+## Owning a standalone ActionList
+
+`createActionList()` from `@bitakit/core/actions` is the headless primitive for tests and
+custom hosts. Normal applications already have one runtime-owned list; do not add a second
+provider or register discovered Actions again.
+
+`list.register({ id, title, execute, ... })` accepts a low-level `ActionDefinition` and
+returns `get`, `update`, `onDispose` and `unregister`. Keep the handle and unregister when
+its owner closes. Low-level handlers have the Action execution context, not a plugin's
+`services`, `settings` or configuration injection. Registration ownership protects replacements
+from stale asynchronous completion.
+
+`list.use({ before })` installs an execution gate and returns its disposer. A false result
+skips; promises are awaited and execution guards are checked again afterwards.
+`list.subscribeExecution(listener)` observes `started`, `completed`, `skipped` and `failed`,
+with the Action ID and timestamp. Release the subscription with its owner. Observer failures
+do not change a completed operation's outcome. Avoid logging private input; this stream is
+not a durable server audit trail. In a plugin, prefer [Interceptors](/docs/concepts/interceptors).
+
+Core does not access browser globals. A standalone host must supply navigation through
+`list.mount(navigate)` before executing an `href` Action. The UI `ActionProvider` supplies
+browser navigation; framework adapters use the existing router and link component.

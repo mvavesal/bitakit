@@ -65,11 +65,11 @@ See the [repository README](../README.md) and
 
 Core provides runtime-local events, declared once per plugin in `events.ts`. Services and
 actions receive automatically scoped subscriptions; React's `useEvent` binding belongs to UI.
-See [the event guide](core/docs/events.md).
+See [the event guide](../apps/docs/content/docs/concepts/events.mdx).
 
 ## Client authentication and page states
 
-The [client authentication guide](core/docs/auth.md) covers the shared service contract,
+The [client authentication guide](../apps/docs/content/docs/reference/authentication.mdx) covers the shared service contract,
 external paths, Better Auth options and an adapter template. UI owns useAuth/AuthBoundary;
 Shell owns standalone page presentation through `@bitakit/shell/pages`. Available since
 Core 0.1.1 and UI/Shell/Better Auth 0.1.0. Auth.js and Clerk implementations remain future work.

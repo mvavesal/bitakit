@@ -7,21 +7,6 @@
     "services",
     "actions",
     "slots",
-    "settings",
-    "---Go further---",
-    "theming",
-    "architecture",
-    "discovery",
-    "events",
-    "configuration",
-    "action-groups",
-    "type-safety",
-    "---Advanced---",
-    "overrides",
-    "interceptors",
-    "patterns",
-    "runtime-management",
-    "manual-composition",
-    "tutorial"
+    "settings"
   ]
 }

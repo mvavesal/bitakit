@@ -1,0 +1,38 @@
+{
+  "name": "@bitakit/packages",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Optional trusted package catalog adapter for a running BitaKit host.",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@bitakit/core": "^0.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/packages"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

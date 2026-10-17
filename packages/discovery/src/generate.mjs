@@ -477,9 +477,41 @@ export async function generateFoundation(root, { quiet = false, packageCache } =
   }
 
   // Installed packages.
+  const catalog = new Set(config.catalog ?? []);
+  for (const name of catalog) {
+    const entries = installed.plugins.filter(
+      (entry) => installed.pluginPackages?.[entry]?.name === name,
+    );
+    if (!entries.length)
+      throw new Error(
+        `Catalog package "${name}" must be an installed, enabled BitaKit plugin package.`,
+      );
+    if (entries.some((entry) => installed.configurations?.[entry]))
+      throw new Error(
+        `Catalog package "${name}" needs host configuration and must remain in the startup composition.`,
+      );
+  }
+  const isLazy = (entry) => catalog.has(installed.pluginPackages?.[entry]?.name);
+  const catalogSource = catalog.size
+    ? `
+/** Trusted, build-included packages. Adding catalog entries requires a new build. */
+export const packageCatalog = {
+${installed.plugins
+  .filter(isLazy)
+  .map((entry) => {
+    const { name, version } = installed.pluginPackages[entry];
+    const dependencies = installed.dependencies?.[entry];
+    const call = `(await import(${specifier(entry)})).default()`;
+    return `  ${quote(name)}: { version: ${quote(version)}, load: async () => [${dependencies?.length ? `withDependencies(${call}, ${quote(dependencies)})` : call}] },`;
+  })
+  .join('\n')}
+} as const;
+`
+    : '';
   const configured = Object.keys(installed.configurations ?? {}).length > 0;
   const packageImports = installed.plugins.map(
-    (entry, index) => `import packagePlugin${index} from ${specifier(entry)};`,
+    (entry, index) =>
+      `import ${isLazy(entry) ? 'type ' : ''}packagePlugin${index} from ${specifier(entry)};`,
   );
   const appThemes = [];
   if (installed.configurations && Object.values(installed.configurations).includes('shell')) {
@@ -494,6 +526,7 @@ export async function generateFoundation(root, { quiet = false, packageCache } =
     }
   }
   const packageFactories = installed.plugins.map((entry, index) => {
+    if (isLazy(entry)) return null;
     const configPath = installed.configurations?.[entry];
     const optionsExpression = configPath ? `options.get(${quote(configPath)}, {})` : '';
     const argument =
@@ -620,12 +653,12 @@ ${configured ? `  const options = new ConfigService([{ id: ${quote(appId)}, conf
     setup: ${appSetup},
     contributions: ${appContributions},
     plugins: [
-      ${[...definitions, ...packageFactories].join(',\n      ')}
+      ${[...definitions, ...packageFactories.filter(Boolean)].join(',\n      ')}
     ],
   } satisfies FoundationConfig;
 }
 export type BitaKitConfig = ReturnType<typeof createBitaKitConfig>;
-`;
+${catalogSource}`;
   const generated = path.join(output, `bitakit.gen.${extension}`);
   if (provider) {
     // A component-only boundary lets React refresh definitions without reloading the document.

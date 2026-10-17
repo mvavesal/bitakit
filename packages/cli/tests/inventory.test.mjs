@@ -49,3 +49,15 @@ test('navigation migration requires an explicit target, preserves groups, and av
     0,
   );
 });
+
+test('static catalog entries do not claim runtime activation', () => {
+  const result = inspectionFromDescription({
+    app: { id: 'app', directory: 'src' },
+    plugins: [],
+    packages: ['notes/plugin'],
+    catalogPackages: ['notes/plugin'],
+    slotDeclarations: [],
+  });
+  assert.equal(result.static.plugins.find((plugin) => plugin.id === 'notes/plugin').enabled, null);
+  assert.equal(result.live, null);
+});

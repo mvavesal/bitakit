@@ -1,5 +1,5 @@
 ---
-title: Advanced — manual composition
+title: Manual composition
 description: Explicit service contracts and runtime ownership outside a discovery-enabled app.
 ---
 
@@ -71,7 +71,7 @@ The example creates and mounts a runtime because it runs without an application 
 
 In a configured app, the generated `BitaKitProvider` owns that lifecycle. Do not repeat these imports or startup code when adding a normal service or action.
 
-For a test of one plugin folder, use `mountPlugin(directory)` from `@bitakit/core/testing`: it discovers the folder with the app conventions, mounts it and returns `services`, `execute(name, input)`, the recorded events and `stop()`.
+For a test of one plugin folder, use the [Testing plugins guide](/docs/reference/testing).
 
 For a complete standalone feature, see the [manual To-do walkthrough](/docs/concepts/tutorial).
 
@@ -101,3 +101,59 @@ Declared `ui.slots` component contributions use the same path. `PluginSlot` read
 entries after runtime readiness; hiding the outlet does not remove the attachment. Contextual
 payloads and Action placements use the same contracts; App Preferences projects Settings automatically.
 See [host updates and inspection](/docs/concepts/runtime-management) for compatible live updates.
+
+## Plugin setup and shared access
+
+`dependencies` orders plugins and blocks dependents when a provider fails. Missing or cyclic
+dependencies fail startup with the involved IDs. `setup` runs after Action registration and
+may return cleanup. Put awaited work in a service's `onStart`; setup itself is synchronous.
+
+Setup receives a runtime-issued `PluginScope` as `app`. Its registrations, group attachments,
+slot contributions and observers are released with that owner. For example,
+`app.actions.getGroup(id).attach(actionId)` adds logical group membership with owned cleanup.
+Groups do not place UI; use [slots](/docs/reference/slots) for placement.
+
+The runtime's `app` facade exposes typed `services`, `actions`, configuration snapshots and
+events. Check `app.has(name)` before optional service access. A missing direct read throws;
+the availability check is not an authorization decision. Shared authentication uses the
+[AuthService contract](/docs/reference/authentication).
+
+## React host composition
+
+`FoundationProvider` from `@bitakit/ui` owns the runtime when composing React manually.
+Generated applications already use it through `BitaKitProvider`. Keep one root provider.
+
+`config` supplies the composition. `additionalPlugins` replaces entries with the same ID in
+place and appends new IDs. The optional `actions`, `plugins`, `interceptors` and `providers`
+props follow the same rule: omitted inherits configuration, an explicit array replaces that
+domain, and an empty array selects none. An explicit `actions` array also suppresses plugin
+Actions while retaining those plugins' services and setup. Keep composition values stable
+across renders; a changed provider configuration replaces the runtime after cleanup.
+
+Use `services` for host-owned contract implementations, `translate` and `labels` for language,
+`notify` for feedback, and `controls`, `dialogs` and `ui` for existing host rendering.
+`actionOptions` configures Action infrastructure; `isolateFailures` chooses startup isolation.
+See [Service lifecycle](/docs/reference/services#lifecycle-and-resources) for failure handling.
+
+Plugin UI providers wrap the app outside-in. `export const requires = ['other.provider']`
+names a provider that must appear earlier; duplicate IDs and missing or reversed requirements
+fail before mounting. Provider ordering is distinct from service dependencies.
+
+## Integration contribution kinds
+
+An optional integration can own a declarative kind without adding its meaning to Core.
+The contributing plugin supplies `contributions: { [kind]: values }`; exactly one owner
+supplies `installs: { [kind]: (values, { module, app, services }) => cleanup }`.
+An unclaimed or multiply claimed kind fails mount. Cleanup belongs to the contributing owner.
+Installers run after services and interceptors, before Actions and setup, in dependency order.
+The integration augments `ContributionMap` for its types.
+
+`runtime.contributionsOf(kind)` reads the composed values before mount for an initial render.
+`scopeModule(scope)` identifies a runtime-issued scope's owner; `scopePlugins(scope)` and
+`scopeModules(scope)` inspect composition and register that scope as a composition reader.
+Such readers join affected update sets; see [Plugin manager](/docs/plugin-management).
+
+`runtime.destinationOf(action)` reports whether navigation targets a page, settings or a
+plugin. An integration can mark a projected destination with
+`destinationMetadata({ kind, plugin })`. Discovery reads custom kinds from `bitakit.config.ts`
+or a package's `bitakit.discovery` entry, using `contributions/<folder>/` in each module.

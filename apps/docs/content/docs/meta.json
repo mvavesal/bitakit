@@ -3,8 +3,13 @@
   "pages": [
     "index",
     "concepts",
+    "guides",
+    "plugin-management",
+    "package-management",
     "reference",
     "cli",
+    "plugins",
+    "integrations",
     "packages",
     "local-development",
     "contributing"

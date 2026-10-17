@@ -1,0 +1,44 @@
+---
+title: Integrations
+description: Connect authentication, organizations, translation and email through optional BitaKit adapters.
+---
+
+Integrations connect provider capabilities through BitaKit's shared service contracts and
+ordinary plugin lifecycle. Add the adapters you need without moving provider code into Core.
+
+These guides describe the **0.2 API in this checkout**. Use matching package versions; the
+[local package setup](/docs/local-development) lets you try unpublished changes.
+All package names below use the `@bitakit/` prefix.
+
+## Available integrations
+
+| Package | Responsibility |
+| --- | --- |
+| `better-auth` | Authentication service integration |
+| `better-auth-ui` | Authentication and account UI integration |
+| `organizations` | Shared organization service contracts and integration points |
+| `next-intl` | Translation integration for Next.js |
+| `email` | Provider-independent email message and sending contract |
+| `nodemailer` | Server-side SMTP implementation of the email contract |
+
+For the shared session, application login paths and an adapter template, see
+[Client authentication](/docs/reference/authentication).
+
+## Contracts and providers
+
+A contract package describes a capability. An integration supplies its implementation.
+For example, `email` alone cannot send messages. `nodemailer` implements that contract using
+server-side SMTP configuration and includes the contract package as a dependency.
+
+External providers can use the same public service contract and existing plugin registration.
+They do not need to be merged into this repository to work.
+
+## Find related packages
+
+For the app shell, Settings and search, see [Plugins](/docs/plugins). For router adapters and
+build tools, see [Core packages](/docs/packages). The
+[Package manager](/docs/package-management) explains which package shapes support lazy activation;
+authentication and other global providers can require composition replacement.
+
+Dedicated provider tutorials are still being added. This overview describes current package
+responsibilities, not a completed setup guide for every external service.

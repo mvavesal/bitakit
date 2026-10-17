@@ -19,6 +19,11 @@ export default defineEvents({ incremented: event<number>() });
 
 Discovery names it `counter.incremented` and generates its payload type.
 
+Event names start with a letter and then use letters, digits, `_` or `-`, without dots.
+`event()` declares no payload; `event({ schema })` can validate data through the schema's
+`parse` method at emit time. The bus belongs to this runtime, with no global state,
+persistence or cross-process delivery.
+
 ## 2. Emit after the change
 
 In the Counter Action, add `events` to the execution context:
@@ -46,6 +51,13 @@ and execution rules still apply.
 
 The subscription is released with its service. Events are not replayed; read current state
 through its owning service rather than waiting for an event that may already have happened.
+
+`events.on` accepts an exact name, an array of names (a discriminated `{ type, data }`
+union), a prefix such as `counter.*`, or `*`. It returns an idempotent unsubscribe function.
+In React, `useEvent` from `@bitakit/ui` follows the latest callback and releases the
+subscription when its names/runtime change or the component unmounts. Inline arrays with
+the same names do not cause resubscription. It waits for runtime readiness; earlier events
+are not replayed.
 
 ## Later: cancelable events
 
@@ -86,11 +98,18 @@ events.on('documents.reload', async (event, { signal }) => {
 In a manual composition, add the declaration to the plugin (`events: counterEvents`) and augment the maps yourself when you need types:
 
 ```ts
+import type { CancelableOf, EventsOf } from '@bitakit/core';
+import type counterEvents from '../plugins/counter/events.ts';
+import type documentEvents from '../plugins/documents/events.ts';
+
 declare module '@bitakit/core' {
-  interface EventMap {
-    'counter.incremented': number;
-  }
+  interface EventMap extends EventsOf<typeof counterEvents, 'counter'>,
+    EventsOf<typeof documentEvents, 'documents'> {}
+  interface CancelableEventMap extends CancelableOf<typeof documentEvents, 'documents'> {}
 }
 ```
 
-Known events require their declared payload; names nobody declared remain allowed with an `unknown` payload. In tests, `mountPlugin` from `@bitakit/core/testing` records every emitted event in `plugin.events.recorded`.
+This example lives in `src/types/events.ts` and references the two declarations above.
+Types do not register events; each plugin must still include its declaration.
+Known events require their declared payload; names nobody declared remain allowed with an
+`unknown` payload. See [Testing plugins](/docs/reference/testing) to assert emitted events.

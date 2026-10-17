@@ -80,6 +80,7 @@ import {
   updateClosure,
   updateRestrictions,
   type PluginUpdateResult,
+  type PluginDependentOptions,
 } from './lifecycle/reconcile.js';
 export type { DialogState } from './contributions/index.js';
 
@@ -274,6 +275,16 @@ export class FoundationRuntime implements ContributionHost {
   >();
   private updating?: Promise<PluginUpdateResult>;
   private updateController?: AbortController;
+  private disabledPlugins = new Set<string>();
+  /** Host-only structural changes; no package loading or persistence is performed by Core. */
+  readonly plugins = Object.freeze({
+    add: (plugins: readonly Plugin[]) => this.changePlugins('add', [...plugins]),
+    remove: (ids: readonly string[], options: PluginDependentOptions) =>
+      this.changePlugins('remove', [...ids], options),
+    enable: (id: string) => this.changePlugins('enable', [id]),
+    disable: (id: string, options: PluginDependentOptions) =>
+      this.changePlugins('disable', [id], options),
+  });
   private revision = 0;
   getRevision = () => this.revision;
   private observations = new Map<Observable, () => void>();
@@ -408,13 +419,13 @@ export class FoundationRuntime implements ContributionHost {
     this.groups = new Map(groups.map((id) => [id, new ActionGroup(id)]));
   }
 
-  private serviceEntries(): ServiceEntry[] {
+  private serviceEntries(modules: readonly NormalizedPlugin[] = this.modules): ServiceEntry[] {
     const entries: ServiceEntry[] = Object.keys(this.providedServices).map((id) => ({
       id,
       aliases: [],
       plugin: this.appId,
     }));
-    for (const module of this.modules) {
+    for (const module of modules) {
       for (const service of module.services)
         entries.push({
           id: service.id,
@@ -426,9 +437,9 @@ export class FoundationRuntime implements ContributionHost {
     }
     return entries;
   }
-  private settingEntries(): SettingEntry[] {
+  private settingEntries(modules: readonly NormalizedPlugin[] = this.modules): SettingEntry[] {
     const entries: SettingEntry[] = [];
-    for (const module of this.modules)
+    for (const module of modules)
       for (const [name, spec] of Object.entries(
         (module.settings?.settings ?? {}) as Record<string, SettingSpec<any>>,
       ))
@@ -1196,6 +1207,227 @@ export class FoundationRuntime implements ContributionHost {
     if (refresh && observed.size) this.actions.refresh();
   }
 
+  /** Plan structural changes before touching scopes; use the existing update exclusion and executor. */
+  private changePlugins(
+    operation: 'add' | 'remove' | 'enable' | 'disable',
+    values: readonly Plugin[] | readonly string[],
+    options?: PluginDependentOptions,
+  ): Promise<PluginUpdateResult> {
+    const result = (
+      status: PluginUpdateResult['status'],
+      reasons: string[],
+      changed: string[] = [],
+    ): Promise<PluginUpdateResult> =>
+      Promise.resolve(
+        Object.freeze({
+          status,
+          reasons: Object.freeze(reasons),
+          changed: Object.freeze(changed),
+          affected: Object.freeze([]),
+          revision: this.revision,
+        }),
+      );
+    if (
+      this.updating ||
+      this.mounting ||
+      this.tearingDown ||
+      this.stopCompletion ||
+      !this.container ||
+      this.startPending
+    )
+      return result('blocked', ['A lifecycle operation is active or the runtime is not mounted.']);
+    if (this.lifecycle.get().cleanup === 'failed')
+      return result('blocked', ['Failed cleanup requires resource recovery and a new runtime.']);
+    try {
+      const installed = [...(this.config.plugins ?? [])];
+      const disabled = new Set(this.disabledPlugins);
+      const ids =
+        operation === 'add'
+          ? (values as Plugin[]).map((plugin) => plugin.id)
+          : (values as string[]);
+      if (new Set(ids).size !== ids.length)
+        return result('blocked', ['Plugin IDs must be unique.']);
+      if (ids.includes(this.appId))
+        return result('blocked', ['The app module cannot be changed through plugins.']);
+      if (
+        (operation === 'remove' || operation === 'disable') &&
+        !['stop', 'refuse'].includes(options?.dependents ?? '')
+      )
+        return result('blocked', ['Choose dependents: stop or refuse.']);
+      for (const id of ids) {
+        const exists = installed.some((plugin) => plugin.id === id);
+        if (operation === 'add' ? exists : !exists)
+          return result('blocked', [
+            `Plugin "${id}" ${exists ? 'is already installed' : 'is not installed'}.`,
+          ]);
+      }
+      const activeIds = new Set(this.modules.map((module) => module.id));
+      let changed = [...ids];
+      if (operation === 'disable' || operation === 'remove') {
+        const seeds = ids.filter((id) => activeIds.has(id));
+        if (operation === 'remove') seeds.push(...this.slotRuntime.contributorsTo(new Set(ids)));
+        const closure = updateClosure(this.modules, seeds);
+        const dependents = closure.filter((id) => !ids.includes(id));
+        if (dependents.length && options?.dependents === 'refuse')
+          return result('blocked', [`Enabled dependents: ${dependents.join(', ')}.`]);
+        changed = [...new Set([...ids, ...dependents])];
+        for (const id of changed) disabled.add(id);
+      } else if (operation === 'enable') {
+        changed = ids.filter((id) => disabled.has(id) || !this.isReady(id));
+        for (const id of ids) disabled.delete(id);
+      } else installed.push(...(values as Plugin[]));
+      const nextInstalled =
+        operation === 'remove' ? installed.filter((plugin) => !ids.includes(plugin.id)) : installed;
+      for (const id of ids) if (operation === 'remove') disabled.delete(id);
+      if (operation === 'disable') changed = changed.filter((id) => !this.disabledPlugins.has(id));
+      if (!changed.length) return result('applied', []);
+      const normalized = nextInstalled
+        .filter((plugin) => !disabled.has(plugin.id))
+        .map((plugin) => normalize(plugin, this.appId));
+      const app = this.modules.find((module) => module.id === this.appId)!;
+      const all = [app, ...normalized];
+      const declarations = [app, ...nextInstalled.map((plugin) => normalize(plugin, this.appId))];
+      orderPlugins(all, this.appId);
+      validateSlotDeclarations(declarations, this.appId);
+      validatePluginPages(all, new Set(Object.keys(app.ui?.layouts ?? {})));
+      // Failed updates may have already disposed a projection's scope. Recover its recorded
+      // failure cohort when the host retries one of those owners, without restarting other failures.
+      const lifecycle = this.lifecycle.get();
+      const failures = new Set(
+        changed.flatMap((id) => {
+          const owner = lifecycle.plugins.find((entry) => entry.id === id);
+          return owner?.failure?.plugin ? [owner.failure.plugin] : [];
+        }),
+      );
+      const readers = [
+        ...new Set([
+          ...this.scopes.filter(readsComposition).map((scope) => scopeModule(scope).id),
+          ...lifecycle.plugins
+            .filter(
+              (entry) =>
+                entry.failure?.plugin &&
+                failures.has(entry.failure.plugin) &&
+                activeIds.has(entry.id) &&
+                !disabled.has(entry.id),
+            )
+            .map((entry) => entry.id),
+        ]),
+      ];
+      const before = updateClosure(this.modules, [
+        ...changed.filter((id) => activeIds.has(id)),
+        ...readers,
+      ]);
+      const after = updateClosure(
+        all,
+        [...changed, ...readers].filter((id) => all.some((module) => module.id === id)),
+      );
+      const affected = [...new Set([...before, ...after])];
+      const reasons: string[] = [];
+      for (const module of [...this.modules, ...all].filter((module) =>
+        affected.includes(module.id),
+      )) {
+        if (
+          module.id === this.appId ||
+          module.providers.length ||
+          Object.keys(module.ui?.layouts ?? {}).length ||
+          module.interceptors?.length ||
+          Object.keys(module.installs ?? {}).length ||
+          Object.keys(module.contributions ?? {}).length
+        )
+          reasons.push(
+            `${module.id}: host, provider or cross-plugin installer/interceptor requires composition replacement.`,
+          );
+        if (
+          module.services.some((service) =>
+            [service.id, service.provides, service.exposeAs].some((name) =>
+              ['auth', 'i18n', 'settings.storage'].includes(name as string),
+            ),
+          )
+        )
+          reasons.push(
+            `${module.id}: host identity, translation or storage service requires composition replacement.`,
+          );
+      }
+      if (reasons.length) return result('restart-required', [...new Set(reasons)], changed);
+      const entries = this.serviceEntries(all);
+      const names = new ServiceNames(entries, this.appId);
+      for (const module of all)
+        for (const definition of [
+          ...module.services,
+          ...module.actions,
+          ...(module.interceptors ?? []),
+        ])
+          for (const requirement of definition.requires ?? [])
+            if (!names.known(requirement))
+              throw new Error(`${module.id}: missing required service "${requirement}".`);
+      updateClosure(
+        all,
+        all.map((module) => module.id),
+      );
+      const actionIds = all.flatMap((module) => module.actions.map((action) => action.id));
+      if (new Set(actionIds).size !== actionIds.length)
+        throw new Error('Duplicate Action ID in proposed composition.');
+      const settings = this.settingEntries(declarations);
+      for (const entry of this.settings.entries())
+        if (
+          !settings.some((next) => next.key === entry.key) &&
+          this.settings.state(entry.key).pending
+        )
+          return result('blocked', [`Setting "${entry.key}" has a pending write.`]);
+      createSettingsAccess(new SettingsStore(settings, () => this.storage()));
+      const overrides = Object.fromEntries(
+        Object.entries(this.config.configOverrides ?? {}).filter(([id]) =>
+          declarations.some((module) => module.id === id),
+        ),
+      );
+      const configuration = new ConfigService(declarations, overrides);
+      const eventCheck = new EventService();
+      eventCheck.reserve('runtime');
+      for (const module of declarations)
+        if (module.events) eventCheck.declare(module.id, module.events);
+      const controller = new AbortController();
+      this.updateController = controller;
+      this.updating = Promise.resolve().then(() =>
+        this.applyPluginUpdate(
+          nextInstalled,
+          normalized,
+          changed,
+          affected,
+          controller,
+          () => {
+            // Writes may begin while awaited Action/scope cleanup is in progress.
+            for (const entry of this.settings.entries())
+              if (
+                !settings.some((next) => next.key === entry.key) &&
+                this.settings.state(entry.key).pending
+              )
+                return `Setting "${entry.key}" began writing during cleanup; await it before retrying.`;
+            this.disabledPlugins = disabled;
+            this.names.replace(entries);
+            this.configuration.replace(configuration);
+            for (const plugin of this.config.plugins ?? []) this.events.undeclare(plugin.id);
+            this.events.undeclare(this.appId);
+            for (const module of declarations)
+              if (module.events) this.events.declare(module.id, module.events);
+            this.slotRuntime.replace(declarations.flatMap((module) => module.slots));
+            this.settings.replace(settings);
+          },
+          before,
+          after,
+        ),
+      );
+      void this.updating
+        .finally(() => {
+          this.updating = undefined;
+          this.updateController = undefined;
+        })
+        .catch(() => {});
+      return this.updating;
+    } catch (error) {
+      return result('blocked', [error instanceof Error ? error.message : String(error)]);
+    }
+  }
+
   /** Explicit host update of already-loaded immutable plugin definitions; never installs code. */
   reconcilePlugins(next: readonly Plugin[]): Promise<PluginUpdateResult> {
     next = [...next];
@@ -1228,6 +1460,10 @@ export class FoundationRuntime implements ContributionHost {
         result('blocked', ['Failed cleanup requires resource recovery and a new runtime.']),
       );
     const current = this.config.plugins ?? [];
+    if (this.disabledPlugins.size)
+      return Promise.resolve(
+        result('restart-required', ['Enable installed plugins before compatible updates.']),
+      );
     if (
       JSON.stringify(current.map((plugin) => plugin.id)) !==
       JSON.stringify(next.map((plugin) => plugin.id))
@@ -1376,6 +1612,9 @@ export class FoundationRuntime implements ContributionHost {
     changed: string[],
     affected: string[],
     controller: AbortController,
+    commit?: () => string | void,
+    stopIds: readonly string[] = affected,
+    startIds: readonly string[] = affected,
   ): Promise<PluginUpdateResult> {
     const result = (
       status: PluginUpdateResult['status'],
@@ -1404,21 +1643,72 @@ export class FoundationRuntime implements ContributionHost {
       ),
     });
     try {
-      await this.stopPlugins(affected);
+      await this.stopPlugins(stopIds);
     } catch (error) {
       this.lifecycleState.update({ phase: 'failed', cleanup: 'failed' });
       return result('failed', [error instanceof Error ? error.message : String(error)]);
     }
     if (controller.signal.aborted)
       return result('blocked', ['Update cancelled by runtime shutdown.']);
-    this.currentConfig = { ...this.config, plugins: [...next] };
-    this.currentModules = [this.modules.find((module) => module.id === this.appId)!, ...normalized];
-    this.order = orderPlugins(this.modules, this.appId);
-    this.revision++;
-    const plugins = affected.map((id) => this.modules.find((module) => module.id === id)!);
-    const selected = new Set(affected);
     try {
-      for (const id of affected) this.lifecycleState.plugin(id, 'starting');
+      const blocked = commit?.();
+      if (blocked) {
+        // Affected owners are already stopped; retain declarations and report that actual state.
+        for (const id of stopIds)
+          this.lifecycleState.plugin(id, 'blocked', {
+            plugin: changed[0],
+            message: 'Plugin change blocked after cleanup.',
+          });
+        this.lifecycleState.update({ phase: 'failed', cleanup: 'complete' });
+        return result('blocked', [blocked]);
+      }
+      this.currentConfig = { ...this.config, plugins: [...next] };
+      this.currentModules = [
+        this.modules.find((module) => module.id === this.appId)!,
+        ...normalized,
+      ];
+      this.order = orderPlugins(this.modules, this.appId);
+      this.revision++;
+      if (commit) {
+        const previous = this.lifecycle.get();
+        const entries = (
+          values: readonly { id: string; plugin: string }[],
+          existing: typeof previous.plugins,
+        ) =>
+          Object.freeze(
+            values.map(({ id, plugin }) => {
+              const before = existing.find((entry) => entry.id === id);
+              const enabled = !this.disabledPlugins.has(plugin);
+              return Object.freeze({
+                ...before,
+                id,
+                plugin,
+                enabled,
+                phase: enabled ? (before?.phase ?? 'idle') : 'stopped',
+                since: before?.since ?? Date.now(),
+              } as const);
+            }),
+          );
+        this.lifecycleState.update({
+          plugins: entries(
+            [
+              { id: this.appId, plugin: this.appId },
+              ...next.map((plugin) => ({ id: plugin.id, plugin: plugin.id })),
+            ],
+            previous.plugins,
+          ),
+          services: entries(this.serviceEntries(), previous.services),
+        });
+      }
+    } catch (error) {
+      // A declaration commit cannot be rolled back safely after observers have run.
+      this.lifecycleState.update({ phase: 'failed', cleanup: 'failed' });
+      return result('failed', [error instanceof Error ? error.message : String(error)]);
+    }
+    const plugins = startIds.map((id) => this.modules.find((module) => module.id === id)!);
+    const selected = new Set(startIds);
+    try {
+      for (const id of startIds) this.lifecycleState.plugin(id, 'starting');
       this.container!.install(plugins.flatMap((plugin) => plugin.services));
       for (const plugin of plugins) {
         const events = createEventScope(this.events, plugin.id);
@@ -1478,11 +1768,11 @@ export class FoundationRuntime implements ContributionHost {
       this.observe(new Set([...this.container!.observed, this.settings]));
       await this.container!.start(controller.signal, selected);
       if (controller.signal.aborted) {
-        await this.stopPlugins(affected);
+        await this.stopPlugins(startIds);
         return result('blocked', ['Update cancelled by runtime shutdown.']);
       }
       this.setupComplete = true;
-      for (const id of affected) {
+      for (const id of startIds) {
         if (controller.signal.aborted) break;
         this.lifecycleState.plugin(id, 'ready');
       }
@@ -1491,19 +1781,19 @@ export class FoundationRuntime implements ContributionHost {
       if (!controller.signal.aborted) this.setReady(true);
       if (controller.signal.aborted) {
         this.setReady(false);
-        await this.stopPlugins(affected);
+        await this.stopPlugins(startIds);
         return result('blocked', ['Update cancelled by runtime shutdown.']);
       }
       return result('applied');
     } catch (error) {
       let cleanupError: unknown;
       try {
-        await this.stopPlugins(affected);
+        await this.stopPlugins(startIds);
       } catch (failure) {
         cleanupError = failure;
       }
       const failed = isFoundationStartupError(error) ? error.plugin : changed[0];
-      for (const id of affected)
+      for (const id of startIds)
         this.lifecycleState.plugin(id, id === failed ? 'failed' : 'blocked', {
           plugin: failed,
           message: 'Plugin update failed.',

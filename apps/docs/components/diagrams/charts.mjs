@@ -1,6 +1,22 @@
 // Shared, committed Mermaid sources. Reuse a name in MDX instead of copying a diagram.
 // Sources identify the implementation to review when an API changes.
 export const charts = {
+  'trusted-package-flow': {
+    title: 'A trusted catalog becomes an active feature',
+    caption:
+      'The operator chooses code for the build. The host supplies an already-authorized selection. The package adapter loads only matching catalog entries, and Core owns their lifecycle. Visible contributions still need their normal app renderers.',
+    sources: [
+      'packages/discovery/src/generate.mjs',
+      'packages/packages/src/index.ts',
+      'packages/core/src/lifecycle/reconcile.ts',
+    ],
+    chart: `graph TD
+      Build[Operator selects reviewed code] --> Catalog[Catalog: names, versions and loaders]
+      Catalog --> Adapter[Package host matches and loads entries]
+      Selection[Host supplies an authorized selection] --> Adapter
+      Adapter --> Runtime[Core starts and owns the plugins]
+      Runtime --> App[Actions, services, pages and Settings]`,
+  },
   'theme-flow': {
     title: 'From a theme file to the app',
     caption:
@@ -48,7 +64,7 @@ export const charts = {
       'packages/core/src/contracts.ts',
       'packages/core/src/events/service.ts',
       'packages/core/src/slots/runtime.ts',
-      'apps/docs/components/illustrations/introduction-examples.ts',
+      'apps/docs/components/illustrations/introduction-examples.tsx',
     ],
     chart: `graph TD
       Auth[Auth adapter] -->|provides| Contract[Service contract: auth]

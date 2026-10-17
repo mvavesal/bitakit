@@ -6,6 +6,8 @@
     "slots",
     "settings",
     "theming",
-    "layouts"
+    "layouts",
+    "authentication",
+    "testing"
   ]
 }

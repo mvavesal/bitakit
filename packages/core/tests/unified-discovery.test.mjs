@@ -1082,6 +1082,7 @@ test('describeFoundation and describeModule summarize modules, packages and warn
       'app',
       'plugins',
       'packages',
+      'catalogPackages',
       'installedPackages',
       'styles',
       'slotDeclarations',
@@ -1130,6 +1131,7 @@ test('describeFoundation and describeModule summarize modules, packages and warn
       },
     ]);
     assert.deepEqual(description.packages, ['@acme/shell/plugin']);
+    assert.deepEqual(description.catalogPackages, []);
     assert.deepEqual(description.slots, []);
     assert.deepEqual(description.installedPackages, ['@acme/shell']);
     assert.deepEqual(description.styles, ['@acme/shell/styles.css']);

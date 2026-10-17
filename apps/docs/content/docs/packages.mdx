@@ -1,31 +1,30 @@
 ---
-title: Packages
-description: Choose capabilities without moving application behavior into Core.
+title: Core packages
+description: The runtime, React bindings, framework adapters and tools used to build BitaKit apps.
 ---
 
-Start with the [minimal app](/docs/quickstart), then add the capabilities you need.
-These guides describe the 0.2 API in this checkout. Use matching package versions;
-the [local package setup](/docs/local-development) lets you try unpublished changes.
+Start with the [minimal app](/docs/quickstart), then choose the capabilities you need.
+For ready-made app features, see [Plugins](/docs/plugins). For authentication, translation and
+email, see [Integrations](/docs/integrations).
 
-| Package           | Responsibility                                                        |
-| ----------------- | --------------------------------------------------------------------- |
-| `core`            | Framework-independent runtime, Actions and typed service registration |
-| `ui`              | React bindings and optional standard themed components                |
-| `next`            | Next.js navigation, URL query adapter and discovery integration       |
-| `tanstack`        | Experimental TanStack Router/Start integration                        |
-| `app-preferences` | Settings pages, field controls, the settings route and navigation     |
-| `shell`           | Application frame, layouts, slots, notifications and theme management |
-| `quick-search`    | Optional search across the app's navigation actions                   |
-| `email`           | Provider-independent email message and sending contract               |
-| `nodemailer`      | Server-side SMTP implementation of the email contract                 |
-| `better-auth`     | Authentication service integration                                    |
-| `better-auth-ui`  | Optional authentication and account UI integration                    |
-| `organizations`   | Shared organization service contracts and integration points          |
-| `next-intl`       | Translation integration for Next.js                                   |
-| `create-app`      | Frontend project generator                                            |
+These guides describe the **0.2 API in this checkout**. Use matching package versions; the
+[local package setup](/docs/local-development) lets you try unpublished changes.
+All package names below use the `@bitakit/` prefix.
 
-Shell's [Themes and appearance guide](/docs/concepts/theming) covers custom theme files and
-the built-in manager. See [Theme reference](/docs/reference/theming) for its API and CSS contract.
+## Runtime and tooling
+
+These packages support the app and its plugins; they are not all installable app features.
+
+| Package | Responsibility |
+| --- | --- |
+| `core` | Framework-independent runtime, Actions and typed service registration |
+| `ui` | React bindings and optional standard themed components |
+| `packages` | Trusted catalog loading and active package selection through the existing runtime |
+| `discovery` | File conventions, package discovery and generated app composition |
+| `next` | Next.js navigation, URL query adapter and discovery integration |
+| `tanstack` | Experimental TanStack Router/Start integration |
+| `cli` | Scaffolding, inspection, migration and plugin package builds |
+| `create-app` | Frontend project generator |
 
 ## Framework ownership
 
@@ -33,20 +32,11 @@ Choose the integration matching the router that manages your BitaKit surface.
 The integration uses the application's router through peer dependencies; installing a
 second router does not switch it automatically. App-owned routes remain native framework routes.
 
-## Contracts and providers
+## Runtime management
 
-A contract package describes a capability. An integration supplies its implementation.
-For example, `email` alone cannot send messages. `nodemailer` implements that contract using
-server-side SMTP configuration and includes the contract package as a dependency.
+The [Plugin manager](/docs/plugin-management) handles loaded feature definitions.
+The [Package manager](/docs/package-management) adds trusted catalog loading and selection.
+Their guides describe the APIs and current limits.
 
-External providers can use the same public service contract and existing plugin registration.
-They do not need to be merged into this repository to work.
-
-## Core documentation
-
-Start with [Core concepts](/docs/concepts): plugins, services, actions, events, configuration and discovery. The [To-do walkthrough](/docs/concepts/tutorial) shows their collaboration in runnable code.
-
-## Documentation roadmap
-
-Dedicated package guides will be added incrementally. This overview describes current
-responsibilities; it is not a claim that every integration has a complete public tutorial.
+To learn the underlying conventions, follow [Build your first feature](/docs/concepts).
+The [To-do walkthrough](/docs/concepts/tutorial) combines them in runnable code.

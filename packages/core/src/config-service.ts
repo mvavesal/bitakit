@@ -140,6 +140,11 @@ export class ConfigService {
           `configOverrides names "${id}", but no plugin with that ID is enabled. Known: ${[...this.modules.keys()].join(', ')}.`,
         );
   }
+  /** Adopt prevalidated module scopes without replacing the public configuration service. */
+  replace(next: ConfigService) {
+    this.modules.clear();
+    for (const [id, scope] of next.modules) this.modules.set(id, scope);
+  }
   plugin<K extends keyof ConfigMap & string>(id: K): ConfigScope<ConfigMap[K]>;
   plugin<T = ConfigValues>(id: string): ConfigScope<T>;
   plugin<T = ConfigValues>(id: string): ConfigScope<T> {

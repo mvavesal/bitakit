@@ -88,10 +88,10 @@ Done in the first pass:
 
 Remaining:
 
-- German package READMEs on npm (better-auth, better-auth-ui, email, nodemailer) and
-  the German parts of `packages/core/docs/file-contributions.md`.
-- At the 0.2 release: bump the Core README's jsDelivr links from `@0.1.2`, add cli and
-  devtools to the docs-site package table, and drop the "0.2" markers.
-- Consolidate the two parallel concept sets (`docs/concepts/*.md` and the docs site),
-  and publish a short public roadmap; the READMEs no longer link the internal
-  `docs/TODO.md`.
+- Translate German package READMEs on npm (better-auth, better-auth-ui, email, nodemailer).
+- At the 0.2 release, review package availability and remove obsolete release markers.
+- Publish a short public roadmap; the READMEs no longer link the internal `docs/TODO.md`.
+
+Documentation consolidation is complete: API guides live in `apps/docs/content/docs`;
+Core's parallel manual and the root concept copies were retired after transferring useful
+content. The Core README links to the handbook instead of versioned npm documentation copies.

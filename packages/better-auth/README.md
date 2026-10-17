@@ -42,7 +42,7 @@ Manual composition passes the same options and provides the client through
 `createRuntime(config, { services: { [betterAuthClient]: { client: authClient } } })`, the
 `FoundationProvider` `services` prop or any plugin service with `provides: betterAuthClient`.
 
-See the [client authentication guide](../core/docs/auth.md) for `AuthBoundary`, safe return
+See the [client authentication guide](../../apps/docs/content/docs/reference/authentication.mdx) for `AuthBoundary`, safe return
 destinations and a provider adapter template.
 
 ## Organizations

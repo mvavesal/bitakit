@@ -6,6 +6,14 @@ description: Add a package guide using the same content, navigation and search s
 The documentation is a separate Next.js workspace at `apps/docs` in the BitaKit repository.
 Pages are Markdown or MDX files in `apps/docs/content/docs`.
 
+## Keep one maintained source
+
+API explanations and tutorials belong in this handbook. Package READMEs provide a short
+introduction and link here; do not copy complete chapters into a package's `docs/` folder.
+Repository-root `docs/` is for development plans, architecture decisions and shared README
+assets. When retiring a guide, preserve useful content here and update its incoming links.
+Use TypeScript for new examples, TSX for React, and check them against the current API.
+
 ## Add a guide
 
 1. Create a page such as `content/docs/packages/my-provider.mdx` with a title and description.

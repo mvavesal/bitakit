@@ -1,6 +1,6 @@
 # BitaKit documentation
 
-Independent Fumadocs/Next.js workspace. English MDX content lives in `content/docs`.
+Independent Fumadocs/Next.js workspace. The canonical developer handbook lives in `content/docs`.
 Uses the upstream Fumadocs theme, navigation, local Orama search and theme switcher.
 
 From the repository root:
@@ -30,8 +30,11 @@ Its file tree uses Fumadocs folders and selectable files beside read-only code. 
 preserves expanded folders and keyboard focus; selecting a step reveals its source path.
 
 The sidebar's **Start here** section leads through a single Counter: Quickstart → page → service → Action
-→ slot → Settings. `reference/` retains complete properties and contextual examples. Advanced
-runtime topics stay after the basic lessons. Introduce one idea per step, label partial edits,
+→ slot → Settings. **Guides** is a separate top-level sidebar group for further topics,
+with related mechanisms such as Events and Interceptors next to each other. Its metadata
+references existing concept pages so URLs stay stable. **Plugin manager** and **Package
+manager** are direct top-level guides. **Plugins**, **Integrations** and **Core packages**
+are separate catalogs of app features, provider adapters and development infrastructure. `reference/` retains complete properties and contextual examples. Introduce one idea per step, label partial edits,
 and show the expected result. Keep generated-project and package READMEs aligned with this path.
 
 `/docs/concepts/theming` teaches app theme files and the Appearance manager;

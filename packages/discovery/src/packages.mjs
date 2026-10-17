@@ -26,6 +26,7 @@ export async function installedContributions(root, selection, jiti) {
       if (error.code === 'ENOENT') return {};
       throw error;
     });
+  const pluginPackages = {};
   const plugins = [];
   const kinds = [];
   const configurations = {};
@@ -51,9 +52,14 @@ export async function installedContributions(root, selection, jiti) {
         // Inspect only to diagnose an inaccessible opt-in manifest, never to bypass exports.
         for (const directory of createRequire(from).resolve.paths(name) ?? []) {
           const candidate = await readFile(path.join(directory, name, 'package.json'), 'utf8')
-            .then(JSON.parse).catch((failure) => { if (failure.code !== 'ENOENT') throw failure; });
+            .then(JSON.parse)
+            .catch((failure) => {
+              if (failure.code !== 'ENOENT') throw failure;
+            });
           if (candidate?.bitakit || candidate?.foundation)
-            throw new Error(`BitaKit package "${name}" cannot expose its discovery metadata. Export "./package.json" from its package.json (${error.code}).`);
+            throw new Error(
+              `BitaKit package "${name}" cannot expose its discovery metadata. Export "./package.json" from its package.json (${error.code}).`,
+            );
           if (candidate) break;
         }
         continue;
@@ -77,16 +83,27 @@ export async function installedContributions(root, selection, jiti) {
     if (metadata.plugin) {
       const plugin = specifier(metadata.plugin);
       plugins.push(plugin);
+      pluginPackages[plugin] = { name, version: installed.version };
       // `bitakit build` emits this optional, derived sidecar. Never execute a client entry in Node.
       let entryFile;
-      try { entryFile = createRequire(from).resolve(plugin); }
-      catch (error) { if (!['MODULE_NOT_FOUND', 'ERR_PACKAGE_PATH_NOT_EXPORTED'].includes(error.code)) throw error; }
-      const slotInfo = entryFile && /\.[cm]?[jt]sx?$/.test(entryFile)
-        ? await readFile(entryFile.replace(/\.[cm]?[jt]sx?$/, '.slots.json'), 'utf8')
-          .then(JSON.parse).catch((error) => { if (error.code !== 'ENOENT') throw error; })
-        : undefined;
+      try {
+        entryFile = createRequire(from).resolve(plugin);
+      } catch (error) {
+        if (!['MODULE_NOT_FOUND', 'ERR_PACKAGE_PATH_NOT_EXPORTED'].includes(error.code))
+          throw error;
+      }
+      const slotInfo =
+        entryFile && /\.[cm]?[jt]sx?$/.test(entryFile)
+          ? await readFile(entryFile.replace(/\.[cm]?[jt]sx?$/, '.slots.json'), 'utf8')
+              .then(JSON.parse)
+              .catch((error) => {
+                if (error.code !== 'ENOENT') throw error;
+              })
+          : undefined;
       if (slotInfo?.version === 1) {
-        slotDeclarations.push(...slotInfo.definitions.map((item) => ({ ...item, file: `${name}/${item.file}` })));
+        slotDeclarations.push(
+          ...slotInfo.definitions.map((item) => ({ ...item, file: `${name}/${item.file}` })),
+        );
         unresolvedSlots.push(...slotInfo.unresolved.map((file) => `${name}/${file}`));
       }
       if (metadata.configuration) configurations[plugin] = metadata.configuration;
@@ -100,13 +117,13 @@ export async function installedContributions(root, selection, jiti) {
       if (ids.length) dependencies[plugin] = [...new Set(ids)];
     }
     stylesheets.push({
-        name,
-        manifestFile: file,
-        manifest: installed,
-        dependencies: Object.keys({ ...installed.dependencies, ...installed.peerDependencies }),
-        styles: list(metadata.styles).map(specifier),
-        theme: list(metadata.theme).map(specifier),
-      });
+      name,
+      manifestFile: file,
+      manifest: installed,
+      dependencies: Object.keys({ ...installed.dependencies, ...installed.peerDependencies }),
+      styles: list(metadata.styles).map(specifier),
+      theme: list(metadata.theme).map(specifier),
+    });
     // Layout packages declare the slots they render, so SlotMap and doctor know them.
     for (const slot of list(metadata.slots)) {
       if (typeof slot !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$/.test(slot))
@@ -130,6 +147,7 @@ export async function installedContributions(root, selection, jiti) {
   const styleSources = await validatePackageStyles(stylesheets);
   return {
     plugins,
+    pluginPackages,
     kinds,
     configurations,
     dependencies,

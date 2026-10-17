@@ -6,7 +6,7 @@ import { SourceTree } from './source-tree';
 export type Region = {
   key: string;
   label: string;
-  explanation: string;
+  explanation: ReactNode;
   slot?: string;
   accepts?: string;
 };
@@ -47,6 +47,7 @@ export function Explanation({
   files,
   onFileSelect,
   sourceReveal,
+  showLabel = true,
 }: {
   id: string;
   region: Region;
@@ -55,12 +56,15 @@ export function Explanation({
   files?: readonly string[];
   onFileSelect?: (file: string) => void;
   sourceReveal?: number;
+  showLabel?: boolean;
 }) {
   return (
     <div id={id} className="min-w-0 space-y-3">
       <div aria-live="polite" aria-atomic="true" className="space-y-2">
-        <p className="font-medium text-fd-foreground">{region.label}</p>
-        <p className="text-sm text-fd-muted-foreground">{region.explanation}</p>
+        {showLabel && <p className="font-medium text-fd-foreground">{region.label}</p>}
+        <p className="text-sm leading-relaxed text-fd-muted-foreground [&_code]:rounded-md [&_code]:border [&_code]:border-fd-border [&_code]:bg-fd-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-fd-foreground [&_code]:break-words [&_strong]:font-semibold [&_strong]:text-fd-foreground">
+          {region.explanation}
+        </p>
         {region.slot && (
           <p className="break-all text-sm">
             <code>{region.slot}</code>
@@ -83,11 +87,18 @@ export function Explanation({
             id={`${id}-source`}
             className="min-h-0 min-w-0 bg-[var(--docs-code-background)] [&_figure.shiki]:my-0 [&_figure.shiki]:rounded-none [&_figure.shiki]:border-0"
           >
-            <DynamicCodeBlock lang="tsx" code={code} codeblock={{
-              title: file,
-              className: 'flex h-full min-h-0 flex-col',
-              viewportProps: { className: 'h-64 min-h-0 max-h-none md:h-auto md:flex-1', 'aria-label': 'Example source code' },
-            }} />
+            <DynamicCodeBlock
+              lang="tsx"
+              code={code}
+              codeblock={{
+                title: file,
+                className: 'flex h-full min-h-0 flex-col',
+                viewportProps: {
+                  className: 'h-64 min-h-0 max-h-none md:h-auto md:flex-1',
+                  'aria-label': 'Example source code',
+                },
+              }}
+            />
           </div>
         </div>
       ) : (

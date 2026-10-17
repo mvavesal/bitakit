@@ -41,6 +41,11 @@ export class EventService implements Events {
     }
     this.declared.set(plugin, { plugin, cancelable, schemas });
   }
+  /** Release a stopped owner’s declaration without removing other owners’ listeners. */
+  undeclare(plugin: string) {
+    this.declared.delete(plugin);
+  }
+
   /** The plugin that declared the namespace of an event name, if any. */
   ownerOf(name: string): string | undefined {
     const prefix = name.split('.')[0];

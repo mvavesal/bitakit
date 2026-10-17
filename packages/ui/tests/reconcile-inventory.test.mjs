@@ -429,17 +429,31 @@ test('slot diagnostics explain contextual filtering without exposing outlet payl
   const secret = 'private-outlet-payload';
   const owner = definePlugin({
     id: 'diagnostic',
-    slots: { widgets: defineSlot({
-      accepts: 'component',
-      payload: { parse: value => value },
-    }) },
+    slots: {
+      widgets: defineSlot({
+        accepts: 'component',
+        payload: { parse: (value) => value },
+      }),
+    },
   });
   const contributions = definePlugin({
     id: 'widget-author',
-    ui: { slots: [
-      { slot: 'diagnostic.widgets', key: 'shown', when: ({ payload }) => payload.show, component: () => null },
-      { slot: 'diagnostic.widgets', key: 'hidden', when: ({ payload }) => payload.show, component: () => null },
-    ] },
+    ui: {
+      slots: [
+        {
+          slot: 'diagnostic.widgets',
+          key: 'shown',
+          when: ({ payload }) => payload.show,
+          component: () => null,
+        },
+        {
+          slot: 'diagnostic.widgets',
+          key: 'hidden',
+          when: ({ payload }) => payload.show,
+          component: () => null,
+        },
+      ],
+    },
   });
   let filtered, keyed;
   function Probe() {
@@ -447,11 +461,17 @@ test('slot diagnostics explain contextual filtering without exposing outlet payl
     keyed = useSlot('diagnostic.widgets', { payload: { show: true, secret }, entryKey: 'shown' });
     return null;
   }
-  const view = await mount(h(FoundationProvider, {
-    config: { plugins: [owner, contributions] },
-    ui: testUI,
-    isolateFailures: false,
-  }, h(Probe)));
+  const view = await mount(
+    h(
+      FoundationProvider,
+      {
+        config: { plugins: [owner, contributions] },
+        ui: testUI,
+        isolateFailures: false,
+      },
+      h(Probe),
+    ),
+  );
   try {
     await act(tick);
     assert.equal(filtered.diagnostics.slot, 'diagnostic.widgets');
@@ -460,13 +480,98 @@ test('slot diagnostics explain contextual filtering without exposing outlet payl
     assert.equal(filtered.diagnostics.attached, 2);
     assert.equal(filtered.diagnostics.selected, 0);
     assert.equal(filtered.diagnostics.rendered, null);
-    assert.deepEqual(filtered.diagnostics.excluded.map(item => item.reason), ['condition', 'condition']);
+    assert.deepEqual(
+      filtered.diagnostics.excluded.map((item) => item.reason),
+      ['condition', 'condition'],
+    );
     assert.equal(keyed.diagnostics.reason, 'ready');
     assert.equal(keyed.diagnostics.attached, 2);
     assert.equal(keyed.diagnostics.selected, 1);
-    assert.deepEqual(keyed.diagnostics.excluded.map(item => item.reason), ['key']);
+    assert.deepEqual(
+      keyed.diagnostics.excluded.map((item) => item.reason),
+      ['key'],
+    );
     assert.equal(JSON.stringify([filtered.diagnostics, keyed.diagnostics]).includes(secret), false);
     assert.equal(view.container.textContent, '');
+  } finally {
+    await view.unmount();
+  }
+});
+
+test('structural activation preserves a draft while pages, slots and actions appear and disappear', async () => {
+  let runtime;
+  let mounts = 0;
+  function Draft() {
+    const [draft, setDraft] = useState('keep this draft');
+    useEffect(() => {
+      mounts++;
+    }, []);
+    return h('input', {
+      'data-draft': true,
+      value: draft,
+      onInput: (event) => setDraft(event.target.value),
+    });
+  }
+  function AddedPage() {
+    return h('p', null, 'Notes page');
+  }
+  const notes = definePlugin({
+    id: 'notes',
+    actions: { add: defineAction({ title: 'Add note', slots: ['tools'], execute: () => {} }) },
+    slots: { extra: defineSlot({ accepts: 'component' }) },
+    ui: {
+      pages: [{ path: '/notes', component: AddedPage }],
+      slots: [{ slot: 'notes.extra', component: () => h('span', null, 'Notes widget') }],
+    },
+  });
+  function Host() {
+    runtime = useFoundation().runtime;
+    const tools = useSlot('tools');
+    const extra = useSlot('notes.extra');
+    return h(
+      'main',
+      null,
+      h(Draft),
+      ...tools.items.map((item) => h(ActionButton, { key: item.key, action: item.action })),
+      h(PluginPage, { pathname: '/notes', fallback: h('p', null, 'No notes page') }),
+      h('output', { 'data-extra': true }, extra.items.length),
+      h(PluginSlot, { name: 'notes.extra' }),
+    );
+  }
+  const view = await mount(
+    h(
+      FoundationProvider,
+      { config: { slots: { tools: defineSlot({ accepts: 'actions' }) } }, ui: testUI },
+      h(Host),
+    ),
+  );
+  try {
+    await act(tick);
+    const input = view.container.querySelector('[data-draft]');
+    await act(async () => assert.equal((await runtime.plugins.add([notes])).status, 'applied'));
+    assert.match(view.container.textContent, /Add note/);
+    assert.match(view.container.textContent, /Notes page/);
+    assert.match(view.container.textContent, /Notes widget/);
+    await act(async () =>
+      assert.equal(
+        (await runtime.plugins.disable('notes', { dependents: 'refuse' })).status,
+        'applied',
+      ),
+    );
+    assert.doesNotMatch(view.container.textContent, /Add note|Notes page|Notes widget/);
+    await act(async () => assert.equal((await runtime.plugins.enable('notes')).status, 'applied'));
+    assert.match(view.container.textContent, /Add note|Notes page|Notes widget/);
+    await act(async () =>
+      assert.equal(
+        (await runtime.plugins.remove(['notes'], { dependents: 'refuse' })).status,
+        'applied',
+      ),
+    );
+    assert.doesNotMatch(view.container.textContent, /Add note|Notes page|Notes widget/);
+    assert.equal(view.container.querySelector('[data-extra]').textContent, '0');
+    assert.equal(view.container.querySelector('[data-draft]'), input);
+    assert.equal(input.value, 'keep this draft');
+    assert.equal(mounts, 1);
   } finally {
     await view.unmount();
   }

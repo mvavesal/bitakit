@@ -166,7 +166,11 @@ export {
   type AuthSignInOptions,
 } from './auth-navigation.js';
 
-export type { PluginUpdateResult } from './lifecycle/reconcile.js';
+export type {
+  PluginUpdateResult,
+  PluginChangeResult,
+  PluginDependentOptions,
+} from './lifecycle/reconcile.js';
 
 export {
   createInventory,

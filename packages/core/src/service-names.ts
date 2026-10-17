@@ -25,6 +25,26 @@ export class ServiceNames {
       for (const alias of entry.aliases) this.add(alias, entry.id, entry.plugin);
     }
   }
+  /** Replace declarations while preserving live namespace proxies held by existing services. */
+  replace(entries: readonly ServiceEntry[]) {
+    const next = new ServiceNames(entries, this.appId);
+    const sync = (target: Node, source: Node) => {
+      target.leaf = source.leaf;
+      for (const [name, child] of target.children) {
+        const replacement = source.children.get(name);
+        if (replacement) sync(child, replacement);
+        else {
+          sync(child, { children: new Map() });
+          target.children.delete(name);
+        }
+      }
+      for (const [name, child] of source.children)
+        if (!target.children.has(name)) target.children.set(name, child);
+    };
+    sync(this.root, next.root);
+    this.ids.clear();
+    for (const [name, id] of next.ids) this.ids.set(name, id);
+  }
   private add(name: string, id: string, plugin: string) {
     const segments = name.split('.');
     if (

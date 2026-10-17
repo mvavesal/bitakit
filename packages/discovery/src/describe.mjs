@@ -7,7 +7,16 @@ import { installedContributions } from './packages.mjs';
 import { detectFramework, loadDiscoveryConfig } from './generate.mjs';
 import { describeDefinitions } from './definition-info.mjs';
 
-const kinds = ['actions', 'services', 'pages', 'slots', 'slotDefinitions', 'providers', 'configs', 'interceptors'];
+const kinds = [
+  'actions',
+  'services',
+  'pages',
+  'slots',
+  'slotDefinitions',
+  'providers',
+  'configs',
+  'interceptors',
+];
 
 async function contributionsOf(
   base,
@@ -20,13 +29,17 @@ async function contributionsOf(
   const result = {};
   for (const kind of kinds) {
     const override = entries[kind];
-    if (override === false) { result[kind] = []; continue; }
+    if (override === false) {
+      result[kind] = [];
+      continue;
+    }
     let options = {};
     let paths = list;
     if (typeof override === 'string') {
       const target = path.resolve(base, override);
       const local = path.relative(base, target);
-      if (local.startsWith('..') || path.isAbsolute(local)) throw new Error(`Entry "${kind}" points outside the plugin: ${target}`);
+      if (local.startsWith('..') || path.isAbsolute(local))
+        throw new Error(`Entry "${kind}" points outside the plugin: ${target}`);
       const actual = await realpath(target);
       if (actual !== target) throw new Error(`Symlink entry: ${target}`);
       paths = /\.tsx?$/.test(target) ? [target] : await files(target);
@@ -113,7 +126,9 @@ export async function describeFoundation(root) {
       dependencies: manifest.dependencies ?? [],
       enabled:
         config.plugins?.overrides?.[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true,
-      ...(await contributionsOf(base, own, relative, warnings, root, { entries: manifest.entries })),
+      ...(await contributionsOf(base, own, relative, warnings, root, {
+        entries: manifest.entries,
+      })),
     });
   }
   const installed = await installedContributions(root, config.packages, jiti);
@@ -124,10 +139,22 @@ export async function describeFoundation(root) {
   const slotDeclarations = [...(installed.slotDeclarations ?? [])];
   const unresolvedSlots = [...(installed.unresolvedSlots ?? [])];
   for (const module of [app, ...plugins.filter((plugin) => plugin.enabled)]) {
-    const result = await describeDefinitions(module.slotDefinitions.map((entry) => ({ ...entry, file: path.join(root, entry.file) })), {
-      helper: 'defineSlot', moduleId: module === app ? '' : module.id, properties: ['accepts', 'policy'],
-    });
-    slotDeclarations.push(...result.definitions.map((item) => ({ ...item, file: relative(item.file), plugin: module.id, policy: item.policy ?? 'list' })));
+    const result = await describeDefinitions(
+      module.slotDefinitions.map((entry) => ({ ...entry, file: path.join(root, entry.file) })),
+      {
+        helper: 'defineSlot',
+        moduleId: module === app ? '' : module.id,
+        properties: ['accepts', 'policy'],
+      },
+    );
+    slotDeclarations.push(
+      ...result.definitions.map((item) => ({
+        ...item,
+        file: relative(item.file),
+        plugin: module.id,
+        policy: item.policy ?? 'list',
+      })),
+    );
     unresolvedSlots.push(...result.unresolved.map(relative));
   }
   return {
@@ -138,6 +165,9 @@ export async function describeFoundation(root) {
     app,
     plugins,
     packages: installed.plugins,
+    catalogPackages: installed.plugins.filter((entry) =>
+      config.catalog?.includes(installed.pluginPackages?.[entry]?.name),
+    ),
     installedPackages: installed.packages,
     styles: installed.styles ?? [],
     slotDeclarations,

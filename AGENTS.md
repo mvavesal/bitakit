@@ -132,8 +132,9 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
 ## Live updates and inspection
 
 - Explicit host `runtime.reconcilePlugins(nextPlugins)` supports compatible already-loaded
-  definitions; retain unchanged references and await its result. Structural/identity/provider
-  changes require composition replacement. Failed cleanup blocks reuse. Never invoke and await
+  definitions; retain unchanged references and await its result. For that method, membership,
+  identity and provider changes require composition replacement. Use host-only runtime.plugins
+  add/remove/enable/disable for supported structural membership, with explicit dependent policy. Failed cleanup blocks reuse. Never invoke and await
   updates from affected owned work. Provider config changes and file HMR are separate paths.
 - Read shared inventory through Core `inspectRuntime`/`observeRuntimeInventory`, UI
   `useRuntimeInventory`, or CLI `info --json`. Version 1 separates static/live data and preserves

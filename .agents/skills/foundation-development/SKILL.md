@@ -80,7 +80,7 @@ src/layouts/<name>.tsx     app layouts; pages opt in with `export const layout =
   through the generated catch-all with `<PluginPage />`.
 - `bitakit.config.ts` (`defineBitaKit` from `@bitakit/discovery`) holds host overrides:
   `configOverrides`, `actions.overrides`, `plugins.overrides/include/autoEnable`, `packages`,
-  `interceptors.enabled`, `slots`, `strict`, `kinds`. Integration kinds live under
+  `interceptors.enabled`, `slots`, `strict`, `kinds`, `catalog`. Integration kinds live under
   `contributions/<folder>/` of each module; `settings/`, `providers/` and similar names are
   not reserved at the app root.
 - Generated output is `src/bitakit.gen.tsx` (component-only `BitaKitProvider`) and `src/bitakit.gen.config.ts` (`createBitaKitConfig`, type augmentations), `src/bitakit.gen.css` and `src/bitakit.gen.messages.json`, ignored by Git.
@@ -236,7 +236,7 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `app-bar.end`. Its `navigationSlot` option replaces `groups`. The organization member menu
   reads `organizations.member.menu` with `{ organizationId, memberId }`; group-only actions do
   not join that menu. Organization toolbars and invitation menus use explicit slots too.
-  Live declaration mutation still requires composition replacement.
+  Existing slot contracts stay immutable; structural owner additions/removals use the plugin API below.
 - Shell also renders the Action slot `shell.toolbar` before `shell.header.end` in both layouts.
   For a standard toolbar control, use `defineAction({ ..., slots: ['shell.toolbar'] })`; no
   widget file is required. Shell reuses `Action` and the standard Button, including native links,
@@ -267,6 +267,30 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   never await the update from affected owned work. Initial `ready` is not update completion.
   Failed clean startup allows explicit retry; failed cleanup blocks reuse. No automatic file HMR,
   runtime package installation, affected React local-state retention or rollback is implied.
+- Host-only `runtime.plugins.add(definitions)`, `remove(ids, { dependents: 'stop' | 'refuse' })`,
+  `disable(id, { dependents })` and `enable(id)` reuse that executor for structural membership.
+  Preflight declarations, stop consumers before providers, drain Actions and await cleanup.
+  `stop` disables dependents; re-enable providers then consumers explicitly. Removing owned slots
+  includes active contributors. Disabled settings/event/slot declarations stay reserved; disabled
+  values are retained. Removal releases declarations but never deletes stored settings. Pending
+  setting writes block removal, including a recheck after awaited cleanup; a late write leaves
+  affected owners blocked until explicit retry. Failed update cohorts preserve recovery of
+  disposed composition-reader scopes. Late loads cannot overwrite reinstalled settings. Installed
+  definitions live in config.plugins; active modules and lifecycle are the runtime truth.
+  App/provider/layout/installer/interceptor/custom-kind/auth/i18n/storage owners remain restart-required.
+  No optional captured-service rebinding or rollback. Compatible reconciliation requires every
+  installed plugin enabled. Keep mutations outside affected Actions/hooks/disposers.
+- Optional `@bitakit/packages` owns catalog loading and host selection orchestration, outside Core.
+  `createPackageHost({ runtime, catalog }).reconcile({ scope, packages })` takes already-authorized
+  active records, not client claims. No installation persistence/access policy is implemented.
+  New selections supersede pending imports; changing scope releases old owned plugins first.
+  Lifecycle overlap returns blocked and must be retried after settlement; do not queue behind
+  an affected hook. Await a successful scope switch before revealing the new scope's UI.
+  Catalog loaders return definitions without side effects. Native module caches/CSS are not
+  unloadable; overlapping plugin IDs are rejected. One package version per host build.
+  Discovery `catalog` generates literal lazy public-entry imports and static type-only imports
+  in the config module, keeps CSS eager and excludes catalog entries from startup. Configured
+  host packages remain eager. A new catalog/version needs a deployment. No remote code/sandbox.
 - `isReady()`/`app.ready`/`useFoundationReady()` retain completed initial startup through targeted
   updates and become false on shutdown. Owner queries use `isReady(pluginId)` or
   `useFoundationReady(pluginId)`; service hooks and `app.has` check service plus owner readiness.
@@ -677,6 +701,21 @@ changing these contracts. Never put private comparisons or test logs in public d
 
 
 ### Developer documentation
+
+- The canonical developer handbook is `apps/docs/content/docs`. Keep API explanations and
+  tutorials there; package READMEs are short entry points linking to it. Use relative source links
+  for repository navigation so they follow the current branch. Published README links must
+  target a verified public handbook URL; do not assume new pages already exist on `main`
+  or that repository-relative source links work from an npm installation.
+  Root `docs/` holds development plans, architecture decisions and shared README assets, not
+  another API manual. Transfer unique, verified content before removing an obsolete guide;
+  update incoming links and package publication lists in the same change.
+
+- Use TypeScript (`.ts`, or `.tsx` for React) for documentation and new feature examples by
+  default. Derive types from the existing definitions and check snippets in strict mode;
+  do not hide missing contracts with `any` or casts. Use JavaScript only for an explicitly
+  JavaScript-focused example or an actual tool file. Standalone examples must name their
+  execution requirements; running TypeScript with type stripping does not typecheck it.
 
 - For help illustrations and architecture/flow diagrams, follow the canonical
   [visual style and reusable prompt](documentation-visuals.md). Use one consistent simplified

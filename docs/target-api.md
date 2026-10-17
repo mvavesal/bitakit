@@ -1,7 +1,9 @@
 # Target API (0.2)
 
 The shape every plugin, app and package uses after the refactor. One documented way per
-concept. See [refactor-phases.md](../refactor-phases.md) for sequencing and
+concept. This is the contributor-facing design contract; application tutorials and API
+explanations are maintained in the [developer handbook](../apps/docs/content/docs/index.mdx).
+See [refactor-phases.md](../refactor-phases.md) for sequencing and
 [dx-review.md](dx-review.md) for the reasons.
 
 ## Vocabulary
@@ -469,7 +471,7 @@ definePlugin({
 An attachment becomes visible only when its owner and contributor are ready and validation
 has succeeded. Both policies follow subsequent availability and generations. A stopped owner
 hides entries; a closed contributor permanently removes them. Targeted host updates use this same state
-contract; unsupported structural changes require composition replacement. Data uses the existing schema support
+contract; unsupported changes to an existing contract require composition replacement. Data uses the existing schema support
 once; late results cannot resurrect disposed attachments. Action entries reference the one
 ActionList and do not copy its presentation or execution state.
 
@@ -625,9 +627,10 @@ selected services start serially in dependency order. Owned Actions are cancelle
 scopes revoke contributions immediately, then cleanup is awaited. Unrelated services stay alive.
 Declare dependencies for captured cross-plugin services; optional reads alone do not create edges.
 
-Adding/removing/reordering plugins, changing service names/contracts, replacing the app,
-providers, installers/interceptors, or auth/i18n/settings-storage providers requires a full
-composition replacement. No live package installation or arbitrary code evaluation is provided.
+Within `reconcilePlugins`, membership/order and service contract changes require composition
+replacement. Use the structural methods below for supported additions/removals. Replacing the app,
+providers, installers/interceptors, or auth/i18n/settings-storage providers still requires a full
+composition replacement. Core never performs package installation or arbitrary code evaluation.
 Child scopes and parallel startup remain deferred until a consumer requires them.
 
 A failed start cleans the partial affected set and permits an explicit new attempt. Failed
@@ -664,6 +667,39 @@ hook or disposer: otherwise the operation can wait for its own caller. `runtime.
 the initial-mount promise; await the update result for later readiness. React provider config
 changes still replace the whole runtime. File-based Next refresh has separate full-reload and
 stale-import limitations; these APIs do not claim state-preserving file HMR.
+
+## Structural plugin lifetime and trusted packages
+
+`runtime.plugins.add(definitions)`, `remove(ids, { dependents })`, `enable(id)` and
+`disable(id, { dependents })` extend the same executor for already-loaded trusted plugins.
+`dependents` is required for removal/disable: `refuse` rejects active consumers; `stop` disables
+those consumers as well. Explicit plugin dependencies and required service aliases determine
+ordering. Removed slot owners also include their active contributors in that closure. Enable
+providers before their consumers; automatic dependent reactivation is not implied.
+
+Preflight validates the next composition before stopping current work. Settings/event/slot
+contracts stay reserved while an owner is disabled. Removal releases them after cleanup;
+pending setting writes block removal, and late reads cannot overwrite a later installation. A write beginning during cleanup is checked again before commit; affected owners stay blocked until the host retries after the write finishes.
+The settings store retains disabled owners' values; removing an owner does not delete persistence.
+`config.plugins` is the installed list, `modules` the active composition, and lifecycle/inspection
+reports disabled owners. Unchanged service instances and declaration stores retain ownership.
+
+Structural operations have the existing four result statuses and failure semantics. Global
+providers/layouts, custom installers/contribution kinds, interceptors and foundational auth,
+translation and storage owners remain `restart-required`. Composition readers restart; unrelated
+owners do not. A failed clean startup can be retried with `enable`. No automatic rollback or
+state restoration occurs. Keep management outside affected owned work; overlap is `blocked`.
+`reconcilePlugins` still requires all installed owners to be enabled.
+
+Discovery's `catalog: ['package-name']` emits a build-pinned lazy `packageCatalog` in the config
+module while preserving type maps and audited eager CSS. Adding a catalog entry requires a new
+build. Packages with host configuration remain eager. The optional `@bitakit/packages` host
+adapter reconciles an authorized active package selection against this catalog, supports
+multi-plugin loaders, ignores superseded imports and delegates activation to Core. It stores no
+installation records and implements no authorization policy. See its [contract and scope-switch
+rules](../packages/packages/README.md). Namespace scoping is not security isolation; native module
+caches and eager CSS are not unloaded. Remote delivery, arbitrary npm installation, untrusted
+code isolation and a marketplace UI are outside this API.
 
 ## Shared inspection schema
 

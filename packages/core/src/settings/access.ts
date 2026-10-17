@@ -19,7 +19,7 @@ export type SettingsAccess = Namespace<{
 
 const reserved = new Set(['then', 'toJSON', 'constructor', '__proto__']);
 type Branch = { children: Map<string, Branch>; handle?: SettingHandle; path: string };
-/** Builds the handle tree once; reading an undeclared name explains where to declare it. */
+/** Validates declarations; namespace proxies follow the current store without copying values. */
 export function createSettingsAccess(store: SettingsStore): SettingsAccess {
   const root: Branch = { children: new Map(), path: '' };
   for (const entry of store.entries()) {
@@ -44,25 +44,50 @@ export function createSettingsAccess(store: SettingsStore): SettingsAccess {
       node = child;
     }
   }
-  const project = (node: Branch): object => {
-    const target: Record<string, unknown> = Object.create(null);
-    for (const [name, child] of node.children) target[name] = child.handle ?? project(child);
-    Object.freeze(target);
-    return new Proxy(target, {
-      get(object, name) {
-        if (typeof name !== 'string' || reserved.has(name) || name in object)
-          return Reflect.get(object, name);
-        const path = node.path ? `${node.path}.${name}` : name;
-        const owner = node.path ? `plugin "${node.path}"` : 'the app or a plugin';
-        throw new Error(`Unknown setting "${path}". Declare it in settings.ts of ${owner}.`);
+  const branches = new Map<string, object>();
+  const handles = new Map<string, { spec: SettingSpec<any>; value: SettingHandle }>();
+  const project = (path: string): object => {
+    const cached = branches.get(path);
+    if (cached) return cached;
+    const keys = () => [
+      ...new Set(
+        store
+          .entries()
+          .filter((entry) => !path || entry.key.startsWith(`${path}.`))
+          .map((entry) => entry.key.slice(path ? path.length + 1 : 0).split('.')[0]),
+      ),
+    ];
+    const target = Object.create(null);
+    const proxy: object = new Proxy(target, {
+      get(_object, name) {
+        if (typeof name !== 'string' || reserved.has(name)) return undefined;
+        const key = path ? `${path}.${name}` : name;
+        if (store.has(key)) {
+          const spec = store.definition(key).spec;
+          if (handles.get(key)?.spec !== spec)
+            handles.set(key, { spec, value: handle(store, key, spec) });
+          return handles.get(key)!.value;
+        }
+        if (keys().includes(name)) return project(key);
+        const owner = path ? `plugin "${path}"` : 'the app or a plugin';
+        throw new Error(`Unknown setting "${key}". Declare it in settings.ts of ${owner}.`);
       },
+      has: (_object, name) => typeof name === 'string' && keys().includes(name),
+      ownKeys: keys,
+      getOwnPropertyDescriptor: (_object, name) =>
+        typeof name === 'string' && keys().includes(name)
+          ? { enumerable: true, configurable: true }
+          : undefined,
       set: () => false,
       defineProperty: () => false,
       deleteProperty: () => false,
     });
+    branches.set(path, proxy);
+    return proxy;
   };
-  return project(root) as SettingsAccess;
+  return project('') as SettingsAccess;
 }
+
 function handle(store: SettingsStore, key: string, definition: SettingSpec<any>): SettingHandle {
   return Object.freeze({
     key,

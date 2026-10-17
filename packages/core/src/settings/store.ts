@@ -78,6 +78,24 @@ export class SettingsStore {
     }
   }
 
+  /** Reconcile declarations while keeping retained values and pending reads isolated by slot identity. */
+  replace(entries: readonly SettingEntry[]) {
+    const next = new SettingsStore(entries, this.storage);
+    for (const [key, slot] of this.slots)
+      if (!next.slots.has(key)) {
+        this.cancel(slot);
+        slot.loadToken++;
+        this.slots.delete(key);
+      }
+    const added: Slot[] = [];
+    for (const [key, slot] of next.slots)
+      if (!this.slots.has(key)) {
+        this.slots.set(key, slot);
+        added.push(slot);
+      }
+    if (this.active) void this.loadAll(added, this.generation);
+  }
+
   /** Every declared setting, in declaration order. */
   entries(): readonly SettingEntry[] {
     return [...this.slots.values()].map((slot) => slot.entry);
@@ -260,7 +278,10 @@ export class SettingsStore {
     request?: Promise<StoredSetting>,
   ) {
     const token = ++slot.loadToken;
-    const fresh = () => generation === this.generation && slot.loadToken === token;
+    const fresh = () =>
+      generation === this.generation &&
+      slot.loadToken === token &&
+      this.slots.get(slot.entry.key) === slot;
     const { key, spec } = slot.entry;
     try {
       const stored = await (request ?? attempt(() => storage.load(key, this.context(key))));
@@ -315,7 +336,7 @@ export class SettingsStore {
       } catch (error) {
         failure = { error };
       }
-      if (generation !== this.generation) {
+      if (generation !== this.generation || this.slots.get(key) !== slot) {
         waiters.forEach((waiter) =>
           failure ? waiter.reject(failure.error) : waiter.resolve('cancelled'),
         );

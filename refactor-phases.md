@@ -231,8 +231,10 @@ Done when
 ## Phase 6: Docs, AI guidance and reference apps (M)
 
 - [ ] One conventions source generates AGENTS.md and the docs-site conventions page.
-- [ ] Collapse the three documentation sets (docs site, `packages/core/docs`, repo `docs/`).
-      Trim `.agents/skills/foundation-development/SKILL.md` to durable rules in English; move
+- [x] Consolidate duplicate API chapters in the docs-site handbook. Retired the Core manual
+      and root concept copies; preserved authentication/testing details, shortened the Core
+      README and updated incoming links and package contents. App folders remain unchanged.
+- [ ] Trim `.agents/skills/foundation-development/SKILL.md` to durable rules in English; move
       review history to REVIEW.md. Translate the German package READMEs.
 - [ ] Rebuild the `apps/web` demo code on the new conventions, or replace it with the generated
       sample plus the auth and organizations packages. `apps/content-demo` uses the same path.

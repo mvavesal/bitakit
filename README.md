@@ -61,6 +61,7 @@ search, short lessons and separate API references.
 | Additional Settings pages                | [Settings reference](apps/docs/content/docs/reference/settings.mdx)          |
 | Plugin updates and diagnostics           | [Runtime management](apps/docs/content/docs/concepts/runtime-management.mdx) |
 | Shell, auth, organizations or email      | [Packages](packages/README.md)                                               |
+| Trusted build-included package activation | [Package host adapter](packages/packages/README.md) |
 | Headless runtime composition             | [Core](packages/core/README.md)                                              |
 | CLI commands                             | [CLI](packages/cli/README.md)                                                |
 

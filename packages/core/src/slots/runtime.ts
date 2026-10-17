@@ -110,6 +110,44 @@ export class SlotRuntime {
       );
     return entry;
   }
+  /** Active contributors become dependents when their target declaration is removed. */
+  contributorsTo(owners: ReadonlySet<string>): readonly string[] {
+    return [
+      ...new Set(
+        [...this.attachments]
+          .filter((attachment) => owners.has(this.entry(attachment.slot).definition.plugin))
+          .map((attachment) => attachment.plugin),
+      ),
+    ];
+  }
+
+  /** Add/remove owned declarations only after the affected scopes have stopped. */
+  replace(definitions: readonly OwnedSlotDefinition[]) {
+    const names = new Set(definitions.map((definition) => definition.id));
+    for (const name of this.entries.keys())
+      if (!names.has(name)) {
+        for (const attachment of [...this.attachments])
+          if (attachment.slot === name) attachment.dispose();
+        this.entries.delete(name);
+      }
+    for (const definition of definitions) {
+      const current = this.entries.get(definition.id);
+      if (current) current.definition = definition;
+      else
+        this.entries.set(definition.id, {
+          definition,
+          store: createStore<SlotSnapshot>(
+            Object.freeze({
+              id: definition.id,
+              plugin: definition.plugin,
+              generation: 0,
+              phase: 'idle',
+              items: empty,
+            }),
+          ),
+        });
+    }
+  }
   private listen<T>(
     store: Store<T>,
     listener: (state: T) => void,

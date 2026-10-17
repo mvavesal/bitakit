@@ -9,6 +9,10 @@ export type PluginUpdateResult = Readonly<{
   reasons: readonly string[];
 }>;
 
+/** Explicit host policy when other enabled plugins require the selected owner. */
+export type PluginDependentOptions = Readonly<{ dependents: 'stop' | 'refuse' }>;
+export type PluginChangeResult = PluginUpdateResult;
+
 /** Lifecycle edges include required service aliases, not just explicit plugin dependencies. */
 export function pluginDependencies(modules: readonly NormalizedPlugin[]) {
   const owners = new Map<string, string>();

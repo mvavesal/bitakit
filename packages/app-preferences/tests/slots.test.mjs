@@ -396,7 +396,9 @@ test('settings access boundaries hide failed bodies and extension fallbacks, inc
     await act(tick);
     assert.equal(view.container.querySelectorAll('[role="alert"]').length, 2);
     assert.deepEqual(
-      [...view.container.querySelectorAll('[data-private-region]')].map((node) => node.dataset.privateRegion),
+      [...view.container.querySelectorAll('[data-private-region]')].map(
+        (node) => node.dataset.privateRegion,
+      ),
       ['header', 'before', 'footer'],
     );
     await act(() => runtime.services.access.state.set(false));
@@ -451,9 +453,18 @@ test('settings navigation header and group regions receive scoped group IDs, wit
     { config: { plugins: [appPreferencesPlugin(), pagePlugin, extension] } },
   );
   try {
-    assert.equal(view.container.querySelector('[data-nav-header]')?.textContent, 'Navigation header');
-    assert.equal(view.container.querySelector('[data-group-before="plugins"]')?.textContent, 'before:plugins');
-    assert.equal(view.container.querySelector('[data-group-after="plugins"]')?.textContent, 'after:plugins');
+    assert.equal(
+      view.container.querySelector('[data-nav-header]')?.textContent,
+      'Navigation header',
+    );
+    assert.equal(
+      view.container.querySelector('[data-group-before="plugins"]')?.textContent,
+      'before:plugins',
+    );
+    assert.equal(
+      view.container.querySelector('[data-group-after="plugins"]')?.textContent,
+      'after:plugins',
+    );
     for (const region of ['header', 'before', 'footer'])
       assert.equal(
         view.container.querySelector(`[data-page-${region}="billing/history"]`)?.textContent,
@@ -472,7 +483,9 @@ test('built App Preferences slot metadata matches runtime inventory IDs, kinds, 
   const inventory = inspectRuntime(runtime);
   const plugin = inventory.static.plugins.find((entry) => entry.id === 'app-preferences');
   const declarations = plugin.declarations.filter((entry) => entry.kind === 'slot');
-  const runtimeDefinitions = runtime.modules.find((module) => module.id === 'app-preferences').slots;
+  const runtimeDefinitions = runtime.modules.find(
+    (module) => module.id === 'app-preferences',
+  ).slots;
   assert.equal(metadata.version, 1);
   assert.deepEqual(
     metadata.definitions.map((entry) => entry.id).sort(),
@@ -484,5 +497,53 @@ test('built App Preferences slot metadata matches runtime inventory IDs, kinds, 
     assert.equal(entry.accepts, runtimeDefinitions.find((slot) => slot.id === entry.id).accepts);
     assert.equal(entry.policy, runtimeDefinitions.find((slot) => slot.id === entry.id).policy);
     assert.equal(declarations.find((declaration) => declaration.id === entry.id).kind, 'slot');
+  }
+});
+
+test('runtime plugin additions and removals rebuild generated settings navigation and fields', async () => {
+  let runtime;
+  function Page() {
+    runtime = useFoundation().runtime;
+    return h(
+      'main',
+      null,
+      h(SettingsNavigation),
+      h(SettingsPage, { pathname: '/settings/billing' }),
+    );
+  }
+  const view = await renderApp(h(Page), {
+    config: { plugins: [appPreferencesPlugin()] },
+    pathname: '/settings/billing',
+  });
+  try {
+    await act(async () =>
+      assert.equal((await runtime.plugins.add([pagePlugin])).status, 'applied'),
+    );
+    await act(tick);
+    assert.ok(view.container.querySelector('input'), 'generated setting field is mounted');
+    assert.equal(runtime.slots.get('app-preferences.navigation').items.length, 3);
+    await act(async () =>
+      assert.equal(
+        (await runtime.plugins.disable('billing', { dependents: 'refuse' })).status,
+        'applied',
+      ),
+    );
+    assert.equal(view.container.querySelector('input:not([type="search"])'), null);
+    assert.equal(runtime.slots.get('app-preferences.navigation').items.length, 1);
+    await act(async () =>
+      assert.equal((await runtime.plugins.enable('billing')).status, 'applied'),
+    );
+    await act(tick);
+    assert.equal(runtime.slots.get('app-preferences.navigation').items.length, 3);
+    await act(async () =>
+      assert.equal(
+        (await runtime.plugins.remove(['billing'], { dependents: 'refuse' })).status,
+        'applied',
+      ),
+    );
+    assert.equal(runtime.actions.get('settings.section.billing'), undefined);
+    assert.equal(runtime.slots.get('app-preferences.navigation').items.length, 1);
+  } finally {
+    await view.unmount();
   }
 });

@@ -1,0 +1,74 @@
+---
+title: Testing plugins
+description: Mount a plugin folder, exercise its Actions and inspect state with automatic cleanup.
+---
+
+`mountPlugin` from `@bitakit/core/testing` runs one plugin folder without React or a framework.
+It uses the same discovery conventions as an app and awaits service startup before returning.
+
+## Test the Counter
+
+Use the service and increment Action from [Add state](/docs/concepts/services) and
+[Add a button](/docs/concepts/actions), before adding Settings. From that project's root,
+install the test dependencies:
+
+```sh
+npm install --save-dev @bitakit/discovery jiti typescript @types/node
+```
+
+Use Node.js 24 or newer and `"type": "module"` in `package.json`. Create
+`tests/counter.test.ts`. The type-only import derives the service type from its existing
+definition; it does not start or register another service.
+
+```ts
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { getService, serviceKey } from '@bitakit/core';
+import { mountPlugin } from '@bitakit/core/testing';
+import type counterValue from '../src/plugins/counter/services/value.ts';
+
+const counterService = serviceKey<ReturnType<typeof counterValue.create>>('counter.value');
+
+test('increment changes the shared Counter value', async () => {
+  const plugin = await mountPlugin('src/plugins/counter');
+  try {
+    const counter = getService(plugin.services, counterService);
+    assert.equal(counter.state.get().count, 0);
+    const result = await plugin.execute('increment');
+    assert.equal(result.status, 'completed');
+    assert.equal(counter.state.get().count, 1);
+  } finally {
+    await plugin.stop();
+  }
+});
+```
+
+```sh
+node --test tests/counter.test.ts
+```
+
+Node strips types; it does not typecheck. Include the test in a strict TypeScript check
+with `noEmit` and `allowImportingTsExtensions`. Keep headless plugin files free of JSX;
+the helper skips `ui/` and does not verify rendering.
+
+## Options and returned handles
+
+| Option | Purpose |
+| --- | --- |
+| `id` | Override the ID inferred from the manifest, plugin folder or package. |
+| `plugins` | Supply other plugins required by this test. |
+| `services` | Supply host-owned services, for example a fake `auth` implementation. |
+| `configOverrides` | Override developer configuration for the test. |
+
+The result contains `id`, `runtime`, `app`, `actions`, `services`, `events`, `execute` and
+`stop`. `execute('increment')` uses the mounted plugin's prefix; full Action IDs also work.
+Generated or manually augmented `ActionMap` entries type full IDs and their inputs/results.
+
+`events.recorded` contains `{ type, data }` for events emitted while mounted, including
+startup. Use it to assert cross-plugin notifications after a mutation. A failed startup
+cleans up the partial runtime and rejects with the attributed startup error. Always await
+`stop()` before replacing a runtime or finishing a test; cleanup failures are test failures.
+
+For UI tests, `renderWithFoundation` from `@bitakit/ui/testing` mounts the existing provider
+and awaits readiness. The test must supply a DOM environment such as jsdom; the helper
+does not install one. See the package's testing entry for its typed options.

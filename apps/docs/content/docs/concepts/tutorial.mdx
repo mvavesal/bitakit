@@ -7,7 +7,17 @@ Build a small To-do feature with a service, actions and events. This example run
 
 It uses manual composition: `definePlugin` groups the files, and the record keys supply the same IDs discovery derives from file paths in an app. For the discovery-based workflow, start with [the Counter learning path](/docs/concepts/plugins).
 
-Install `@bitakit/core`, then create the following files in your project. Keep their relative paths. No React, router, database or file discovery is required. The same files ship in the package under `examples/`.
+This walkthrough follows the packaged JavaScript example in `@bitakit/core/examples/`.
+Use Node.js 24 or newer, install `@bitakit/core`, then copy the files while preserving their
+relative paths:
+
+```sh
+cp -R node_modules/@bitakit/core/examples/. .
+```
+
+The sections below explain those same files; you do not need to create a second copy.
+No React, router, database or discovery is required. For a TypeScript standalone example
+with derived service, Action and Settings maps, see [Plugin manager](/docs/plugin-management).
 
 The service owns tasks in a store, three actions invoke it, the events file declares `todos.changed`, and the plugin groups them. The delete action is disabled while the list is empty because its `enabled` function reads the store.
 

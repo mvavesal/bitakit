@@ -5,6 +5,19 @@ description: Dependencies, startup hooks, cleanup and service contracts.
 
 Start with [one service and one store](/docs/concepts/services). Use this reference when the service needs another plugin or owns an external resource.
 
+## Factory context and store
+
+`defineService(factory, options?)` calls the factory with one context object:
+`{ services, config, settings, events, store, onStart, onStop }`. The returned object
+is the service instance. `store(initial)` supplies `get`, `set`, `subscribe` and `optimistic`.
+`set` accepts a value or updater; `optimistic(apply, commit, { reconcile, revert })` applies
+a tentative change and reconciles or rolls it back after the commit. These operations do
+not add persistence.
+
+The runtime observes exposed stores and subscribable instances, then refreshes reactive
+Action fields and UI bindings. Do not notify manually. Wrap external clients whose
+`subscribe` property is not an observable API rather than exposing them as the service itself.
+
 ## Use a service from another plugin
 
 Any contribution can use any service. List one that belongs to another plugin in `requires` when you want startup to report a missing plugin instead of the first click:
@@ -73,10 +86,14 @@ Your service still owns its behavior and data. `store()` is in-memory state: Bit
 Services are named `<plugin>.<file>` and nested accordingly: `services/billing/invoices.ts` in plugin `finance` is `services.finance.billing.invoices`. Two options change that:
 
 - `provides: contract` registers the instance under a shared contract key as well, such as `auth` or `i18n`. Contracts are created with `defineContract<T>('auth')` and shared between the package that provides a service and the plugins that use it.
-- `exposeAs: 'clock'` adds a flat alias in `services`. Use it only for deliberate flattening; two services with the same name fail at startup.
+- `exposeAs: 'clock'` adds a flat alias in `services`. Use it only for deliberate flattening; two services with the same name fail at startup. A service name cannot also be a namespace: use `better-auth-client`, not `auth.client`, while `auth` is a service.
+
+`id` is available for manual composition; discovery normally derives it. Missing access
+throws `FoundationServiceError`, with `service` and a `reason` such as `not-ready`,
+`unregistered` or `missing`.
 
 ```ts
 export default defineService(() => createAuthClient(), { provides: authService });
 ```
 
-Most application features only need the files above. For packages or standalone programs without discovery, see [Advanced — manual composition](/docs/concepts/manual-composition).
+Most application features only need the files above. For packages or standalone programs without discovery, see [Manual composition](/docs/concepts/manual-composition).

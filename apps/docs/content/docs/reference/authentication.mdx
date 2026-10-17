@@ -1,23 +1,38 @@
-# Client authentication
+---
+title: Client authentication
+description: The shared session contract, login destinations and client rendering boundaries.
+---
 
-Available since Core 0.1.1 with `@bitakit/ui`, `@bitakit/shell` and `@bitakit/better-auth` 0.1.0.
 Core owns the `AuthService` contract. Optional provider plugins supply the session;
 `@bitakit/ui` observes it and uses the existing framework navigation binding.
 There is no second session store. Server authentication and authorization remain
 with the provider and application server.
 
-## Better Auth and external paths
+## Better Auth and application paths
+
+This assumes the Better Auth adapter and the generated BitaKit provider are already
+configured. Keep the provider's existing client and server setup. The `authClient` import
+below refers to the application's existing client module; adjust that path to your project.
 
 ```ts
-// src/configs/better-auth.ts — options of the discovered @bitakit/better-auth plugin
+// src/configs/better-auth.ts
+import { defineConfig } from '@bitakit/core';
+import type { BetterAuthOptions } from '@bitakit/better-auth';
+
 export default defineConfig({
   defaults: {
     paths: { signIn: '/account/login', afterSignIn: '/customers', afterSignOut: '/' },
-  },
+  } satisfies BetterAuthOptions,
 });
+```
 
-// src/services/better-auth-client.ts — the client arrives through a contract
-export default defineService(() => ({ client }), { provides: betterAuthClient });
+```ts
+// src/services/better-auth-client.ts
+import { defineService } from '@bitakit/core';
+import { betterAuthClient } from '@bitakit/better-auth';
+import { authClient } from '@/lib/auth-client';
+
+export default defineService(() => ({ client: authClient }), { provides: betterAuthClient });
 ```
 
 Paths are application-owned, safe root-relative URLs. No routes are created.
@@ -32,23 +47,23 @@ should resolve the validated path against the configured **application** origin,
 not the authentication-server origin. Keep secrets and server configuration on the server.
 
 ```tsx
-import { AuthBoundary, useAuth } from '@bitakit/ui';
+'use client';
+import type { ReactNode } from 'react';
+import { AuthBoundary } from '@bitakit/ui';
 import { LoadingPage, ErrorPage } from '@bitakit/shell/pages';
 
-function ProtectedContent({ children }) {
+export function ProtectedContent({ children }: { children: ReactNode }) {
   return (
     <AuthBoundary pending={<LoadingPage />} renderError={() => <ErrorPage />}>
       {children}
     </AuthBoundary>
   );
 }
-
-function AccountControls() {
-  const { user, pending, signOut } = useAuth();
-  // Bind signOut to the application's existing Action or button handler.
-  // Handle a rejected promise using the application's existing error presentation.
-}
 ```
+
+`useAuth` from `@bitakit/ui` exposes the current snapshot and `signIn`/`signOut`. Bind
+these methods through your existing controls and handle rejected promises through the host's
+error presentation.
 
 `AuthBoundary` waits for pending session resolution and does not redirect on session
 errors. `redirect={false}` allows host-owned unauthenticated presentation. It is a
@@ -77,6 +92,7 @@ import {
 } from '@bitakit/core';
 
 export function customAuthPlugin(source: AuthService, paths: AuthPaths) {
+  const signIn = source.signIn?.bind(source);
   return definePlugin({
     id: 'custom-auth',
     services: {
@@ -87,7 +103,7 @@ export function customAuthPlugin(source: AuthService, paths: AuthPaths) {
           getSnapshot: () => source.getSnapshot(),
           subscribe: (listener) => source.subscribe(listener),
           signOut: () => source.signOut(),
-          ...(source.signIn ? { signIn: (options) => source.signIn!(options) } : {}),
+          ...(signIn ? { signIn } : {}),
         }),
         { provides: authService },
       ),
@@ -99,7 +115,7 @@ export function customAuthPlugin(source: AuthService, paths: AuthPaths) {
 Inside a plugin folder the same service is `services/session.ts` with the options as the
 second argument; discovery derives the ID.
 
-The bridge must return a stable `{ user, pending, error }` snapshot until it changes;
+The bridge must return a stable `{ user, pending, error, organizationId? }` snapshot until it changes;
 `user` contains at least `id`, and `null` means signed out only once `pending` is false
 and `error` is absent. Subscribe to native SDK updates and return an unsubscribe
 function. Preserve SDK failures, await sign-out, and release any adapter-owned
@@ -110,3 +126,8 @@ Auth.js and Clerk adapters are not implemented here. Their native session/login 
 must be mapped inside their optional packages; organizations, registration and password
 recovery are not standardized by this small contract. The `@bitakit/better-auth` package
 remains the working reference.
+
+`organizationId` identifies the current settings scope when supplied by the provider; it
+is not proof of organization membership. Server access checks remain with the provider.
+See [Integrations](/docs/integrations) for available adapters and
+[manual composition](/docs/concepts/manual-composition) for providing a contract without discovery.

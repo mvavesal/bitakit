@@ -13,6 +13,7 @@ const destination = path.resolve(target);
 // Dependency order: each package builds after the packages it imports.
 const order = [
   'core',
+  'packages',
   'discovery',
   'ui',
   'app-preferences',

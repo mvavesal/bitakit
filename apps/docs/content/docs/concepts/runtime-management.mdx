@@ -1,7 +1,11 @@
 ---
 title: Runtime management
-description: Explicit plugin updates, lifecycle outcomes and shared inspection.
+description: Startup, compatible plugin updates, readiness and shared runtime inspection.
 ---
+
+For adding, enabling, disabling or removing plugins and loading trusted packages, start with
+[Plugin manager](/docs/plugin-management) and [Package manager](/docs/package-management). This chapter covers runtime states,
+compatible implementation updates and inspection.
 
 ## Startup and shutdown states
 
@@ -50,9 +54,10 @@ selected services start serially in dependency order. Owned Actions are cancelle
 scopes revoke contributions immediately, then cleanup is awaited. Unrelated services stay alive.
 Declare dependencies for captured cross-plugin services; optional reads alone do not create edges.
 
-Adding/removing/reordering plugins, changing service names/contracts, replacing the app,
-providers, installers/interceptors, or auth/i18n/settings-storage providers requires a full
-composition replacement. No live package installation or arbitrary code evaluation is provided.
+For `reconcilePlugins`, membership/order and service contract changes require composition
+replacement. Use the [plugin manager](/docs/plugin-management#plugin-manager) for supported additions and removals. Replacing the app,
+providers, installers/interceptors or auth/i18n/settings-storage providers still requires composition
+replacement. Core does not install packages or evaluate arbitrary code.
 Child scopes and parallel startup remain deferred until a consumer requires them.
 
 A failed start cleans the partial affected set and permits an explicit new attempt. Failed
@@ -100,6 +105,18 @@ hook or disposer: otherwise the operation can wait for its own caller. `runtime.
 the initial-mount promise; await the update result for later readiness. React provider config
 changes still replace the whole runtime. File-based Next refresh has separate full-reload and
 stale-import limitations; these APIs do not claim state-preserving file HMR.
+
+## Add, disable and remove trusted plugins
+
+The [Plugin manager guide](/docs/plugin-management#plugin-manager) covers `runtime.plugins.add`,
+`disable`, `enable` and `remove`, with dependency policies, cleanup and recovery. These structural
+operations are separate from compatible implementation updates through `reconcilePlugins`.
+
+### A build-included package catalog
+
+The [Package manager guide](/docs/package-management) shows how to generate a
+trusted lazy catalog and activate it through `@bitakit/packages`, including selection, scope
+changes and current limits.
 
 ## Shared inspection schema
 

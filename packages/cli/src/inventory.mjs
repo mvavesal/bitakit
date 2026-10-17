@@ -34,7 +34,7 @@ export function inspectionFromDescription(description) {
     plugins.push({
       id: specifier,
       pluginId: null,
-      enabled: true,
+      enabled: description.catalogPackages?.includes(specifier) ? null : true,
       source: { kind: 'package', path: specifier },
       metadata: {},
       dependencies: null,

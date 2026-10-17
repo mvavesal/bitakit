@@ -115,39 +115,54 @@ export function inspectRuntime(runtime: FoundationRuntime): RuntimeInventory {
     });
   const lifecycle = runtime.lifecycle.get();
   return createInventory(
-    runtime.modules.map((module) =>
-      Object.freeze({
-        id: module.id,
-        pluginId: module.id,
-        enabled: true,
-        source: Object.freeze({ kind: 'runtime' as const, path: null }),
-        metadata: inventoryMetadata(module.metadata),
-        dependencies: Object.freeze([...(module.dependencies ?? [])]),
-        declarations: Object.freeze([
-          ...module.services.map((value) => entry('service', value.id, value)),
-          ...module.actions
-            .filter((value) => !value.internal)
-            .map((value) => entry('action', value.id, value)),
-          ...module.pages.map((value) => entry('page', value.path, value)),
-          ...module.slots.map((value) => entry('slot', value.id, value)),
-          ...module.views.map((value) => entry('widget', value.slot, value)),
-          ...module.providers.map((value) => entry('provider', value.id, value)),
-          ...Object.keys(module.events?.events ?? {}).map((name) =>
-            entry('event', `${module.id}.${name}`),
-          ),
-          ...Object.keys(module.settings?.settings ?? {}).map((name) =>
-            entry(
-              'setting',
-              module.id === (runtime.config.appId ?? 'app') ? name : `${module.id}.${name}`,
+    [
+      ...runtime.modules.map((module) =>
+        Object.freeze({
+          id: module.id,
+          pluginId: module.id,
+          enabled: true,
+          source: Object.freeze({ kind: 'runtime' as const, path: null }),
+          metadata: inventoryMetadata(module.metadata),
+          dependencies: Object.freeze([...(module.dependencies ?? [])]),
+          declarations: Object.freeze([
+            ...module.services.map((value) => entry('service', value.id, value)),
+            ...module.actions
+              .filter((value) => !value.internal)
+              .map((value) => entry('action', value.id, value)),
+            ...module.pages.map((value) => entry('page', value.path, value)),
+            ...module.slots.map((value) => entry('slot', value.id, value)),
+            ...module.views.map((value) => entry('widget', value.slot, value)),
+            ...module.providers.map((value) => entry('provider', value.id, value)),
+            ...Object.keys(module.events?.events ?? {}).map((name) =>
+              entry('event', `${module.id}.${name}`),
             ),
-          ),
-          ...(module.config ? [entry('config', module.id)] : []),
-          ...(module.interceptors ?? []).map((value, index) =>
-            entry('interceptor', `${module.id}:${index}`, value),
-          ),
-        ]),
-      }),
-    ),
+            ...Object.keys(module.settings?.settings ?? {}).map((name) =>
+              entry(
+                'setting',
+                module.id === (runtime.config.appId ?? 'app') ? name : `${module.id}.${name}`,
+              ),
+            ),
+            ...(module.config ? [entry('config', module.id)] : []),
+            ...(module.interceptors ?? []).map((value, index) =>
+              entry('interceptor', `${module.id}:${index}`, value),
+            ),
+          ]),
+        }),
+      ),
+      ...(runtime.config.plugins ?? [])
+        .filter((plugin) => !runtime.modules.some((module) => module.id === plugin.id))
+        .map((plugin) =>
+          Object.freeze({
+            id: plugin.id,
+            pluginId: plugin.id,
+            enabled: false,
+            source: Object.freeze({ kind: 'runtime' as const, path: null }),
+            metadata: inventoryMetadata(plugin.metadata),
+            dependencies: Object.freeze([...(plugin.dependencies ?? [])]),
+            declarations: null,
+          }),
+        ),
+    ],
     Object.freeze({
       revision: runtime.getRevision(),
       phase: lifecycle.phase,

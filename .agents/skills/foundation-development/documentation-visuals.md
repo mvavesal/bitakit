@@ -12,6 +12,24 @@ their exact source and reset; retain additions across selections. Group choices 
 see only a few at once. Use existing Fumadocs controls/popovers, the shared preview styles and
 real slot contracts. The model is explicitly illustrative; it does not execute editable code,
 install plugins or implement another runtime. Link each example to its detailed subject page.
+Give the three numbered learning steps a title and a short purpose. Label the subordinate
+choices as examples for the selected step. Unadded examples use a Plus icon and a muted,
+dashed outline; all added examples keep a Check icon and filled primary styling even when
+unselected. Do not add a persistent selection ring; retain the standard focus-visible
+indicator for keyboard navigation. Keep state text available to assistive technology and explain
+once that a checked example can be selected again to inspect it. Keep Preview and Code in standard Fumadocs tabs
+in one shared area, with both tabs visible above the active panel. For this Introduction
+switcher, use the approved rounded segmented treatment with Reicon Eye/Code icons, a muted
+track and a primary-colored active segment with primary-foreground text, all using existing
+Fumadocs theme tokens. Preserve the selected tab
+when choosing an example. Preview interactions select their example but stay on Preview;
+only the Code tab opens source. Do not add Page source or Plugin source buttons inside the
+illustrative app. The Notes sidebar entry opens the Notes preview, not source code. Show the example title once
+above the tabs. Preview contains the result summary; Code contains one explanation directly
+above its file tree and source, without repeating the title or preview summary. Author file
+paths, filenames and API identifiers as inline code; use bold sparingly for key distinctions.
+Use React content and shared explanation styles, not a custom Markdown parser. Keep prerequisite guidance
+collapsible below this area so it does not separate the controls from their result.
 Number its three steps. Selecting a step must immediately show its own first example, preview
 and code, not only change a row of buttons while retaining another step's source. Show one file
 at a time: slot declaration, outlet and contributor are separate selections, as are event
@@ -55,7 +73,11 @@ Use App sidebar and Your plugin page to label the placement illustration. Keep h
 center and the trailing toolbar/end content on one row, matching Shell. A separate full-width
 header row is shell.header.rows. Qualify Settings region labels so page titles, extension slots
 and navigation cannot be confused. Keep all six numbered beginner steps under Start here;
-moving a sidebar entry must preserve the existing document URL.
+moving a sidebar entry must preserve the existing document URL. Further topics belong in a
+separate top-level Guides group, with related mechanisms such as Events and Interceptors adjacent;
+do not divide them arbitrarily into Go further and Advanced. Plugin manager and Package manager
+are separate top-level guides for lifecycle and catalog operations. Plugins, Integrations
+and Core packages separately list app features, provider adapters and development tools. Use Fumadocs metadata references rather than custom navigation.
 
 ## Use standard tools
 

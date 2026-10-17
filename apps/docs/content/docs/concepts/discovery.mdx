@@ -60,7 +60,7 @@ Every immediate folder under `src/plugins` is a plugin; its folder name is the p
 
 ## What is discovered
 
-A TypeScript or TSX file participates when it has a default export; discovery detects the export with the TypeScript parser and never executes the module. Files without a default export are reported as skipped; prefix helper files with `-` to silence that. Declaration files and anything under `server/` are excluded. Everything under `ui/` that is not in `pages/`, `slots/` or `providers/` is an ordinary component, never a contribution; everything under `ui/` is React, and nothing outside it may import React.
+A TypeScript or TSX file participates when it has a default export; discovery detects the export with the TypeScript parser and never executes ordinary contribution modules. Manifests (`plugin.config.ts`) and `bitakit.config.ts` are loaded and must be trusted code. Files without a default export are reported as skipped; prefix helper files with `-` to silence that. Declaration files and anything under `server/` are excluded. Under `ui/`, discovery reads `pages/`, `slots/`, `providers/` and the special `settings/page.tsx`; other files, including dialogs, are ordinary components referenced by contributions. React imports belong under `ui/`.
 
 | File                       | Meaning                                                                   |
 | -------------------------- | ------------------------------------------------------------------------- |
@@ -92,6 +92,15 @@ Ignore `src/bitakit.gen.*` in Git. Production changes require a new build. Brows
 ## `plugin.config.ts` and `bitakit.config.ts`
 
 `plugin.config.ts` is optional. It declares `dependencies`, display `metadata`, an `id` other than the folder name and `entries` that relocate a kind. Discovery derives everything else.
+
+An `entries` path stays inside the plugin directory; symlinks are rejected. `false`
+disables that kind. The app module uses the same conventions directly under `src/`;
+its native framework routes remain app-owned. Page files may export `layout` (`app` by
+default, `blank` for a bare page). UI providers may export `requires` to declare ordering.
+
+Plugin messages live in `locales/<lang>.json` under their own namespace. Discovery rejects
+out-of-namespace keys and merges the catalogs into `bitakit.gen.messages.json`; the host's
+translation provider consumes that generated catalog.
 
 `bitakit.config.ts` configures discovery for the whole app:
 
@@ -138,8 +147,8 @@ Generated `SlotMap` carries definition types. `SlotPayload<'name'>` and `SlotDat
 expose the schema outputs; both also accept a definition type directly. Core keeps components
 opaque and has no React dependency. `runtime.modules[].slots` exposes declared inventory.
 
-Declarations alone do not render anything or mark their owner ready. Keep current Action bindings,
-groups and `ui/slots` contributions until the placement migration. Legacy config/manifest slot
+Declarations alone do not render anything or mark their owner ready. Actions place themselves
+with `slots`; [slot bindings](/docs/reference/slots) render the current attachments. Legacy config/manifest slot
 names remain `LegacySlotMap` hints, not owned contracts. Declared component targets now
 use the scope-owned attachment path with wait by default; files can export id/key/order/availability.
 Hiding an outlet does not remove its contributions. Doctor reports readable contracts,

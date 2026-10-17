@@ -193,7 +193,8 @@ Prefer replacing the hand-written settings code with the generated path:
 - One conventions source generates the AGENTS.md section in `create-app`
   (`packages/create-app/src/project-files.mjs`, `agentRules`) and the docs-site conventions
   page; today they are written twice.
-- Collapse the three documentation sets (`apps/docs`, `packages/core/docs`, repo `docs/`).
+- Completed since this handoff: duplicate Core/root API guides are consolidated in the
+  [developer handbook](../apps/docs/content/docs/index.mdx). Root development records remain.
   Move resolved review episodes from the skill to `REVIEW.md`. Translate the German READMEs.
 - Write the 0.1 to 0.2 migration guide around `bitakit migrate` (what it rewrites, what it
   cannot: settings definitions, Shell options, Better Auth UI options).

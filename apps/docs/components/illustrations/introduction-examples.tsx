@@ -4,18 +4,21 @@ export const introductionSteps = [
   {
     group: 'Build a feature',
     first: 'feature',
+    summary: 'Create a plugin, then give it a page and Actions.',
     description:
       'First name your plugin and describe its purpose. Then add its page, Actions and settings. The plugin can live inside your app or in a standalone package.',
   },
   {
     group: 'Extend the UI',
     first: 'slot',
+    summary: 'Make room for UI from other plugins.',
     description:
       'Give your page an extension point: define a slot, place its outlet, then let another plugin add a widget. Or target an existing menu slot.',
   },
   {
     group: 'Connect behavior',
     first: 'event',
+    summary: 'Connect plugins through events and interceptors.',
     description:
       'Let one plugin announce an event and another listen. Add an interceptor when you want to observe Actions without editing each handler.',
   },
@@ -28,8 +31,16 @@ export const introductionExamples = [
     group: 'Build a feature',
     label: 'Create a plugin',
     result: 'The Notes plugin is defined. It has an identity and a purpose; its page comes next.',
-    explanation:
-      'This optional plugin.config.ts explicitly names the feature. Discovery collects the Actions, pages and settings you add beside it. In-app: src/plugins/notes/. Standalone package: its own src/, with the CLI providing package/build setup. Without this config file, the app folder already supplies the plugin ID.',
+    explanation: (
+      <>
+        {' '}
+        This optional <code>plugin.config.ts</code> explicitly names the feature. Discovery collects
+        the Actions, pages and settings you add beside it. In-app:{' '}
+        <code>src/plugins/notes/</code>. Standalone package: its own{' '}
+        <code>src/</code>, with the CLI providing package/build setup. Without this config file, the
+        app folder already supplies the plugin ID.{' '}
+      </>
+    ),
     file: 'src/plugins/notes/plugin.config.ts',
     code: `import { definePlugin } from '@bitakit/core';
 
@@ -48,8 +59,14 @@ export default definePlugin({
     group: 'Build a feature',
     label: 'Add a page',
     result: 'The Notes plugin now has a page at /notes.',
-    explanation:
-      'Put this page inside the Notes plugin. Discovery derives the route from ui/pages/index.tsx. This adds a screen to the plugin you just defined; it does not create a second plugin.',
+    explanation: (
+      <>
+        {' '}
+        Put this page inside the Notes plugin. Discovery derives the route from{' '}
+        <code>ui/pages/index.tsx</code>. This adds a screen to the plugin you just defined; it does
+        not create a second plugin.{' '}
+      </>
+    ),
     file: 'src/plugins/notes/ui/pages/index.tsx',
     code: `export default function NotesPage() {
   return <section>
@@ -65,8 +82,14 @@ export default definePlugin({
     group: 'Build a feature',
     label: 'Add note state',
     result: 'The Notes service can create notes and keeps them in memory.',
-    explanation:
-      'A service owns the data. The next toolbar Action calls add; it does not keep a second store. These notes last until the runtime is replaced or the page reloads.',
+    explanation: (
+      <>
+        {' '}
+        <strong>A service owns the data.</strong> The next toolbar Action calls <code>add</code>; it
+        does not keep a second store. These notes last until the runtime is replaced or the page
+        reloads.{' '}
+      </>
+    ),
     file: 'src/plugins/notes/services/notebook.ts',
     code: `import { defineService } from '@bitakit/core';
 
@@ -89,8 +112,13 @@ export default defineService(({ store }) => {
     group: 'Build a feature',
     label: 'Add a navigation Action',
     result: 'Notes now appears in navigation.',
-    explanation:
-      'A URL Action targets the existing shell.navigation slot. Shell renders the link; the Notes page keeps its own route.',
+    explanation: (
+      <>
+        {' '}
+        A URL Action targets the existing <code>shell.navigation</code> slot. Shell renders the
+        link; the Notes page keeps its own route.{' '}
+      </>
+    ),
     slot: 'shell.navigation',
     accepts: 'actions',
     file: 'src/plugins/notes/actions/open.ts',
@@ -113,8 +141,14 @@ export default defineAction({
     group: 'Build a feature',
     label: 'Add a toolbar Action',
     result: 'Add note now appears in the header toolbar.',
-    explanation:
-      'Shell renders the Action in the trailing header toolbar. The slots property selects its placement; execute calls the notebook service to create a note. Logging belongs in the later interceptor example.',
+    explanation: (
+      <>
+        {' '}
+        Shell renders the Action in the trailing header toolbar. The <code>slots</code> property
+        selects its placement; <code>execute</code> calls the notebook service to create a note.
+        Logging belongs in the later interceptor example.{' '}
+      </>
+    ),
     slot: 'shell.toolbar',
     accepts: 'actions',
     file: 'src/plugins/notes/actions/add.ts',
@@ -138,8 +172,14 @@ export default defineAction({
     label: 'Add a Settings page',
     result:
       'One declaration adds Notes to the Settings navigation and generates its page and fields.',
-    explanation:
-      'App Preferences derives the page and navigation from settings.ts. Core owns the saved values. No separate page or navigation registration is needed. These illustrated controls show the defaults; they do not edit settings here.',
+    explanation: (
+      <>
+        {' '}
+        App Preferences derives the page and navigation from <code>settings.ts</code>.{' '}
+        <strong>Core owns the saved values.</strong> No separate page or navigation registration is
+        needed. These illustrated controls show the defaults; they do not edit settings here.{' '}
+      </>
+    ),
     file: 'src/plugins/notes/settings.ts',
     code: `import { defineSettings, setting } from '@bitakit/core';
 
@@ -156,8 +196,15 @@ export default defineSettings({
     group: 'Extend the UI',
     label: 'Define your own slot',
     result: 'Notes declares a component slot. Choose Place the slot to make its outlet visible.',
-    explanation:
-      'notes.footer is the public name other plugins target. The id is optional: slots/footer.ts inside the notes plugin produces the same name automatically. This slot accepts React content; Place the slot chooses where it renders.',
+    explanation: (
+      <>
+        {' '}
+        <code>notes.footer</code> is the public name other plugins target. The <code>id</code> is
+        optional: <code>slots/footer.ts</code> inside the notes plugin produces the same name
+        automatically. This slot accepts React content; Place the slot chooses where it
+        renders.{' '}
+      </>
+    ),
     slot: 'notes.footer',
     accepts: 'component',
     file: 'src/plugins/notes/slots/footer.ts',
@@ -176,8 +223,16 @@ export default defineSlot({
     group: 'Extend the UI',
     label: 'Place the slot',
     result: 'An empty footer outlet now appears below the Notes heading.',
-    explanation:
-      'Create the Notes page or replace its earlier version with this one. PluginSlot uses the same notes.footer ID to position contributed content. This also works in a panel or menu you own. The dashed frame is only part of this illustration.',
+    explanation: (
+      <>
+        {' '}
+        Create the Notes page or replace its earlier version with this one. <code>
+          PluginSlot
+        </code>{' '}
+        uses the same <code>notes.footer</code> ID to position contributed content. This also works
+        in a panel or menu you own. The dashed frame is only part of this illustration.{' '}
+      </>
+    ),
     slot: 'notes.footer',
     accepts: 'component',
     file: 'src/plugins/notes/ui/pages/index.tsx',
@@ -199,8 +254,13 @@ export default function NotesPage() {
     group: 'Extend the UI',
     label: 'Add another plugin’s widget',
     result: 'The Tips plugin contributes content inside Notes, without changing the page.',
-    explanation:
-      'The filename targets notes.footer. Define and render that slot first; then an installed plugin can contribute its own React content.',
+    explanation: (
+      <>
+        {' '}
+        The filename targets <code>notes.footer</code>. Define and render that slot first; then an
+        installed plugin can contribute its own React content.{' '}
+      </>
+    ),
     slot: 'notes.footer',
     accepts: 'component',
     file: 'src/plugins/tips/ui/slots/notes.footer.tsx',
@@ -215,8 +275,14 @@ export default function NotesPage() {
     group: 'Extend the UI',
     label: 'Add a member-menu item',
     result: 'Copy member ID is added to the member menu. Open the menu to see it.',
-    explanation:
-      'The Organizations UI supplies the selected member ID. Your Action joins its declared menu slot without changing the member list. In the real app, a click copies the ID using the browser clipboard; this illustration only shows its source.',
+    explanation: (
+      <>
+        {' '}
+        The Organizations UI supplies the selected member ID. Your Action joins its declared menu
+        slot without changing the member list. In the real app, a click copies the ID using the
+        browser clipboard; this illustration only shows its source.{' '}
+      </>
+    ),
     slot: 'organizations.member.menu',
     accepts: 'actions',
     file: 'src/plugins/audit/actions/copy-member-id.ts',
@@ -240,8 +306,13 @@ export default defineAction<string>({
     group: 'Connect behavior',
     label: 'Declare an event',
     result: 'The Notes plugin declares notes.changed with the ID of the affected note.',
-    explanation:
-      'An event announces a completed change. Its small payload tells other plugins which note changed, without giving them ownership of the notebook store.',
+    explanation: (
+      <>
+        {' '}
+        <strong>An event announces a completed change.</strong> Its small payload tells other
+        plugins which note changed, without giving them ownership of the notebook store.{' '}
+      </>
+    ),
     file: 'src/plugins/notes/events.ts',
     code: `import { defineEvents, event } from '@bitakit/core';
 
@@ -254,8 +325,14 @@ export default defineEvents({ changed: event<{ noteId: string }>() });`,
     group: 'Connect behavior',
     label: 'Emit the event',
     result: 'Add note now creates the note, then announces notes.changed.',
-    explanation:
-      'Replace the earlier add.ts with this version. The same toolbar Action first calls its service, then emits the changed note ID. This is one Action registration; the new behavior extends it. The preview shows the code without executing it.',
+    explanation: (
+      <>
+        {' '}
+        Replace the earlier <code>add.ts</code> with this version. The same toolbar Action first
+        calls its service, then emits the changed note ID. This is one Action registration; the new
+        behavior extends it. The preview shows the code without executing it.{' '}
+      </>
+    ),
     file: 'src/plugins/notes/actions/add.ts',
     code: `import { defineAction } from '@bitakit/core';
 import Plus from 'reicon-react/icons/Plus';
@@ -280,8 +357,14 @@ export default defineAction({
     group: 'Connect behavior',
     label: 'Connect an event listener',
     result: 'Activity remembers the last changed note, independently of the Notes implementation.',
-    explanation:
-      'An independent service stores the last observed note ID for an Activity view. This is event history, not a second notebook store; earlier events are not replayed. The runtime releases its subscription with the service.',
+    explanation: (
+      <>
+        {' '}
+        An independent service stores the last observed note ID for an Activity view. This is event
+        history, not a second notebook store; earlier events are not replayed. The runtime releases
+        its subscription with the service.{' '}
+      </>
+    ),
     file: 'src/plugins/activity/services/feed.ts',
     code: `import { defineService } from '@bitakit/core';
 
@@ -300,8 +383,14 @@ export default defineService(({ events, store }) => {
     group: 'Connect behavior',
     label: 'Add Action logging',
     result: 'An interceptor observes completed notes.* Actions.',
-    explanation:
-      'One app-level interceptor observes matching Actions. Its after hook logs the result without changing it. Action guards and service observation are explained in the detailed guide.',
+    explanation: (
+      <>
+        {' '}
+        <strong>One app-level interceptor</strong> observes matching Actions. Its <code>after</code>{' '}
+        hook logs the result without changing it. Action guards and service observation are
+        explained in the detailed guide.{' '}
+      </>
+    ),
     file: 'src/interceptors/log-notes.ts',
     code: `import { defineInterceptor } from '@bitakit/core';
 
