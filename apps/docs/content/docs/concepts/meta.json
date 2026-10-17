@@ -3,10 +3,15 @@
   "pages": [
     "index",
     "../quickstart",
+    "---Basic---",
     "plugins",
     "services",
     "actions",
+    "---Intermediate---",
+    "settings",
+    "---Advanced---",
+    "events",
     "slots",
-    "settings"
+    "extend"
   ]
 }

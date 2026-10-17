@@ -6,16 +6,19 @@ description: Build one feature, then choose the capabilities it needs.
 Start with a working app, then grow one **Counter** plugin. Each step adds just one idea.
 If you want the overview first, read [What is BitaKit?](/docs#what-is-bitakit).
 
-| Step | What you build |
-| --- | --- |
-| [1. Create an app](/docs/quickstart) | An application with BitaKit connected. |
-| [2. Add a page](/docs/concepts/plugins) | A Counter page from one file. |
-| [3. Add state](/docs/concepts/services) | One shared value and a method to change it. |
-| [4. Add a button](/docs/concepts/actions) | An Action that increments the count. |
-| [5. Add an extension point](/docs/concepts/slots) | A toolbar other plugins can add buttons to. |
-| [6. Add a preference](/docs/concepts/settings) | A saved setting with its generated page. |
+| Level        | Step                                                    | What you build                                                              |
+| ------------ | ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Basic        | [1. Create an app](/docs/quickstart)                    | An application with BitaKit connected.                                      |
+| Basic        | [2. Add a page](/docs/concepts/plugins)                 | A Counter page from one file.                                               |
+| Basic        | [3. Add state](/docs/concepts/services)                 | One shared value and a method to change it.                                 |
+| Basic        | [4. Add a button](/docs/concepts/actions)               | An Action that increments the count.                                        |
+| Intermediate | [5. Add a preference](/docs/concepts/settings)          | A saved setting; App Preferences renders its page.                          |
+| Advanced     | [6. Announce what happened](/docs/concepts/events)      | A typed event other plugins can listen to.                                  |
+| Advanced     | [7. Add an extension point](/docs/concepts/slots)       | A toolbar other plugins can add buttons to.                                 |
+| Advanced     | [8. Extend from a second plugin](/docs/concepts/extend) | A second plugin that reacts and adds a button, without editing the Counter. |
 
-The first four steps are enough for a working feature. Slots and Settings can wait until you need them.
+The Basic steps are a working feature. Settings come next; events and slots matter once other
+plugins should react to or extend your feature.
 
 **Start:** [Create your app →](/docs/quickstart)
 
@@ -24,13 +27,14 @@ It shows how the layers fit together and links to the relevant step and state di
 
 ## A small vocabulary
 
-| Concept | Its job                                                           |
-| ------- | ----------------------------------------------------------------- |
-| Plugin  | Groups one feature's files                                        |
-| Service | Owns shared behavior and state                                    |
-| Action  | Defines an operation and how a control presents it                |
-| Slot    | Names a place in your UI where other plugins can add content       |
-| Setting | Holds a user preference in the runtime's settings store           |
+| Concept | Its job                                                          |
+| ------- | ---------------------------------------------------------------- |
+| Plugin  | Groups one feature's files                                       |
+| Service | Owns shared behavior and state                                   |
+| Action  | Defines an operation and how a control presents it               |
+| Setting | Holds a user preference in the runtime's settings store          |
+| Event   | Announces that something happened, for other plugins to react to |
+| Slot    | Names a place in your UI where other plugins can add content     |
 
 ```text
 Button → Action → Service → Store
@@ -44,18 +48,18 @@ Use [Patterns at a glance](/docs/concepts/patterns) to compare execution, observ
 
 ## Choose the next topic when you need it
 
-| Need                                  | Guide                                                   |
-| ------------------------------------- | ------------------------------------------------------- |
-| Learn all supported file names        | [Discovery](/docs/concepts/discovery)                   |
-| Notify another plugin                 | [Events](/docs/concepts/events)                         |
-| Set developer defaults                | [Configuration](/docs/concepts/configuration)           |
-| Add a theme or customize Appearance   | [Themes and appearance](/docs/concepts/theming)         |
-| Query related Actions                 | [Action groups](/docs/concepts/action-groups)           |
-| Add dependencies or cleanup           | [Service reference](/docs/reference/services)           |
-| Add, enable, disable or remove plugins | [Plugin manager](/docs/plugin-management) |
-| Activate a trusted package | [Package manager](/docs/package-management) |
-| Inspect or update a running plugin    | [Runtime management](/docs/concepts/runtime-management) |
-| Own a runtime outside a generated app | [Manual composition](/docs/concepts/manual-composition) |
+| Need                                   | Guide                                                   |
+| -------------------------------------- | ------------------------------------------------------- |
+| Learn all supported file names         | [Discovery](/docs/concepts/discovery)                   |
+| Notify another plugin                  | [Events](/docs/concepts/events)                         |
+| Set developer defaults                 | [Configuration](/docs/concepts/configuration)           |
+| Add a theme or customize Appearance    | [Themes and appearance](/docs/concepts/theming)         |
+| Query related Actions                  | [Action groups](/docs/concepts/action-groups)           |
+| Add dependencies or cleanup            | [Service reference](/docs/reference/services)           |
+| Add, enable, disable or remove plugins | [Plugin manager](/docs/plugin-management)               |
+| Activate a trusted package             | [Package manager](/docs/package-management)             |
+| Inspect or update a running plugin     | [Runtime management](/docs/concepts/runtime-management) |
+| Own a runtime outside a generated app  | [Manual composition](/docs/concepts/manual-composition) |
 
 Continue with **Guides**, **Plugin manager** or **Package manager** in the main sidebar
 when you need them. They and the API reference are lookup material, not prerequisites for your first feature.

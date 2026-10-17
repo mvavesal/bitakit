@@ -11,7 +11,7 @@ npm run dev:docs
 npm run build:docs
 ```
 
-Development and production start use port 3002. No Foundation runtime, auth service or database
+Development and production start use port 3002. No BitaKit runtime, auth service or database
 is required to run this site. For production, build this workspace and run its `start` script,
 or configure a Next.js-compatible deployment with `apps/docs` as the application directory
 and the repository workspace lockfile available. Nothing is deployed automatically.
@@ -29,8 +29,9 @@ this preview does not execute source code or simulate a second plugin runtime.
 Its file tree uses Fumadocs folders and selectable files beside read-only code. File selection
 preserves expanded folders and keyboard focus; selecting a step reveals its source path.
 
-The sidebar's **Start here** section leads through a single Counter: Quickstart → page → service → Action
-→ slot → Settings. **Guides** is a separate top-level sidebar group for further topics,
+The sidebar's **Start here** section leads through a single Counter by level: Basic (Quickstart →
+page → service → Action), Intermediate (Settings), Advanced (Events → slot → a second plugin that
+extends the Counter without editing it). **Guides** is a separate top-level sidebar group for further topics,
 with related mechanisms such as Events and Interceptors next to each other. Its metadata
 references existing concept pages so URLs stay stable. **Plugin manager** and **Package
 manager** are direct top-level guides. **Plugins**, **Integrations** and **Core packages**

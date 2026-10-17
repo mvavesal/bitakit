@@ -1,5 +1,5 @@
 ---
-title: 6. Add a preference
+title: 5. Add a preference
 description: Declare one saved value, then show its generated Settings page.
 ---
 
@@ -83,7 +83,7 @@ First let the service's existing method accept a number. In `services/value.ts`,
 increment: (step = 1) => state.set(s => ({ count: s.count + step })),
 ```
 
-Then replace the Action's `execute` property, keeping its existing title and slot placement:
+Then replace the Action's `execute` property, keeping its other properties:
 
 ```ts
 execute: ({ services, settings }) =>
@@ -106,7 +106,20 @@ instead of writing that file manually; the command will not overwrite an existin
 Use **Settings page header slot**, **After Settings page body** or **Settings page footer slot** to extend the generated page
 without replacing its fields.
 
-## You have completed the small learning path
+## You have a complete feature
+
+The Counter now has a page, state, an operation and a saved preference. The Advanced lessons
+let other plugins react to it and extend it without editing it.
+
+## What you have now
+
+- **This step gave you** a saved preference, `counter.step`, with its default and storage; with
+  App Preferences installed, also its field on a generated Settings page.
+- **Others extend it** by reading `settings.counter.step` in their services and Actions, or
+  `useSetting('counter.step')` in React.
+
+**Next:** [Announce what happened →](/docs/concepts/events)
+
 
 | Need next                                        | Read                                                                        |
 | ------------------------------------------------ | --------------------------------------------------------------------------- |

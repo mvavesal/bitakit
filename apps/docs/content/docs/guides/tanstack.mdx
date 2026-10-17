@@ -1,0 +1,51 @@
+---
+title: Use TanStack Start (experimental)
+description: Create or wire a TanStack Start app; plugins, Actions and settings work the same as with Next.js.
+---
+
+BitaKit sits on top of your framework through an adapter. The Next.js adapter is the main
+walkthrough; the TanStack Start adapter is **experimental**: it works, generated apps are
+verified in the repository, and its API may still change before it is marked supported.
+
+Plugins do not change between adapters. Everything under `src/plugins/` in Start here works
+unchanged.
+
+## Create an app
+
+```sh
+npx @bitakit/create-app my-app --framework tanstack
+```
+
+The generator runs the official TanStack Start scaffold, then adds BitaKit. Add `--sample` for
+the Todo sample.
+
+## What the adapter adds
+
+| File                    | Purpose                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `vite.config.ts`        | `bitakit()` from `@bitakit/tanstack/config`, before `tanstackStart()`: runs discovery and keeps regenerating |
+| `src/routes/__root.tsx` | Mounts `<BitaKitProvider>` from `./bitakit.gen` around `<Outlet />`                                          |
+| `src/routes/$.tsx`      | The catch-all route that renders plugin pages with `<PluginPage />`                                          |
+| `src/styles.css`        | Imports Tailwind, then `./bitakit.gen.css` with the styles of installed packages                             |
+
+With Shell, the catch-all route is `src/routes/_app.$.tsx`, inside the `_app` layout route that
+renders the app frame. App-owned routes stay ordinary TanStack routes in `src/routes/`.
+
+## Wire an existing app
+
+In the root of a TanStack Start project:
+
+```sh
+npx bitakit init
+```
+
+It adds `bitakit()` to the Vite plugins, the provider to the root route, the catch-all route,
+the `.gitignore` entry and the agent rules, and lists the packages to install
+(`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui`, `@bitakit/tanstack`).
+
+## Differences from Next.js
+
+- Navigation Actions render as TanStack links through `BitaKitLink`; app-owned typed links keep
+  using TanStack's own `Link`.
+- URL state uses nuqs with its TanStack Router adapter, which `BitaKitProvider` mounts.
+- The package README of `@bitakit/tanstack` lists the adapter's options.

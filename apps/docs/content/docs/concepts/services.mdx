@@ -58,6 +58,13 @@ The hook follows the store and releases its subscription when the component unmo
 This example stores the count in memory. A full page reload starts it at zero again.
 The next lesson adds a button so you can change it.
 
+## What you have now
+
+- **This step gave you** shared state at `services.counter.value`. Pages follow it with
+  `useServiceState`; Actions and other services call its methods.
+- **Others extend it** by reading or calling `services.counter.value` from their own Actions and
+  services, instead of keeping a second copy of the count.
+
 **Next:** [Call increment from an Action →](/docs/concepts/actions)
 
 ## Later: dependencies and resources

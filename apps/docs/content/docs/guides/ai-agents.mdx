@@ -1,0 +1,59 @@
+---
+title: Work with AI coding agents
+description: Give a coding agent the same map you use, with written rules, one place per task, checked names and one command to verify.
+---
+
+BitaKit is built so that a person and a coding agent find the same answer to "where does this
+go?". This guide shows what an agent gets from a BitaKit app and how to brief it.
+
+## What the agent reads
+
+Apps created with `npx @bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that points
+to it). `npx bitakit init` appends the same block to an existing app. It fits on one screen:
+
+- a table that maps each task to its file, from a page to extending a feature you do not own;
+- the rules: start small, bind every control to its Action, React only under `ui/`, and do not
+  rebuild what BitaKit provides;
+- the commands to create files and check the result.
+
+Keep the block as it is and add your own product rules above or below it.
+
+## What the agent can run
+
+| Command                                | What it gives the agent                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------------ |
+| `npx bitakit add action notes/archive` | The file in the right place, with the ID `notes.archive`                             |
+| `npx bitakit add plugin notes`         | A new feature folder with a page and its menu entry                                  |
+| `npx bitakit info --json`              | Every ID the project declares: Actions, services, page URLs, events, settings, slots |
+| `npm run typecheck`                    | An error for any unknown Action ID, service, event, setting key or slot name         |
+| `npx bitakit doctor`                   | Wiring problems, each with its fix; exit code 1 when something is wrong              |
+
+`info --json` reads the source files without running them, so it is safe to run at any time.
+
+## Write a task brief
+
+A good brief names the feature folder, the result and the check. For example:
+
+```text
+Add an "Archive" button to the notes page.
+- Work only in src/plugins/notes/.
+- The operation is a new Action notes.archive; bind the button to it with <Action>.
+- When done, run npm run typecheck and npx bitakit doctor and fix what they report.
+```
+
+For a change to a feature the agent does not own, say so, and point it to the owner's contracts:
+
+```text
+Show the number of open tasks on the dashboard.
+- Do not edit src/plugins/tasks/.
+- Create src/plugins/dashboard-stats/: listen to tasks.changed and fill the dashboard.widgets slot.
+```
+
+[Extend from a second plugin](/docs/concepts/extend) is the worked example of that pattern.
+
+## Review the result
+
+A new feature is a new folder; an extension adds files to the extending plugin's own folder.
+`git status --short src/plugins` shows at a glance whether the agent stayed in its feature.
+Type checks and doctor catch wrong names and wiring; tests and review still decide whether the
+behavior is right. Plugins are trusted code in one app, not a sandbox.

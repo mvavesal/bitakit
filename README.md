@@ -147,16 +147,19 @@ Every kind of change has exactly one place, so a person and a coding agent find 
 
 ## Learn one step at a time
 
-| Step | Build                              | Guide                                                    |
-| ---- | ---------------------------------- | -------------------------------------------------------- |
-| 1    | A new app                          | [Quickstart](apps/docs/content/docs/quickstart.mdx)      |
-| 2    | The one-file Counter page          | [Plugins](apps/docs/content/docs/concepts/plugins.mdx)   |
-| 3    | One value and one method           | [Services](apps/docs/content/docs/concepts/services.mdx) |
-| 4    | A button that increments it        | [Actions](apps/docs/content/docs/concepts/actions.mdx)   |
-| 5    | A toolbar other plugins can extend | [Slots](apps/docs/content/docs/concepts/slots.mdx)       |
-| 6    | One saved preference and its page  | [Settings](apps/docs/content/docs/concepts/settings.mdx) |
+| Level        | Step | Build                                    | Guide                                                    |
+| ------------ | ---- | ---------------------------------------- | -------------------------------------------------------- |
+| Basic        | 1    | A new app                                | [Quickstart](apps/docs/content/docs/quickstart.mdx)      |
+| Basic        | 2    | The one-file Counter page                | [Plugins](apps/docs/content/docs/concepts/plugins.mdx)   |
+| Basic        | 3    | One value and one method                 | [Services](apps/docs/content/docs/concepts/services.mdx) |
+| Basic        | 4    | A button that increments it              | [Actions](apps/docs/content/docs/concepts/actions.mdx)   |
+| Intermediate | 5    | One saved preference                     | [Settings](apps/docs/content/docs/concepts/settings.mdx) |
+| Advanced     | 6    | An event other plugins can listen to     | [Events](apps/docs/content/docs/concepts/events.mdx)     |
+| Advanced     | 7    | A toolbar other plugins can extend       | [Slots](apps/docs/content/docs/concepts/slots.mdx)       |
+| Advanced     | 8    | A second plugin that extends the Counter | [Extend](apps/docs/content/docs/concepts/extend.mdx)     |
 
 The lessons grow the same Counter. You have a working feature after step 4; the rest can wait.
+Working with a coding agent? [Work with AI coding agents](apps/docs/content/docs/guides/ai-agents.mdx).
 They describe the **0.2 API in this repository**; keep the BitaKit packages on matching versions.
 Coming from 0.1? [Upgrade from 0.1](apps/docs/content/docs/upgrade.mdx) runs `npx bitakit migrate`.
 

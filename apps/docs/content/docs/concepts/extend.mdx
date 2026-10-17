@@ -1,0 +1,91 @@
+---
+title: 8. Extend from a second plugin
+description: Add a History plugin that reacts to the Counter and adds a button to its toolbar, without editing the Counter.
+---
+
+Continue with [the Counter and its toolbar](/docs/concepts/slots). So far one plugin did
+everything. Now a second plugin, **History**, records each increment and adds a **Clear history**
+button to the Counter's toolbar. It uses only what the Counter offers on purpose: the
+`counter.incremented` event and the `counter.toolbar` slot. Nothing under
+`src/plugins/counter/` changes.
+
+## 1. Record the increments
+
+Create `src/plugins/history/services/log.ts`:
+
+```ts
+import { defineService } from '@bitakit/core';
+
+export default defineService(({ store, events }) => {
+  const state = store({ counts: [] as number[] });
+  events.on('counter.incremented', ({ data }) =>
+    state.set((s) => ({ counts: [...s.counts, data] })),
+  );
+  return { state, clear: () => state.set({ counts: [] }) };
+});
+```
+
+The service is **`history.log`**. The listener belongs to it, so it ends when the History plugin
+stops. `data` is a `number`, the payload type the Counter declared.
+
+## 2. Add a button to the Counter's toolbar
+
+Create `src/plugins/history/actions/clear.ts`:
+
+```ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  title: ({ services }) => `Clear history (${services.history.log.state.get().counts.length})`,
+  enabled: ({ services }) => services.history.log.state.get().counts.length > 0,
+  slots: ['counter.toolbar'],
+  execute: ({ services }) => services.history.log.clear(),
+});
+```
+
+Open `/counter`. The toolbar now shows **Clear history (0)**, disabled. Each click on Increment
+updates the label; Clear history empties the log and disables itself again. The Counter page
+renders the button because it renders every Action in its toolbar slot.
+
+## 3. Check that the Counter is untouched
+
+```sh
+git status --short src/plugins
+```
+
+Only `src/plugins/history/` is new. The two plugins share contracts, not files: if you remove the
+Counter, startup reports that the `counter.toolbar` slot no longer exists, and `npm run typecheck`
+reports the unknown event name.
+
+## 4. Test both plugins together
+
+`mountPlugin` mounts the History folder and, through `plugins`, the real Counter folder:
+
+```ts
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { mountPlugin } from '@bitakit/core/testing';
+
+test('History records each increment and can be cleared', async () => {
+  const plugin = await mountPlugin('src/plugins/history', { plugins: ['src/plugins/counter'] });
+  try {
+    await plugin.execute('counter.increment');
+    assert.equal(plugin.actions.get('history.clear')?.title, 'Clear history (1)');
+    assert.equal((await plugin.execute('history.clear')).status, 'completed');
+  } finally {
+    await plugin.stop();
+  }
+});
+```
+
+[Testing plugins](/docs/reference/testing) explains the setup and the other options.
+
+## What you have now
+
+- **This step gave you** a feature that extends another one through its declared contracts,
+  in its own folder, with a test that runs both.
+- **Others extend it the same way.** History could declare its own event or slot, and a third
+  plugin could build on it without editing History.
+
+You have finished Start here. The [Guides](/docs/guides/ai-agents) cover working with coding
+agents, other adapters and the remaining mechanisms.

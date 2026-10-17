@@ -5,15 +5,15 @@ description: Choose an Action, interceptor, event or store, with a visual flow a
 
 Start with the job you need. Each diagram explains one mechanism; follow the link for its options.
 
-| You want to                       | Use                                              |
-| --------------------------------- | ------------------------------------------------ |
-| Request an operation              | [Action](#one-action-several-controls)           |
-| Observe or gate an Action         | [Action interceptor](#gate-or-observe-an-action) |
-| Trace a service method            | [Service interceptor](#observe-a-service-call)   |
-| Announce a fact to other plugins  | [Event](#notify-other-plugins)                   |
-| Display changing state            | [Service store](#follow-current-state)           |
-| Save a user preference            | [Settings](/docs/concepts/settings)              |
-| Place a widget or navigation item | [Slots](/docs/concepts/slots)                    |
+| You want to                       | Use                                              | Instead of building                                       |
+| --------------------------------- | ------------------------------------------------ | --------------------------------------------------------- |
+| Request an operation              | [Action](#one-action-several-controls)           | `onClick` handlers with hand-kept `disabled`/`busy` state |
+| Observe or gate an Action         | [Action interceptor](#gate-or-observe-an-action) | Wrappers around every call site                           |
+| Trace a service method            | [Service interceptor](#observe-a-service-call)   | Logging added inside each method                          |
+| Announce a fact to other plugins  | [Event](#notify-other-plugins)                   | A shared event bus or direct calls between features       |
+| Display changing state            | [Service store](#follow-current-state)           | A second state store mirrored by effects                  |
+| Save a user preference            | [Settings](/docs/concepts/settings)              | Your own storage, form and Settings route                 |
+| Place a widget or navigation item | [Slots](/docs/concepts/slots)                    | A registry or a menu list that every feature edits        |
 
 For package responsibilities, see the [architecture map](/docs/concepts/architecture).
 

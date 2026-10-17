@@ -1,5 +1,5 @@
 ---
-title: Events
+title: 6. Announce what happened
 description: Tell other plugins what happened, with typed, runtime-owned subscriptions.
 ---
 
@@ -58,6 +58,14 @@ In React, `useEvent` from `@bitakit/ui` follows the latest callback and releases
 subscription when its names/runtime change or the component unmounts. Inline arrays with
 the same names do not cause resubscription. It waits for runtime readiness; earlier events
 are not replayed.
+
+## What you have now
+
+- **This step gave you** a typed announcement, `counter.incremented`, that only the Counter emits.
+- **Others extend it** by listening from a service or with `useEvent`, without the Counter
+  knowing who listens.
+
+**Next:** [Add an extension point →](/docs/concepts/slots)
 
 ## Later: cancelable events
 

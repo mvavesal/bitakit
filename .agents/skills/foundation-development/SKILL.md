@@ -779,12 +779,15 @@ generated README and AGENTS.md, create-app help) uses these words:
   clickable region with its code directly in the relevant subject section; do not add a
   separate visual gallery or repeat the same example below the explanation.
 
-- Teach with one evolving feature: a page first, then a service, Action, slot and setting.
+- Teach with one evolving feature, by level: Basic is a page, then a service and an Action;
+  Intermediate is a setting; Advanced is an event, a slot and a second plugin that extends the
+  first through them without editing it. Each lesson ends with "What you have now": what the
+  step gave and how other plugins extend it, limited to shipped behavior.
   Each first sample shows only fields needed for its visible result; no option catalog,
   lifecycle hook, dependency, schema, event or manifest until the lesson needs it.
-- The Introduction gives the purpose, philosophy and an additive visual example first.
-  Its first choice defines the plugin's identity with `definePlugin`/`plugin.config.ts`; the
-  page is a separate next choice. In this overview, optional explicit Action/slot IDs are shown
+- The Introduction gives the identity, the problem, the boundaries ("What BitaKit is not") and an
+  additive visual example first. Start here is page-first: a plugin is its folder, and its first
+  file is a page; `definePlugin`/`plugin.config.ts` come later, when a plugin needs metadata. In this overview, optional explicit Action/slot IDs are shown
   with a file-inference comment so their cross-plugin references are understandable.
   **Start here** then teaches the Counter step by step. Keep illustrative previews distinct
   from a future code playground; source examples must use the real APIs and owning slot contracts.

@@ -1,10 +1,11 @@
 {
   "title": "Guides",
   "pages": [
+    "ai-agents",
+    "tanstack",
     "../concepts/architecture",
     "../concepts/discovery",
     "../concepts/configuration",
-    "../concepts/events",
     "../concepts/interceptors",
     "../concepts/action-groups",
     "../concepts/type-safety",

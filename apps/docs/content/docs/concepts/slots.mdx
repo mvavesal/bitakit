@@ -1,9 +1,9 @@
 ---
-title: 5. Add an extension point
+title: 7. Add an extension point
 description: Turn the Counter button area into a slot other plugins can use.
 ---
 
-Continue with [the working Counter](/docs/concepts/actions).
+Continue with [the working Counter](/docs/concepts/events).
 
 An **extension point** is a place you deliberately leave in your page or component so other
 plugins can add something there. In BitaKit, you define it as a named **slot** and choose where
@@ -30,20 +30,14 @@ Discovery names it **`counter.toolbar`**. It accepts Actions and uses the defaul
 
 ## 2. Place the existing Action
 
-In `src/plugins/counter/actions/increment.ts`, add just `slots`:
+In `src/plugins/counter/actions/increment.ts`, add this one property to the existing
+`defineAction({ ... })` and keep everything else (title, `execute` with the setting and the event):
 
 ```ts
-import { defineAction } from '@bitakit/core';
-
-export default defineAction({
-  title: 'Increment',
-  slots: ['counter.toolbar'],
-  execute: ({ services }) => services.counter.value.increment(),
-});
+slots: ['counter.toolbar'],
 ```
 
-If you added `enabled` in the previous lesson, keep it. The Action is still registered once;
-the slot holds a reference to it.
+The Action is still registered once; the slot holds a reference to it.
 
 ## 3. Render the toolbar
 
@@ -93,7 +87,13 @@ without editing the owner. Dotted names do not create a layout: the mounted outl
 the position. Use an Actions slot and `useSlot` when the owner should render standard controls;
 use a component slot and `PluginSlot` for contributed React content.
 
-**Next:** [Add a saved preference and Settings page →](/docs/concepts/settings)
+## What you have now
+
+- **This step gave you** a named place, `counter.toolbar`, rendered by the Counter page.
+- **Others extend it** by placing their own Actions there from their own folder, as the next
+  step shows.
+
+**Next:** [Extend the Counter from a second plugin →](/docs/concepts/extend)
 
 ## Later: context, policies and manual composition
 
