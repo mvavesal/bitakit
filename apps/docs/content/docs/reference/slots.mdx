@@ -28,7 +28,7 @@ The name is `reports.row.menu`. A flat `slots/row.menu.ts`, an index collection 
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<string>({
-  title: ({ input }) => `Inspect ${input}`,
+  title: ({ input }) => (input ? `Inspect ${input}` : 'Inspect'),
   slots: [
     {
       name: 'reports.row.menu',

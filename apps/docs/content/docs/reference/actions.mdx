@@ -53,6 +53,8 @@ Without `title`, the key `<id>.title` is tried and then a title made from the la
 
 A function title is computed per binding: ``title: ({ input }) => (input ? `Add "${input}"` : 'Add task')``.
 
+Presentation functions (`title`, `description`, `tooltip`, `variant`, `href`, `enabled`, `visible`, `checked`, `value`) and `confirm` also run without input, for menus, search, group items and slot placements without an input mapping, so their `input` is typed as possibly `undefined`. They see the raw value before schema validation; only `execute` receives the parsed input.
+
 ### `description`
 
 A longer explanation, for example in a list of actions or as help text. Buttons, links and menu items show it as hover text when there is no tooltip, and custom renderers read it from the control state. Translation works like `title`: the value as a key, then `<id>.description`, then the text.
@@ -274,7 +276,7 @@ import { defineAction } from '@bitakit/core';
 export default defineAction({ title: 'Tasks', href: '/todos' });
 ```
 
-`href` must be a path starting with `/`, a `#hash` or an `http(s)` URL without credentials; anything else is rejected when the action is registered. `<Action>` renders it as a real link through the app's router, so open-in-new-tab and copy-link work; running it from code navigates. With Shell installed and mounted, add `slots: ['shell.navigation']` to place it in navigation. Group membership alone does not place UI. The route itself is a plugin page (`ui/pages/index.tsx`) or a normal framework route; a navigation action does not create it. `href` may be a function of the input: ``href: ({ input }) => `/todos/tasks/${input}` ``.
+`href` must be a path starting with `/`, a `#hash` or an `http(s)` URL without credentials; anything else is rejected when the action is registered. `<Action>` renders it as a real link through the app's router, so open-in-new-tab and copy-link work; running it from code navigates. With Shell installed and mounted, add `slots: ['shell.navigation']` to place it in navigation. Group membership alone does not place UI. The route itself is a plugin page (`ui/pages/index.tsx`) or a normal framework route; a navigation action does not create it. `href` may be a function of the input: ``href: ({ input }) => (input ? `/todos/tasks/${input}` : undefined)``. Search skips an Action without an href.
 
 ### Dialog actions
 

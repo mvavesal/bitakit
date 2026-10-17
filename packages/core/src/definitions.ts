@@ -95,8 +95,13 @@ export function isServiceDefinition(value: unknown): value is ServiceDefinition 
 // Actions
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * What presentation functions and `confirm` receive. Menus, search, group items and slot
+ * placements without an input mapping evaluate them without input, so `input` may be undefined;
+ * they also see the raw value before schema validation. Only `execute` receives the parsed input.
+ */
 export type PresentationContext<Input = unknown> = {
-  input: Input;
+  input: Input | undefined;
   services: Services;
   config: ConfigContext;
   settings: SettingsAccess;

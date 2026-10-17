@@ -126,7 +126,10 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 - **Actions** have one shape. Presentation fields (`title`, `description`, `tooltip`, `icon`,
   `variant`, `href`, `enabled`, `visible`, `checked`, `value`) take a value or a function of
   `{ input, services, config, settings, app }`, evaluated per binding input and on store or
-  setting changes. `input` schemas (zod, valibot, Standard Schema) type, validate and
+  setting changes. Presentation and `confirm` `input` is typed `Input | undefined`: unbound
+  snapshots, group items and unmapped slot placements evaluate without input, and they see the
+  raw value before validation; only `execute` gets the parsed input. Call-site input stays
+  optional: toggle/choice bindings, forms and controls supply it at execution. `input` schemas (zod, valibot, Standard Schema) type, validate and
   disable while invalid. `execute({ input, services, config, settings, app, events, signal,
   id, get, update })` is sync or async; pending is set only when a promise is returned.
   `href` is navigation, `dialog` opens a component (`{ input, close, services }`), never both

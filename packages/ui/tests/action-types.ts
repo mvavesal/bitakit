@@ -37,7 +37,9 @@ type Assert<T extends true> = T;
 const memberSchema = { parse: (input: unknown) => ({ memberId: String(input) }) };
 const promote = defineAction({
   input: memberSchema,
-  visible: ({ input }) => input.memberId.length > 0,
+  // Presentation runs without input for menus and search, so input may be undefined.
+  visible: ({ input }) => (input?.memberId.length ?? 0) > 0,
+  confirm: ({ input }) => `Promote ${input?.memberId ?? 'this member'}?`,
   execute: async ({ input }) => ({ id: input.memberId }),
 });
 type _Promote = Assert<
@@ -49,8 +51,13 @@ type _Promote = Assert<
 
 // Without a schema the input is named explicitly; the result is then unknown.
 const add = defineAction<string>({
-  enabled: ({ input }) => input.trim().length > 0,
+  enabled: ({ input }) => (input?.trim().length ?? 0) > 0,
   execute: ({ input }) => input.length,
+});
+defineAction<string>({
+  // @ts-expect-error Presentation input may be undefined; guard it.
+  title: ({ input }) => input.trim(),
+  execute: () => undefined,
 });
 type AddEntry = ActionEntry<typeof add, 'todos.add'>;
 type _AddKey = Assert<Equal<keyof AddEntry, 'todos.add'>>;
