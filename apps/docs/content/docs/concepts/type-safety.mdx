@@ -33,9 +33,19 @@ With an `input` schema, the input and the result are inferred and the schema val
 
 In a discovered contribution, the effective ID maps to that input and result in the generated `ActionMap`, so `useAction('todos.create')`, `<Action id="todos.create" input={...}>` and `app.actions.todos.create.execute(...)` autocomplete the ID and check the input. Keep the generated `src/bitakit.gen.tsx` in the host TypeScript project.
 
-## Strict action IDs
+## Strict names
 
-Generated apps reject unknown action IDs at compile time: discovery augments `ActionMapOptions` with `{ strict: true }`. Set `strict: false` in `bitakit.config.ts` to allow dynamic IDs, or augment the option yourself in a manual composition:
+Generated apps reject unknown names at compile time: discovery augments `ActionMapOptions` with `{ strict: true }`, and that one switch covers every generated name.
+
+| Name | Checked where |
+| --- | --- |
+| Action IDs and inputs | `<Action id>`, `ActionButton`, `ActionLink`, `useAction`, Action `slots` |
+| Event names | `events.emit`, `events.on`, `useEvent`; `on` also accepts `<plugin>.*` patterns of declared events and `*` |
+| Slot names | `PluginSlot`, `useSlot` |
+| Setting keys | `useSetting`; `settings.<plugin>.<name>` in services and Actions |
+| Service names | `useService`, `useServiceState`; `services.<plugin>.<name>` in services and Actions |
+
+Installed package plugins add their record-form Actions and their events to the same maps. Set `strict: false` in `bitakit.config.ts` to allow dynamic names, or augment the option yourself in a manual composition:
 
 ```ts
 // src/bitakit-types.d.ts

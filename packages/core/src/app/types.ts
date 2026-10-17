@@ -4,7 +4,8 @@ import type { Plugin, ServiceDefinition, ServiceMap } from '../definitions.js';
 import type { ContractName } from '../service-key.js';
 import type { SettingsOf } from '../settings/define.js';
 import type { SettingsAccess } from '../settings/access.js';
-import type { SlotTree } from '../discovered.js';
+import type { ActionTree, SlotTree } from '../discovered.js';
+import type { CancelableOf, EventsOf } from '../events/define.js';
 import type { SlotEntry } from '../slots/define.js';
 
 /** @deprecated Augment `ServiceMap`; kept so older generated hosts still compile. */
@@ -56,6 +57,44 @@ export type PublicSettingsOf<Plugins extends readonly Plugin[]> = [Plugins[numbe
       Plugins[number] extends infer P
         ? P extends { id: infer Id extends string; settings: infer S }
           ? SettingsOf<S, Id>
+          : {}
+        : never
+    >;
+
+/**
+ * `ActionMap` entries of manually composed or installed package plugins. Record keys become
+ * `<plugin>.<key>`; array entries carry no literal ID type and add nothing.
+ */
+export type PublicActionsOf<Plugins extends readonly Plugin[]> = [Plugins[number]] extends [never]
+  ? {}
+  : Intersection<
+      Plugins[number] extends infer P
+        ? P extends { id: infer Id extends string; actions: infer A }
+          ? A extends readonly unknown[]
+            ? {}
+            : ActionTree<A, Id>
+          : {}
+        : never
+    >;
+
+/** `EventMap` entries of manually composed or installed package plugins. */
+export type PublicEventsOf<Plugins extends readonly Plugin[]> = [Plugins[number]] extends [never]
+  ? {}
+  : Intersection<
+      Plugins[number] extends infer P
+        ? P extends { id: infer Id extends string; events: infer E }
+          ? EventsOf<E, Id>
+          : {}
+        : never
+    >;
+
+/** `CancelableEventMap` entries of manually composed or installed package plugins. */
+export type PublicCancelableOf<Plugins extends readonly Plugin[]> = [Plugins[number]] extends [never]
+  ? {}
+  : Intersection<
+      Plugins[number] extends infer P
+        ? P extends { id: infer Id extends string; events: infer E }
+          ? CancelableOf<E, Id>
           : {}
         : never
     >;

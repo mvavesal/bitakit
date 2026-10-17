@@ -1,11 +1,12 @@
 'use client';
 import { useCallback, useRef, useSyncExternalStore } from 'react';
-import { isStore, type ServiceMap, type Store } from '@bitakit/core';
+import { isStore, type GeneratedName, type ServiceMap, type Store } from '@bitakit/core';
 import { useFoundation } from '../providers/foundation-context.js';
 import { shallowEqual } from '../utils/merge-props.js';
 import { subscribeReadiness } from '../utils/subscribe-readiness.js';
 
-type ServiceName = Extract<keyof ServiceMap, string> | (string & {});
+/** A service ID or contract name; strict generated apps reject unknown names. */
+type ServiceName = GeneratedName<Extract<keyof ServiceMap, string>>;
 type ServiceOf<Name extends string> = Name extends keyof ServiceMap
   ? NonNullable<ServiceMap[Name]>
   : unknown;

@@ -1,5 +1,6 @@
 import type { InputSchema, SchemaOutput } from '../definitions.js';
 import type { PresentationType } from '../presentation.js';
+import type { GeneratedName } from '../names.js';
 import { validateSync } from '../schema.js';
 
 /** Who a value belongs to: the signed-in user, the active organization, or this browser. */
@@ -192,7 +193,8 @@ export function parseSetting<T>(spec: SettingSpec<T>, value: unknown, key = 'set
 
 /** Setting keys and value types. Generated from every `settings.ts`; may also be augmented by hand. */
 export interface SettingsMap {}
-export type SettingKey = Extract<keyof SettingsMap, string> | (string & {});
+/** A declared setting key; strict generated apps reject unknown keys. */
+export type SettingKey = GeneratedName<Extract<keyof SettingsMap, string>>;
 export type SettingValue<Key extends string> = Key extends keyof SettingsMap
   ? SettingsMap[Key]
   : unknown;

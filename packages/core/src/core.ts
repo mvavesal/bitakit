@@ -10,6 +10,7 @@ export type * from './definitions.js';
 export { defineEvents, event, isEventsDefinition } from './events/define.js';
 export type { EventsDefinition, EventSpec, EventsOf, CancelableOf } from './events/define.js';
 export type * from './events/types.js';
+export type { GeneratedName } from './names.js';
 export { EventService } from './events/service.js';
 export {
   defineSettings,
@@ -82,6 +83,9 @@ export type {
   AppExtensionMap,
   Namespace,
   PublicServiceMap,
+  PublicActionsOf,
+  PublicCancelableOf,
+  PublicEventsOf,
   PublicServicesOf,
   PublicSettingsOf,
   PublicSlotsOf,

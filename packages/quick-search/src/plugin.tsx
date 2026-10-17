@@ -4,7 +4,6 @@ import SearchIcon from 'reicon-react/icons/Search';
 import { QuickSearchTrigger } from './trigger.js';
 import { SearchResults, type QuickSearchResults } from './search-results.js';
 
-import { quickSearchActionId } from './constants.js';
 export { quickSearchActionId } from './constants.js';
 export type { QuickSearchResults } from './search-results.js';
 /** Installed packages read these from the app's `src/configs/quick-search.ts`. */
@@ -25,9 +24,10 @@ export function quickSearchPlugin(options: QuickSearchOptions = {}) {
   return definePlugin({
     id: 'quick-search',
     ui: { slots: [{ slot: 'app-bar.end', component: QuickSearchTrigger }] },
-    actions: [
-      defineAction({
-        id: quickSearchActionId,
+    // The record key gives the ID "quick-search.open" (quickSearchActionId) and lets host
+    // generation type it, which an explicit ID in an array cannot.
+    actions: {
+      open: defineAction({
         title,
         icon: SearchIcon,
         shortcut: shortcut ? { keys: shortcut } : undefined,
@@ -45,6 +45,6 @@ export function quickSearchPlugin(options: QuickSearchOptions = {}) {
           ),
         },
       }),
-    ],
+    },
   });
 }

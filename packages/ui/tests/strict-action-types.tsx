@@ -3,11 +3,15 @@ import {
   Action,
   ActionButton,
   ActionLink,
+  PluginSlot,
   useAction,
   useActionGroup,
+  useEvent,
+  useServiceState,
+  useSetting,
   useSlot,
 } from '../dist/index.js';
-import type { ActionReference, ExecutionResult } from '@bitakit/core';
+import type { ActionReference, ExecutionResult, Store } from '@bitakit/core';
 
 declare const reference: ActionReference<'counter.increment'>;
 
@@ -20,6 +24,16 @@ declare module '@bitakit/core' {
   }
   interface SlotMap {
     'counter.toolbar': { accepts: 'actions' };
+    'counter.sidebar': { accepts: 'component' };
+  }
+  interface EventMap {
+    'counter.incremented': number;
+  }
+  interface SettingsMap {
+    'counter.step': number;
+  }
+  interface ServiceMap {
+    'counter.value': { state: Store<{ count: number }> };
   }
 }
 
@@ -67,3 +81,30 @@ function bindings() {
   <ActionLink action="counter.typo" />;
 }
 void bindings;
+
+/** The same strict switch covers event, setting, service and slot names. */
+function names() {
+  useEvent('counter.incremented', (event) => {
+    const count: number = event.data;
+    void count;
+  });
+  useEvent('counter.*', () => {});
+  useEvent('runtime.lifecycle', () => {});
+  useEvent('*', () => {});
+  // @ts-expect-error Strict apps reject unknown event names.
+  useEvent('counter.incremnted', () => {});
+  // @ts-expect-error Patterns must match declared events.
+  useEvent('counters.*', () => {});
+  const step: number | undefined = useSetting('counter.step').value;
+  void step;
+  // @ts-expect-error Strict apps reject unknown setting keys.
+  useSetting('counter.stp');
+  const count: number = useServiceState('counter.value', (state) => state.count, 0);
+  void count;
+  // @ts-expect-error Strict apps reject unknown service names.
+  useServiceState('counter.valu');
+  <PluginSlot name="counter.sidebar" />;
+  // @ts-expect-error Strict apps reject unknown slot names.
+  <PluginSlot name="counter.sidbar" />;
+}
+void names;

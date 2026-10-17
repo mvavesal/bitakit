@@ -252,7 +252,8 @@ type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) e
   ? I
   : never;
 
-type ActionTree<T, P extends string> = T extends { kind: 'action' }
+/** `ActionMap` entries of an Action, or of a nested record of Actions under path `P`. */
+export type ActionTree<T, P extends string> = T extends { kind: 'action' }
   ? ActionEntry<T, P>
   : T extends { execute: (...args: any[]) => any }
     ? ActionEntry<T & { kind: 'action' }, P>

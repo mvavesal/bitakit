@@ -568,6 +568,9 @@ ${installed.plugins
     installed.plugins.length && 'type PublicServicesOf',
     installed.plugins.length && 'type PublicSettingsOf',
     installed.plugins.length && 'type PublicSlotsOf',
+    installed.plugins.length && 'type PublicActionsOf',
+    installed.plugins.length && 'type PublicEventsOf',
+    installed.plugins.length && 'type PublicCancelableOf',
   ].filter(Boolean);
   const body = [
     ...definitions,
@@ -606,14 +609,14 @@ type DiscoveredEvents = ${intersect(types.events)};
 type DiscoveredCancelable = ${intersect(types.cancelable)};
 type DiscoveredSettings = ${intersect(types.settings)};
 type DiscoveredSlots = ${intersect(types.slots)};
-${installed.plugins.length ? `type InstalledPlugins = [${installed.plugins.map((_, index) => `ReturnType<typeof packagePlugin${index}>`).join(', ')}];\ntype InstalledServices = PublicServicesOf<InstalledPlugins>;\ntype InstalledSettings = PublicSettingsOf<InstalledPlugins>;\ntype InstalledSlots = PublicSlotsOf<InstalledPlugins>;` : 'type InstalledServices = {};\ntype InstalledSettings = {};\ntype InstalledSlots = {};'}
+${installed.plugins.length ? `type InstalledPlugins = [${installed.plugins.map((_, index) => `ReturnType<typeof packagePlugin${index}>`).join(', ')}];\ntype InstalledServices = PublicServicesOf<InstalledPlugins>;\ntype InstalledSettings = PublicSettingsOf<InstalledPlugins>;\ntype InstalledSlots = PublicSlotsOf<InstalledPlugins>;\ntype InstalledActions = PublicActionsOf<InstalledPlugins>;\ntype InstalledEvents = PublicEventsOf<InstalledPlugins>;\ntype InstalledCancelable = PublicCancelableOf<InstalledPlugins>;` : 'type InstalledServices = {};\ntype InstalledSettings = {};\ntype InstalledSlots = {};\ntype InstalledActions = {};\ntype InstalledEvents = {};\ntype InstalledCancelable = {};'}
 ${[...kindTypes.values()].map(({ kind, index, entries }) => `type KindMap${index} = ${entries.join(' & ')};\ndeclare module ${specifier(kind.from)} { interface ${kind.types.map} extends KindMap${index} {} }`).join('\n')}
 declare module '@bitakit/core' {
   interface ServiceMap extends DiscoveredServices, InstalledServices {}
   interface PublicServiceMap extends InstalledServices {}
-  interface ActionMap extends DiscoveredActions {}
-  interface EventMap extends DiscoveredEvents {}
-  interface CancelableEventMap extends DiscoveredCancelable {}
+  interface ActionMap extends DiscoveredActions, InstalledActions {}
+  interface EventMap extends DiscoveredEvents, InstalledEvents {}
+  interface CancelableEventMap extends DiscoveredCancelable, InstalledCancelable {}
   interface SettingsMap extends DiscoveredSettings, InstalledSettings {}
   interface ConfigMap {
     ${types.configs.join('\n    ')}

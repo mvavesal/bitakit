@@ -1,9 +1,16 @@
+import type { GeneratedName } from '../names.js';
+
 /** Event names and payloads. Generated from every plugin's `events.ts`; may also be augmented by hand. */
 export interface EventMap {}
 /** Events whose `emit` waits for the handlers and returns whether none cancelled. */
 export interface CancelableEventMap {}
 
-export type EventName = Extract<keyof EventMap, string> | (string & {});
+export type KnownEventName = Extract<keyof EventMap, string>;
+/** A declared event name; strict generated apps reject unknown names. */
+export type EventName = GeneratedName<KnownEventName>;
+type PatternOf<Name extends string> = Name extends `${infer Prefix}.${string}` ? `${Prefix}.*` : never;
+/** What a listener selects: an event, a `<prefix>.*` pattern of declared events, or `*`. */
+export type EventSelector = EventName | PatternOf<KnownEventName> | '*';
 export type EventData<Name extends string> = Name extends keyof EventMap ? EventMap[Name] : unknown;
 /** `todos.*` matches every declared `todos.<name>` event. */
 export type EventsMatching<Pattern extends string> = Pattern extends `${infer Prefix}.*`
@@ -34,7 +41,7 @@ type EmitArguments<Name extends string> =
 
 export interface Events {
   /** Each matching event invokes the handler once. Returns the unsubscribe function. */
-  on<const Name extends EventName>(
+  on<const Name extends EventSelector>(
     names: Name | readonly Name[],
     handler: EventHandler<Name>,
   ): () => void;

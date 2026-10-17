@@ -266,9 +266,9 @@ test('the generated file wires app and plugins: nested services, typed events, c
     for (const declaration of [
       /interface ServiceMap extends DiscoveredServices, InstalledServices \{\}/,
       /interface PublicServiceMap extends InstalledServices \{\}/,
-      /interface ActionMap extends DiscoveredActions \{\}/,
-      /interface EventMap extends DiscoveredEvents \{\}/,
-      /interface CancelableEventMap extends DiscoveredCancelable \{\}/,
+      /interface ActionMap extends DiscoveredActions, InstalledActions \{\}/,
+      /interface EventMap extends DiscoveredEvents, InstalledEvents \{\}/,
+      /interface CancelableEventMap extends DiscoveredCancelable, InstalledCancelable \{\}/,
       /interface ConfigMap \{\s+"app": DiscoveredConfigEntry<typeof file\d+>;\s+"todos": DiscoveredConfigEntry<typeof file\d+>;\s+\}/,
       /interface LegacySlotMap \{ "sidebar\.top": true; \}/,
       /interface ActionMapOptions \{ strict: true \}/,
