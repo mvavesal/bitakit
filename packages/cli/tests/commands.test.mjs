@@ -69,6 +69,10 @@ test('migrate --dry-run only lists the changes; migrate applies them once and th
   assert.match(dry.stdout, /rewrite\s+\.gitignore/);
   assert.match(dry.stdout, /delete\s+\.foundation/);
   assert.match(dry.stdout, /Run without --dry-run to apply\./);
+  assert.match(
+    dry.stdout,
+    /definePage\(\.\.\.\) was removed in 0\.2; export the component itself as default/,
+  );
   await exists(root, 'foundation.config.ts');
   await exists(root, 'src/plugins/todos/actions/add.action.ts');
   await exists(root, 'src/plugins/todos/pages/todos.tsx');

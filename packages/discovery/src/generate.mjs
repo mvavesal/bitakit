@@ -702,6 +702,13 @@ export function BitaKitProvider(props: Omit<ComponentProps<typeof BitaKitRuntime
     styleDirectories: [
       ...new Set((installed.styleSources ?? []).map((file) => path.dirname(file))),
     ],
+    // Project-relative stylesheet paths for package CSS imports that need the "style" condition.
+    styleAliases: Object.fromEntries(
+      [...(installed.styleAliases ?? [])].map(([specifier, file]) => {
+        const relative = path.relative(root, file).split(path.sep).join('/');
+        return [specifier, relative.startsWith('.') ? relative : `./${relative}`];
+      }),
+    ),
     warnings,
     generated,
     framework,

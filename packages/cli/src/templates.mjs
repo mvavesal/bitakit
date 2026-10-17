@@ -148,6 +148,171 @@ export default defineAction({ title: '${title}', href: '/${name}', groups: ['nav
   };
 }
 
+/**
+ * The Todo sample (`create-app --sample`), written relative to the plugins folder. It teaches
+ * by level: `todos` starts with a page, Actions and a service, adds a setting, then announces
+ * changes (`events.ts`) and offers an extension point (`slots/footer.ts`). `activity` is a
+ * second plugin that listens to those events and fills that slot without changing `todos`.
+ */
+export function sampleFiles({ navigationSlot } = {}) {
+  return {
+    'todos/services/items.ts': `import { defineService } from '@bitakit/core';
+
+export type Todo = { id: number; title: string };
+
+// The todo list. It lives in memory, so a reload starts empty; call your API here later.
+export default defineService(({ store, events }) => {
+  const state = store<{ items: Todo[] }>({ items: [] });
+  let next = 1;
+  return {
+    state,
+    add(title: string) {
+      const item = { id: next++, title: title.trim() };
+      state.set((current) => ({ items: [...current.items, item] }));
+      events.emit('todos.changed', { kind: 'added', title: item.title });
+    },
+    remove(id: number) {
+      const item = state.get().items.find((entry) => entry.id === id);
+      state.set((current) => ({ items: current.items.filter((entry) => entry.id !== id) }));
+      if (item) events.emit('todos.changed', { kind: 'removed', title: item.title });
+    },
+    clear() {
+      state.set({ items: [] });
+      events.emit('todos.changed', { kind: 'cleared' });
+    },
+  };
+});
+`,
+    'todos/actions/add.ts': `import { defineAction } from '@bitakit/core';
+
+export default defineAction<string>({
+  title: 'Add',
+  // Bound buttons stay disabled while the input is empty or the list is full.
+  enabled: ({ input, services, settings }) =>
+    !!input?.trim() && services.todos.items.state.get().items.length < settings.todos.limit.get(),
+  execute: ({ services, input }) => services.todos.items.add(input),
+});
+`,
+    'todos/actions/remove.ts': `import { defineAction } from '@bitakit/core';
+
+export default defineAction<number>({
+  title: 'Remove',
+  // Each row tracks its own pending state.
+  concurrency: 'per-input',
+  execute: ({ services, input }) => services.todos.items.remove(input),
+});
+`,
+    'todos/actions/clear.ts': `import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  title: 'Clear all',
+  enabled: ({ services }) => services.todos.items.state.get().items.length > 0,
+  confirm: 'Delete every todo?',
+  execute: ({ services }) => services.todos.items.clear(),
+  success: 'All todos deleted',
+});
+`,
+    'todos/actions/open.ts': `import { defineAction } from '@bitakit/core';
+
+// The menu entry for the page in ui/pages/index.tsx.
+export default defineAction({ title: 'Todos', href: '/todos', groups: ['navigation']${navigationSlot ? `, slots: [${JSON.stringify(navigationSlot)}]` : ''} });
+`,
+    'todos/settings.ts': `import { defineSettings, setting } from '@bitakit/core';
+
+// A user setting with a default. Actions read it as settings.todos.limit.get().
+export default defineSettings({
+  limit: setting({ default: 20, control: 'number', label: 'Maximum todos' }),
+});
+`,
+    'todos/events.ts': `import { defineEvents, event } from '@bitakit/core';
+
+// Tells other plugins what changed; they listen with events.on('todos.changed', ...).
+export default defineEvents({
+  changed: event<{ kind: 'added' | 'removed' | 'cleared'; title?: string }>(),
+});
+`,
+    'todos/slots/footer.ts': `import { defineSlot } from '@bitakit/core';
+
+// An extension point below the list, todos.footer. Other plugins fill it from ui/slots/todos.footer.tsx.
+export default defineSlot({ accepts: 'component' });
+`,
+    'todos/ui/pages/index.tsx': `'use client';
+import { useState } from 'react';
+import { Action, PluginSlot, useServiceState } from '@bitakit/ui';
+import { Button, Input, PageHeader } from '@bitakit/ui/components';
+
+// Served at /todos. Each button takes its label, disabled and pending state from its Action.
+export default function TodosPage() {
+  const items = useServiceState('todos.items', (state) => state.items, []);
+  const [title, setTitle] = useState('');
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Todos" subtitle="Add a todo and press Enter. Everything here lives in src/plugins/todos." />
+      {/* Enter submits the form, which clicks the bound Add button. */}
+      <form className="flex gap-2" onSubmit={(event) => event.preventDefault()}>
+        <Input
+          value={title}
+          placeholder="What needs doing?"
+          aria-label="New todo"
+          onChange={(event) => setTitle(event.target.value)}
+        />
+        <Action id="todos.add" input={title} onExecuted={() => setTitle('')}>
+          <Button type="submit" />
+        </Action>
+      </form>
+      <ul className="flex flex-col gap-2">
+        {items.map((item) => (
+          <li key={item.id} className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate">{item.title}</span>
+            <Action id="todos.remove" input={item.id}>
+              <Button variant="ghost" size="sm" />
+            </Action>
+          </li>
+        ))}
+      </ul>
+      <Action id="todos.clear">
+        <Button variant="outline" className="self-start" />
+      </Action>
+      <PluginSlot name="todos.footer" />
+    </div>
+  );
+}
+`,
+    'activity/services/feed.ts': `import { defineService } from '@bitakit/core';
+
+// Listens to the todos plugin without changing it; the listener ends when this plugin stops.
+export default defineService(({ store, events }) => {
+  const state = store<{ entries: string[] }>({ entries: [] });
+  events.on('todos.changed', ({ data }) => {
+    const entry =
+      data.kind === 'cleared' ? 'Cleared the list' : \`\${data.kind === 'added' ? 'Added' : 'Removed'} "\${data.title}"\`;
+    state.set((current) => ({ entries: [entry, ...current.entries].slice(0, 5) }));
+  });
+  return { state };
+});
+`,
+    'activity/ui/slots/todos.footer.tsx': `'use client';
+import { useServiceState } from '@bitakit/ui';
+
+// Fills the todos.footer slot that the todos plugin declares; todos itself is unchanged.
+export default function RecentActivity() {
+  const entries = useServiceState('activity.feed', (state) => state.entries, []);
+  if (!entries.length) return null;
+  return (
+    <section aria-label="Recent activity" className="flex flex-col gap-2">
+      <p>Recent activity</p>
+      <ul className="flex flex-col gap-1">
+        {entries.map((entry, index) => (
+          <li key={index}>{entry}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+`,
+  };
+}
+
 export function pageFile(plugin, path, title, { list = false } = {}) {
   const component = `${pascalOf(path.split('/').filter(Boolean).join('-') || plugin)}Page`;
   if (!list)

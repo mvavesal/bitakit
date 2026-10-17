@@ -2,7 +2,7 @@ import { mkdir, readdir, readFile, writeFile, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { execa } from 'execa';
 import validateName from 'validate-npm-package-name';
-import { pluginFiles } from '@bitakit/cli';
+import { sampleFiles } from '@bitakit/cli';
 import { resolveFeatures, defaultFeatures } from './features.mjs';
 import { next } from './adapters/next.mjs';
 import { tanstack } from './adapters/tanstack.mjs';
@@ -73,8 +73,8 @@ export async function createApp(plan, { run, packagesDir, install = plan.install
   await adapter.configure(plan);
   if (plan.sample)
     await writeProjectFiles(
-      path.join(plan.target, 'src/plugins/todos'),
-      pluginFiles('todos', {
+      path.join(plan.target, 'src/plugins'),
+      sampleFiles({
         navigationSlot: plan.features.includes('shell') ? 'shell.navigation' : undefined,
       }),
     );

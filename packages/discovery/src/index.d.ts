@@ -51,6 +51,11 @@ export type GenerateResult = {
   included: string[];
   /** Installed stylesheet and emitted script directories watched for CSS contract changes. */
   styleDirectories: string[];
+  /**
+   * Package CSS imports that resolve only with the "style" export condition, mapped to a
+   * project-relative stylesheet path; the Next adapter passes them to Turbopack's resolveAlias.
+   */
+  styleAliases: Record<string, string>;
   warnings: string[];
   /** The generated TypeScript file. */
   generated: string;
@@ -76,6 +81,7 @@ export function validatePackageStyles(
     styles: string[];
     theme: string[];
   }[],
+  options?: { aliases?: Map<string, string> },
 ): Promise<string[]>;
 export function detectFramework(manifest: {
   dependencies?: Record<string, string>;

@@ -20,6 +20,7 @@ export {
   interceptorFile,
   pageFile,
   pluginFiles,
+  sampleFiles,
   starterFiles,
   serviceFile,
   titleOf,

@@ -134,7 +134,7 @@ npx bitakit add plugin notes --example
 
 This scaffolds a service, typed events, Actions and a page at /notes. It is a fuller example,
 not a required plugin shape. A navigation entry appears only in its explicitly selected slot.
-${plan.sample ? '\nThe `todos` plugin in `src/plugins/todos` is a working sample. Delete the folder to remove it.\n' : ''}
+${plan.sample ? '\nThe Todo sample is a working example in two plugins. `src/plugins/todos` starts with a page, Actions and a service, adds a setting (`settings.ts`), then announces changes (`events.ts`) and offers an extension point (`slots/footer.ts`). `src/plugins/activity` listens to those changes and fills that slot without touching `todos`. Delete both folders to remove the sample.\n' : ''}
 ${plan.features.includes('preferences') ? '\nSettings are at `/settings`. Declare them once in a plugin’s `settings.ts`; pages and navigation are generated.\n' : ''}`;
 }
 

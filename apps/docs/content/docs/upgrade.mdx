@@ -1,0 +1,85 @@
+---
+title: Upgrade from 0.1
+description: Move a 0.1 project to 0.2 with one command, then finish the few steps it reports.
+---
+
+`npx bitakit migrate` rewrites a 0.1 project to the 0.2 layout and API names. It changes files
+in place, so start from a clean Git working tree and review the diff afterwards.
+
+## 1. Install the 0.2 packages
+
+Upgrade every `@bitakit/*` package to the same 0.2 release, and add the command line and
+discovery packages as dev dependencies:
+
+```sh
+npm install --save-dev @bitakit/cli @bitakit/discovery
+```
+
+`@bitakit/core` must be installed before you migrate: the command reads its exports to move
+Core names out of `@bitakit/ui` imports.
+
+## 2. Preview and apply
+
+```sh
+npx bitakit migrate --dry-run
+```
+
+The preview lists every change (`rename`, `rewrite`, `delete`) and every `skip`: a place the
+command will not guess. Apply the changes, then check the project:
+
+```sh
+npx bitakit migrate
+npx bitakit generate
+npx bitakit doctor
+npm run typecheck
+```
+
+Running `migrate` again prints `Nothing to migrate.`
+
+## What the command changes
+
+| 0.1                                                   | 0.2                                                                      |
+| ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| `foundation.config.ts` with `defineFoundation`        | `bitakit.config.ts` with `defineBitaKit` from `@bitakit/discovery`       |
+| `.foundation/` and `foundation-env.d.ts`              | `src/bitakit.gen.*`, ignored by Git                                      |
+| `foundation-generate`, `next dev --webpack`           | `bitakit generate`, `next dev`                                           |
+| `actions.add.ts`, `add.action.ts`                     | `actions/add.ts` (a record file such as `actions.ts` stays)              |
+| `pages/`, `views/`, `providers/`                      | `ui/pages/`, `ui/slots/`, `ui/providers/`                                |
+| `<FoundationProvider>` in the root layout             | `<BitaKitProvider>` from the generated file                              |
+| `defineURLAction`, `useWatchEvent`                    | `defineAction({ href })`, `useEvent`                                     |
+| `setup: ({ app }) => …`                               | `setup: ({ scope: app }) => …`; `services` sits beside `scope`           |
+| Action placement `{ name: 'shell.navigation' }`       | `{ slot: 'shell.navigation' }`                                           |
+| `slots.attach('x', { component })`                    | `slots.attach({ slot: 'x', component })`                                 |
+| `Foundation*` names, `withFoundation`, `foundation()` | `BitaKit*` names, `withBitaKit`, `bitakit()` (also in root config files) |
+| Core names imported from `@bitakit/ui`                | Imported from `@bitakit/core`; `@bitakit/ui` exports only React bindings |
+
+The renamed names follow one rule: `Foundation` becomes `BitaKit`. Three names also say what they
+are: `FoundationProvider` → `BitaKitRuntimeProvider` (the low-level provider; apps mount the
+generated `BitaKitProvider`), `FoundationConfig` → `BitaKitRuntimeConfig`, and
+`generateFoundationHost` → `generateBitaKit`.
+
+## What you finish by hand
+
+Each `skip` line of the preview names a file and the fix:
+
+- **Page and view wrappers.** `definePage(...)` and `defineView(...)` are gone: the file path is
+  the route or the slot. Export the component itself as default.
+- **Slot attachments the command cannot read safely.** Rewrite
+  `slots.attach(name, contribution)` as `slots.attach({ slot: name, ...contribution })`.
+- **Navigation placement.** 0.1 put an Action in a navigation by its `navigation` group. Choose the
+  target once, preview, then apply:
+
+  ```sh
+  npx bitakit migrate --navigation-slot shell.navigation --dry-run
+  ```
+
+- **Events from outside a plugin.** `app.events` only listens in 0.2. Emit from the owning
+  plugin's service or Action with `events.emit('<plugin>.<event>', data)`.
+- **Presentation input.** `title`, `enabled`, `visible` and `confirm` functions now type `input` as
+  possibly `undefined`, because menus evaluate them without input. Write `input?.trim()`.
+
+## Type checks that are stricter now
+
+Generated apps check names against your plugins: Action IDs, service names, event names,
+setting keys and slot names. A typo that compiled in 0.1 now fails `npm run typecheck` with the
+known names. `npx bitakit info` lists every ID the project declares.

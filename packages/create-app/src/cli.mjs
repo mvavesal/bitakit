@@ -19,8 +19,8 @@ const program = new Command()
     '--features <names>',
     `comma-separated ${Object.keys(features).join(', ')}, or none (default: ${defaultFeatures.join(',')})`,
   )
-  .option('--sample', 'add the Todos sample plugin')
-  .option('--no-sample', 'do not add the Todos sample plugin')
+  .option('--sample', 'add the Todo sample (two plugins that work together)')
+  .option('--no-sample', 'do not add the Todo sample')
   .option('-y, --yes', 'use defaults without prompts')
   .option('--no-install', 'generate files without installing dependencies')
   .option('--packages-dir <directory>', 'install BitaKit from local npm-packed tarballs')
@@ -109,7 +109,7 @@ Examples:
       sample = interactive
         ? await answer(
             prompts.confirm({
-              message: 'Add the Todos sample plugin to learn from?',
+              message: 'Add the Todo sample (two plugins) to learn from?',
               initialValue: true,
             }),
           )
@@ -121,7 +121,7 @@ Examples:
       ...(plan.type === 'app'
         ? [
             `Features:  ${plan.features.join(', ') || 'none'}`,
-            `Sample:    ${plan.sample ? 'Todos plugin' : 'no'}`,
+            `Sample:    ${plan.sample ? 'Todo (todos + activity plugins)' : 'no'}`,
           ]
         : []),
       `Install:   ${plan.install ? 'yes' : 'no'}`,

@@ -28,7 +28,7 @@ The generator asks which framework and extras you want, creates `my-app` and ins
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `--framework <name>` | `next` or `tanstack` (TanStack Start is experimental)                                                                       |
 | `--features <list>`  | Comma-separated extras: `shell` (navigation frame, layouts), `preferences` (settings pages), `quick-search` (⌘K), or `none` |
-| `--sample`           | Adds the Todos sample plugin; `--no-sample` leaves it out                                                                   |
+| `--sample`           | Adds the Todo sample: `todos` and an `activity` plugin that extends it; `--no-sample` leaves it out                         |
 | `--yes`              | Use the defaults for everything you did not set, without asking                                                             |
 | `--no-install`       | Write the files but do not run `npm install`                                                                                |
 | `--dry-run`          | Print what would be created and change nothing                                                                              |
@@ -40,7 +40,7 @@ A minimal Next.js app, created without any questions:
 npx @bitakit/create-app my-app --framework next --features none --yes
 ```
 
-An app with the navigation frame, ⌘K search and the Todos sample:
+An app with the navigation frame, ⌘K search and the Todo sample:
 
 ```sh
 npx @bitakit/create-app my-app --features shell,quick-search --sample
@@ -130,6 +130,8 @@ You rarely run `generate` yourself: the framework adapters run it during `dev` a
 | `npx bitakit doctor`   | Reports wiring problems with a fix for each; exit code 1 when something is wrong                                     | `--json` for CI                    |
 | `npx bitakit info`     | Lists every plugin with the IDs you type: Actions, services, page URLs, events, settings and slots                   | `--json`                           |
 | `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout and API spellings: setup `{ scope }`, placement `slot`, `attach({ slot })`, `Foundation*` → `BitaKit*` (also in root config files), and Core names imported from `@bitakit/ui` move to `@bitakit/core` | `--dry-run` only lists the changes |
+
+Moving from 0.1? [Upgrade from 0.1](/docs/upgrade) walks through `migrate` and the few steps it leaves to you.
 
 `doctor` checks package versions, provider wiring, ignored generated files, pages and links no route reaches, colliding service names, `requires` entries that name nothing, plugin dependency cycles, slot files that target no layout and missing package styles.
 

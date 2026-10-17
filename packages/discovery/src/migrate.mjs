@@ -179,6 +179,14 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
               await rename(file, destination);
             },
           );
+          // 0.2 has no page or view wrapper: the file path names the route or slot.
+          const wrapper = /\b(definePage|defineView)\s*\(/.exec(source)?.[1];
+          if (wrapper)
+            changes.push({
+              kind: 'skip',
+              from: relative(destination),
+              detail: `${wrapper}(...) was removed in 0.2; export the component itself as default`,
+            });
         }
         await apply({ kind: 'delete', from: relative(from), detail: 'legacy folder' }, () =>
           rm(from, { recursive: true, force: true }),

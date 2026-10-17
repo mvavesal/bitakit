@@ -525,8 +525,10 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `foundation.config.ts`) were removed in Phase 5. Do not reintroduce them; `bitakit migrate`
   is the codemod and `bitakit doctor` names the old spellings.
 - When an API changes, update in the same step: Core tests, the CLI templates
-  (`packages/cli/src/templates.mjs`, the single source for `--sample`, `bitakit add` and
-  plugin packages), the generated AGENTS.md, this skill, the private target API
+  (`packages/cli/src/templates.mjs`, the single source for `--sample` (`sampleFiles`: `todos`
+  plus an `activity` plugin that extends it through `todos.changed` and `todos.footer`),
+  `bitakit add` and plugin packages), the agent rules (`packages/cli/src/agent-rules.mjs`, shared
+  by create-app and `bitakit init`, held to one screen by a test), this skill, the private target API
   (`.private/bitakit-enhancement/target-api.md`) if the contract moved, the package READMEs, the docs site and the
   private TODO.
 
@@ -651,7 +653,10 @@ not filenames. The pre-paint script restores mode only, not personal theme token
 
 App Shell owns theme management and its Appearance experience. Keep the existing visual
 finish as BitaKit Default; incoming sample CSS must not replace it. Discovery owns collecting
-app theme files, while Shell owns runtime selection and editing. Persist user-created named
+app theme files, while Shell owns runtime selection and editing. Turbopack resolves CSS imports
+without the `style` export condition: discovery reports package imports that resolve only under
+it (`styleAliases`, such as `tw-animate-css`) and `withBitaKit` passes them to
+`turbopack.resolveAlias`; packages that also export scripts are never aliased. Persist user-created named
 copies through the existing settings storage contract, not a parallel store or writes to
 source files from the browser. Preserve original themes and light/dark variants. See
 `packages/shell/README.md` for the theme file format and lifecycle.

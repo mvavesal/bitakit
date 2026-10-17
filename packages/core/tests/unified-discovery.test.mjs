@@ -31,6 +31,7 @@ import {
 import { discoverEntries, files } from '../../discovery/src/entries.mjs';
 import { renamed } from '../../discovery/src/migrate.mjs';
 import { exportedNames, moveCoreImports } from '../../discovery/src/core-imports.mjs';
+import { validatePackageStyles } from '../../discovery/src/styles.mjs';
 import {
   discoverActions,
   discoverServices,
@@ -258,6 +259,7 @@ test('the generated file wires app and plugins: nested services, typed events, c
     assert.deepEqual(result, {
       included: [],
       styleDirectories: [],
+      styleAliases: {},
       warnings: [],
       generated: path.join(root, 'src/bitakit.gen.ts'),
       framework: 'none',
@@ -1863,4 +1865,43 @@ test('migrateProject renames helpers in root config files and reports Core names
       await readFile(path.join(root, 'src/lib/types.ts'), 'utf8'),
       "import { defineAction } from '@bitakit/ui';\nexport { defineAction };\n",
     );
+  }));
+
+test('package CSS imports that need the "style" export condition are reported as bundler aliases', () =>
+  fixture(async (root, put) => {
+    // Like tw-animate-css: the stylesheet is exported only under the "style" condition.
+    await put(
+      'node_modules/style-only/package.json',
+      JSON.stringify({ name: 'style-only', exports: { '.': { style: './dist/animate.css' } } }),
+    );
+    await put('node_modules/style-only/dist/animate.css', '@keyframes spin { to { rotate: 1turn; } }\n');
+    await put(
+      'node_modules/plain-css/package.json',
+      JSON.stringify({ name: 'plain-css', main: './index.css' }),
+    );
+    await put('node_modules/plain-css/index.css', '.plain-css { color: red; }\n');
+    // Like @heroui/styles: CSS under "style", scripts under "import"; an alias would break the scripts.
+    await put(
+      'node_modules/dual/package.json',
+      JSON.stringify({ name: 'dual', exports: { '.': { style: './index.css', import: './index.js' } } }),
+    );
+    await put('node_modules/dual/index.css', '.dual { color: green; }\n');
+    await put('node_modules/dual/index.js', 'export const variants = {};\n');
+    const manifestFile = await put(
+      'node_modules/@acme/ui/package.json',
+      JSON.stringify({ name: '@acme/ui', exports: { './styles.css': './styles.css' } }),
+    );
+    await put(
+      'node_modules/@acme/ui/styles.css',
+      "@import 'style-only';\n@import 'plain-css';\n@import 'dual';\n@import './local.css';\n",
+    );
+    await put('node_modules/@acme/ui/local.css', '.acme-ui { color: blue; }\n');
+    const aliases = new Map();
+    await validatePackageStyles(
+      [{ name: '@acme/ui', manifestFile, manifest: {}, styles: ['@acme/ui/styles.css'], theme: [] }],
+      { aliases },
+    );
+    assert.deepEqual(Object.fromEntries(aliases), {
+      'style-only': path.join(root, 'node_modules/style-only/dist/animate.css'),
+    });
   }));

@@ -41,7 +41,7 @@ the minimal app above needs no additional options.
 | ---------------------------- | ------------------------------------------------------------------------------------------------- |
 | `--framework next\|tanstack` | The framework. Default: `next`. TanStack Start is experimental.                                   |
 | `--features <list>`          | Comma-separated `preferences`, `shell`, `quick-search`, or `none`. Default: `shell,quick-search`. |
-| `--sample` / `--no-sample`   | Add the Todos sample plugin in `src/plugins/todos`. Asked interactively; off with `--yes`.        |
+| `--sample` / `--no-sample`   | Add the Todo sample: `src/plugins/todos` and `src/plugins/activity`, which extends it. Asked interactively; off with `--yes`. |
 | `--plugin`                   | Create a standalone plugin package with a playground app instead of an app.                       |
 | `-y, --yes`                  | Use the defaults without prompts.                                                                 |
 | `--no-install`               | Write the files without installing dependencies.                                                  |

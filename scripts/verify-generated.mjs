@@ -22,13 +22,23 @@ const generator = path.join(root, 'packages/create-app/src/cli.mjs');
 let port = 4100;
 
 const addItem = async (page) => {
-  await page.getByLabel('New item').fill('Verify the generator');
-  await page.getByRole('button', { name: 'Add item' }).click();
-  await page.getByText('Verify the generator').waitFor();
+  // Enter submits the form through the Action-bound Add button.
+  await page.getByLabel('New todo').fill('Verify the generator');
+  await page.getByLabel('New todo').press('Enter');
+  await page
+    .getByRole('listitem')
+    .filter({ hasText: /^Verify the generator/ })
+    .waitFor();
+  // The activity plugin fills the todos.footer slot from the todos.changed event.
+  await page.getByText('Added "Verify the generator"').waitFor();
   await page.getByRole('button', { name: 'Clear all' }).click();
   // The sample's clear action asks for confirmation first.
   await page.getByRole('button', { name: 'Confirm' }).click();
-  await page.getByText('Verify the generator').waitFor({ state: 'detached' });
+  await page.getByText('Cleared the list').waitFor();
+  await page
+    .getByRole('listitem')
+    .filter({ hasText: /^Verify the generator/ })
+    .waitFor({ state: 'detached' });
 };
 const app = (framework, sample) => ({
   args: ['--framework', framework, ...(sample ? ['--sample'] : ['--features', 'none'])],
