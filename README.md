@@ -15,21 +15,18 @@ BitaKit is not another framework. It sits on top of the one you already use, thr
 
 ## Quick start
 
-> **Release preview.** 0.2 is not on npm yet. Until it is, create the app from this repository;
-> you need Node.js 24, npm 10 or newer, and internet access for the official Next.js scaffold.
+You need Node.js 24 and npm 10 or newer.
 
 **1. Create an app** (Next.js with navigation, settings and search included):
 
 ```bash
-git clone https://github.com/mvavesal/bitakit.git && cd bitakit
-npm ci && npm run pack -- .tmp/packages
-node packages/create-app/src/cli.mjs ../my-app --yes --packages-dir "$PWD/.tmp/packages"
+npx @bitakit/create-app my-app --yes
 ```
 
 **2. Run it:**
 
 ```bash
-cd ../my-app && npm run dev
+cd my-app && npm run dev
 ```
 
 Open [localhost:3000](http://localhost:3000). There is no configuration to edit.
@@ -160,7 +157,7 @@ Every kind of change has exactly one place, so a person and a coding agent find 
 
 The lessons grow the same Counter. You have a working feature after step 4; the rest can wait.
 Working with a coding agent? [Work with AI coding agents](apps/docs/content/docs/guides/ai-agents.mdx).
-They describe the **0.2 API in this repository**; keep the BitaKit packages on matching versions.
+They describe the **0.2 API**; keep all BitaKit packages on the same version.
 Coming from 0.1? [Upgrade from 0.1](apps/docs/content/docs/upgrade.mdx) runs `npx bitakit migrate`.
 
 ## Read the documentation locally

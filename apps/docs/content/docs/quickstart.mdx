@@ -6,17 +6,15 @@ description: Start a minimal Next.js app before adding your first plugin.
 You need **Node.js 24** and **npm 10 or newer**. This walkthrough uses Next.js and no optional features.
 
 <Callout title="Use matching packages">
-  These examples target the 0.2 API. If you are working from this repository before publishing, use
-  the [local package setup](/docs/local-development) to create the same minimal app, then continue
-  at step 2. Do not mix examples from this checkout with an older installed release.
+  These examples target the 0.2 API. Keep all `@bitakit/*` packages on the same version. To try
+  changes from this repository that are not released yet, use the
+  [local package setup](/docs/local-development).
 </Callout>
 
 ## 1. Create the project
 
-With a matching published package set:
-
 ```sh
-npx @bitakit/create-app@0.2 my-app --framework next --features none --yes
+npx @bitakit/create-app my-app --framework next --features none --yes
 ```
 
 Use a new directory name. The generator connects BitaKit and keeps your normal Next.js routes.
