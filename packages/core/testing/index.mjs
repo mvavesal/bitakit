@@ -48,25 +48,23 @@ async function manifestOf(directory) {
 }
 
 /**
- * Mounts one plugin folder headlessly for tests: services, actions, events, configs,
- * interceptors and `setup.ts`, discovered with the same conventions as apps. Files under `ui/`
- * are skipped. Files load through Node's TypeScript type stripping, so keep them free of JSX.
- * `plugin.config.ts` of the folder supplies `id`, `dependencies` and `metadata` as in an app; the
- * ID is `options.id`, then the manifest, the folder under `plugins/`, or the package name.
- * The returned `events.recorded` lists every event emitted while mounted.
+ * Builds the headless plugin of one folder: services, actions, events, settings, configs,
+ * interceptors, slot definitions and `setup.ts`, discovered with the same conventions as apps.
+ * Files under `ui/` are skipped. The ID is `id`, then `plugin.config.ts`, the folder under
+ * `plugins/`, or the package name.
  */
-export async function mountPlugin(directory = 'src', options = {}) {
+async function loadPlugin(directory, id) {
   const module = await describeModule(path.resolve(directory));
   const manifest = await manifestOf(module.directory);
-  const id =
-    options.id ??
+  id =
+    id ??
     manifest.id ??
     (path.basename(path.dirname(module.directory)) === 'plugins'
       ? path.basename(module.directory)
       : await packageId(module.directory));
   if (!id)
     throw new Error(
-      'Pass { id }, set one in plugin.config.ts, or run inside a package with a name.',
+      `No plugin ID for ${directory}: pass { id }, set one in plugin.config.ts, or run inside a package with a name.`,
     );
   const importDefault = async (file) => (await import(pathToFileURL(file).href)).default;
   const load = (entries) =>
@@ -92,8 +90,26 @@ export async function mountPlugin(directory = 'src', options = {}) {
     interceptors: discoverInterceptors(await load(module.interceptors)),
     setup: module.setup ? await importDefault(module.setup) : undefined,
   };
+  return plugin;
+}
+
+/**
+ * Mounts one plugin folder headlessly for tests (see `loadPlugin` for what is discovered).
+ * Files load through Node's TypeScript type stripping, so keep them free of JSX.
+ * `options.plugins` adds further plugins: `Plugin` objects or other plugin folders, so an
+ * integration test mounts two real folders without a hand-built `definePlugin`.
+ * The returned `events.recorded` lists every event emitted while mounted.
+ */
+export async function mountPlugin(directory = 'src', options = {}) {
+  const plugin = await loadPlugin(directory, options.id);
+  const { id } = plugin;
+  const others = await Promise.all(
+    (options.plugins ?? []).map((other) =>
+      typeof other === 'string' ? loadPlugin(other) : other,
+    ),
+  );
   const runtime = createRuntime(
-    { plugins: [plugin, ...(options.plugins ?? [])], configOverrides: options.configOverrides },
+    { plugins: [plugin, ...others], configOverrides: options.configOverrides },
     { services: options.services },
   );
   const recorded = [];

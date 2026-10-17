@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mountPlugin } from '../testing/index.mjs';
-import { definePlugin, defineService, isBitaKitStartupError } from '../dist/core.js';
+import { definePlugin, defineService, defineSlot, isBitaKitStartupError } from '../dist/core.js';
 
 /** A project inside Core, so plugin files resolve @bitakit/core from the workspace. */
 async function project(files, run) {
@@ -280,5 +280,70 @@ export default setup;
         assert.match(error.message, /Plugin "books" depends on "shell", which is not installed/);
         return true;
       });
+    },
+  ));
+
+test('mountPlugin mounts other plugin folders from plugins, so a listener is tested against the real emitter', () =>
+  project(
+    {
+      'package.json': JSON.stringify({ name: 'demo', type: 'module' }),
+      'src/plugins/notes/events.ts': `import { defineEvents, event } from '@bitakit/core';
+export default defineEvents({ added: event<{ title: string }>() });
+`,
+      'src/plugins/notes/actions.ts': `import { defineAction } from '@bitakit/core';
+export default {
+  add: defineAction<string>({ execute: ({ events, input }) => events.emit('notes.added', { title: input }) }),
+};
+`,
+      'src/plugins/activity/services/feed.ts': `import { defineService } from '@bitakit/core';
+export default defineService(({ store, events }) => {
+  const state = store({ titles: [] as string[] });
+  events.on('notes.added', (event) => state.set((current) => ({ titles: [...current.titles, event.data.title] })));
+  return { state };
+});
+`,
+    },
+    async (root) => {
+      const plugin = await mountPlugin(path.join(root, 'src/plugins/activity'), {
+        plugins: [path.join(root, 'src/plugins/notes')],
+      });
+      try {
+        assert.equal(plugin.id, 'activity');
+        assert.equal((await plugin.execute('notes.add', 'Ship')).status, 'completed');
+        assert.deepEqual(plugin.services.activity.feed.state.get(), { titles: ['Ship'] });
+        assert.deepEqual(
+          plugin.events.recorded.filter((event) => !event.type.startsWith('runtime.')),
+          [{ type: 'notes.added', data: { title: 'Ship' } }],
+        );
+      } finally {
+        await plugin.stop();
+      }
+    },
+  ));
+
+test('a scaffolded plugin placed in shell.navigation mounts with a one-line Shell slot stub', () =>
+  project(
+    {
+      'package.json': JSON.stringify({ name: 'demo', type: 'module' }),
+      'src/plugins/notes/actions/open.ts': `import { defineAction } from '@bitakit/core';
+export default defineAction({ title: 'Notes', href: '/notes', groups: ['navigation'], slots: ['shell.navigation'] });
+`,
+    },
+    async (root) => {
+      const directory = path.join(root, 'src/plugins/notes');
+      await assert.rejects(mountPlugin(directory), /Slot "shell\.navigation"/);
+      const shell = definePlugin({
+        id: 'shell',
+        slots: { navigation: defineSlot({ accepts: 'actions' }) },
+      });
+      const plugin = await mountPlugin(directory, { plugins: [shell] });
+      try {
+        assert.deepEqual(
+          plugin.runtime.slots.get('shell.navigation').items.map((item) => item.actionId),
+          ['notes.open'],
+        );
+      } finally {
+        await plugin.stop();
+      }
     },
   ));

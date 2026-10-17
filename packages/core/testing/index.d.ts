@@ -47,8 +47,11 @@ export function mountPlugin(
   options?: {
     /** Defaults to `id` in the folder's `plugin.config.ts`, the folder under `plugins/`, or the package name. */
     id?: string;
-    /** Further plugins the tested plugin depends on. */
-    plugins?: readonly Plugin[];
+    /**
+     * Further plugins mounted alongside: `Plugin` objects (stubs such as a Shell slot owner) or
+     * plugin folder paths, discovered like the tested folder.
+     */
+    plugins?: readonly (Plugin | string)[];
     /** Host-provided services, such as a fake authentication service. */
     services?: Readonly<Record<string, unknown>>;
     configOverrides?: Readonly<Record<string, Record<string, unknown>>>;

@@ -51,12 +51,40 @@ Node strips types; it does not typecheck. Include the test in a strict TypeScrip
 with `noEmit` and `allowImportingTsExtensions`. Keep headless plugin files free of JSX;
 the helper skips `ui/` and does not verify rendering.
 
+## A plugin in the Shell navigation
+
+A plugin made by `npx bitakit add plugin` places its `open` Action in `shell.navigation`.
+Without Shell, startup fails with `Slot "shell.navigation": no owning definition exists`.
+Pass a one-line stand-in for the slot owner:
+
+```ts
+import { definePlugin, defineSlot } from '@bitakit/core';
+
+const shell = definePlugin({ id: 'shell', slots: { navigation: defineSlot({ accepts: 'actions' }) } });
+const plugin = await mountPlugin('src/plugins/notes', { plugins: [shell] });
+```
+
+## Two plugins together
+
+`plugins` also takes plugin folders. Mount the listener and pass the emitter's folder, so
+the test runs both real plugins and neither needs a hand-written stand-in:
+
+```ts
+import type feed from '../src/plugins/activity/services/feed.ts';
+
+const feedService = defineContract('activity.feed').of<ReturnType<typeof feed.create>>();
+
+const plugin = await mountPlugin('src/plugins/activity', { plugins: ['src/plugins/notes'] });
+await plugin.execute('notes.add', 'Ship');
+assert.deepEqual(getService(plugin.services, feedService).state.get().titles, ['Ship']);
+```
+
 ## Options and returned handles
 
 | Option | Purpose |
 | --- | --- |
 | `id` | Override the ID inferred from the manifest, plugin folder or package. |
-| `plugins` | Supply other plugins required by this test. |
+| `plugins` | Other plugins for this test: plugin folders or `definePlugin` objects (stubs). |
 | `services` | Supply host-owned services, for example a fake `auth` implementation. |
 | `configOverrides` | Override developer configuration for the test. |
 

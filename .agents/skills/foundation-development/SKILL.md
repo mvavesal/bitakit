@@ -487,7 +487,8 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   switches survive where affected.
 - Headless tests: `mountPlugin(directory, { id?, plugins, services, configOverrides })` from
   `@bitakit/core/testing` discovers one plugin folder like an app (the ID comes from
-  `plugin.config.ts` or the folder), awaits `ready`, records events, types `execute` by action
+  `plugin.config.ts` or the folder); `plugins` takes further plugin folders or `definePlugin`
+  stubs (a scaffolded plugin needs a `shell.navigation` slot stub); it awaits `ready`, records events, types `execute` by action
   ID and releases everything on failure. React tests use `renderWithBitaKit(element, { plugins, services })`
   from `@bitakit/ui/testing` (jsdom supplied by the test, events recorded). Keep services,
   actions, events, configs and `setup.ts` free of JSX and guarded against browser-only APIs.
