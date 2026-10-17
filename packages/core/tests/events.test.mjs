@@ -9,7 +9,7 @@ import {
   defineService,
   event,
   isEventsDefinition,
-  isFoundationStartupError,
+  isBitaKitStartupError,
 } from '../dist/core.js';
 import todos from '../examples/todos/plugin.mjs';
 
@@ -249,7 +249,7 @@ test('a failing setup releases listeners, aborts handler signals and stops servi
   assert.throws(
     () => runtime.mount(),
     (error) =>
-      isFoundationStartupError(error) &&
+      isBitaKitStartupError(error) &&
       error.plugin === 'broken' &&
       /Setup in plugin "broken" failed to start: setup failed/.test(error.message),
   );

@@ -1,5 +1,5 @@
 'use client';
-import type { FoundationUI } from '@bitakit/ui';
+import type { BitaKitUI } from '@bitakit/ui';
 import { StandardActionMenu } from '@bitakit/ui/components';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 
 /** Map the design system once; feature plugins contain no dialog/menu plumbing. */
-export const foundationUI: FoundationUI = {
+export const foundationUI: BitaKitUI = {
   Button,
   Input,
   Field,

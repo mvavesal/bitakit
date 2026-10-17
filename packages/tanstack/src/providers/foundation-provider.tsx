@@ -2,7 +2,7 @@ import { NuqsAdapter } from 'nuqs/adapters/tanstack-router';
 import { defineFramework, type FrameworkProviderProps } from '@bitakit/ui';
 import { useActionNavigation } from '../routing/navigation.js';
 
-export type TanStackFoundationProviderProps = FrameworkProviderProps;
+export type TanStackBitaKitRuntimeProviderProps = FrameworkProviderProps;
 
 /**
  * Mount inside TanStack's router context. The generated `BitaKitProvider` in
@@ -14,4 +14,4 @@ export const tanstack = defineFramework({
   useRouter: useActionNavigation,
   QueryState: NuqsAdapter,
 });
-export const FoundationProvider = tanstack.FoundationProvider;
+export const BitaKitRuntimeProvider = tanstack.BitaKitRuntimeProvider;

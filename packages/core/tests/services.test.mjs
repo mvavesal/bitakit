@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FoundationServiceError,
+  BitaKitServiceError,
   authService,
   createRuntime,
   defineAction,
   definePlugin,
   defineService,
   getService,
-  isFoundationStartupError,
+  isBitaKitStartupError,
   serviceKey,
 } from '../dist/core.js';
 
@@ -44,17 +44,17 @@ test('services form a namespaced tree: services.<plugin>.<name>, never a flat ke
     assert.throws(
       () => runtime.services['todos.tasks'],
       (error) =>
-        error instanceof FoundationServiceError &&
+        error instanceof BitaKitServiceError &&
         error.service === 'todos.tasks' &&
         error.reason === 'unregistered',
     );
     assert.throws(
       () => runtime.services.todos.nothing,
-      (error) => error instanceof FoundationServiceError && error.service === 'todos.nothing',
+      (error) => error instanceof BitaKitServiceError && error.service === 'todos.nothing',
     );
     assert.throws(
       () => runtime.services.unknown,
-      (error) => error instanceof FoundationServiceError && error.reason === 'unregistered',
+      (error) => error instanceof BitaKitServiceError && error.reason === 'unregistered',
     );
     assert.equal(runtime.services.then, undefined);
     assert.equal(runtime.app.has('todos.tasks'), true);
@@ -129,7 +129,7 @@ test('record services take <plugin>.<key>; array entries need an explicit id; ap
         plugins: [definePlugin({ id: 'broken', services: [defineService(() => ({}))] })],
       }),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'broken');
       assert.match(
         error.message,
@@ -187,7 +187,7 @@ test('app.services explains not-ready before mount and after stop; runtime.servi
   const runtime = createRuntime({ plugins: [definePlugin({ id: 'todos', services: { tasks } })] });
   assert.throws(
     () => runtime.app.services.todos,
-    (error) => error instanceof FoundationServiceError && error.reason === 'not-ready',
+    (error) => error instanceof BitaKitServiceError && error.reason === 'not-ready',
   );
   assert.throws(() => runtime.services, /not mounted/);
   assert.equal(runtime.app.has('todos.tasks'), false);
@@ -201,7 +201,7 @@ test('app.services explains not-ready before mount and after stop; runtime.servi
   assert.equal(runtime.app.has('todos.tasks'), false);
   assert.throws(
     () => runtime.app.services.todos,
-    (error) => error instanceof FoundationServiceError && error.reason === 'not-ready',
+    (error) => error instanceof BitaKitServiceError && error.reason === 'not-ready',
   );
   const again = runtime.mount();
   assert.notEqual(runtime.services.todos.tasks, first, 'services are created per mount');

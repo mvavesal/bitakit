@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
 import { defineSlot, defineService } from '@bitakit/core';
-import { FoundationProvider, PluginSlot, useFoundation } from '../dist/index.js';
+import { BitaKitRuntimeProvider, PluginSlot, useBitaKit } from '../dist/index.js';
 import { installDom, mount, deferred, tick } from './support.mjs';
 
 installDom();
@@ -29,7 +29,7 @@ test('declared outlets follow readiness and attachments without owning their lif
     ],
   };
   function Content({ visible }) {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return h(
       'main',
       null,
@@ -37,7 +37,7 @@ test('declared outlets follow readiness and attachments without owning their lif
       visible && h(PluginSlot, { name: 'toolbar' }),
     );
   }
-  const tree = (visible) => h(FoundationProvider, { config }, h(Content, { visible }));
+  const tree = (visible) => h(BitaKitRuntimeProvider, { config }, h(Content, { visible }));
   const view = await mount(tree(true));
   try {
     assert.equal(view.container.querySelector('b'), null);
@@ -87,7 +87,7 @@ test('replacing the composition removes old attachments and keeps legacy outlets
   ];
   const tree = (current) =>
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, plugins: current },
       h(PluginSlot, { name: 'toolbar' }),
       h(PluginSlot, { name: 'legacy' }),
@@ -127,10 +127,10 @@ test('an early ready owner does not render UI before existing service hooks are 
     ],
   };
   function Content() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return h(PluginSlot, { name: 'shell.toolbar' });
   }
-  const view = await mount(h(FoundationProvider, { config }, h(Content)));
+  const view = await mount(h(BitaKitRuntimeProvider, { config }, h(Content)));
   try {
     assert.equal(
       runtime.slots.get('shell.toolbar').items.length,

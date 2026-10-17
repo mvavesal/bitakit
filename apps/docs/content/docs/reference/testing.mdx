@@ -69,6 +69,6 @@ startup. Use it to assert cross-plugin notifications after a mutation. A failed 
 cleans up the partial runtime and rejects with the attributed startup error. Always await
 `stop()` before replacing a runtime or finishing a test; cleanup failures are test failures.
 
-For UI tests, `renderWithFoundation` from `@bitakit/ui/testing` mounts the existing provider
+For UI tests, `renderWithBitaKit` from `@bitakit/ui/testing` mounts the existing provider
 and awaits readiness. The test must supply a DOM environment such as jsdom; the helper
 does not install one. See the package's testing entry for its typed options.

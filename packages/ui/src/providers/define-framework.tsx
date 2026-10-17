@@ -1,7 +1,7 @@
 'use client';
 import type { ComponentType, ReactNode } from 'react';
-import { FoundationProvider } from './foundation-provider.js';
-import type { FoundationProviderProps } from '../types/provider.js';
+import { BitaKitRuntimeProvider } from './foundation-provider.js';
+import type { BitaKitRuntimeProviderProps } from '../types/provider.js';
 
 /** What a framework adapter supplies to the shared runtime. Values re-render with the router. */
 export type Router = {
@@ -18,12 +18,12 @@ export type FrameworkDefinition = {
   /** Wraps the app with the framework's URL query-state adapter (nuqs). */
   QueryState?: ComponentType<{ children: ReactNode }>;
 };
-export type FrameworkProviderProps = FoundationProviderProps & {
+export type FrameworkProviderProps = BitaKitRuntimeProviderProps & {
   /** Disable only when an outer query-state adapter already owns URL state. */
   queryState?: boolean;
 };
 export type Framework = FrameworkDefinition & {
-  FoundationProvider: (props: FrameworkProviderProps) => ReactNode;
+  BitaKitRuntimeProvider: (props: FrameworkProviderProps) => ReactNode;
 };
 
 /**
@@ -32,7 +32,7 @@ export type Framework = FrameworkDefinition & {
  * `@bitakit/tanstack` are two calls of this; a third framework needs only a router hook.
  */
 export function defineFramework(definition: FrameworkDefinition): Framework {
-  function FrameworkFoundationProvider({
+  function FrameworkRuntimeProvider({
     config,
     actionOptions,
     queryState = true,
@@ -41,10 +41,10 @@ export function defineFramework(definition: FrameworkDefinition): Framework {
     const router = definition.useRouter();
     if (!config)
       throw new Error(
-        "FoundationProvider needs a configuration. Use <BitaKitProvider> from './bitakit.gen', or pass config={createBitaKitConfig()}.",
+        "BitaKitRuntimeProvider needs a configuration. Use <BitaKitProvider> from './bitakit.gen', or pass config={createBitaKitConfig()}.",
       );
     const content = (
-      <FoundationProvider
+      <BitaKitRuntimeProvider
         {...props}
         config={config}
         actionOptions={{ ...router, ...actionOptions }}
@@ -53,6 +53,6 @@ export function defineFramework(definition: FrameworkDefinition): Framework {
     const QueryState = definition.QueryState;
     return queryState && QueryState ? <QueryState>{content}</QueryState> : content;
   }
-  FrameworkFoundationProvider.displayName = `${definition.id}.FoundationProvider`;
-  return { ...definition, FoundationProvider: FrameworkFoundationProvider };
+  FrameworkRuntimeProvider.displayName = `${definition.id}.BitaKitRuntimeProvider`;
+  return { ...definition, BitaKitRuntimeProvider: FrameworkRuntimeProvider };
 }

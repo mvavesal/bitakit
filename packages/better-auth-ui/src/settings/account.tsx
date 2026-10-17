@@ -1,9 +1,9 @@
 'use client';
 import type { ComponentType, ReactNode } from 'react';
 import {
-  useAuth as useFoundationAuth,
-  useFoundation,
-  useFoundationReady,
+  useAuth as useBitaKitAuth,
+  useBitaKit,
+  useBitaKitReady,
   useTranslation,
 } from '@bitakit/ui';
 import {
@@ -61,9 +61,9 @@ function SignInPrompt() {
 
 /** Authentication is optional for standalone organization demos; installed auth must settle. */
 export function SettingsAccountAccess({ children }: { children: ReactNode }) {
-  const ready = useFoundationReady();
-  const { runtime } = useFoundation();
-  const session = useFoundationAuth();
+  const ready = useBitaKitReady();
+  const { runtime } = useBitaKit();
+  const session = useBitaKitAuth();
   const translateUI = useTranslation();
   if (!ready || (runtime.hasService('auth') && session.pending))
     return (
@@ -115,7 +115,7 @@ export function AccountProfileAccess({
   children,
 }: AccountSettingsPageProps & { children: ReactNode }) {
   const translateUI = useTranslation();
-  const session = useFoundationAuth();
+  const session = useBitaKitAuth();
   if (session.pending)
     return (
       <p role="status">
@@ -137,7 +137,7 @@ export function AccountProfileSettings(props: AccountSettingsPageProps) {
 /** Native security cards, independently composable and provider-configured. */
 export function AccountSecuritySettings() {
   const translateUI = useTranslation();
-  const session = useFoundationAuth();
+  const session = useBitaKitAuth();
   if (session.pending)
     return (
       <p role="status">

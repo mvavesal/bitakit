@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { createMemorySettingsStorage, definePlugin, defineSettings, setting } from '@bitakit/core';
-import { useFoundation, useSettingsCatalog } from '@bitakit/ui';
+import { useBitaKit, useSettingsCatalog } from '@bitakit/ui';
 import { appPreferencesPlugin } from '../dist/foundation.js';
 import { settingsCategories } from '../dist/index.js';
 import { settingsCatalog } from '../dist/catalog.js';
@@ -55,7 +55,7 @@ test('settingsCatalog builds the same sections as useSettingsCatalog, including 
   let runtime;
   function Probe() {
     seen = useSettingsCatalog();
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const view = await renderApp(h(Probe), {
@@ -166,7 +166,7 @@ test('additional settings pages share the catalog and retain ownership without d
   let catalog, runtime;
   function Probe() {
     catalog = useSettingsCatalog();
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const view = await renderApp(h(Probe), { config: { plugins: [appPreferencesPlugin(), multi] } });

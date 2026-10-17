@@ -1,5 +1,5 @@
 'use client';
-import { useFoundation, useGroupTitle, useTranslation } from '@bitakit/ui';
+import { useBitaKit, useGroupTitle, useTranslation } from '@bitakit/ui';
 import { useRef, type KeyboardEvent } from 'react';
 import LinkIcon from 'reicon-react/icons/Link';
 import SearchIcon from 'reicon-react/icons/Search';
@@ -66,7 +66,7 @@ export function SearchResults({
 }) {
   const t = useTranslation();
   const groupTitle = useGroupTitle();
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   label = t(label, undefined, t('quickSearch.title', undefined, label));
   placeholder = t(
     placeholder,

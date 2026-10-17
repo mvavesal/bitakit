@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
-  useFoundation,
+  useBitaKit,
   useSetting,
   useSettingsCatalog,
   useTranslation,
@@ -57,7 +57,7 @@ function focusControl(id: string) {
 /** The catalog field of a key; hidden settings get the same labels outside the catalog. */
 function useField(props: SettingFieldProps): SettingsCatalogField {
   const catalog = useSettingsCatalog();
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const t = useTranslation();
   const { field, settingKey } = props;
   return useMemo(() => {

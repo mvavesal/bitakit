@@ -19,8 +19,8 @@ export default defineBitaKit({ groups: ['navigation'] });
 ## Who imports it
 
 - `@bitakit/next/config` (`withBitaKit`) and `@bitakit/tanstack/config` (`bitakit()`) run
-  `generateFoundation` and `watchFoundation` around the framework build.
-- `@bitakit/cli` uses `generateFoundation`, `watchFoundation`, `describeFoundation`, `describeModule`,
+  `generateBitaKit` and `watchBitaKit` around the framework build.
+- `@bitakit/cli` uses `generateBitaKit`, `watchBitaKit`, `describeBitaKit`, `describeModule`,
   `loadDiscoveryConfig` and `migrateProject` for `generate`, `info`, `doctor`, `build` and `migrate`.
 - `@bitakit/core/testing` (`mountPlugin`) uses `describeModule` to find a plugin folder's files.
 - Apps and plugin playgrounds import `defineBitaKit` in `bitakit.config.ts`; generated apps list
@@ -84,7 +84,7 @@ verified by `scripts/verify-generated.mjs` in clean packed-package consumers.
 - `src/generate.mjs`: configuration loading, framework detection and emission of `src/bitakit.gen.*`.
 - `src/entries.mjs`: folder, dotted-name and index-file conventions of contribution files and the
   integration-defined contribution kinds.
-- `src/describe.mjs`: read-only summaries of an app (`describeFoundation`) or one module folder
+- `src/describe.mjs`: read-only summaries of an app (`describeBitaKit`) or one module folder
   (`describeModule`).
 - `src/packages.mjs`: opt-in metadata (`bitakit` in `package.json`) of installed packages and the
   plugin packages they depend on.
@@ -92,7 +92,6 @@ verified by `scripts/verify-generated.mjs` in clean packed-package consumers.
 - `src/modules.mjs`: which folders are plugins.
 - `src/watch.mjs`: development regeneration.
 - `src/migrate.mjs`: rewrite of a 0.1 project to the current layout.
-- `src/host.mjs`: deprecated `generateFoundationHost` alias.
 
 Generator and stylesheet integration tests live in `packages/next/tests` and the CLI tests.
 Run `npm test --workspace @bitakit/next` and `npm test --workspace @bitakit/cli`.
@@ -125,7 +124,7 @@ resolve to the same IDs. Plugin names are qualified; app names are plain. Genera
 contains the definition types, including payload/data schemas. Legacy name-only declarations
 from manifests or `bitakit.config.ts` generate `LegacySlotMap` hints and never replace a contract.
 
-`describeFoundation` exposes `slotDeclarations` (static hints) and `unresolvedSlots`. It uses
+`describeBitaKit` exposes `slotDeclarations` (static hints) and `unresolvedSlots`. It uses
 the shared TypeScript-based definition inspection without executing source. Local constant
 records and literal IDs are readable; imported/computed records stay unresolved. This is not
 runtime validation. A package built with `bitakit build` carries generated `plugin.slots.json`

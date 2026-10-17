@@ -78,7 +78,7 @@ async function contributionsOf(
  * contribution files, installed plugin packages, package styles and the warnings generation
  * would print. Contribution modules are never executed.
  */
-export async function describeFoundation(root) {
+export async function describeBitaKit(root) {
   root = await realpath(root);
   const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false });
   const relative = (file) => path.relative(root, file).split(path.sep).join('/');

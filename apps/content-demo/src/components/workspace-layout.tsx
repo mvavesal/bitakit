@@ -1,5 +1,5 @@
 'use client';
-import { useTranslation, useAuth, useFoundationApp } from '@bitakit/ui';
+import { useTranslation, useAuth, useBitaKitApp } from '@bitakit/ui';
 import { OrganizationSwitcher } from '@bitakit/better-auth-ui/plugins/organization';
 import { AppShell, useShellLayout } from '@bitakit/shell';
 import { SettingsShell } from '@bitakit/app-preferences';
@@ -95,6 +95,6 @@ function Workspace({ children }: { children: ReactNode }) {
 }
 export function WorkspaceLayout({ children }: { children: ReactNode }) {
   // Plugin contributions are mounted before the workspace reads settings and session.
-  const { ready } = useFoundationApp();
+  const { ready } = useBitaKitApp();
   return ready ? <Workspace>{children}</Workspace> : null;
 }

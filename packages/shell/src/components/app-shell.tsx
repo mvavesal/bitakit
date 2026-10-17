@@ -11,11 +11,11 @@ import {
   type ReactNode,
 } from 'react';
 import { cn } from 'cn';
-import type { FoundationRuntime } from '@bitakit/core';
+import type { BitaKitRuntime } from '@bitakit/core';
 import {
   useCurrentPage,
-  useFoundation,
-  useFoundationNavigation,
+  useBitaKit,
+  useBitaKitNavigation,
   useNavigation,
   useSetting,
   useSlot,
@@ -120,7 +120,7 @@ const noComponents: AppShellComponents = {};
 const defaultSlot = 'shell.navigation';
 const ShellContext = createContext<ShellScope>({ components: noComponents, inLayout: false });
 
-function requireShell(runtime: FoundationRuntime) {
+function requireShell(runtime: BitaKitRuntime) {
   if (!runtime.settings.has('shell.layout'))
     throw new Error(
       'AppShell needs the Shell plugin. Add @bitakit/shell to the app dependencies so discovery installs it, or add shellPlugin() to the plugins.',
@@ -128,11 +128,11 @@ function requireShell(runtime: FoundationRuntime) {
 }
 /** The navigation layout the user chose: `useSetting('shell.layout').value`. */
 export function useShellLayout(): ShellLayout {
-  requireShell(useFoundation().runtime);
+  requireShell(useBitaKit().runtime);
   return useSetting('shell.layout').value as ShellLayout;
 }
 function useShellNavigationSlot(slot: string | undefined): string {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const scope = useContext(ShellContext);
   const explicit = slot ?? scope.navigationSlot;
   if (explicit) return explicit;
@@ -141,7 +141,7 @@ function useShellNavigationSlot(slot: string | undefined): string {
 }
 /** One navigation entry: a link for actions with an href, otherwise a button. */
 function NavigationItem({ item, active, layout }: NavigationItemProps) {
-  const { Link } = useFoundationNavigation();
+  const { Link } = useBitaKitNavigation();
   const Icon = item.icon;
   const label = (
     <>
@@ -354,7 +354,7 @@ function AppShellContent({ children, topBar }: AppShellContentProps) {
   );
 }
 
-const layoutsOf = (runtime: FoundationRuntime) =>
+const layoutsOf = (runtime: BitaKitRuntime) =>
   (runtime.config.ui as { layouts?: NamedLayouts } | undefined)?.layouts;
 
 /**
@@ -371,7 +371,7 @@ function AppShellRoot({
   account,
   header,
 }: AppShellProps) {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const parent = useContext(ShellContext);
   const page = useCurrentPage();
   const layout = useShellLayout();

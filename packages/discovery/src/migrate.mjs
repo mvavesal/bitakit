@@ -18,6 +18,54 @@ const suffixes = {
 const legacyFolders = { pages: 'ui/pages', views: 'ui/slots', providers: 'ui/providers' };
 
 
+/** 0.2 renames of the public Foundation* names; word-bounded, so longer names are not touched. */
+const renamed = {
+  FoundationApp: 'BitaKitApp',
+  FoundationActions: 'BitaKitActions',
+  FoundationConfig: 'BitaKitRuntimeConfig',
+  FoundationEvent: 'BitaKitEvent',
+  FoundationOverrides: 'BitaKitOverrides',
+  FoundationRuntime: 'BitaKitRuntime',
+  FoundationServiceError: 'BitaKitServiceError',
+  FoundationStartupError: 'BitaKitStartupError',
+  isFoundationStartupError: 'isBitaKitStartupError',
+  resolveFoundationConfig: 'resolveBitaKitConfig',
+  createFoundationApp: 'createBitaKitApp',
+  renderWithFoundation: 'renderWithBitaKit',
+  RenderWithFoundationOptions: 'RenderWithBitaKitOptions',
+  RenderedFoundation: 'RenderedBitaKit',
+  FoundationProvider: 'BitaKitRuntimeProvider',
+  FoundationProviderProps: 'BitaKitRuntimeProviderProps',
+  StandardFoundationProvider: 'StandardBitaKitRuntimeProvider',
+  StandardFoundationProviderProps: 'StandardBitaKitRuntimeProviderProps',
+  NextFoundationProviderProps: 'NextBitaKitRuntimeProviderProps',
+  TanStackFoundationProviderProps: 'TanStackBitaKitRuntimeProviderProps',
+  FoundationContext: 'BitaKitContext',
+  useFoundation: 'useBitaKit',
+  useOptionalFoundation: 'useOptionalBitaKit',
+  useFoundationApp: 'useBitaKitApp',
+  useFoundationReady: 'useBitaKitReady',
+  useFoundationNavigation: 'useBitaKitNavigation',
+  FoundationUI: 'BitaKitUI',
+  FoundationLabels: 'BitaKitLabels',
+  FoundationLink: 'BitaKitLink',
+  standardFoundationUI: 'standardBitaKitUI',
+  generateFoundation: 'generateBitaKit',
+  generateFoundationHost: 'generateBitaKitHost',
+  watchFoundation: 'watchBitaKit',
+  describeFoundation: 'describeBitaKit',
+  FoundationDescription: 'BitaKitDescription',
+};
+const renamedPattern = new RegExp(`\\b(${Object.keys(renamed).join('|')})\\b`, 'g');
+
+/** Applies the 0.2 name table, plus TanStack's `foundation()` Vite plugin when it is imported. */
+export function rewriteRenamedNames(source) {
+  let text = source.replace(renamedPattern, (name) => renamed[name]);
+  if (/import \{[^}]*\bfoundation\b[^}]*\} from ['"]@bitakit\/tanstack\/config['"]/.test(text))
+    text = text.replace(/\bfoundation\b(?=[\s,}(])/g, 'bitakit');
+  return text;
+}
+
 async function exists(file) {
   return stat(file).then(
     () => true,
@@ -244,6 +292,8 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
         )
         .replace(/<FoundationProvider\b/g, '<BitaKitProvider')
         .replace(/<\/FoundationProvider>/g, '</BitaKitProvider>');
+    // After the 0.1 root-layout step above, which still recognizes <FoundationProvider>.
+    if (/\.(tsx?|mjs)$/.test(file)) rewritten = rewriteRenamedNames(rewritten);
     if (/\.tsx?$/.test(file)) {
       const scoped = rewriteScopeAndSlots(rewritten, {
         setupFile: /(^|\/)setup\.tsx?$/.test(file),
@@ -262,7 +312,7 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
         {
           kind: 'rewrite',
           from: relative(file),
-          detail: 'generated-file imports, renamed helpers, setup scope and slot targets',
+          detail: 'generated-file imports, renamed helpers and names, setup scope and slot targets',
         },
         () => writeFile(file, rewritten),
       );

@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { createElement as h, act, StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { FoundationRuntime, createActionList } from '@bitakit/core';
+import { BitaKitRuntime, createActionList } from '@bitakit/core';
 import { ActionProvider } from '../dist/actions/index.js';
 import { AuthBoundary, useAuth } from '../dist/index.js';
-import { FoundationContext } from '../dist/providers/foundation-context.js';
+import { BitaKitContext } from '../dist/providers/foundation-context.js';
 
 const dom = new JSDOM('<html><body></body></html>', {
   url: 'https://app.test/customers?view=all#new',
@@ -30,7 +30,7 @@ function fixture(overrides = {}) {
     ...overrides,
   };
   const list = createActionList();
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     services: [{ id: 'auth', create: () => service }],
   });
   const stop = runtime.mount();
@@ -40,7 +40,7 @@ function fixture(overrides = {}) {
   function Context({ children }) {
     const [signOutIntent, setSignOutIntent] = useState(null);
     return h(
-      FoundationContext.Provider,
+      BitaKitContext.Provider,
       { value: { runtime, signOutIntent, setSignOutIntent } },
       children,
     );

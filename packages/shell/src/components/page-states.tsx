@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
-import { PluginSlot, useSlot, useTranslation, useOptionalFoundation } from '@bitakit/ui';
+import { PluginSlot, useSlot, useTranslation, useOptionalBitaKit } from '@bitakit/ui';
 import { ErrorBoundary } from 'react-error-boundary';
 import { renderRegion } from './regions.js';
 import SearchIcon from 'reicon-react/icons/SearchNormal';
@@ -42,7 +42,7 @@ export function PageState({
   icon?: ReactNode;
   loading?: boolean;
 }) {
-  const foundation = useOptionalFoundation();
+  const foundation = useOptionalBitaKit();
   const read = useCallback(() => !!foundation?.runtime.isReady('shell'), [foundation?.runtime]);
   const ready = useSyncExternalStore(
     foundation?.runtime.lifecycle.subscribe ?? idle,

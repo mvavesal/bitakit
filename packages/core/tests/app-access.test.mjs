@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FoundationServiceError,
+  BitaKitServiceError,
   createActionList,
   createRuntime,
   defineAction,
@@ -21,7 +21,7 @@ test('Action references preserve guards, current state, ownership and internal e
   assert.equal(resolveActionId(reference, list), 'documents.create');
   assert.throws(
     () => resolveActionId(reference, createActionList()),
-    /different Foundation instance/,
+    /different BitaKit instance/,
   );
   const stop = runtime.mount();
   try {
@@ -66,7 +66,7 @@ test('public app access reuses instances and fails clearly before mount and afte
   assert.equal(app.optional, undefined, 'app.optional is gone');
   assert.throws(
     () => app.services.documents,
-    (error) => error instanceof FoundationServiceError && error.reason === 'not-ready',
+    (error) => error instanceof BitaKitServiceError && error.reason === 'not-ready',
   );
   assert.equal(app.ready, false);
   const stop = runtime.mount();
@@ -81,7 +81,7 @@ test('public app access reuses instances and fails clearly before mount and afte
   await stop();
   assert.equal(stopped, 1);
   assert.equal(app.ready, false);
-  assert.throws(() => app.services.documents, /Foundation service "documents" is unavailable/);
+  assert.throws(() => app.services.documents, /BitaKit service "documents" is unavailable/);
 });
 
 test('unknown services report a structured error; reserved lookups stay undefined', async () => {
@@ -91,8 +91,8 @@ test('unknown services report a structured error; reserved lookups stay undefine
     assert.throws(
       () => runtime.app.services.unknown,
       (error) =>
-        error instanceof FoundationServiceError &&
-        error.code === 'FOUNDATION_SERVICE_UNAVAILABLE' &&
+        error instanceof BitaKitServiceError &&
+        error.code === 'BITAKIT_SERVICE_UNAVAILABLE' &&
         error.reason === 'unregistered' &&
         error.plugin === undefined,
     );

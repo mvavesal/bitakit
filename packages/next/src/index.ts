@@ -1,6 +1,6 @@
 'use client';
 export {
-  FoundationProvider,
-  type NextFoundationProviderProps,
+  BitaKitRuntimeProvider,
+  type NextBitaKitRuntimeProviderProps,
 } from './providers/foundation-provider.js';
-export { useFoundation, useFoundationApp } from '@bitakit/ui';
+export { useBitaKit, useBitaKitApp } from '@bitakit/ui';

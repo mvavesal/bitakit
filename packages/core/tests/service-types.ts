@@ -8,7 +8,7 @@ import {
   getService,
   serviceKey,
   type DiscoveredServiceEntry,
-  type FoundationApp,
+  type BitaKitApp,
   type PublicServicesOf,
   type ServiceDefinition,
   type Services,
@@ -83,7 +83,7 @@ defineInterceptor({ service: 'todos.tasks', method: 'remove' });
 // Manual composition: record keys become <plugin>.<key>; exposeAs adds a flat alias onto the same instance.
 const clock = defineService(() => ({ now: () => new Date() }), { exposeAs: 'clock' });
 const mailPlugin = definePlugin({ id: 'mail', services: { outbox, clock } });
-declare const app: FoundationApp<PublicServicesOf<readonly [typeof mailPlugin]>>;
+declare const app: BitaKitApp<PublicServicesOf<readonly [typeof mailPlugin]>>;
 const sent: Promise<{ id: string }> = app.services.mail.outbox.send({ to: 'test@example.com' });
 const aliased: Promise<{ id: string }> = app.services.messaging.mail.send({ to: 'example' });
 const now: Date = app.services.clock.now();
@@ -96,14 +96,14 @@ app.services.documents;
 app.optional;
 const ready: boolean = app.ready;
 const has: boolean = app.has('mail.outbox');
-declare const emptyApp: FoundationApp<PublicServicesOf<readonly []>>;
+declare const emptyApp: BitaKitApp<PublicServicesOf<readonly []>>;
 // @ts-expect-error An empty composition does not claim plugin availability.
 emptyApp.services.mail;
 const arrayPlugin = definePlugin({
   id: 'arr',
   services: [defineService(() => 1, { id: 'arr.one' })],
 });
-declare const arrayApp: FoundationApp<PublicServicesOf<readonly [typeof arrayPlugin]>>;
+declare const arrayApp: BitaKitApp<PublicServicesOf<readonly [typeof arrayPlugin]>>;
 const one: number = arrayApp.services.arr.one;
 
 // Discovery: the file path names the service; exposeAs is part of the same entry.

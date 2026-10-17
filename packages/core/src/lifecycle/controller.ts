@@ -1,9 +1,9 @@
 import { createActionList, type ActionList } from '../actions/core.js';
-import type { FoundationConfig, Plugin } from '../definitions.js';
-import { FoundationRuntime } from '../runtime.js';
-import { isFoundationStartupError } from '../startup-error.js';
+import type { BitaKitRuntimeConfig, Plugin } from '../definitions.js';
+import { BitaKitRuntime } from '../runtime.js';
+import { isBitaKitStartupError } from '../startup-error.js';
 import { createStore } from '../store.js';
-import { resolveFoundationConfig } from '../configuration.js';
+import { resolveBitaKitConfig } from '../configuration.js';
 import { notifyLifecycleObserver, type LifecycleEntry, type LifecyclePhase } from './state.js';
 
 export type FailurePolicy = 'fail-fast' | 'isolate';
@@ -14,7 +14,7 @@ export type StartupFailure = Readonly<{
   source?: string;
 }>;
 export type RuntimeControllerSnapshot = Readonly<{
-  runtime?: FoundationRuntime;
+  runtime?: BitaKitRuntime;
   phase: LifecyclePhase;
   failures: readonly StartupFailure[];
   blocked: readonly string[];
@@ -27,7 +27,7 @@ export type RuntimeControllerOptions = {
 };
 
 export function describeStartupFailure(error: unknown, appId = 'app'): StartupFailure {
-  return isFoundationStartupError(error)
+  return isBitaKitStartupError(error)
     ? { plugin: error.plugin, app: error.app, message: error.message, source: error.source }
     : { plugin: appId, app: true, message: error instanceof Error ? error.message : String(error) };
 }
@@ -133,14 +133,14 @@ export class RuntimeController {
   }
 
   constructor(
-    readonly config: FoundationConfig,
+    readonly config: BitaKitRuntimeConfig,
     private readonly options: RuntimeControllerOptions = {},
   ) {
     this.actions = options.actions ?? createActionList();
     this.appId = config.appId ?? 'app';
     this.prepare();
   }
-  private publish(runtime: FoundationRuntime | undefined, phase: LifecyclePhase) {
+  private publish(runtime: BitaKitRuntime | undefined, phase: LifecyclePhase) {
     const failed = new Map(this.failures.map((failure) => [failure.plugin, failure]));
     const states = new Map(runtime?.lifecycle.get().plugins.map((entry) => [entry.id, entry]));
     const ids = [this.appId, ...(this.config.plugins ?? []).map((plugin) => plugin.id)];
@@ -212,8 +212,8 @@ export class RuntimeController {
           },
         };
         if (selected.ui?.providers)
-          resolveFoundationConfig(selected, { providers: selected.ui.providers });
-        const runtime = new FoundationRuntime(this.actions, selected, this.options.services);
+          resolveBitaKitConfig(selected, { providers: selected.ui.providers });
+        const runtime = new BitaKitRuntime(this.actions, selected, this.options.services);
         this.publish(runtime, 'idle');
         this.releaseState = runtime.lifecycle.subscribe(() =>
           this.publish(
@@ -328,7 +328,7 @@ export class RuntimeController {
 }
 
 export function createRuntimeController(
-  config: FoundationConfig,
+  config: BitaKitRuntimeConfig,
   options: RuntimeControllerOptions = {},
 ) {
   return new RuntimeController(config, options);

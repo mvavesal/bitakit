@@ -21,9 +21,9 @@ export * from './components/primitives/label.js';
 export * from './components/primitives/badge.js';
 export * from './components/primitives/dialog.js';
 export * from './components/primitives/page-header.js';
-export { standardFoundationUI } from './components/standard-foundation-ui.js';
+export { standardBitaKitUI } from './components/standard-foundation-ui.js';
 
 export {
-  StandardFoundationProvider,
-  type StandardFoundationProviderProps,
+  StandardBitaKitRuntimeProvider,
+  type StandardBitaKitRuntimeProviderProps,
 } from './components/standard-foundation-provider.js';

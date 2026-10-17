@@ -1,4 +1,4 @@
-import type { FoundationUI } from '../types/ui.js';
+import type { BitaKitUI } from '../types/ui.js';
 import { Button } from './primitives/button.js';
 import { Input } from './primitives/input.js';
 import { Field, FieldError, FieldGroup, FieldLabel } from './primitives/field.js';
@@ -13,7 +13,7 @@ import {
 import { StandardActionMenu } from './standard-action-menu.js';
 
 /** Ready-to-use standard visuals for Foundation bindings, inheriting host theme tokens. */
-export const standardFoundationUI: FoundationUI = {
+export const standardBitaKitUI: BitaKitUI = {
   Button,
   Input,
   Field,

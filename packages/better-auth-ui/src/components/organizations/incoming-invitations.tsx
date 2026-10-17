@@ -6,7 +6,7 @@ import EnvelopeIcon from 'reicon-react/icons/Envelope';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '../ui/empty.js';
 import { cn } from 'cn';
 import { parseAsString, useQueryState } from 'nuqs';
-import { useFoundation } from '@bitakit/ui';
+import { useBitaKit } from '@bitakit/ui';
 import { getService } from '@bitakit/core';
 import { PageHeader } from '../ui/index.js';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../ui/index.js';
@@ -55,7 +55,7 @@ export function IncomingInvitations({
   emptyState?: ReactNode;
 }) {
   const translateUI = useTranslation();
-  const service = getService(useFoundation().runtime.services, organizationService);
+  const service = getService(useBitaKit().runtime.services, organizationService);
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
   const [invitation] = useQueryState('invitation', parseAsString.withDefault(''));
   const [search, setSearch] = useQueryState(

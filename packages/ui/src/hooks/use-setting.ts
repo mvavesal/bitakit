@@ -7,7 +7,7 @@ import type {
   SettingState,
   SettingValue,
 } from '@bitakit/core';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 
 export type UseSettingResult<T> = SettingState<T> & {
   key: string;
@@ -22,7 +22,7 @@ export type UseSettingResult<T> = SettingState<T> & {
  * value from the runtime store and writes through it; there is no second value store.
  */
 export function useSetting<Key extends SettingKey>(key: Key): UseSettingResult<SettingValue<Key>> {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const store = runtime.settings;
   const subscribe = useCallback(
     (listener: () => void) => store.subscribe(key, listener),

@@ -2,7 +2,7 @@
 import { createElement, useSyncExternalStore } from 'react';
 import { dialogOf } from '@bitakit/core';
 import { useAction, useActions } from '../hooks/use-action.js';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 import { useDialogFocus } from '../hooks/use-dialog-focus.js';
 import type { DialogFrameProps } from '../types/ui.js';
 
@@ -16,7 +16,7 @@ const builtInKinds = new Set(['dialog', 'command']);
  * field and results) is its own header.
  */
 export function DialogHost() {
-  const { runtime, ui, dialogs } = useFoundation();
+  const { runtime, ui, dialogs } = useBitaKit();
   const state = useSyncExternalStore(
     runtime.subscribe,
     runtime.getSnapshot,
@@ -56,7 +56,7 @@ export function DialogHost() {
   if (Frame) return createElement(Frame, frame);
   if (!builtInKinds.has(kind))
     console.warn(
-      `[bitakit] Action "${definition.id}" opens a "${kind}" dialog, but no frame of that kind is registered on FoundationProvider; the default dialog is used.`,
+      `[bitakit] Action "${definition.id}" opens a "${kind}" dialog, but no frame of that kind is registered on BitaKitRuntimeProvider; the default dialog is used.`,
     );
   const command = kind === 'command';
   return (

@@ -106,7 +106,7 @@ If this outlet needs different recovery copy, add only an `errorFallback`:
 
 `Button` above is your existing design-system Button. `error` is a `SlotRenderError` with
 `plugin`, `slot`, `contribution` and the original `cause`. The default fallback omits raw error
-messages/stacks. Existing `FoundationProvider` `actionOptions.onError` receives the attributed
+messages/stacks. Existing `BitaKitRuntimeProvider` `actionOptions.onError` receives the attributed
 error for local reporting; it is not added to Core inventory or settings.
 
 | Situation | Behavior |

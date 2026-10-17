@@ -14,14 +14,14 @@ import {
   ShellHeaderRow,
   ShellSurface,
 } from '../dist/index.js';
-import { FoundationProvider } from '@bitakit/ui';
+import { BitaKitRuntimeProvider } from '@bitakit/ui';
 
 const widget = (name) => ({ payload }) =>
   h('span', { 'data-region': name, 'data-context': JSON.stringify(payload ?? {}) }, name);
 
 function host(children, plugins = []) {
   return h(
-    FoundationProvider,
+    BitaKitRuntimeProvider,
     {
       config: { plugins: [shellPlugin(), ...plugins] },
       services: {

@@ -1,5 +1,5 @@
 import type { ActionRegistration, ActionPresentation } from '../actions/types.js';
-import type { FoundationApp } from '../app/types.js';
+import type { BitaKitApp } from '../app/types.js';
 import type { ConfigContext } from '../config-service.js';
 import type { Services } from '../definitions.js';
 import type { Events } from './types.js';
@@ -13,7 +13,7 @@ export type ActionSetupContext = {
   events: Events;
   services: Services;
   action: SetupAction;
-  app: FoundationApp;
+  app: BitaKitApp;
   config: ConfigContext;
 };
 export type ActionSetup = (context: ActionSetupContext) => void | (() => void);

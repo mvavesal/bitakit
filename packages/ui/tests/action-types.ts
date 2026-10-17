@@ -8,7 +8,7 @@ import {
   event,
   type ActionEntry,
   type EventsOf,
-  type FoundationApp,
+  type BitaKitApp,
   type PublicServicesOf,
   type Services,
   type Store,
@@ -23,10 +23,10 @@ import {
   type ControlAdapters,
   type ControlProps,
 } from '../src/actions/index.js';
-import { useEvent, useFoundationApp, useService, useServiceState } from '../src/index.js';
+import { useEvent, useBitaKitApp, useService, useServiceState } from '../src/index.js';
 import type { ActionButtonProps } from '../src/components/action-button.js';
 import type { ActionProps } from '../src/components/action.js';
-import type { FoundationProviderProps } from '../src/types/provider.js';
+import type { BitaKitRuntimeProviderProps } from '../src/types/provider.js';
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
@@ -125,7 +125,7 @@ const todos = definePlugin({ id: 'todos', services: { items }, events: todosEven
 type TodoServices = PublicServicesOf<readonly [typeof todos]>;
 type _ServiceNames = Assert<Equal<keyof TodoServices, 'todos.items'>>;
 // Manual compositions type the app facade through the hook generic.
-declare const composed: ReturnType<typeof useFoundationApp<readonly [typeof todos]>>;
+declare const composed: ReturnType<typeof useBitaKitApp<readonly [typeof todos]>>;
 const composedState: Store<{ items: string[] }> = composed.services.todos.items.state;
 // @ts-expect-error Unpublished services are absent from completion.
 composed.services.notes;
@@ -194,7 +194,7 @@ export { outcome, dynamic };
 
 // --- References from the app facade -----------------------------------------------------------
 
-declare const app: FoundationApp;
+declare const app: BitaKitApp;
 const referenced: Promise<ExecutionResult<{ id: string }>> = app.actions.members.promote.execute({
   memberId: 'a',
 });
@@ -297,7 +297,7 @@ const controls: ControlAdapters = {
 };
 // @ts-expect-error Only the five control kinds have adapters.
 const unknownControl: ControlAdapters = { switch: () => ({}) };
-const providerProps: FoundationProviderProps = {
+const providerProps: BitaKitRuntimeProviderProps = {
   config: {},
   controls,
   additionalPlugins: [todos, tasks],

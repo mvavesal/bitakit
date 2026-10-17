@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
-import { useFoundation, useService, useSetting } from '@bitakit/ui';
+import { useBitaKit, useService, useSetting } from '@bitakit/ui';
 
 import { themeTokens } from '../../themes.js';
 import { themeService, type ThemeService } from '../../services/themes.js';
@@ -63,7 +63,7 @@ function useColorScheme(dark: boolean | undefined) {
  * presets, `data-theme-preset`. The CSS for these attributes comes from the theme.
  */
 export function ShellTheme({ children }: { children: ReactNode }) {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const mode = confirmed(useSetting('shell.mode'));
   const systemDark = useSyncExternalStore(subscribeScheme, prefersDark, serverScheme);
   useColorScheme(

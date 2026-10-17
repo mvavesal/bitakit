@@ -1,6 +1,6 @@
 'use client';
 import './types/presentation.js';
-export { FoundationProvider } from './providers/foundation-provider.js';
+export { BitaKitRuntimeProvider } from './providers/foundation-provider.js';
 export {
   defineFramework,
   type Router,
@@ -8,13 +8,13 @@ export {
   type FrameworkDefinition,
   type FrameworkProviderProps,
 } from './providers/define-framework.js';
-export type { FoundationProviderProps } from './types/provider.js';
+export type { BitaKitRuntimeProviderProps } from './types/provider.js';
 export { ActionMenu } from './components/action-menu.js';
 export { ActionBoundary } from './components/action-boundary.js';
-export { useFoundation, useOptionalFoundation } from './providers/foundation-context.js';
-export { useFoundationApp } from './hooks/use-foundation-app.js';
-export type { FoundationUI, FoundationLabels } from './types/ui.js';
-export { PluginSlot, useFoundationReady } from './components/plugin-slot.js';
+export { useBitaKit, useOptionalBitaKit } from './providers/foundation-context.js';
+export { useBitaKitApp } from './hooks/use-foundation-app.js';
+export type { BitaKitUI, BitaKitLabels } from './types/ui.js';
+export { PluginSlot, useBitaKitReady } from './components/plugin-slot.js';
 export {
   SlotErrorBoundary,
   SlotRenderError,
@@ -23,7 +23,7 @@ export {
   type SlotErrorFallback,
 } from './components/slot-error-boundary.js';
 export { PluginPage, useCurrentPage } from './components/plugin-page.js';
-export { useFoundationNavigation } from './hooks/use-foundation-navigation.js';
+export { useBitaKitNavigation } from './hooks/use-foundation-navigation.js';
 export { useGroupTitle } from './hooks/use-group-title.js';
 export * from './actions/index.js';
 export { Action } from './components/action.js';

@@ -2,7 +2,7 @@
 import { useTranslation } from '@bitakit/ui';
 import { useState, useSyncExternalStore } from 'react';
 import { getService } from '@bitakit/core';
-import { useFoundation, useActionList } from '@bitakit/ui';
+import { useBitaKit, useActionList } from '@bitakit/ui';
 import { SidebarIdentity } from '../ui/index.js';
 import { useSidebar } from '../ui/index.js';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/index.js';
@@ -22,7 +22,7 @@ import PlusIcon from 'reicon-react/icons/Plus';
 export function OrganizationSwitcher({ side }: { side?: 'bottom' | 'right' } = {}) {
   const translateUI = useTranslation();
   const { isMobile, setOpenMobile } = useSidebar();
-  const service = getService(useFoundation().runtime.services, organizationService);
+  const service = getService(useBitaKit().runtime.services, organizationService);
   const actions = useActionList();
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
   const active = state.organizations.find((org) => org.id === state.activeId);

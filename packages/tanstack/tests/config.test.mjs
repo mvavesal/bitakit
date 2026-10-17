@@ -6,10 +6,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   bitakit,
-  foundation,
   defineBitaKit,
-  defineFoundation,
-  generateFoundation,
+  generateBitaKit,
 } from '../src/config.mjs';
 
 async function fixture(run) {
@@ -63,17 +61,15 @@ test('the Vite plugin runs discovery before the config resolves and wires the ge
     assert.equal(await exists('src/bitakit.gen.config.ts'), true);
     const provider = await readFile(path.join(root, 'src/bitakit.gen.tsx'), 'utf8');
     const config = await readFile(path.join(root, 'src/bitakit.gen.config.ts'), 'utf8');
-    assert.match(provider, /import \{ FoundationProvider \} from '@bitakit\/tanstack';/);
+    assert.match(provider, /import \{ BitaKitRuntimeProvider \} from '@bitakit\/tanstack';/);
     assert.match(provider, /import \{ createBitaKitConfig \} from '\.\/bitakit\.gen\.config';/);
     assert.match(provider, /export type \{ BitaKitConfig \} from '\.\/bitakit\.gen\.config';/);
     assert.match(provider, /export function BitaKitProvider\(/);
     assert.doesNotMatch(provider, /discoverActions|discoveredFile|createBitaKitConfig\(\) \{/);
     assert.match(config, /export function createBitaKitConfig\(\)/);
     assert.match(config, /discoverActions\(\[file\d+\], "todos"\)/);
-    assert.equal(foundation, bitakit, 'foundation() is the deprecated alias');
     assert.deepEqual(defineBitaKit({ groups: ['menu'] }), { groups: ['menu'] });
-    assert.equal(defineFoundation, defineBitaKit);
-    assert.equal((await generateFoundation(root, { quiet: true })).framework, 'tanstack');
+    assert.equal((await generateBitaKit(root, { quiet: true })).framework, 'tanstack');
   }));
 
 test('the dev server watcher regenerates on changes and stops when the server closes', async () =>

@@ -4,7 +4,7 @@ import { createElement as h, act, memo } from 'react';
 import { installDom, mount, click, deferred, testUI } from './support.mjs';
 import { ActionProvider, useAction, Action, ActionButton, ActionLink } from '../dist/actions/index.js';
 import { createActionList } from '@bitakit/core';
-import { FoundationProvider } from '../dist/index.js';
+import { BitaKitRuntimeProvider } from '../dist/index.js';
 import { defineAction, definePlugin } from '@bitakit/core';
 
 installDom();
@@ -399,11 +399,11 @@ test('provider-level control adapters remap prop names for other component libra
   } finally {
     await view.unmount();
   }
-  // The same adapters reach FoundationProvider as the `controls` prop.
+  // The same adapters reach BitaKitRuntimeProvider as the `controls` prop.
   const config = { actions: { save: defineAction({ title: 'Save', execute() {} }) } };
   const foundation = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI, controls: { button: (state) => ({ isDisabled: state.disabled }) } },
       h(Probe, { name: 'save', id: 'save' }),
     ),
@@ -437,7 +437,7 @@ test('<Action> merges control props into its child: chained handlers, joined cla
   const controlsAdapter = { button: () => ({ className: 'btn' }) };
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI, controls: controlsAdapter },
       h(
         Action,
@@ -576,7 +576,7 @@ test('<Action> picks the control kind: links render through the router Link, tog
   };
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI, actionOptions: { navigate: (href) => visits.push(href), Link } },
       h(Action, { id: 'docs' }, h('a', { 'data-name': 'docs' })),
       h(Action, { id: 'site' }, h('a', { 'data-name': 'site' })),
@@ -676,7 +676,7 @@ test('ActionButton and ActionLink are sugar over <Action> with custom components
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI },
       h(ActionButton, { action: 'todos.add', as: CustomButton, input: 42 }),
       h(ActionButton, { action: 'todos.add', input: 8, title: 'Custom hint' }, 'Add another'),

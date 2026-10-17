@@ -22,7 +22,7 @@ The provider and binding options below are reference material.
 
 ## Provider
 
-`FoundationProvider` mounts one runtime per configuration. It owns the root `ActionProvider`
+`BitaKitRuntimeProvider` mounts one runtime per configuration. It owns the root `ActionProvider`
 by default and reuses an existing outer provider during migration. Apps render the generated
 `BitaKitProvider` from `src/bitakit.gen.tsx`, which passes the discovered `config`; the
 framework adapters add navigation and query state.
@@ -89,7 +89,7 @@ hosts use `useSettingsCatalog()` (sections derived from every plugin's `settings
 `ui/settings/page.tsx`), `useNavigation(slotName)` (bound navigation items plus the router's
 pathname, link and `isActive`), `useSlot(name, { payload })` (typed action/component/data items, payload, pending and error) and
 `useCurrentPage()` (the current plugin page with its `layout` name). Dialog actions name a
-frame kind (`dialog: { component, kind: 'sheet' }`); register frames on `FoundationProvider`
+frame kind (`dialog: { component, kind: 'sheet' }`); register frames on `BitaKitRuntimeProvider`
 through `dialogs={{ sheet: SheetFrame }}`. Two kinds work without a registered frame: `dialog`
 (the default, with a visible header) and `command`, shadcn's CommandDialog composition for a
 search palette whose content leads with its own search field; the title stays available to
@@ -97,7 +97,7 @@ assistive technology.
 
 `useServiceState(name, selector?, fallback?)` subscribes to the store a service exposes as
 `state` (or a `subscribe`/`getSnapshot` pair) and returns the fallback until the service and
-its owner are ready. `useEvent` subscribes to the runtime bus with component cleanup. `useFoundationApp()` returns the typed app facade (`app.services`,
+its owner are ready. `useEvent` subscribes to the runtime bus with component cleanup. `useBitaKitApp()` returns the typed app facade (`app.services`,
 `app.actions`, `app.config`, `app.has()`); `usePluginConfig(moduleId, path, fallback)` reads the
 config snapshot.
 
@@ -144,14 +144,14 @@ consumer apps do not patch individual plugin selectors.
 The optional `./components` entry exports `Button`, `Input`, `Field`, `Label`, `Badge`,
 `Dialog`, `DropdownMenu`, `Sidebar`, `NavigationMenu`, `Sheet`, `Skeleton`, `Tooltip`,
 `Separator`, `PageHeader`, `AppBar`, `StandardActionMenu`, `ActionSidebarNavigation`,
-`ActionNavigationMenu` and `standardFoundationUI`. These compose the host theme tokens and
+`ActionNavigationMenu` and `standardBitaKitUI`. These compose the host theme tokens and
 contain no app, Settings or Shell behavior. `./theme.css` exports the shared theme tokens and
 control geometry; generated apps import it through `src/bitakit.gen.css`.
 
 ## Testing
 
-`renderWithFoundation(element, { plugins, config, services, ui })` from `@bitakit/ui/testing`
-mounts the element inside `FoundationProvider`, wrapped in `act`, and resolves after every
+`renderWithBitaKit(element, { plugins, config, services, ui })` from `@bitakit/ui/testing`
+mounts the element inside `BitaKitRuntimeProvider`, wrapped in `act`, and resolves after every
 plugin's `onStart`. It returns `runtime`, `container`, `events.recorded`, `rerender(element)` and
 `unmount()`. `events.recorded` lists `{ type, data }` of every event emitted while mounted,
 startup included, in the shape `mountPlugin` records. `plugins` are added to `config` (an
@@ -161,9 +161,9 @@ no DOM implementation: install jsdom's `window` and `document` as globals first,
 `tests/support.mjs` does, and pass your own `ui` when the standard primitives are not wanted.
 
 ```js
-import { renderWithFoundation } from '@bitakit/ui/testing';
+import { renderWithBitaKit } from '@bitakit/ui/testing';
 
-const view = await renderWithFoundation(<PluginPage pathname="/notes" />, { plugins: [notes] });
+const view = await renderWithBitaKit(<PluginPage pathname="/notes" />, { plugins: [notes] });
 await act(async () => view.container.querySelector('button').click());
 assert.deepEqual(view.events.recorded, [{ type: 'notes.added', data: { title: 'Write tests' } }]);
 await view.unmount();
@@ -183,11 +183,11 @@ visual dependency and does not enforce server authorization. See
 ## Source organization
 
 - `components/`: `<Action>`, `ActionButton`, `ActionLink`, `ActionMenu`, `ActionBoundary`, dialog hosts, plugin pages and slots, standard primitives under `components/primitives`.
-- `hooks/`: `useAction`, `useActionGroup`, `useService`, `useServiceState`, `useSetting`, `useSettingsCatalog`, `useNavigation`, `useSlot`, `useEvent`, `useFoundationApp`, `usePluginConfig`, `useTranslation`, `useAuth`.
-- `providers/`: `FoundationProvider`, `ActionProvider` and the shared contexts.
+- `hooks/`: `useAction`, `useActionGroup`, `useService`, `useServiceState`, `useSetting`, `useSettingsCatalog`, `useNavigation`, `useSlot`, `useEvent`, `useBitaKitApp`, `usePluginConfig`, `useTranslation`, `useAuth`.
+- `providers/`: `BitaKitRuntimeProvider`, `ActionProvider` and the shared contexts.
 - `bindings/`: keyboard shortcut registration.
 - `utils/`: `mergeProps`.
-- `testing/`: `renderWithFoundation`, the `@bitakit/ui/testing` entry (needs `react-dom`; imports no DOM).
+- `testing/`: `renderWithBitaKit`, the `@bitakit/ui/testing` entry (needs `react-dom`; imports no DOM).
 - `types/`: host UI contracts and React presentation typing.
 - `index.ts`, `actions/index.tsx`, `components.ts`: public exports without implementation.
 
@@ -196,10 +196,10 @@ presentation types with React types. Run `npm test --workspace @bitakit/ui`.
 
 ### Awaited runtime replacement
 
-`FoundationProvider` uses Core's startup controller for fail-fast and isolation policies.
+`BitaKitRuntimeProvider` uses Core's startup controller for fail-fast and isolation policies.
 Changing configuration waits for the previous runtime's complete async cleanup, including
 when intermediate configurations are skipped. Cleanup failure prevents automatic replacement.
-`renderWithFoundation(...).unmount()` awaits this cleanup; recorded events include
+`renderWithBitaKit(...).unmount()` awaits this cleanup; recorded events include
 `runtime.lifecycle`. Runtime state is available through `runtime.lifecycle.get()/watch()`.
 
 Placed Action items expose `item.action`; pass that control to `Action`, `ActionButton` or `ActionLink` to preserve the outlet's mapped input. Groups remain logical queries. `PluginSlot` passes the validated outlet payload to contributed components.
@@ -214,9 +214,9 @@ retaining safe URL checks, disabled guards and consistent native/client navigati
 
 ### Host updates and inspection
 
-`useFoundation().runtime.reconcilePlugins(nextPlugins)` supports explicit compatible plugin
+`useBitaKit().runtime.reconcilePlugins(nextPlugins)` supports explicit compatible plugin
 updates. Await its result from host management code. It preserves unrelated service instances
-and keeps unaffected pages/widgets mounted. `useFoundationReady()` means initial readiness;
+and keeps unaffected pages/widgets mounted. `useBitaKitReady()` means initial readiness;
 pass a plugin ID to observe that owner. `useService` and `useServiceState` follow ready instances
 without detaching unchanged sources. `PluginPage` accepts an `unavailable` fallback; `useSlot`
 exposes its declared owner's `phase`, with failed/blocked distinct from `pending`.

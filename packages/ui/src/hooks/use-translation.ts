@@ -1,7 +1,7 @@
 'use client';
 import { useContext, useMemo, useSyncExternalStore } from 'react';
 import { getService, translationService, type Translator, type TranslationCatalog } from '@bitakit/core';
-import { FoundationContext } from '../providers/foundation-context.js';
+import { BitaKitContext } from '../providers/foundation-context.js';
 
 export type Translate = ((
   key: string,
@@ -17,7 +17,7 @@ const idle = () => () => {};
 
 /** Reactive access to the runtime's replaceable translator, including stable service functions. */
 export function useTranslation(): Translate {
-  const runtime = useContext(FoundationContext)?.runtime;
+  const runtime = useContext(BitaKitContext)?.runtime;
   const ready = useSyncExternalStore(
     runtime?.subscribeReady ?? idle,
     runtime?.isReady ?? notReady,

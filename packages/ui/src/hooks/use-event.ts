@@ -1,14 +1,14 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import type { EventSelector, EventHandler } from '@bitakit/core';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 
 /** React-owned subscription to the runtime's bus; released with the component. */
 export function useEvent<const Name extends EventSelector>(
   names: Name | readonly Name[],
   handler: EventHandler<Name>,
 ) {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const ready = useSyncExternalStore(runtime.subscribeReady, runtime.isReady, () => false);
   const current = useRef(handler);
   useLayoutEffect(() => {

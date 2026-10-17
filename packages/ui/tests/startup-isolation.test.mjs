@@ -4,7 +4,7 @@ import { createElement as h, act } from 'react';
 import { installDom, mount, click, tick, deferred, silenced, testUI } from './support.mjs';
 import { ActionProvider, ActionButton } from '../dist/actions/index.js';
 import { createActionList } from '@bitakit/core';
-import { FoundationProvider, useFoundationApp } from '../dist/index.js';
+import { BitaKitRuntimeProvider, useBitaKitApp } from '../dist/index.js';
 import { defineAction, definePlugin, defineService } from '@bitakit/core';
 
 installDom();
@@ -58,7 +58,7 @@ async function render(
       h(
         ActionProvider,
         { actions: list },
-        h(FoundationProvider, { ui: testUI, ...props }, content),
+        h(BitaKitRuntimeProvider, { ui: testUI, ...props }, content),
       ),
     ),
   );
@@ -191,7 +191,7 @@ test('a host component that still requires a turned-off plugin service gets an a
   });
   // A correct host component: it waits for readiness, then requires the service.
   function Stock() {
-    const app = useFoundationApp();
+    const app = useBitaKitApp();
     return h('p', null, app.ready ? `${app.services.stock.count()} items` : 'Loading');
   }
   const view = await render(
@@ -226,7 +226,7 @@ test('a host component that still requires a turned-off plugin service gets an a
     services: { summary: defineService(() => ({ total: () => 0 }), { exposeAs: 'summary' }) },
   });
   function Summary() {
-    const app = useFoundationApp();
+    const app = useBitaKitApp();
     return h('p', null, app.ready ? String(app.services.summary.total()) : 'Loading');
   }
   const dependentView = await render(
@@ -287,7 +287,7 @@ test('replacement waits for async cleanup and skips intermediate compositions', 
   const second = plugin('second');
   const third = plugin('third');
   const tree = (plugins) =>
-    h(FoundationProvider, { ui: testUI, plugins, isolateFailures: false }, h('main'));
+    h(BitaKitRuntimeProvider, { ui: testUI, plugins, isolateFailures: false }, h('main'));
   const view = await mount(tree([first]));
   try {
     await view.render(tree([second]));
@@ -327,7 +327,7 @@ test('failed previous cleanup prevents replacement from starting', async () => {
     },
   });
   const tree = (plugins) =>
-    h(FoundationProvider, { ui: testUI, plugins, isolateFailures: true }, h('main'));
+    h(BitaKitRuntimeProvider, { ui: testUI, plugins, isolateFailures: true }, h('main'));
   const view = await mount(tree([first]));
   try {
     await silenced(() => view.render(tree([next])));

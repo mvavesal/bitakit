@@ -141,7 +141,7 @@ The catalog name `notes-example` and the plugin ID `notes` intentionally differ:
 can supply several plugins with their own IDs.
 
 This script owns a standalone runtime. In a configured app, pass the existing mounted runtime
-instead. In a React host, `useFoundation()` from `@bitakit/ui` exposes it. Keep one adapter per
+instead. In a React host, `useBitaKit()` from `@bitakit/ui` exposes it. Keep one adapter per
 runtime in host management code, outside the affected plugins' Actions, hooks and disposers.
 Do not recreate it on every React render.
 

@@ -4,7 +4,7 @@ import { createElement as h, act } from 'react';
 import { installDom, mount, click, testUI } from './support.mjs';
 import { ActionProvider, useActionGroups, useActionGroup } from '../dist/actions/index.js';
 import { ActionGroup, createActionList } from '@bitakit/core';
-import { ActionMenu, FoundationProvider, useFoundation } from '../dist/index.js';
+import { ActionMenu, BitaKitRuntimeProvider, useBitaKit } from '../dist/index.js';
 import { defineAction, definePlugin } from '@bitakit/core';
 
 installDom();
@@ -67,7 +67,7 @@ test('groups are ordered, bound to the caller input, titled and free of internal
   };
   let runtime;
   function Capture() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const single = {};
@@ -77,7 +77,7 @@ test('groups are ordered, bound to the caller input, titled and free of internal
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI },
       h(Capture),
       h(GroupView, { name: 'allowed', groups: ['members'], input: allowed }),
@@ -201,13 +201,13 @@ test('group members react to service state through function-valued presentation'
   };
   let runtime;
   function Capture() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     const count = useServiceState('todos.items', (state) => state.items.length, 0);
     return h('output', null, count);
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI },
       h(Capture),
       h(GroupView, { name: 'toolbar', groups: ['todos.toolbar'] }),
@@ -255,7 +255,7 @@ test('ActionMenu hands bound groups and the label to the host menu component', a
   };
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: { ...testUI, Menu } },
       h(ActionMenu, { group: 'members', label: 'Team', input: allowed }),
       h(ActionMenu, { group: ['members', 'account'], label: 'More', input: denied }),
@@ -300,7 +300,7 @@ test('the standard menu renders a trigger with the label and keeps items closed 
     h(
       ActionProvider,
       { actions: list },
-      h(FoundationProvider, { config: {} }, h(ActionMenu, { group: 'file', label: 'File' })),
+      h(BitaKitRuntimeProvider, { config: {} }, h(ActionMenu, { group: 'file', label: 'File' })),
     ),
   );
   try {

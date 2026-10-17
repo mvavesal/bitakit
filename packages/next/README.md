@@ -8,7 +8,7 @@ another scanner.
 
 - `/config`: `withBitaKit` runs `@bitakit/discovery` before Next reads its configuration and keeps
   regenerating while files change during development.
-- The root entry: `FoundationProvider`, the shared UI provider with Next routing and query state.
+- The root entry: `BitaKitRuntimeProvider`, the shared UI provider with Next routing and query state.
 - `/actions`: connects a standalone root `ActionProvider` to the Next router and `Link`.
 
 ```ts
@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 }
 ```
 
-Discovery writes `src/bitakit.gen.tsx`, which exports only the `BitaKitProvider` component. `src/bitakit.gen.config.ts` exports `createBitaKitConfig()` and the generated types, a thin wrapper around this package's `FoundationProvider` with the
+Discovery writes `src/bitakit.gen.tsx`, which exports only the `BitaKitProvider` component. `src/bitakit.gen.config.ts` exports `createBitaKitConfig()` and the generated types, a thin wrapper around this package's `BitaKitRuntimeProvider` with the
 discovered configuration. Because the generated file is a real file, no bundler alias is
 needed: Turbopack and Webpack behave the same, and `next dev` and `next build` run without
 flags. Add `src/bitakit.gen.*` to `.gitignore`.
@@ -48,7 +48,7 @@ props that hold components or functions must come from a client component. An ex
 ActionProvider is reused, including its navigation options. Import `src/bitakit.gen.css` once
 in your global stylesheet for the styles of installed packages.
 
-Use `FoundationProvider` from the package root directly only with an explicit `config`, for
+Use `BitaKitRuntimeProvider` from the package root directly only with an explicit `config`, for
 example in an isolated environment without the build adapter; without `config` it throws.
 
 ## Discovery and routes

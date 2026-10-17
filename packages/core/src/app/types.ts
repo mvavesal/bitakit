@@ -43,7 +43,7 @@ type PluginServices<P> = P extends { id: infer Id extends string; services: infe
       ? RecordServices<Id, S>
       : {}
   : {};
-/** `ServiceMap` entries of manually composed plugins, for `useFoundationApp<typeof plugins>()`. */
+/** `ServiceMap` entries of manually composed plugins, for `useBitaKitApp<typeof plugins>()`. */
 export type PublicServicesOf<Plugins extends readonly Plugin[]> = [Plugins[number]] extends [never]
   ? {}
   : Intersection<
@@ -122,11 +122,11 @@ export type Namespace<Entries extends object> = keyof Entries extends never
   ? {}
   : Intersection<{ [K in keyof Entries & string]: AtPath<K, Entries[K]> }[keyof Entries & string]>;
 type Immutable<T> = T extends object ? { readonly [K in keyof T]: Immutable<T[K]> } : T;
-export type FoundationActions = Namespace<{ [K in KnownActionId]: ActionReference<K> }>;
+export type BitaKitActions = Namespace<{ [K in KnownActionId]: ActionReference<K> }>;
 
-export interface FoundationApp<Services extends object = ServiceMap> extends AppExtensionMap {
+export interface BitaKitApp<Services extends object = ServiceMap> extends AppExtensionMap {
   readonly events: import('../events/types.js').Events;
-  readonly actions: FoundationActions;
+  readonly actions: BitaKitActions;
   readonly config: Namespace<Immutable<ConfigMap>>;
   /** Live, typed access; missing reads throw. Use has/service hooks for owner readiness. */
   readonly services: Namespace<Services>;

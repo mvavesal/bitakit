@@ -1,5 +1,5 @@
-import { FoundationStartupError } from './startup-error.js';
-import { FoundationServiceError } from './app/service-error.js';
+import { BitaKitStartupError } from './startup-error.js';
+import { BitaKitServiceError } from './app/service-error.js';
 import type { Services } from './definitions.js';
 
 /** Who asked for a service. Only used to explain failures. */
@@ -52,14 +52,14 @@ export class ServiceNames {
         (segment) => !segment || ['then', 'toJSON', '__proto__', 'constructor'].includes(segment),
       )
     )
-      throw new FoundationStartupError(
+      throw new BitaKitStartupError(
         `Service name "${name}" in ${this.label(plugin)} is empty or uses a reserved segment.`,
         plugin,
         { app: plugin === this.appId },
       );
     const existing = this.ids.get(name);
     if (existing !== undefined && existing !== id)
-      throw new FoundationStartupError(
+      throw new BitaKitStartupError(
         `Two services are named "${name}" (${existing} and ${id}). Rename one of the files, or set exposeAs on one of them.`,
         plugin,
         { app: plugin === this.appId },
@@ -72,14 +72,14 @@ export class ServiceNames {
       const last = index === segments.length - 1;
       if (last) {
         if (child.children.size)
-          throw new FoundationStartupError(
+          throw new BitaKitStartupError(
             `Service name "${name}" in ${this.label(plugin)} is already used as a namespace by ${[...child.children.keys()].map((key) => `${name}.${key}`).join(', ')}. A plugin cannot provide or expose a service under its own ID; rename the plugin folder (for example "${name}-provider") or choose another alias.`,
             plugin,
             { app: plugin === this.appId },
           );
         child.leaf = id;
       } else if (child.leaf !== undefined)
-        throw new FoundationStartupError(
+        throw new BitaKitStartupError(
           `Service name "${name}" in ${this.label(plugin)} is nested under "${segments.slice(0, index + 1).join('.')}", which is already a service.`,
           plugin,
           { app: plugin === this.appId },
@@ -119,11 +119,11 @@ export class ServiceNames {
           const path = prefix ? `${prefix}.${name}` : name;
           const child = node.children.get(name);
           if (!child) {
-            throw new FoundationServiceError(path, notReady?.() ? 'not-ready' : 'unregistered');
+            throw new BitaKitServiceError(path, notReady?.() ? 'not-ready' : 'unregistered');
           }
           if (child.leaf !== undefined) {
             if (!Object.hasOwn(instances, child.leaf)) {
-              throw new FoundationServiceError(path, notReady?.() ? 'not-ready' : 'missing');
+              throw new BitaKitServiceError(path, notReady?.() ? 'not-ready' : 'missing');
             }
             return instances[child.leaf];
           }
@@ -151,7 +151,7 @@ export class ServiceNames {
     name: string,
     requester: ServiceRequester,
     exists: (key: string) => boolean,
-  ): FoundationStartupError {
+  ): BitaKitStartupError {
     const available = this.names().filter((item) => exists(this.key(item)));
     const suggestions = suggest(name, available);
     const lines = [
@@ -164,7 +164,7 @@ export class ServiceNames {
         : 'No services are available. Add one under services/ or install the plugin that provides it.',
       ...(requester.source ? [`Source: ${requester.source}`] : []),
     ];
-    return new FoundationStartupError(lines.join('\n'), module, {
+    return new BitaKitStartupError(lines.join('\n'), module, {
       source: requester.source,
       app: module === this.appId,
     });

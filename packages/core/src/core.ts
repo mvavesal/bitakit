@@ -79,7 +79,7 @@ export {
   type ContractName,
 } from './service-key.js';
 export type {
-  FoundationApp,
+  BitaKitApp,
   AppExtensionMap,
   Namespace,
   PublicServiceMap,
@@ -90,15 +90,15 @@ export type {
   PublicSettingsOf,
   PublicSlotsOf,
 } from './app/types.js';
-export { FoundationServiceError } from './app/service-error.js';
-export { resolveFoundationConfig, type FoundationOverrides } from './configuration.js';
+export { BitaKitServiceError } from './app/service-error.js';
+export { resolveBitaKitConfig, type BitaKitOverrides } from './configuration.js';
 export {
-  FoundationRuntime,
+  BitaKitRuntime,
   createRuntime,
   type DialogState,
   type NormalizedPlugin,
 } from './runtime.js';
-export { FoundationStartupError, isFoundationStartupError } from './startup-error.js';
+export { BitaKitStartupError, isBitaKitStartupError } from './startup-error.js';
 export type { Cleanup } from './lifecycle/cleanup.js';
 export type {
   LifecyclePhase,

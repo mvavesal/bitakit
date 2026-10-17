@@ -1,7 +1,7 @@
 'use client';
 import { useContext, type ReactNode } from 'react';
 import { useAction, type ActionTarget } from '../hooks/use-action.js';
-import { FoundationContext } from '../providers/foundation-context.js';
+import { BitaKitContext } from '../providers/foundation-context.js';
 
 /** UI gate only: server authorization is still mandatory. */
 export function ActionBoundary<const Id extends string>({
@@ -14,7 +14,7 @@ export function ActionBoundary<const Id extends string>({
   fallback?: ReactNode | ((message: string) => ReactNode);
 }) {
   const state = useAction(action);
-  const foundation = useContext(FoundationContext);
+  const foundation = useContext(BitaKitContext);
   if (state && !state.visible) return null;
   if (state?.enabled) return children;
   const message = foundation?.labels.unavailable ?? '';

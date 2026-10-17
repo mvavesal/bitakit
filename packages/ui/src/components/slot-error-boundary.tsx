@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { UIContext } from '../providers/action-context.js';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 import { useTranslation } from '../hooks/use-translation.js';
 
 type SlotLocation = { slot: string; plugin: string; contribution: string };
@@ -38,7 +38,7 @@ export type SlotErrorBoundaryProps = SlotLocation & {
 };
 
 function SlotFailure({ error, retry }: SlotErrorFallbackProps) {
-  const { ui } = useFoundation();
+  const { ui } = useBitaKit();
   const t = useTranslation();
   return (
     <div
@@ -66,7 +66,7 @@ export function SlotErrorBoundary({
   children,
   errorFallback,
 }: SlotErrorBoundaryProps) {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const { onError } = useContext(UIContext);
   // Normalized modules and global revision can change for unrelated owners. Use the raw owner.
   const readOwner = useCallback(

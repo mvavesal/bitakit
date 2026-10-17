@@ -12,7 +12,7 @@ import {
 import { Suspense, useSyncExternalStore, type ReactNode } from 'react';
 import { cn } from 'cn';
 import { getService } from '@bitakit/core';
-import { useFoundation, useFoundationReady, useServiceState, useTranslation } from '@bitakit/ui';
+import { useBitaKit, useBitaKitReady, useServiceState, useTranslation } from '@bitakit/ui';
 import {
   organizationService,
   isOrganizationWebsite,
@@ -55,7 +55,7 @@ export function OrganizationInvitationsSettings({ embedded }: ViewProps) {
 }
 export function OrganizationSettings({ embedded = false }: ViewProps) {
   const translateUI = useTranslation();
-  const service = getService(useFoundation().runtime.services, organizationService);
+  const service = getService(useBitaKit().runtime.services, organizationService);
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
   const organization = state.organizations.find((item) => item.id === state.activeId);
   if (!state.activeId && state.error)
@@ -224,7 +224,7 @@ export function OrganizationSettings({ embedded = false }: ViewProps) {
 
 /** Profile content in the shared settings frame, which owns its heading. */
 export function OrganizationSettingsPage() {
-  const ready = useFoundationReady();
+  const ready = useBitaKitReady();
   if (!ready) return null;
   return (
     <SettingsAccountAccess>
@@ -306,7 +306,7 @@ export function OrganizationMembersPage() {
 }
 
 export function PersonalInvitationsPage() {
-  const ready = useFoundationReady();
+  const ready = useBitaKitReady();
   if (!ready) return null;
   return (
     <SettingsAccountAccess>
@@ -323,7 +323,7 @@ function InvitationsAccess({ children }: { children: ReactNode }) {
     (state) => state as OrganizationSnapshot,
     undefined,
   );
-  const service = getService(useFoundation().runtime.services, organizationService);
+  const service = getService(useBitaKit().runtime.services, organizationService);
   if (!state?.loaded || state.incomingInvitationsError || !service.capabilities.invitations)
     return (
       <Suspense>

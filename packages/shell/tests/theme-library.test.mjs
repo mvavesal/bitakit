@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FoundationRuntime, createActionList, createMemorySettingsStorage } from '@bitakit/core';
+import { BitaKitRuntime, createActionList, createMemorySettingsStorage } from '@bitakit/core';
 import { shellPlugin } from '../dist/index.js';
 import { themeCatalog, defaultTheme, themeTokens } from '../dist/themes.js';
 
@@ -15,7 +15,7 @@ test('theme identity includes source and never uses the display name', () => {
 test('theme service uses Core settings persistence and keeps original themes immutable', async () => {
   const storage = createMemorySettingsStorage();
   async function boot() {
-    const runtime = new FoundationRuntime(createActionList(), { plugins: [shellPlugin({ themes: [custom] })] }, { 'settings.storage': storage });
+    const runtime = new BitaKitRuntime(createActionList(), { plugins: [shellPlugin({ themes: [custom] })] }, { 'settings.storage': storage });
     const stop = runtime.mount();
     await runtime.ready;
     // Settings loads are intentionally independent of service startup.

@@ -1,9 +1,9 @@
 import type { ActionList } from '../actions/action-list.js';
 import { createActionReference } from '../actions/reference.js';
-import type { FoundationActions } from './types.js';
+import type { BitaKitActions } from './types.js';
 
 /** Projects dotted IDs onto stable handles; enumeration reads only current public registrations. */
-export function createActionAccess(list: ActionList): FoundationActions {
+export function createActionAccess(list: ActionList): BitaKitActions {
   const references = new Map<string, object>();
   const at = (path: string): object => {
     const cached = references.get(path);
@@ -23,5 +23,5 @@ export function createActionAccess(list: ActionList): FoundationActions {
     references.set(path, reference);
     return reference;
   };
-  return at('') as FoundationActions;
+  return at('') as BitaKitActions;
 }

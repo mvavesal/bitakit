@@ -20,9 +20,9 @@ globalThis.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const { createElement: h, act } = await import('react');
 const { createRoot } = await import('react-dom/client');
-const { FoundationProvider } = await import('@bitakit/ui');
+const { BitaKitRuntimeProvider } = await import('@bitakit/ui');
 const { defineAction, defineService } = await import('@bitakit/core');
-const { standardFoundationUI } = await import('@bitakit/ui/components');
+const { standardBitaKitUI } = await import('@bitakit/ui/components');
 const { Inspector } = await import('../dist/index.js');
 const labels = {
   cancel: 'Cancel',
@@ -73,8 +73,8 @@ test('the inspector shows a running plugin and runs its actions with JSON input'
     await act(async () =>
       root.render(
         h(
-          FoundationProvider,
-          { ui: standardFoundationUI, labels, plugins: [notes] },
+          BitaKitRuntimeProvider,
+          { ui: standardBitaKitUI, labels, plugins: [notes] },
           h(Inspector, { plugin: 'notes' }),
         ),
       ),
@@ -130,8 +130,8 @@ test('an unknown plugin explains what to check', async () => {
   await act(async () =>
     root.render(
       h(
-        FoundationProvider,
-        { ui: standardFoundationUI, labels, plugins: [] },
+        BitaKitRuntimeProvider,
+        { ui: standardBitaKitUI, labels, plugins: [] },
         h(Inspector, { plugin: 'missing' }),
       ),
     ),

@@ -18,7 +18,7 @@ export function resolveActionId<Id extends string>(
   if (typeof target === 'string') return target;
   const owner = owners.get(target);
   if (!owner || owner.list !== list)
-    throw new Error('The Action reference belongs to a different Foundation instance.');
+    throw new Error('The Action reference belongs to a different BitaKit instance.');
   return owner.id as Id;
 }
 

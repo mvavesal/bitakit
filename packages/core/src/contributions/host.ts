@@ -1,7 +1,7 @@
 import type { ActionGroup, ActionList } from '@bitakit/core/actions';
 import type { Feedback, MessageValues } from '../actions/feedback.js';
 import type { ResolvedContribution, Services, Translator } from '../definitions.js';
-import type { FoundationApp } from '../app/types.js';
+import type { BitaKitApp } from '../app/types.js';
 import type { Confirmation } from '../confirmation.js';
 
 export type FeedbackOutcome = { message: string | false; closeDialog: boolean };
@@ -14,7 +14,7 @@ export type DialogState = { definition: OpenableDefinition; input: unknown; toke
 
 /** Runtime capabilities available to the action adapter. Registration ownership stays with the runtime. */
 export interface ContributionHost {
-  readonly app: FoundationApp;
+  readonly app: BitaKitApp;
   readonly actions: ActionList;
   readonly services: Services;
   translator(): Translator;

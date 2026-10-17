@@ -7,7 +7,7 @@ import {
   defineAction,
   definePlugin,
   defineService,
-  resolveFoundationConfig,
+  resolveBitaKitConfig,
   resolveText,
 } from '../dist/core.js';
 
@@ -101,8 +101,8 @@ test('plugins share service dependency ordering, reject collisions and obey expl
       }),
     /Service name "base" in plugin "base" is already used as a namespace by base\.value/,
   );
-  assert.deepEqual(resolveFoundationConfig({ plugins: [base] }, { plugins: [] }).plugins, []);
-  assert.throws(() => resolveFoundationConfig({ plugins: [base, base] }), /duplicate plugin/);
+  assert.deepEqual(resolveBitaKitConfig({ plugins: [base] }, { plugins: [] }).plugins, []);
+  assert.throws(() => resolveBitaKitConfig({ plugins: [base, base] }), /duplicate plugin/);
   assert.throws(
     () => createRuntime({ plugins: [base] }, { services: { 'base.value': 1 } }).mount(),
     /Duplicate service "base\.value"/,

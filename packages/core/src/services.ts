@@ -3,7 +3,7 @@ import { ConfigService, type ConfigContext } from './config-service.js';
 import type { ServiceDefinition, Services } from './definitions.js';
 import type { SettingsAccess } from './settings/access.js';
 import type { ServiceNames } from './service-names.js';
-import { FoundationStartupError, isFoundationStartupError, moduleLabel } from './startup-error.js';
+import { BitaKitStartupError, isBitaKitStartupError, moduleLabel } from './startup-error.js';
 import { createStore, isObservable, isStore } from './store.js';
 import { cleanupSequence, cleanupFailure, type Cleanup } from './lifecycle/cleanup.js';
 import type { LifecyclePhase } from './lifecycle/state.js';
@@ -65,16 +65,16 @@ export function createServices(
     }));
   const view = scope ? scope.names.tree(instances) : (instances as unknown as Services);
   const attributed = (error: unknown, service: OwnedService, phase: string) => {
-    if (phase === 'onStart' && isFoundationStartupError(error)) return error;
+    if (phase === 'onStart' && isBitaKitStartupError(error)) return error;
     const message = `${phase} in ${scope ? moduleLabel(service.module, scope.appId) : service.module} failed: ${error instanceof Error ? error.message : String(error)}`;
     if (phase === 'onStart')
-      return new FoundationStartupError(message, service.module, {
+      return new BitaKitStartupError(message, service.module, {
         cause: error,
         source: service.source,
         app: service.module === scope?.appId,
       });
     return Object.assign(new Error(message, { cause: error }), {
-      name: 'FoundationCleanupError',
+      name: 'BitaKitCleanupError',
       plugin: service.module,
       service: service.id,
       source: service.source,
@@ -134,8 +134,8 @@ export function createServices(
           });
         } catch (error) {
           onPhase(id, 'failed', error);
-          if (!scope || isFoundationStartupError(error)) throw error;
-          throw new FoundationStartupError(
+          if (!scope || isBitaKitStartupError(error)) throw error;
+          throw new BitaKitStartupError(
             `Service "${id}" in ${moduleLabel(owner, scope.appId)} failed to start: ${error instanceof Error ? error.message : String(error)}`,
             owner,
             { cause: error, source: service.source, app: owner === scope.appId },
@@ -288,7 +288,7 @@ function unresolved(
   const definition = pending.get(current)!;
   const owner = scope.moduleOf(definition);
   void idOf;
-  return new FoundationStartupError(message, owner, {
+  return new BitaKitStartupError(message, owner, {
     source: scope.sourceOf(definition),
     app: owner === scope.appId,
   });

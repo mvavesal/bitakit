@@ -1,6 +1,6 @@
 /** Structured diagnostics for unavailable public services, without guessing installation state. */
-export class FoundationServiceError extends Error {
-  readonly code = 'FOUNDATION_SERVICE_UNAVAILABLE';
+export class BitaKitServiceError extends Error {
+  readonly code = 'BITAKIT_SERVICE_UNAVAILABLE';
 
   constructor(
     readonly service: string,
@@ -9,7 +9,7 @@ export class FoundationServiceError extends Error {
   ) {
     const detail =
       reason === 'not-ready'
-        ? 'The Foundation runtime is not mounted. Read optional services or wait for app.ready.'
+        ? 'The BitaKit runtime is not mounted. Read optional services or wait for app.ready.'
         : reason === 'missing'
           ? plugin
             ? `Plugin "${plugin}" does not provide its declared service. Check its service configuration.`
@@ -17,7 +17,7 @@ export class FoundationServiceError extends Error {
               // creation, before the declared service exists (creation order follows `requires`).
               `It is declared but has not been created. A service that reads it while it is being created must list it in requires: ["${service}"]; otherwise check that its plugin started without errors.`
           : 'No active plugin exposes this service. Check that the providing plugin is included and enabled.';
-    super(`Foundation service "${service}" is unavailable. ${detail}`);
-    this.name = 'FoundationServiceError';
+    super(`BitaKit service "${service}" is unavailable. ${detail}`);
+    this.name = 'BitaKitServiceError';
   }
 }

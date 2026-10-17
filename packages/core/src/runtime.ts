@@ -12,7 +12,7 @@ import {
   setContributionPath,
 } from './contribution-origin.js';
 import { ServiceNames, type ServiceEntry, type ServiceRequester } from './service-names.js';
-import { FoundationStartupError, isFoundationStartupError, moduleLabel } from './startup-error.js';
+import { BitaKitStartupError, isBitaKitStartupError, moduleLabel } from './startup-error.js';
 import { findPluginPage, validatePluginPages } from './pages.js';
 import { projectedDestination, type Destination } from './destinations.js';
 import { resolveText } from './translation.js';
@@ -28,7 +28,7 @@ import type {
   ContributionInstaller,
   ContributionMap,
   ResolvedContribution,
-  FoundationConfig,
+  BitaKitRuntimeConfig,
   Plugin,
   PluginPageDefinition,
   PluginView,
@@ -46,8 +46,8 @@ import { isSettingsDefinition, type SettingSpec } from './settings/define.js';
 import { translationService, type AuthService } from './contracts.js';
 import { getService } from './service-key.js';
 import { createServices, type Observable } from './services.js';
-import { createFoundationApp } from './app/access.js';
-import type { FoundationApp } from './app/types.js';
+import { createBitaKitApp } from './app/access.js';
+import type { BitaKitApp } from './app/types.js';
 import { fallbackTitle, resolveContribution } from './conventions.js';
 import {
   isActionFailure,
@@ -97,9 +97,9 @@ export type NormalizedPlugin = Omit<Plugin, 'services' | 'actions' | 'slots'> & 
 };
 
 function attributed(error: unknown, plugin: string, what: string, appId: string) {
-  if (isFoundationStartupError(error)) return error;
+  if (isBitaKitStartupError(error)) return error;
   const message = error instanceof Error ? error.message : String(error);
-  return new FoundationStartupError(
+  return new BitaKitStartupError(
     `${what} in ${moduleLabel(plugin, appId)}: ${message}`,
     plugin,
     {
@@ -175,7 +175,7 @@ function orderPlugins(plugins: readonly NormalizedPlugin[], appId: string) {
   const remaining = new Map<string, NormalizedPlugin>();
   for (const plugin of plugins) {
     if (remaining.has(plugin.id))
-      throw new FoundationStartupError(
+      throw new BitaKitStartupError(
         `Plugin ID "${plugin.id}" is used twice. Rename one plugin folder or set a different id in plugin.config.ts.`,
         plugin.id,
         { app: plugin.id === appId },
@@ -197,7 +197,7 @@ function orderPlugins(plugins: readonly NormalizedPlugin[], appId: string) {
         (id) => !plugins.some((candidate) => candidate.id === id),
       );
       if (missing)
-        throw new FoundationStartupError(
+        throw new BitaKitStartupError(
           `Plugin "${item.id}" depends on "${missing}", which is not installed or is disabled. Known plugins: ${plugins.map((candidate) => candidate.id).join(', ')}.`,
           item.id,
           { app: item.id === appId },
@@ -210,7 +210,7 @@ function orderPlugins(plugins: readonly NormalizedPlugin[], appId: string) {
       current = (remaining.get(current)!.dependencies ?? []).find((id) => remaining.has(id))!;
     }
     const cycle = [...path.slice(path.indexOf(current)), current];
-    throw new FoundationStartupError(
+    throw new BitaKitStartupError(
       `Plugin dependency cycle: ${cycle.join(' → ')}. Break it with an event or a shared service that both can require.`,
       cycle[0],
       { app: cycle[0] === appId },
@@ -235,16 +235,16 @@ function deferred(): Deferred {
  * Mounts plugins into the host's ActionList. The runtime owns services, events, translation,
  * dialogs, confirmation, ordering and cleanup; every contribution goes through one adapter.
  */
-export class FoundationRuntime implements ContributionHost {
-  readonly app: FoundationApp;
+export class BitaKitRuntime implements ContributionHost {
+  readonly app: BitaKitApp;
   readonly events: EventService;
   readonly configuration: ConfigService;
   private currentModules: readonly NormalizedPlugin[];
   get modules(): readonly NormalizedPlugin[] {
     return this.currentModules;
   }
-  private currentConfig: FoundationConfig;
-  get config(): FoundationConfig {
+  private currentConfig: BitaKitRuntimeConfig;
+  get config(): BitaKitRuntimeConfig {
     return this.currentConfig;
   }
   readonly groups: Map<string, ActionGroup>;
@@ -354,7 +354,7 @@ export class FoundationRuntime implements ContributionHost {
 
   constructor(
     readonly actions: ActionList,
-    config: FoundationConfig,
+    config: BitaKitRuntimeConfig,
     private providedServices: Readonly<Record<string, unknown>> = {},
   ) {
     this.currentConfig = config;
@@ -399,7 +399,7 @@ export class FoundationRuntime implements ContributionHost {
     } catch (error) {
       throw attributed(error, this.appId, 'Settings', this.appId);
     }
-    this.app = createFoundationApp(this);
+    this.app = createBitaKitApp(this);
     try {
       this.configuration = new ConfigService(
         this.modules.map((module) => ({ id: module.id, config: module.config })),
@@ -540,7 +540,7 @@ export class FoundationRuntime implements ContributionHost {
 
   /** The live service tree every contribution sees. */
   get services(): Services {
-    if (!this.view) throw new Error('Foundation is not mounted.');
+    if (!this.view) throw new Error('The BitaKit runtime is not mounted.');
     return this.view;
   }
   servicesIfMounted(): Services | undefined {
@@ -759,7 +759,7 @@ export class FoundationRuntime implements ContributionHost {
   mount(): () => Promise<void> {
     if (this.mounting || this.tearingDown || this.lifecycle.get().cleanup === 'failed')
       throw new Error(
-        'Foundation cannot mount during a lifecycle transition or after failed cleanup.',
+        'The BitaKit runtime cannot mount during a lifecycle transition or after failed cleanup.',
       );
     this.mounting = true;
     try {
@@ -771,7 +771,7 @@ export class FoundationRuntime implements ContributionHost {
   private start() {
     if (this.container || this.lifecycle.get().phase === 'stopping')
       throw new Error(
-        'Foundation is already mounted or still stopping. Await its stop before mounting.',
+        'The BitaKit runtime is already mounted or still stopping. Await its stop before mounting.',
       );
     this.stopCompletion = undefined;
     if (this.generation) this.readyDeferred = deferred();
@@ -998,9 +998,9 @@ export class FoundationRuntime implements ContributionHost {
   private startFailed(error: unknown) {
     const failure = {
       message: error instanceof Error ? error.message : String(error),
-      ...(isFoundationStartupError(error) ? { plugin: error.plugin, source: error.source } : {}),
+      ...(isBitaKitStartupError(error) ? { plugin: error.plugin, source: error.source } : {}),
     };
-    if (isFoundationStartupError(error))
+    if (isBitaKitStartupError(error))
       this.lifecycleState.plugin(error.plugin, 'failed', failure);
     this.lifecycleState.update({ phase: 'failed' });
     this.readyDeferred.reject(error);
@@ -1013,7 +1013,7 @@ export class FoundationRuntime implements ContributionHost {
         if (!install) continue;
         const existing = installers.get(kind);
         if (existing)
-          throw new FoundationStartupError(
+          throw new BitaKitStartupError(
             `Contribution kind "${kind}" is installed by both "${existing.module}" and "${plugin.id}".`,
             plugin.id,
           );
@@ -1022,7 +1022,7 @@ export class FoundationRuntime implements ContributionHost {
     for (const plugin of plugins)
       for (const [kind, values] of Object.entries(plugin.contributions ?? {}))
         if (values?.length && !installers.has(kind))
-          throw new FoundationStartupError(
+          throw new BitaKitStartupError(
             `"${plugin.id}" contributes "${kind}", but no enabled plugin installs that kind.`,
             plugin.id,
             { app: plugin.id === this.appId },
@@ -1127,9 +1127,9 @@ export class FoundationRuntime implements ContributionHost {
     });
   }
   private attribute(error: unknown, module: string, what: string, source?: string) {
-    if (isFoundationStartupError(error)) return error;
+    if (isBitaKitStartupError(error)) return error;
     const message = error instanceof Error ? error.message : String(error);
-    return new FoundationStartupError(
+    return new BitaKitStartupError(
       `${what} in ${moduleLabel(module, this.appId)} failed to start: ${message}${source ? `\nSource: ${source}` : ''}`,
       module,
       { cause: error, source, app: module === this.appId },
@@ -1800,7 +1800,7 @@ export class FoundationRuntime implements ContributionHost {
       } catch (failure) {
         cleanupError = failure;
       }
-      const failed = isFoundationStartupError(error) ? error.plugin : changed[0];
+      const failed = isBitaKitStartupError(error) ? error.plugin : changed[0];
       for (const id of startIds)
         this.lifecycleState.plugin(id, id === failed ? 'failed' : 'blocked', {
           plugin: failed,
@@ -1950,7 +1950,7 @@ export class FoundationRuntime implements ContributionHost {
       this.events.clear();
       for (const module of this.modules)
         if (module.events) this.events.declare(module.id, module.events);
-      cleanupFailure(errors, 'Foundation cleanup failed.');
+      cleanupFailure(errors, 'BitaKit cleanup failed.');
     }).then(
       () => {
         this.tearingDown = false;
@@ -1981,8 +1981,8 @@ function defaultFailure(error: unknown) {
  * services, such as authentication, under their contract names.
  */
 export function createRuntime(
-  config: FoundationConfig,
+  config: BitaKitRuntimeConfig,
   options: { actions?: ActionList; services?: Readonly<Record<string, unknown>> } = {},
-): FoundationRuntime {
-  return new FoundationRuntime(options.actions ?? createActionList(), config, options.services);
+): BitaKitRuntime {
+  return new BitaKitRuntime(options.actions ?? createActionList(), config, options.services);
 }

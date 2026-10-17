@@ -112,7 +112,7 @@ test('a bare app wraps next.config, mounts one provider, imports one generated s
   const layout = await read(plan.target, 'src/app/layout.tsx');
   assert.match(layout, /import \{ BitaKitProvider \} from '@\/bitakit\.gen';/);
   assert.equal(layout.match(/<BitaKitProvider>/g).length, 1);
-  assert.doesNotMatch(layout, /FoundationProvider|NuqsAdapter/);
+  assert.doesNotMatch(layout, /BitaKitRuntimeProvider|NuqsAdapter/);
   // The theme script belongs to the Shell; without it the layout stays plain.
   assert.doesNotMatch(layout, /ShellThemeScript|suppressHydrationWarning|<head>/);
   assert.equal(
@@ -268,7 +268,7 @@ test('TanStack apps get the same frame through native file routes and the Vite p
   const rootRoute = await read(plan.target, 'src/routes/__root.tsx');
   assert.match(rootRoute, /import \{ BitaKitProvider \} from '\.\.\/bitakit\.gen';/);
   assert.equal(rootRoute.match(/<BitaKitProvider>/g).length, 1);
-  assert.doesNotMatch(rootRoute, /FoundationProvider/);
+  assert.doesNotMatch(rootRoute, /BitaKitRuntimeProvider/);
   assert.match(rootRoute, /import \{ ShellThemeScript \} from '@bitakit\/shell';/);
   assert.match(rootRoute, /<head>\n\s+<HeadContent \/>\n\s+<ShellThemeScript \/>\n\s+<\/head>/);
   assert.doesNotMatch(rootRoute, /suppressHydrationWarning/);

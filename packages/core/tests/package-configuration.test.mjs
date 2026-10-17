@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createJiti } from 'jiti';
-import { generateFoundation, describeFoundation } from '@bitakit/discovery';
+import { generateBitaKit, describeBitaKit } from '@bitakit/discovery';
 
 const coreRuntime = new URL('../dist/core.js', import.meta.url).pathname;
 
@@ -38,7 +38,7 @@ async function fixture(run) {
   }
 }
 const pluginIds = async (root) => {
-  const { generated } = await generateFoundation(root, { quiet: true });
+  const { generated } = await generateBitaKit(root, { quiet: true });
   const { createBitaKitConfig } = await createJiti(import.meta.url, {
     moduleCache: false,
     alias: { '@bitakit/core': coreRuntime },
@@ -150,7 +150,7 @@ test('plugin packages activate the plugin packages they depend on; selection and
       (await pluginIds(root)).map((plugin) => plugin.id),
       ['shell', 'theme', 'prefs'],
     );
-    const description = await describeFoundation(root);
+    const description = await describeBitaKit(root);
     assert.deepEqual(description.packages, [
       '@acme/shell/plugin',
       '@acme/theme/plugin',
@@ -179,7 +179,7 @@ test('plugin packages activate the plugin packages they depend on; selection and
     );
     await put('bitakit.config.ts', `export default { packages: false };`);
     assert.deepEqual(await pluginIds(root), []);
-    assert.deepEqual((await describeFoundation(root)).installedPackages, []);
+    assert.deepEqual((await describeBitaKit(root)).installedPackages, []);
     const source = await readFile(path.join(root, 'src/bitakit.gen.ts'), 'utf8');
     assert.doesNotMatch(source, /packagePlugin|PublicServicesOf|ConfigService/);
     assert.match(source, /type InstalledServices = \{\};/);
@@ -190,12 +190,12 @@ test('package metadata is validated: exports stay inside the package', async () 
     await install('@acme/bad', { bitakit: { plugin: '../outside' } });
     await put('package.json', JSON.stringify({ dependencies: { '@acme/bad': '1.0.0' } }));
     await assert.rejects(
-      generateFoundation(root, { quiet: true }),
+      generateBitaKit(root, { quiet: true }),
       /Invalid BitaKit export in package "@acme\/bad"/,
     );
     await install('@acme/bad', { bitakit: { plugin: 'plugin' } });
     await assert.rejects(
-      describeFoundation(root),
+      describeBitaKit(root),
       /Invalid BitaKit export in package "@acme\/bad"/,
     );
   }));
@@ -239,7 +239,7 @@ test('manifest dependencies join the dependencies of the generated package plugi
     );
     await put('package.json', JSON.stringify({ dependencies: { '@acme/broken': '1.0.0' } }));
     await assert.rejects(
-      generateFoundation(root, { quiet: true }),
+      generateBitaKit(root, { quiet: true }),
       /Invalid plugin dependency in the bitakit manifest of package "@acme\/broken"/,
     );
   }));

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ActionGroup,
-  FoundationRuntime,
+  BitaKitRuntime,
   NavigationHost,
   createActionList,
   createRuntime,
@@ -17,7 +17,7 @@ import {
   discoveredFile,
   event,
   isActionFailure,
-  isFoundationStartupError,
+  isBitaKitStartupError,
   pluginPage,
   pluginSlot,
 } from '../dist/core.js';
@@ -30,7 +30,7 @@ test('groups are inferred, shared across plugins, and dynamic API placements cle
   const list = createActionList();
   const typed = new ActionGroup('members.menu');
   let dynamic;
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     plugins: [
       {
         id: 'one',
@@ -129,11 +129,11 @@ test('discovered services form a tree; function-valued presentation follows thei
     assert.equal(runtime.app.has('todos.items'), true);
     assert.throws(
       () => runtime.services['todos.items'],
-      /Foundation service "todos\.items" is unavailable/,
+      /BitaKit service "todos\.items" is unavailable/,
     );
     assert.throws(
       () => runtime.services.todos.missing,
-      /Foundation service "todos\.missing" is unavailable/,
+      /BitaKit service "todos\.missing" is unavailable/,
     );
     runtime.setTranslations(Object.assign((key) => `de:${key}`, { has: () => true }));
     assert.equal(
@@ -158,7 +158,7 @@ test('href actions render the current href and navigate to the latest value when
   const release = host.bind((url) => urls.push(url));
   const list = createActionList([], { environment: host });
   const route = defineService(({ store }) => ({ state: store({ id: 1 }) }));
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     plugins: [
       {
         id: 'navigation',
@@ -198,7 +198,7 @@ test('href actions render the current href and navigate to the latest value when
   }
   assert.throws(
     () =>
-      new FoundationRuntime(createActionList(), {
+      new BitaKitRuntime(createActionList(), {
         plugins: [
           {
             id: 'nav',
@@ -216,7 +216,7 @@ test('href actions render the current href and navigate to the latest value when
         ],
       }).mount(),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'nav');
       assert.equal(error.source, 'src/plugins/nav/actions/bad.ts');
       assert.match(
@@ -236,7 +236,7 @@ test('discovered interceptors run in order, cancel safely, and clean up without 
       log.push('host');
     },
   });
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     services: discoverServices([
       file(
         defineService(() => ({ ask: () => true })),
@@ -366,7 +366,7 @@ test('plugin interceptors are scoped to their plugin unless global; after and on
         ],
       }).mount(),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'todos');
       assert.match(
         error.message,
@@ -379,7 +379,7 @@ test('plugin interceptors are scoped to their plugin unless global; after and on
 
 test('action overrides from the configuration cap presentation and are never bypassed by updates', async () => {
   const list = createActionList();
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     actionOverrides: {
       'demo.plain': { enabled: false },
       'demo.dynamic': { enabled: false },
@@ -451,7 +451,7 @@ test('startup errors name the plugin and the discovered source file; events stay
         ],
       }).mount(),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'todos');
       assert.equal(error.app, false);
       assert.equal(error.source, 'src/plugins/todos/actions/add.ts');
@@ -486,7 +486,7 @@ test('startup errors name the plugin and the discovered source file; events stay
         ],
       }).mount(),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'todos');
       assert.equal(error.source, 'src/plugins/todos/services/items.ts');
       assert.match(
@@ -550,7 +550,7 @@ test('an input schema disables the action for invalid input and validates before
     },
   };
   const list = createActionList();
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     plugins: [
       {
         id: 'todos',

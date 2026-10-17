@@ -1,5 +1,5 @@
 'use client';
-import type { FoundationUI } from '../types/ui.js';
+import type { BitaKitUI } from '../types/ui.js';
 
 /** A plugin that failed to start during development, as reported to the developer. */
 export type StartupFailure = {
@@ -20,7 +20,7 @@ export function StartupFailureDialog({
   dependents,
   onDismiss,
 }: {
-  ui: FoundationUI;
+  ui: BitaKitUI;
   failures: readonly StartupFailure[];
   /** Plugins turned off because they depend on a failed plugin. */
   dependents: readonly string[];

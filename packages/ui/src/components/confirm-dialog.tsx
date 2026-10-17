@@ -1,6 +1,6 @@
 'use client';
 import type { Confirmation } from '@bitakit/core';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 import { useTranslation } from '../hooks/use-translation.js';
 
 /** The host confirmation for actions with `confirm`, rendered with the host's dialog primitives. */
@@ -11,7 +11,7 @@ export function ConfirmDialog({
   request: Confirmation | null;
   onAnswer(accepted: boolean): void;
 }) {
-  const { ui, labels } = useFoundation();
+  const { ui, labels } = useBitaKit();
   const t = useTranslation();
   if (!request) return null;
   return (

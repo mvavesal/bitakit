@@ -45,8 +45,6 @@ export type DiscoveryConfig = {
   };
 };
 export function defineBitaKit(config: DiscoveryConfig): DiscoveryConfig;
-/** @deprecated Use defineBitaKit in bitakit.config.ts. */
-export function defineFoundation(config: DiscoveryConfig): DiscoveryConfig;
 
 export type GenerateResult = {
   /** Directories of plugins included from outside the project. */
@@ -58,15 +56,11 @@ export type GenerateResult = {
   generated: string;
   framework: 'next' | 'tanstack' | 'none';
 };
-export function generateFoundation(
+export function generateBitaKit(
   root: string,
   options?: { quiet?: boolean },
 ): Promise<GenerateResult>;
-export const generateBitaKit: typeof generateFoundation;
-/** @deprecated Use generateFoundation. */
-export const generateFoundationHost: typeof generateFoundation;
-export function watchFoundation(root: string, onError?: (error: unknown) => void): () => void;
-export const watchBitaKit: typeof watchFoundation;
+export function watchBitaKit(root: string, onError?: (error: unknown) => void): () => void;
 export const styleLayers: string;
 export const stylePrelude: string;
 export function cssImports(
@@ -123,7 +117,7 @@ export type DescribedModule = {
   configs: DescribedEntry[];
   interceptors: DescribedEntry[];
 };
-export type FoundationDescription = {
+export type BitaKitDescription = {
   root: string;
   framework: 'next' | 'tanstack' | 'none';
   pluginsDirectory: string;
@@ -149,7 +143,7 @@ export type FoundationDescription = {
   unresolvedSlots: string[];
   warnings: string[];
 };
-export function describeFoundation(root: string): Promise<FoundationDescription>;
+export function describeBitaKit(root: string): Promise<BitaKitDescription>;
 export function describeModule(
   directory: string,
 ): Promise<Omit<DescribedModule, 'id'> & { setup?: string; locales: string[]; warnings: string[] }>;
@@ -170,6 +164,8 @@ export function rewriteScopeAndSlots(
   source: string,
   options?: { setupFile?: boolean; tsx?: boolean },
 ): { code: string; unresolved: number[] };
+/** Renames the public `Foundation*` names to their 0.2 `BitaKit*` names in one source. */
+export function rewriteRenamedNames(source: string): string;
 /** Rewrites a 0.1 project layout to the current one. `dryRun` only reports the changes. */
 export function migrateProject(
   root: string,

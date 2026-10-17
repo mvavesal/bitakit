@@ -2,7 +2,7 @@ import { readdir, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
 import {
-  describeFoundation,
+  describeBitaKit,
   describeModule,
   describeDefinitions,
   cssImports,
@@ -58,7 +58,7 @@ export async function doctor({ cwd } = {}) {
   }
   let description;
   try {
-    description = await describeFoundation(project.root);
+    description = await describeBitaKit(project.root);
   } catch (error) {
     results.push({ status: 'error', title: 'Discovery failed', details: [error.message] });
     return { project, results };
@@ -326,7 +326,7 @@ async function mountsProvider(file, root, seen = new Set()) {
     const entry = imports.get(name);
     if (!entry) continue;
     if (
-      ['BitaKitProvider', 'FoundationProvider'].includes(entry.name) &&
+      ['BitaKitProvider', 'BitaKitRuntimeProvider'].includes(entry.name) &&
       /bitakit\.gen|^@bitakit\/(?:ui|next|tanstack)$/.test(entry.from)
     )
       return true;

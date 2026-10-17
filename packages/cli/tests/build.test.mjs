@@ -208,10 +208,10 @@ test('packaged slot definitions retain runtime ownership, payload types and deri
   await toolchain(app);
   await mkdir(path.join(app, 'node_modules/@acme'), { recursive: true });
   await symlink(root, path.join(app, 'node_modules/@acme/bitakit-toolbar'), 'dir');
-  const { generateFoundation, describeFoundation } = await import('@bitakit/discovery');
-  const description = await describeFoundation(app);
+  const { generateBitaKit, describeBitaKit } = await import('@bitakit/discovery');
+  const description = await describeBitaKit(app);
   assert.ok(description.slotDeclarations.some((item) => item.id === 'toolbar.header.end'));
-  await generateFoundation(app, { quiet: true });
+  await generateBitaKit(app, { quiet: true });
   // Compile the consumer against the installed package declarations, not workspace source aliases.
   const { execFileSync } = await import('node:child_process');
   const { createRequire } = await import('node:module');

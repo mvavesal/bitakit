@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mount, settle, setMedia, click, deferred } from './support.mjs';
 import { Component, createElement as h, act, useEffect } from 'react';
 import { createMemorySettingsStorage, defineAction, definePlugin } from '@bitakit/core';
-import { FoundationProvider, useFoundation, useNavigation, useSetting, useSlot } from '@bitakit/ui';
+import { BitaKitRuntimeProvider, useBitaKit, useNavigation, useSetting, useSlot } from '@bitakit/ui';
 import { Sidebar, SidebarProvider, SidebarTrigger } from '@bitakit/ui/components';
 import { AppShell, shellPlugin, useShellLayout } from '../dist/index.js';
 
@@ -82,12 +82,12 @@ function setup({ layout = 'sidebar', layouts, plugins } = {}) {
   const navigate = (href) => navigated.push(href);
   let runtime;
   function Probe() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const tree = (pathname, content) =>
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, services, actionOptions: { pathname, navigate, Link: RouterLink } },
       h(Probe),
       content,

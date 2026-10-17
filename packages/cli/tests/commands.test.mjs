@@ -21,7 +21,7 @@ const legacyApp = () => {
     'foundation.config.ts':
       "import { defineFoundation } from '@bitakit/next/config';\n\nexport default defineFoundation({ groups: ['navigation'] });\n",
     'src/app/layout.tsx':
-      "import { FoundationProvider } from '@/.foundation/plugins';\nexport default function Layout({ children }) { return <FoundationProvider>{children}</FoundationProvider>; }\n",
+      "import { BitaKitRuntimeProvider } from '@/.foundation/plugins';\nexport default function Layout({ children }) { return <BitaKitRuntimeProvider>{children}</BitaKitRuntimeProvider>; }\n",
     'src/app/globals.css': "@import 'tailwindcss';\n@import '../../.foundation/styles.css';\n",
     ...catchAll,
     'src/plugins/todos/actions/add.action.ts':

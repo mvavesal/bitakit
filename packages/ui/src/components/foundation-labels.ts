@@ -1,7 +1,7 @@
-import type { FoundationLabels } from '../types/ui.js';
+import type { BitaKitLabels } from '../types/ui.js';
 
 /** Default copy; applications may supply translated labels without replacing the UI. */
-export const defaultLabels: FoundationLabels = {
+export const defaultLabels: BitaKitLabels = {
   cancel: 'Cancel',
   confirm: 'Confirm',
   submit: 'Save',

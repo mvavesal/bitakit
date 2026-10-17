@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createActionList } from '@bitakit/core/actions';
 import {
-  FoundationRuntime,
+  BitaKitRuntime,
   createRuntime,
   defineAction,
   definePlugin,
@@ -109,7 +109,7 @@ test('title, description and tooltip accept keys or literals, prefer <id>.* cata
 
 test('ID collisions roll back without deleting existing host actions', async () => {
   const list = createActionList([{ id: 'users.invite', title: 'Host' }]);
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     plugins: [
       definePlugin({
         id: 'users',

@@ -10,7 +10,7 @@ import {
 } from 'nuqs';
 import { safeHref } from '@bitakit/core';
 import {
-  useFoundation,
+  useBitaKit,
   useSettingsCatalog,
   useTranslation,
   useRuntimeInventory,
@@ -82,7 +82,7 @@ type PluginEntry = {
 };
 /** Installed plugins with their metadata; `plugins.<id>.name|description` translate it. */
 function usePlugins(): readonly PluginEntry[] {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const t = useTranslation();
   const inventory = useRuntimeInventory();
   return useMemo(() => {

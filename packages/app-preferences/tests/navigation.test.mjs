@@ -5,7 +5,7 @@ import {
   createTranslationPlugin,
   definePlugin,
   defineSettings,
-  isFoundationStartupError,
+  isBitaKitStartupError,
   setting,
 } from '@bitakit/core';
 import appPreferencesPlugin from '../dist/foundation.js';
@@ -162,7 +162,7 @@ test('an invalid base path is a startup error of App Preferences', () => {
   assert.throws(
     () => runtime.mount(),
     (error) =>
-      isFoundationStartupError(error) &&
+      isBitaKitStartupError(error) &&
       error.plugin === 'app-preferences' &&
       /must start with "\/"/.test(error.message),
   );

@@ -121,7 +121,7 @@ the availability check is not an authorization decision. Shared authentication u
 
 ## React host composition
 
-`FoundationProvider` from `@bitakit/ui` owns the runtime when composing React manually.
+`BitaKitRuntimeProvider` from `@bitakit/ui` owns the runtime when composing React manually.
 Generated applications already use it through `BitaKitProvider`. Keep one root provider.
 
 `config` supplies the composition. `additionalPlugins` replaces entries with the same ID in

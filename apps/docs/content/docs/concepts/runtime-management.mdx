@@ -74,11 +74,11 @@ Most UI uses `PluginPage`, `PluginSlot` and the service hooks, which handle owne
 A custom host can check one plugin explicitly:
 
 ```tsx
-const available = useFoundationReady('reports');
+const available = useBitaKitReady('reports');
 return available ? <Reports /> : <p>Reports are unavailable.</p>;
 ```
 
-Import `useFoundationReady` from `@bitakit/ui`. Without an argument it reports initial startup
+Import `useBitaKitReady` from `@bitakit/ui`. Without an argument it reports initial startup
 readiness, not the success of every later update. It becomes false on full shutdown.
 
 | API                                                              | What it reports                                                        |

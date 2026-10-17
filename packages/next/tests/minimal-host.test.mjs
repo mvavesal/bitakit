@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { generateFoundation, withBitaKit, defineBitaKit } from '../src/config.mjs';
+import { generateBitaKit, withBitaKit, defineBitaKit } from '../src/config.mjs';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -31,7 +31,7 @@ async function fixture(run) {
       () => false,
     );
   try {
-    await run({ root, put, exists, generate: () => generateFoundation(root, { quiet: true }) });
+    await run({ root, put, exists, generate: () => generateBitaKit(root, { quiet: true }) });
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -46,7 +46,7 @@ test('no config or folders: discovery creates a typed default composition', asyn
     assert.match(generated, /appId: "app"/);
     assert.match(generated, /type InstalledServices = \{\};/);
     assert.match(generated, /plugins: \[\s*\]/);
-    assert.match(generated, /\} satisfies FoundationConfig;/);
+    assert.match(generated, /\} satisfies BitaKitRuntimeConfig;/);
     assert.doesNotMatch(
       generated,
       /new ConfigService/,
@@ -286,7 +286,7 @@ test('the Next provider needs a configuration and says where it comes from', asy
   const { AppRouterContext } = await import(
     'next/dist/shared/lib/app-router-context.shared-runtime.js'
   );
-  const { FoundationProvider } = await import('../dist/index.js');
+  const { BitaKitRuntimeProvider } = await import('../dist/index.js');
   const router = {
     push() {},
     replace() {},
@@ -304,10 +304,10 @@ test('the Next provider needs a configuration and says where it comes from', asy
     await assert.rejects(async () => {
       await act(async () =>
         root.render(
-          h(AppRouterContext.Provider, { value: router }, h(FoundationProvider, null, 'content')),
+          h(AppRouterContext.Provider, { value: router }, h(BitaKitRuntimeProvider, null, 'content')),
         ),
       );
-    }, /FoundationProvider needs a configuration\. Use <BitaKitProvider> from '\.\/bitakit\.gen', or pass config=\{createBitaKitConfig\(\)\}/);
+    }, /BitaKitRuntimeProvider needs a configuration\. Use <BitaKitProvider> from '\.\/bitakit\.gen', or pass config=\{createBitaKitConfig\(\)\}/);
   } finally {
     console.error = error;
     await act(async () => root.unmount());

@@ -13,7 +13,7 @@ import type {
 } from '@bitakit/core/actions';
 import type { PluginScope } from './scope.js';
 import type { Feedback, MessageValues } from './actions/feedback.js';
-import type { FoundationApp, Namespace } from './app/types.js';
+import type { BitaKitApp, Namespace } from './app/types.js';
 import type { ServiceKey } from './service-key.js';
 import type { InterceptorSpec } from './interceptors/define.js';
 import type { Confirmation } from './confirmation.js';
@@ -101,7 +101,7 @@ export type PresentationContext<Input = unknown> = {
   services: Services;
   config: ConfigContext;
   settings: SettingsAccess;
-  app: FoundationApp;
+  app: BitaKitApp;
 };
 /** A value, or a function of the current input and services; functions re-run on service changes. */
 export type Dynamic<Input, Value> = Value | ((context: PresentationContext<Input>) => Value);
@@ -109,7 +109,7 @@ export type ExecuteContext<Input = unknown> = ActionContext<Input> & {
   services: Services;
   config: ConfigContext;
   settings: SettingsAccess;
-  app: FoundationApp;
+  app: BitaKitApp;
   events: Events;
   /** Aborts when the registration is disposed, or when a newer `latest` run supersedes this one. */
   signal: AbortSignal;
@@ -331,7 +331,7 @@ export function definePlugin<const T extends Plugin>(plugin: T): T {
   return plugin;
 }
 
-export type FoundationConfig = Omit<Plugin, 'id' | 'dependencies'> & {
+export type BitaKitRuntimeConfig = Omit<Plugin, 'id' | 'dependencies'> & {
   appId?: string;
   dependencies?: readonly string[];
   /** Receives synchronous throws and async rejections from event handlers. */

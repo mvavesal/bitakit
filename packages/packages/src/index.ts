@@ -1,4 +1,4 @@
-import type { FoundationRuntime, Plugin, PluginChangeResult } from '@bitakit/core';
+import type { BitaKitRuntime, Plugin, PluginChangeResult } from '@bitakit/core';
 
 /** The host build owns this allowlist. Loaders return fresh definitions; they must not start work. */
 export type PackageCatalog = Readonly<
@@ -31,7 +31,7 @@ const stale = Symbol('superseded package request');
  * Callers must finish a scope switch before revealing that scope's UI. No records are persisted.
  */
 export function createPackageHost(options: {
-  runtime: FoundationRuntime;
+  runtime: BitaKitRuntime;
   catalog: PackageCatalog;
 }) {
   const { runtime } = options;

@@ -43,7 +43,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 ```
 
 Load `@bitakit/shell/locales/<lang>.json` with the other package catalogs. Without discovery,
-add `shellPlugin(options)` to the plugins of `FoundationProvider` yourself.
+add `shellPlugin(options)` to the plugins of `BitaKitRuntimeProvider` yourself.
 
 ## Options
 
@@ -248,7 +248,7 @@ Messages and descriptions resolve as translation keys through `i18n` when one is
 plain text passes through. In components, `useNotifications()` returns the service once the
 runtime is ready. Shell renders the one toast region at the `shell.toasts` placement and routes
 action feedback (`success`/`failure` messages) through the same service. Do not pass `notify`
-to `FoundationProvider` or render a second `Toast.Provider`.
+to `BitaKitRuntimeProvider` or render a second `Toast.Provider`.
 
 ## Page states
 

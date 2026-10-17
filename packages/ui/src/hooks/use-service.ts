@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useRef, useSyncExternalStore } from 'react';
 import { isStore, type GeneratedName, type ServiceMap, type Store } from '@bitakit/core';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 import { shallowEqual } from '../utils/merge-props.js';
 import { subscribeReadiness } from '../utils/subscribe-readiness.js';
 
@@ -20,7 +20,7 @@ const idle = () => () => {};
 
 /** The ready service instance; follows replacement. Use useServiceState for its data. */
 export function useService<Name extends ServiceName>(name: Name): ServiceOf<Name> | undefined {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const read = useCallback(
     () => (runtime.isServiceReady(name) ? readService(runtime.services, name) : undefined),
     [runtime, name],
@@ -76,7 +76,7 @@ export function useServiceState(
   selector?: (state: any) => unknown,
   fallback?: unknown,
 ): unknown {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const last = useRef<{ value: unknown; has: boolean }>({ value: undefined, has: false });
   const select = selector ?? ((state: unknown) => state);
   const subscribe = useCallback(

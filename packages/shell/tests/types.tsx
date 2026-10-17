@@ -1,6 +1,6 @@
 // Type checks for the public API; compiled by `tsc -p tsconfig.test.json`, never executed.
 import { defineConfig } from '@bitakit/core';
-import { useFoundationApp } from '@bitakit/ui';
+import { useBitaKitApp } from '@bitakit/ui';
 import {
   AppShell,
   shellOptions,
@@ -13,7 +13,7 @@ import {
 } from '../src/index.js';
 
 function consumer() {
-  const app = useFoundationApp<readonly [ReturnType<typeof shellPlugin>]>();
+  const app = useBitaKitApp<readonly [ReturnType<typeof shellPlugin>]>();
   const id = app.services.notifications.show('Saved', { type: 'success', duration: 2000 });
   app.services.notifications.dismiss(id);
   const same: NotificationService = app.services.shell.notifications;

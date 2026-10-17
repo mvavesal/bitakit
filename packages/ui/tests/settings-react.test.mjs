@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
 import { installDom, mount, tick, testUI } from './support.mjs';
-import { FoundationProvider, PluginSlot, useFoundation, useNavigation, useSetting, useSettingsCatalog, useSlot } from '../dist/index.js';
+import { BitaKitRuntimeProvider, PluginSlot, useBitaKit, useNavigation, useSetting, useSettingsCatalog, useSlot } from '../dist/index.js';
 import { createMemorySettingsStorage, defineAction, definePlugin, defineSettings, setting, defineSlot } from '@bitakit/core';
 
 installDom();
@@ -40,7 +40,7 @@ test('useSetting reads and writes through the runtime store; useSettingsCatalog 
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, services: { 'settings.storage': storage }, ui: testUI },
       h(Consumer),
     ),
@@ -109,7 +109,7 @@ test('useSlot and useNavigation hand layouts the data PluginSlot and the menus r
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config: { slots: { 'shell.navigation': defineSlot({ accepts: 'actions' }) }, plugins: [tools] }, ui: testUI, actionOptions: { pathname: '/docs' } },
       h(Consumer),
     ),
@@ -156,12 +156,12 @@ test('dialog actions name a frame kind; the host supplies frames, the default ki
   });
   let runtime;
   function Consumer() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config: { plugins: [files] }, ui: testUI, dialogs: { sheet: Sheet } },
       h(Consumer),
     ),

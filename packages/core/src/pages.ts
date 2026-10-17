@@ -7,7 +7,7 @@ import type {
 } from './definitions.js';
 import { setContributionSource } from './contribution-origin.js';
 import type { PresentationType } from './presentation.js';
-import { FoundationStartupError } from './startup-error.js';
+import { BitaKitStartupError } from './startup-error.js';
 
 /** Exact, canonical paths only. Routers remain responsible for dynamic parameters. */
 export function validatePluginPages(
@@ -23,7 +23,7 @@ export function validatePluginPages(
         page.layout !== 'blank' &&
         !layouts.has(page.layout)
       )
-        throw new FoundationStartupError(
+        throw new BitaKitStartupError(
           `Page ${page.path} of plugin "${plugin.id}" names layout "${page.layout}", but src/layouts/${page.layout}.tsx does not exist.${layouts.size ? ` Known layouts: ${[...layouts].join(', ')}.` : ''} Use "app", "blank" or an existing layout.`,
           plugin.id,
         );
@@ -32,13 +32,13 @@ export function validatePluginPages(
           page.path,
         )
       )
-        throw new FoundationStartupError(
+        throw new BitaKitStartupError(
           `Invalid plugin page path "${page.path}" in plugin "${plugin.id}". Use a root-relative path such as /todos.`,
           plugin.id,
         );
       const owner = owners.get(page.path);
       if (owner)
-        throw new FoundationStartupError(
+        throw new BitaKitStartupError(
           `Plugins "${owner}" and "${plugin.id}" both define a page at ${page.path}.`,
           plugin.id,
         );

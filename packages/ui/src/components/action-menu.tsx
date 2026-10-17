@@ -1,6 +1,6 @@
 'use client';
 import { useActionGroups } from '../hooks/use-action-group.js';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 
 /** Shows an action group through the host's menu component. */
 export function ActionMenu({
@@ -12,7 +12,7 @@ export function ActionMenu({
   label: string;
   input?: unknown;
 }) {
-  const { ui } = useFoundation();
+  const { ui } = useBitaKit();
   const groups = useActionGroups(typeof group === 'string' ? [group] : group, input);
   const Menu = ui.Menu;
   return <Menu groups={groups} label={label} />;

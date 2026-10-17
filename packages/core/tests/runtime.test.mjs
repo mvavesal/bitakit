@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { createActionList } from '@bitakit/core/actions';
 import {
   ActionGroup,
-  FoundationRuntime,
+  BitaKitRuntime,
   createRuntime,
   defineAction,
   definePlugin,
   defineService,
-  isFoundationStartupError,
+  isBitaKitStartupError,
   mergePluginMessages,
 } from '../dist/core.js';
 
@@ -23,7 +23,7 @@ test('createRuntime creates the ActionList unless one is passed, and accepts hos
     },
   });
   const runtime = createRuntime({ plugins: [notes] });
-  assert.ok(runtime instanceof FoundationRuntime);
+  assert.ok(runtime instanceof BitaKitRuntime);
   const stop = runtime.mount();
   try {
     assert.equal((await runtime.actions.execute('notes.count')).value, 4);
@@ -47,7 +47,7 @@ test('a pending action survives translation updates; scopes clean up on stop and
   const list = createActionList();
   let finish,
     calls = 0;
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     groups: ['users.menu'],
     plugins: [
       definePlugin({
@@ -94,7 +94,7 @@ test('a pending action survives translation updates; scopes clean up on stop and
 test('failed setup rolls back actions, placements and services without touching host actions', async () => {
   const list = createActionList([{ id: 'host', title: 'Host' }]);
   let stopped = 0;
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     groups: ['menu'],
     plugins: [
       definePlugin({
@@ -116,7 +116,7 @@ test('failed setup rolls back actions, placements and services without touching 
   assert.throws(
     () => runtime.mount(),
     (error) =>
-      isFoundationStartupError(error) &&
+      isBitaKitStartupError(error) &&
       error.plugin === 'broken' &&
       /Setup failed/.test(error.message),
   );
@@ -172,7 +172,7 @@ test('service dependency failures are explicit and release created services', as
   assert.throws(
     () => runtime.mount(),
     (error) =>
-      isFoundationStartupError(error) &&
+      isBitaKitStartupError(error) &&
       error.plugin === 'test' &&
       /Service "test\.second" requires service "missing", but no service has that name/.test(
         error.message,

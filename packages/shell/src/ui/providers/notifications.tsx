@@ -2,7 +2,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { Toast } from '@heroui/react';
 import { getService } from '@bitakit/core';
-import { useFoundation, useSetting } from '@bitakit/ui';
+import { useBitaKit, useSetting } from '@bitakit/ui';
 import { notificationService } from '../../services/notifications.js';
 import type { NotificationPlacement } from '../../appearance.js';
 
@@ -11,7 +11,7 @@ import type { NotificationPlacement } from '../../appearance.js';
  * feedback through `app.services.notifications`, so every notification shares this surface.
  */
 export function ShellNotifications({ children }: { children: ReactNode }) {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const placement = useSetting('shell.toasts').value as NotificationPlacement;
   useEffect(
     () =>

@@ -89,7 +89,7 @@ Services are named `<plugin>.<file>` and nested accordingly: `services/billing/i
 - `exposeAs: 'clock'` adds a flat alias in `services`. Use it only for deliberate flattening; two services with the same name fail at startup. A service name cannot also be a namespace: use `better-auth-client`, not `auth.client`, while `auth` is a service.
 
 `id` is available for manual composition; discovery normally derives it. Missing access
-throws `FoundationServiceError`, with `service` and a `reason` such as `not-ready`,
+throws `BitaKitServiceError`, with `service` and a `reason` such as `not-ready`,
 `unregistered` or `missing`.
 
 ```ts

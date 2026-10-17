@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState, useSyncExternalStore, type ElementType, type ReactNode } from 'react';
-import type { FoundationEvent, FoundationRuntime } from '@bitakit/core';
+import type { BitaKitEvent, BitaKitRuntime } from '@bitakit/core';
 import type { InventoryPlugin } from '@bitakit/core';
-import { useFoundation, useFoundationNavigation, useRuntimeInventory } from '@bitakit/ui';
+import { useBitaKit, useBitaKitNavigation, useRuntimeInventory } from '@bitakit/ui';
 import { useActions } from '@bitakit/ui/actions';
 import { Badge, Button, Input, PageHeader, Separator } from '@bitakit/ui/components';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card.js';
@@ -20,7 +20,7 @@ export type InspectorProps = {
  * it keeps no copy of plugin state. Intended for playgrounds and development builds.
  */
 export function Inspector({ plugin, stalledAfterMs = 10000 }: InspectorProps) {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const ready = useSyncExternalStore(runtime.subscribeReady, runtime.isReady, () => false);
   const inventory = useRuntimeInventory();
   const module = inventory.static.plugins.find((item) => item.id === plugin);
@@ -153,7 +153,7 @@ function Rows({ items, empty }: { items: ReactNode[]; empty: string }) {
 }
 
 function Pages({ module }: { module: InventoryPlugin }) {
-  const { Link } = useFoundationNavigation();
+  const { Link } = useBitaKitNavigation();
   const Anchor: ElementType = Link ?? 'a';
   return (
     <Section title="Pages" description="Plugin pages, rendered by the app's catch-all route.">
@@ -171,7 +171,7 @@ function Pages({ module }: { module: InventoryPlugin }) {
   );
 }
 
-function Actions({ module, runtime }: { module: InventoryPlugin; runtime: FoundationRuntime }) {
+function Actions({ module, runtime }: { module: InventoryPlugin; runtime: BitaKitRuntime }) {
   const snapshots = useActions();
   const inventory = useRuntimeInventory();
   const ids = new Set(
@@ -195,7 +195,7 @@ function Actions({ module, runtime }: { module: InventoryPlugin; runtime: Founda
   );
 }
 
-function ActionRow({ id, runtime }: { id: string; runtime: FoundationRuntime }) {
+function ActionRow({ id, runtime }: { id: string; runtime: BitaKitRuntime }) {
   const action = useActions()[id];
   const [input, setInput] = useState('');
   const [outcome, setOutcome] = useState<string>();
@@ -254,7 +254,7 @@ function ActionRow({ id, runtime }: { id: string; runtime: FoundationRuntime }) 
   );
 }
 
-function Services({ module, runtime }: { module: InventoryPlugin; runtime: FoundationRuntime }) {
+function Services({ module, runtime }: { module: InventoryPlugin; runtime: BitaKitRuntime }) {
   // Services form a tree: `todos.items` lives at services.todos.items.
   const services = new Proxy({} as Record<string, unknown>, {
     get: (_target, id) =>
@@ -294,8 +294,8 @@ function Services({ module, runtime }: { module: InventoryPlugin; runtime: Found
   );
 }
 
-function Events({ runtime }: { runtime: FoundationRuntime }) {
-  const [events, setEvents] = useState<{ at: string; event: FoundationEvent }[]>([]);
+function Events({ runtime }: { runtime: BitaKitRuntime }) {
+  const [events, setEvents] = useState<{ at: string; event: BitaKitEvent }[]>([]);
   useEffect(
     () =>
       runtime.events.observe((event) =>

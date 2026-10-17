@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mount, settle, catalogTranslator } from './support.mjs';
 import { createElement as h } from 'react';
-import { FoundationRuntime, createActionList, createMemorySettingsStorage } from '@bitakit/core';
-import { FoundationProvider, useSettingsCatalog } from '@bitakit/ui';
+import { BitaKitRuntime, createActionList, createMemorySettingsStorage } from '@bitakit/core';
+import { BitaKitRuntimeProvider, useSettingsCatalog } from '@bitakit/ui';
 import { shellPlugin, shellOptions } from '../dist/index.js';
 import foundationEntry from '../dist/foundation.js';
 import en from '../locales/en.json' with { type: 'json' };
@@ -92,7 +92,7 @@ test('appearance settings: keys, scopes and defaults; preset only with presets',
   assert.equal(themed.preset.default, 'default');
   assert.equal(themed.preset.scope, 'user');
 
-  const runtime = new FoundationRuntime(createActionList(), { plugins: [shellPlugin()] });
+  const runtime = new BitaKitRuntime(createActionList(), { plugins: [shellPlugin()] });
   assert.deepEqual(
     runtime.settings.entries().map((entry) => entry.key),
     [
@@ -120,7 +120,7 @@ test('the settings catalog labels the Appearance section from the Shell locales'
     return null;
   }
   const render = (messages) =>
-    h(FoundationProvider, { config, services, translate: catalogTranslator(messages) }, h(Catalog));
+    h(BitaKitRuntimeProvider, { config, services, translate: catalogTranslator(messages) }, h(Catalog));
   const view = await mount(render(en));
   try {
     await settle();

@@ -4,11 +4,11 @@ import { createElement as h, act, useEffect, useState } from 'react';
 import { installDom, mount, tick, testUI, deferred, click } from './support.mjs';
 import {
   Action,
-  FoundationProvider,
+  BitaKitRuntimeProvider,
   PluginPage,
   PluginSlot,
-  useFoundation,
-  useFoundationReady,
+  useBitaKit,
+  useBitaKitReady,
   useRuntimeInventory,
   useService,
   useServiceState,
@@ -31,7 +31,7 @@ test('an explicit React host update preserves an independent store and refreshes
     });
   const initial = plugin('Before');
   function Demo() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     const inventory = useRuntimeInventory();
     const count = useServiceState('keeper.counter', (state) => state, 0);
     const slot = useSlot('tools');
@@ -45,7 +45,7 @@ test('an explicit React host update preserves an independent store and refreshes
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       {
         config: {
           plugins: [keeper, initial],
@@ -209,9 +209,9 @@ test('targeted failure preserves healthy page, provider and widgets while affect
     },
   });
   function Host() {
-    runtime = useFoundation().runtime;
-    const globallyReady = useFoundationReady();
-    const betaReady = useFoundationReady('beta');
+    runtime = useBitaKit().runtime;
+    const globallyReady = useBitaKitReady();
+    const betaReady = useBitaKitReady('beta');
     const betaService = useService('betaAlias');
     const betaValue = useServiceState('beta.value', (state) => state.value, 'unavailable');
     const aliasValue = useServiceState('betaAlias', (state) => state.value, 'unavailable');
@@ -263,7 +263,7 @@ test('targeted failure preserves healthy page, provider and widgets while affect
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       {
         config: {
           plugins: [alpha, initialBeta, contributors],
@@ -463,7 +463,7 @@ test('slot diagnostics explain contextual filtering without exposing outlet payl
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       {
         config: { plugins: [owner, contributions] },
         ui: testUI,
@@ -525,7 +525,7 @@ test('structural activation preserves a draft while pages, slots and actions app
     },
   });
   function Host() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     const tools = useSlot('tools');
     const extra = useSlot('notes.extra');
     return h(
@@ -540,7 +540,7 @@ test('structural activation preserves a draft while pages, slots and actions app
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config: { slots: { tools: defineSlot({ accepts: 'actions' }) } }, ui: testUI },
       h(Host),
     ),

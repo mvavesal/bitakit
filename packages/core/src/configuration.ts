@@ -1,6 +1,6 @@
-import type { FoundationConfig, Plugin, ProviderDefinition } from './definitions.js';
+import type { BitaKitRuntimeConfig, Plugin, ProviderDefinition } from './definitions.js';
 
-export type FoundationOverrides = Pick<FoundationConfig, 'actions' | 'plugins' | 'interceptors'> & {
+export type BitaKitOverrides = Pick<BitaKitRuntimeConfig, 'actions' | 'plugins' | 'interceptors'> & {
   /** Replaces the app's React providers (`ui.providers`); plugin providers are added unless this is set. */
   providers?: readonly ProviderDefinition[];
 };
@@ -8,12 +8,12 @@ const providersOf = (plugin: Pick<Plugin, 'ui'>): readonly ProviderDefinition[] 
   plugin.ui?.providers ?? [];
 
 /** Undefined inherits. An explicit list replaces that domain, including an empty list. */
-export function resolveFoundationConfig(
-  discovered: FoundationConfig,
-  overrides: FoundationOverrides = {},
-): FoundationConfig {
+export function resolveBitaKitConfig(
+  discovered: BitaKitRuntimeConfig,
+  overrides: BitaKitOverrides = {},
+): BitaKitRuntimeConfig {
   const selectedPlugins = overrides.plugins ?? discovered.plugins ?? [];
-  const config: FoundationConfig = {
+  const config: BitaKitRuntimeConfig = {
     ...discovered,
     plugins:
       overrides.actions === undefined && overrides.interceptors === undefined

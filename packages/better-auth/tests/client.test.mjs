@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FoundationRuntime, createActionList, defineAction } from '@bitakit/core';
+import { BitaKitRuntime, createActionList, defineAction } from '@bitakit/core';
 import { betterAuthClient, betterAuthPlugin } from '../dist/index.js';
 test('Better Auth integration delegates current session, subscription ownership and sign-out errors', async () => {
   let state = { data: null, isPending: true, error: null },
@@ -33,7 +33,7 @@ test('Better Auth integration delegates current session, subscription ownership 
     visible: ({ services }) => !!services.auth.getSnapshot().user,
     execute: ({ services }) => services.auth.signOut(),
   });
-  const runtime = new FoundationRuntime(
+  const runtime = new BitaKitRuntime(
     list,
     { plugins: [integration], actions: [Logout] },
     { [betterAuthClient]: { client } },

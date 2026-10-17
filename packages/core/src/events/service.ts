@@ -1,7 +1,7 @@
-import type { Events, EventHandler, EventErrorHandler, FoundationEvent } from './types.js';
+import type { Events, EventHandler, EventErrorHandler, BitaKitEvent } from './types.js';
 import type { EventsDefinition } from './define.js';
 
-type Listener = (event: FoundationEvent) => void | Promise<void>;
+type Listener = (event: BitaKitEvent) => void | Promise<void>;
 type Declared = {
   plugin: string;
   cancelable: Set<string>;
@@ -17,7 +17,7 @@ export class EventService implements Events {
   private exact = new Map<string, Set<Listener>>();
   private prefixes = new Map<string, Set<Listener>>();
   private subscriptions = new Set<() => void>();
-  private observers = new Set<(event: FoundationEvent) => void>();
+  private observers = new Set<(event: BitaKitEvent) => void>();
   private declared = new Map<string, Declared>();
   private reserved = new Set<string>();
   constructor(
@@ -86,7 +86,7 @@ export class EventService implements Events {
       return this.emitCancelable(name, checked);
     }
     const payload = schema ? schema.parse(data) : data;
-    const event = Object.freeze({ type: name, data: payload }) as FoundationEvent;
+    const event = Object.freeze({ type: name, data: payload }) as BitaKitEvent;
     for (const listener of this.listenersFor(name)) {
       try {
         const result = listener(event);
@@ -116,7 +116,7 @@ export class EventService implements Events {
       get cancelled() {
         return cancelled;
       },
-    }) as FoundationEvent;
+    }) as BitaKitEvent;
     const pending: Promise<void>[] = [];
     for (const listener of this.listenersFor(name)) {
       try {
@@ -144,7 +144,7 @@ export class EventService implements Events {
       if (name.startsWith(prefix)) result.push(...listeners);
     return result;
   }
-  private report(error: unknown, event: FoundationEvent) {
+  private report(error: unknown, event: BitaKitEvent) {
     try {
       this.onError(error, event);
     } catch (reportError) {
@@ -187,7 +187,7 @@ export class EventService implements Events {
   /** @deprecated Use `on`. */
 
   /** Diagnostics only: receives every event after delivery. It cannot change or stop delivery. */
-  observe(listener: (event: FoundationEvent) => void) {
+  observe(listener: (event: BitaKitEvent) => void) {
     this.observers.add(listener);
     return () => {
       this.observers.delete(listener);

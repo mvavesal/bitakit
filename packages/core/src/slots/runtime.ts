@@ -1,6 +1,6 @@
 import type { ActionList } from '../actions/core.js';
 import type { PluginScope } from '../scope.js';
-import { FoundationStartupError } from '../startup-error.js';
+import { BitaKitStartupError } from '../startup-error.js';
 import { createStore, type Store } from '../store.js';
 import { validate } from '../schema.js';
 import { contributionSource } from '../contribution-origin.js';
@@ -22,7 +22,7 @@ import type {
   SlotSnapshot,
 } from './types.js';
 
-export class SlotError extends FoundationStartupError {
+export class SlotError extends BitaKitStartupError {
   constructor(
     readonly code:
       | 'unknown-slot'

@@ -71,7 +71,7 @@ test('invalid or duplicate placements fail with attribution and release partial 
     } catch {
       /* synchronous attributed startup failure */
     }
-    await assert.rejects(runtime.ready, { name: 'FoundationStartupError', plugin: 'broken' });
+    await assert.rejects(runtime.ready, { name: 'BitaKitStartupError', plugin: 'broken' });
     await runtime.stop();
     assert.equal(runtime.actions.get('broken.open'), undefined);
     assert.equal(runtime.slots.get('navigation').items.length, 0);

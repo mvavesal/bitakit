@@ -4,10 +4,10 @@ import path from 'node:path';
 import { styleText } from 'node:util';
 import { Command } from 'commander';
 import {
-  describeFoundation,
-  generateFoundation,
+  describeBitaKit,
+  generateBitaKit,
   migrateProject,
-  watchFoundation,
+  watchBitaKit,
 } from '@bitakit/discovery';
 import { addContribution, addPlugin, contributionKinds } from './add.mjs';
 import { inspectionFromDescription } from './inventory.mjs';
@@ -123,13 +123,13 @@ program
     const project = await findProject();
     if (project.kind !== 'app') throw new Error('Run "bitakit generate" inside an app.');
     if (options.watch) {
-      watchFoundation(project.root, (error) =>
+      watchBitaKit(project.root, (error) =>
         console.error(styleText('red', String(error?.message ?? error))),
       );
       console.log(`Watching ${relative(project.root)} for changes…`);
       await new Promise(() => {});
     }
-    const result = await generateFoundation(project.root);
+    const result = await generateBitaKit(project.root);
     console.log(
       `\nGenerated ${relative(result.generated)} (${result.framework === 'none' ? 'no framework provider' : result.framework}).${result.warnings.length ? ` ${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'} above.` : ''}\n`,
     );
@@ -223,7 +223,7 @@ program
   .action(async (options) => {
     const project = await findProject();
     if (project.kind !== 'app') throw new Error('Run "bitakit info" inside an app.');
-    const description = await describeFoundation(project.root);
+    const description = await describeBitaKit(project.root);
     const inventory = inspectionFromDescription(description);
     if (options.json) {
       console.log(JSON.stringify(inventory, null, 2));

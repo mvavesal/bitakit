@@ -11,7 +11,7 @@ import { twoFactorPlugin } from '@better-auth-ui/heroui/plugins/two-factor';
 import { createOTP } from '@better-auth/utils/otp';
 import { base32 } from '@better-auth/utils/base32';
 import { organizationPlugin } from '@better-auth-ui/heroui/plugins/organization';
-import { createActionList, FoundationRuntime } from '@bitakit/core';
+import { createActionList, BitaKitRuntime } from '@bitakit/core';
 import { betterAuthClient } from '@bitakit/better-auth';
 import UserIcon from 'reicon-react/icons/User';
 
@@ -45,7 +45,7 @@ test('Foundation plugin uses native paths, keeps full provider options and decla
     assert.equal(plugin[legacy], undefined, legacy);
   // The client is a service the host provides; the factory takes no host objects.
   assert.ok(betterAuthUIPlugin().ui.pages.some((page) => page.path === '/auth/sign-in'));
-  const runtime = new FoundationRuntime(
+  const runtime = new BitaKitRuntime(
     createActionList(),
     { plugins: [plugin] },
     { [betterAuthClient]: { client: authClient } },
@@ -235,7 +235,7 @@ test('standard composition shares one client between auth service and UI and pre
     organizations: { path: false, groups: [] },
   });
   assert.equal(integration.client, client);
-  const runtime = new FoundationRuntime(createActionList(), { plugins: integration.plugins });
+  const runtime = new BitaKitRuntime(createActionList(), { plugins: integration.plugins });
   const dispose = runtime.mount();
   const config = getService(runtime.services, betterAuthUIService);
   assert.equal(config.authClient, client);
@@ -264,7 +264,7 @@ test('standard composition shares one client between auth service and UI and pre
 });
 
 test('native toast surface can be omitted without changing the native auth provider', async () => {
-  const { FoundationProvider } = await import('@bitakit/ui');
+  const { BitaKitRuntimeProvider } = await import('@bitakit/ui');
   const config = { navigate() {}, plugins: [], redirectTo: '/contents' };
   for (const enabled of [true, false]) {
     const plugin = betterAuthUIPlugin({ provider: config, toastProvider: enabled });
@@ -277,7 +277,7 @@ test('native toast surface can be omitted without changing the native auth provi
     }
     renderToStaticMarkup(
       createElement(
-        FoundationProvider,
+        BitaKitRuntimeProvider,
         { config: { plugins: [] } },
         createElement(CompositionProbe),
       ),

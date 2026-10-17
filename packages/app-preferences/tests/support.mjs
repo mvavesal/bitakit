@@ -4,7 +4,7 @@ import { setMobile } from './dom.mjs';
 import { createElement as h, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing';
-import { FoundationProvider } from '@bitakit/ui';
+import { BitaKitRuntimeProvider } from '@bitakit/ui';
 
 export { setMobile };
 export const tick = () => new Promise((resolve) => setTimeout(resolve));
@@ -50,7 +50,7 @@ export const testUI = {
 };
 
 /**
- * Renders `element` inside FoundationProvider and a nuqs testing adapter. `search` seeds the
+ * Renders `element` inside BitaKitRuntimeProvider and a nuqs testing adapter. `search` seeds the
  * query string; `urls` records every URL update the components make.
  */
 export async function renderApp(
@@ -67,7 +67,7 @@ export async function renderApp(
         onUrlUpdate: (event) => urls.push(event.queryString),
       },
       h(
-        FoundationProvider,
+        BitaKitRuntimeProvider,
         {
           config,
           ui: testUI,
@@ -144,4 +144,4 @@ export const press = (element, key, init = {}) =>
   });
 export const blur = (element) => act(async () => element.blur());
 export const text = (element) => element.textContent.replace(/\s+/g, ' ').trim();
-export { FoundationProvider };
+export { BitaKitRuntimeProvider };

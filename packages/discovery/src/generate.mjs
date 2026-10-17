@@ -64,7 +64,7 @@ export function detectFramework(manifest = {}) {
  * `src/bitakit.gen.css` (package styles) and `src/bitakit.gen.messages.json` (plugin locales).
  * Only static imports are generated; contribution modules are never executed here.
  */
-export async function generateFoundation(root, { quiet = false, packageCache } = {}) {
+export async function generateBitaKit(root, { quiet = false, packageCache } = {}) {
   root = await realpath(root);
   const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false });
   const warnings = [];
@@ -597,7 +597,7 @@ ${usesFiles ? '  discoveredFile,\n' : ''}  discoverActions,
   discoverConfig,
   discoverEvents,
   discoverSettings,
-${helpers.map((helper) => `  ${helper},\n`).join('')}${configured ? '  ConfigService,\n' : ''}  type FoundationConfig,
+${helpers.map((helper) => `  ${helper},\n`).join('')}${configured ? '  ConfigService,\n' : ''}  type BitaKitRuntimeConfig,
 ${typeImports.map((item) => `  ${item},`).join('\n')}
 } from '@bitakit/core';
 ${imports.join('\n')}
@@ -658,7 +658,7 @@ ${configured ? `  const options = new ConfigService([{ id: ${quote(appId)}, conf
     plugins: [
       ${[...definitions, ...packageFactories.filter(Boolean)].join(',\n      ')}
     ],
-  } satisfies FoundationConfig;
+  } satisfies BitaKitRuntimeConfig;
 }
 export type BitaKitConfig = ReturnType<typeof createBitaKitConfig>;
 ${catalogSource}`;
@@ -672,14 +672,14 @@ ${catalogSource}`;
       `${generatedHeader}
 'use client';
 import { useMemo, type ComponentProps } from 'react';
-import { FoundationProvider } from ${specifier(provider)};
+import { BitaKitRuntimeProvider } from ${specifier(provider)};
 import { createBitaKitConfig } from './bitakit.gen.config';
 export type { BitaKitConfig } from './bitakit.gen.config';
 
 /** Mount the generated composition once, at the application root. */
-export function BitaKitProvider(props: Omit<ComponentProps<typeof FoundationProvider>, 'config'>) {
+export function BitaKitProvider(props: Omit<ComponentProps<typeof BitaKitRuntimeProvider>, 'config'>) {
   const config = useMemo(createBitaKitConfig, [createBitaKitConfig]);
-  return <FoundationProvider {...props} config={config} />;
+  return <BitaKitRuntimeProvider {...props} config={config} />;
 }
 `,
     );

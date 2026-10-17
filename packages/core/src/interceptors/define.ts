@@ -1,7 +1,7 @@
 import type { ActionContext } from '../actions/types.js';
 import type { ConfigContext } from '../config-service.js';
 import type { Services, Translator } from '../definitions.js';
-import type { FoundationApp } from '../app/types.js';
+import type { BitaKitApp } from '../app/types.js';
 import type { ServiceMap } from '../definitions.js';
 
 /** Exact IDs, `todos.*` for one plugin, `*` for everything. */
@@ -10,7 +10,7 @@ export type InterceptorTarget = string | readonly string[];
 export type ActionInterceptorContext = ActionContext & {
   services: Services;
   config: ConfigContext;
-  app: FoundationApp;
+  app: BitaKitApp;
   translate: Translator;
 };
 /** Returning `false` cancels the action (skipped with reason "intercepted"). */

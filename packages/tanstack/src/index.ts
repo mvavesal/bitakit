@@ -1,6 +1,6 @@
 export {
-  FoundationProvider,
-  type TanStackFoundationProviderProps,
+  BitaKitRuntimeProvider,
+  type TanStackBitaKitRuntimeProviderProps,
 } from './providers/foundation-provider.js';
-export { FoundationLink } from './routing/navigation.js';
-export { useFoundation, useFoundationApp } from '@bitakit/ui';
+export { BitaKitLink } from './routing/navigation.js';
+export { useBitaKit, useBitaKitApp } from '@bitakit/ui';

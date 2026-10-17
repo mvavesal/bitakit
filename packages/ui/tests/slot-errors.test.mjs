@@ -5,10 +5,10 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { defineAction, definePlugin, defineSlot } from '@bitakit/core';
 import {
   Action,
-  FoundationProvider,
+  BitaKitRuntimeProvider,
   PluginSlot,
   SlotErrorBoundary,
-  useFoundation,
+  useBitaKit,
 } from '../dist/index.js';
 import { installDom, mount, click, tick, silenced, testUI } from './support.mjs';
 installDom();
@@ -49,7 +49,7 @@ test('PluginSlot contains component crashes, preserves siblings, reports attribu
   const view = await silenced(() =>
     mount(
       h(
-        FoundationProvider,
+        BitaKitRuntimeProvider,
         {
           config,
           ui: testUI,
@@ -144,12 +144,12 @@ test('failed outlet entries survive ordinary rerenders and unrelated reconciliat
     plugins: [owner, unrelated],
   };
   function CaptureRuntime() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const tree = () =>
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI },
       h(CaptureRuntime),
       h(PluginSlot, { name: slotName, payload: { value: 1 } }),
@@ -231,7 +231,7 @@ test('SlotErrorBoundary supports custom fallback metadata and independent outlet
   const view = await silenced(() =>
     mount(
       h(
-        FoundationProvider,
+        BitaKitRuntimeProvider,
         { ui: testUI },
         h(
           'div',
@@ -289,7 +289,7 @@ test('a pending PluginSlot contribution remains available to the surrounding Sus
   };
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI },
       h(
         Suspense,
@@ -330,7 +330,7 @@ test('PluginSlot payload validation errors propagate to the host error boundary'
   const mounted = await silenced(() =>
     mount(
       h(
-        FoundationProvider,
+        BitaKitRuntimeProvider,
         { config, ui: testUI },
         h(
           ErrorBoundary,

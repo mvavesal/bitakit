@@ -140,7 +140,7 @@ survives disable/enable. Removing the plugin removes the Action and the setting 
 
 This script creates a runtime because it is standalone. In a configured React app, the
 existing provider already owns it. Host management components can access that same runtime
-through `useFoundation()` from `@bitakit/ui`; do not mount a second runtime. Keep management
+through `useBitaKit()` from `@bitakit/ui`; do not mount a second runtime. Keep management
 outside the affected plugin's Actions, setup/start hooks and disposers.
 
 ## What changes in the app UI?

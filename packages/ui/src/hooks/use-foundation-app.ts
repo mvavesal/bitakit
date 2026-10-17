@@ -1,14 +1,14 @@
 'use client';
 import { useSyncExternalStore } from 'react';
-import type { FoundationApp, Plugin, PublicServiceMap, PublicServicesOf } from '@bitakit/core';
-import { useFoundation } from '../providers/foundation-context.js';
+import type { BitaKitApp, Plugin, PublicServiceMap, PublicServicesOf } from '@bitakit/core';
+import { useBitaKit } from '../providers/foundation-context.js';
 
 /** Reads the existing app facade and follows mount/removal. Service data uses its own subscription hooks. */
-export function useFoundationApp<Plugins extends readonly Plugin[] | undefined = undefined>() {
-  const { runtime } = useFoundation();
+export function useBitaKitApp<Plugins extends readonly Plugin[] | undefined = undefined>() {
+  const { runtime } = useBitaKit();
   useSyncExternalStore(runtime.subscribeReady, runtime.isReady, () => false);
   useSyncExternalStore(runtime.lifecycle.subscribe, runtime.lifecycle.get, runtime.lifecycle.get);
-  return runtime.app as unknown as FoundationApp<
+  return runtime.app as unknown as BitaKitApp<
     Plugins extends readonly Plugin[] ? PublicServicesOf<Plugins> : PublicServiceMap
   >;
 }

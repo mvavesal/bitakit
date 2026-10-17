@@ -4,7 +4,7 @@ import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import {
-  FoundationRuntime,
+  BitaKitRuntime,
   createRuntime,
   defineAction,
   defineInterceptor,
@@ -14,7 +14,7 @@ import {
   discoverServices,
   discoveredFile,
   getService,
-  isFoundationStartupError,
+  isBitaKitStartupError,
   serviceKey,
 } from '../dist/core.js';
 
@@ -177,7 +177,7 @@ test('a missing service names the requester, suggests the full ID and attributes
   assert.throws(
     () => runtime.mount(),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'todos');
       assert.equal(error.app, false);
       assert.equal(error.source, 'src/plugins/todos/actions/create.ts');
@@ -201,7 +201,7 @@ test('an app action requiring a short name is attributed to the app and suggests
   assert.throws(
     () => runtime.mount(),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'app');
       assert.equal(error.app, true);
       assert.match(
@@ -229,7 +229,7 @@ test('service dependency cycles are reported as a path', () => {
   assert.throws(
     () => runtime.mount(),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'loop');
       assert.match(error.message, /Service dependency cycle: loop\.a → loop\.b → loop\.a\./);
       return true;
@@ -255,7 +255,7 @@ test('failures inside service factories are attributed to their plugin with the 
   assert.throws(
     () => runtime.mount(),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'broken');
       assert.equal(error.cause, cause);
       assert.match(error.message, /Service "broken\.svc" in plugin "broken" failed to start: boom/);
@@ -277,7 +277,7 @@ test('name collisions and reserved segments are rejected before any service is c
   assert.throws(
     () => createRuntime({ services: { one: service('clock'), two: service('clock') } }),
     (error) =>
-      isFoundationStartupError(error) &&
+      isBitaKitStartupError(error) &&
       /Two services are named "clock" \(one and two\)/.test(error.message),
   );
   assert.throws(
@@ -297,7 +297,7 @@ test('name collisions and reserved segments are rejected before any service is c
         ],
       }),
     (error) => {
-      assert.ok(isFoundationStartupError(error));
+      assert.ok(isBitaKitStartupError(error));
       assert.equal(error.plugin, 'notes');
       assert.match(
         error.message,
@@ -324,7 +324,7 @@ test('definitions created by a second copy of Core still register', async () => 
       JSON.stringify({ name: manifest.name, type: 'module', exports: manifest.exports }),
     );
     const other = await import(path.join(copy, 'dist/core.js'));
-    assert.notEqual(other.FoundationRuntime, FoundationRuntime);
+    assert.notEqual(other.BitaKitRuntime, BitaKitRuntime);
     const warnings = [];
     const warn = console.warn;
     console.warn = (message) => warnings.push(message);

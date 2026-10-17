@@ -12,7 +12,7 @@ import {
 import { resolveContribution } from './conventions.js';
 import { actionIdPattern } from './conventions.js';
 import { isSlotDefinition, type ResolvedSlotDefinition, type SlotEntry } from './slots/define.js';
-import { FoundationStartupError } from './startup-error.js';
+import { BitaKitStartupError } from './startup-error.js';
 import type { ContractName } from './service-key.js';
 import { defineInterceptor, type InterceptorSpec } from './interceptors/define.js';
 import {
@@ -123,16 +123,16 @@ export function discoverSlots(
     isSlotDefinition,
     false,
     (message, source) =>
-      new FoundationStartupError(message, moduleId || 'app', { source, app: !moduleId }),
+      new BitaKitStartupError(message, moduleId || 'app', { source, app: !moduleId }),
   ).map(({ value, path, source }) => {
     const id = value.id ?? [moduleId, ...path].filter(Boolean).join('.');
     if (typeof id !== 'string' || !actionIdPattern.test(id))
-      throw new FoundationStartupError(`Invalid slot ID "${id}" in ${source}.`, moduleId || 'app', {
+      throw new BitaKitStartupError(`Invalid slot ID "${id}" in ${source}.`, moduleId || 'app', {
         source,
         app: !moduleId,
       });
     if (seen.has(id))
-      throw new FoundationStartupError(
+      throw new BitaKitStartupError(
         `Duplicate slot "${id}": ${seen.get(id)} and ${source}.`,
         moduleId || 'app',
         { source, app: !moduleId },

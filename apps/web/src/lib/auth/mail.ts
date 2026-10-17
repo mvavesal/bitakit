@@ -1,5 +1,5 @@
 import 'server-only';
-import { createActionList, FoundationRuntime, getService } from '@bitakit/core';
+import { createActionList, BitaKitRuntime, getService } from '@bitakit/core';
 import { emailService } from '@bitakit/email';
 import { nodemailerPlugin } from '@bitakit/nodemailer';
 import { betterAuthEmail } from '@bitakit/better-auth/email';
@@ -9,7 +9,7 @@ export function getAuthMail() {
   if (mail) return mail;
   const user = process.env.SMTP_USER ?? '';
   const from = process.env.SMTP_FROM ?? '';
-  const runtime = new FoundationRuntime(createActionList(), {
+  const runtime = new BitaKitRuntime(createActionList(), {
     plugins: [
       nodemailerPlugin({
         host: process.env.SMTP_HOST ?? '',

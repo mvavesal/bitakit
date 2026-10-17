@@ -1,19 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FoundationStartupError,
+  BitaKitStartupError,
   createRuntime,
   defineAction,
   definePlugin,
   defineService,
-  isFoundationStartupError,
+  isBitaKitStartupError,
 } from '../dist/core.js';
 
 const startupError = (fn, expectations) =>
   assert.throws(fn, (error) => {
     assert.ok(
-      isFoundationStartupError(error) && error instanceof FoundationStartupError,
-      `expected a FoundationStartupError, got ${error?.name}: ${error?.message}`,
+      isBitaKitStartupError(error) && error instanceof BitaKitStartupError,
+      `expected a BitaKitStartupError, got ${error?.name}: ${error?.message}`,
     );
     for (const [key, value] of Object.entries(expectations))
       value instanceof RegExp ? assert.match(error[key], value) : assert.equal(error[key], value);

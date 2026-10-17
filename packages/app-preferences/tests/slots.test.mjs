@@ -13,7 +13,7 @@ import {
   defineSettings,
   setting,
 } from '@bitakit/core';
-import { FoundationProvider, useFoundation, useServiceState } from '@bitakit/ui';
+import { BitaKitRuntimeProvider, useBitaKit, useServiceState } from '@bitakit/ui';
 import { appPreferencesPlugin } from '../dist/foundation.js';
 import { SettingsPage, SettingsNavigation, SettingsShell } from '../dist/index.js';
 import { SettingsLocationContext } from '../dist/components/location.js';
@@ -174,10 +174,10 @@ test('page boundaries enclose body, toolbar and extensions; removed sources leav
   });
   const base = { services: { access: defineService(({ store }) => ({ state: store(false) })) } };
   function Probe() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return h(SettingsPage, { pathname: '/settings/secure' });
   }
-  const tree = (plugins) => h(FoundationProvider, { config: { ...base, plugins } }, h(Probe));
+  const tree = (plugins) => h(BitaKitRuntimeProvider, { config: { ...base, plugins } }, h(Probe));
   const preferences = appPreferencesPlugin();
   const view = await mount(tree([preferences, guarded, extension]));
   try {
@@ -296,7 +296,7 @@ test('render failures in a settings body and extension stay isolated from siblin
   });
   let runtime;
   function Capture() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const original = console.error;
@@ -371,7 +371,7 @@ test('settings access boundaries hide failed bodies and extension fallbacks, inc
   const base = { services: { access: defineService(({ store }) => ({ state: store(false) })) } };
   let runtime;
   function Capture() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const original = console.error;
@@ -380,7 +380,7 @@ test('settings access boundaries hide failed bodies and extension fallbacks, inc
   try {
     view = await mount(
       h(
-        FoundationProvider,
+        BitaKitRuntimeProvider,
         {
           config: { ...base, plugins: [appPreferencesPlugin(), guardedPage, crashingExtension] },
           ui: testUI,
@@ -503,7 +503,7 @@ test('built App Preferences slot metadata matches runtime inventory IDs, kinds, 
 test('runtime plugin additions and removals rebuild generated settings navigation and fields', async () => {
   let runtime;
   function Page() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return h(
       'main',
       null,

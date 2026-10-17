@@ -7,7 +7,7 @@ import {
   defineInterceptor,
   definePlugin,
   defineService,
-  isFoundationStartupError,
+  isBitaKitStartupError,
   isServiceInterceptor,
   matchesTarget,
 } from '../dist/core.js';
@@ -269,7 +269,7 @@ test('an interceptor targets actions or a service, never both; requires are chec
   assert.throws(
     () => runtime.mount(),
     (error) =>
-      isFoundationStartupError(error) &&
+      isBitaKitStartupError(error) &&
       error.plugin === 'todos' &&
       /An interceptor in plugin "todos" requires service "todos\.missing", but no service has that name/.test(
         error.message,

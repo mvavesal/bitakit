@@ -2,14 +2,14 @@
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth, useFoundationApp } from '@bitakit/ui';
+import { useAuth, useBitaKitApp } from '@bitakit/ui';
 import { Button } from '@bitakit/ui/components';
 import { AuthPageLayout, UserButton } from '@bitakit/better-auth-ui';
 import { OrganizationSwitcher } from '@bitakit/better-auth-ui/plugins/organization';
 import { AppShell } from '@bitakit/shell';
 
 export function Workspace({ children }: { children: ReactNode }) {
-  const { ready } = useFoundationApp();
+  const { ready } = useBitaKitApp();
   const session = useAuth();
   const pathname = usePathname();
   if (pathname.startsWith('/auth/')) return children;

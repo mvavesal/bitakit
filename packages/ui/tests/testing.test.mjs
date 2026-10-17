@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
 import { installDom, click, silenced, testUI } from './support.mjs';
 import { PluginPage, useService, useServiceState } from '../dist/index.js';
-import { defineAction, defineEvents, definePlugin, defineService, event, isFoundationStartupError } from '@bitakit/core';
-import { renderWithFoundation } from '../dist/testing/index.js';
+import { defineAction, defineEvents, definePlugin, defineService, event, isBitaKitStartupError } from '@bitakit/core';
+import { renderWithBitaKit } from '../dist/testing/index.js';
 
 installDom();
 
@@ -47,8 +47,8 @@ const notes = definePlugin({
   },
 });
 
-test('renderWithFoundation mounts a plugin page, records events from startup on and releases everything on unmount', async () => {
-  const view = await renderWithFoundation(h(PluginPage, { pathname: '/notes' }), {
+test('renderWithBitaKit mounts a plugin page, records events from startup on and releases everything on unmount', async () => {
+  const view = await renderWithBitaKit(h(PluginPage, { pathname: '/notes' }), {
     plugins: [notes],
     ui: testUI,
   });
@@ -73,13 +73,13 @@ test('renderWithFoundation mounts a plugin page, records events from startup on 
   await view.unmount();
 });
 
-test('renderWithFoundation adds plugins to a configuration, passes host services and rejects with the startup error', async () => {
+test('renderWithBitaKit adds plugins to a configuration, passes host services and rejects with the startup error', async () => {
   const config = { plugins: [notes] };
   const stats = definePlugin({
     id: 'stats',
     services: { total: defineService(({ services }) => ({ greeting: services.greeter.hello })) },
   });
-  const view = await renderWithFoundation(h('p', null, 'Host'), {
+  const view = await renderWithBitaKit(h('p', null, 'Host'), {
     config,
     plugins: [stats],
     services: { greeter: { hello: 'Hi' } },
@@ -105,12 +105,12 @@ test('renderWithFoundation adds plugins to a configuration, passes host services
   });
   const before = document.body.children.length;
   const { value, errors } = await silenced(() =>
-    renderWithFoundation(h('p', null, 'Host'), { plugins: [failing], ui: testUI }).then(
+    renderWithBitaKit(h('p', null, 'Host'), { plugins: [failing], ui: testUI }).then(
       () => undefined,
       (error) => error,
     ),
   );
-  assert.ok(isFoundationStartupError(value), errors.join('\n'));
+  assert.ok(isBitaKitStartupError(value), errors.join('\n'));
   assert.equal(value.plugin, 'queue');
   assert.match(value.message, /onStart in plugin "queue" failed: queue unavailable/);
   assert.equal(document.body.children.length, before, 'a failed start leaves nothing mounted');

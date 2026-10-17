@@ -8,7 +8,7 @@ import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { createAuthClient } from 'better-auth/react';
 import { authService, definePlugin, defineService } from '@bitakit/core';
-import { FoundationProvider, useFoundation, useSettingsCatalog } from '@bitakit/ui';
+import { BitaKitRuntimeProvider, useBitaKit, useSettingsCatalog } from '@bitakit/ui';
 import { betterAuthClient } from '@bitakit/better-auth';
 import { organizationBackend, organizationsPlugin } from '@bitakit/organizations';
 import { createDemoOrganizationBackend } from '@bitakit/organizations/demo';
@@ -100,7 +100,7 @@ test('independent account profile and security pages preserve native cards and s
   });
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       {
         config: { plugins: [auth.plugin, plugin] },
         services: { [betterAuthClient]: { client: authClient } },
@@ -155,7 +155,7 @@ test('separate organization pages preserve management guards and an independent 
   let runtime;
   let catalog;
   function Probe() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     catalog = useSettingsCatalog();
     return null;
   }
@@ -164,7 +164,7 @@ test('separate organization pages preserve management guards and an independent 
       NuqsTestingAdapter,
       { searchParams: '?tab=members', onUrlUpdate: (event) => urls.push(event.queryString) },
       h(
-        FoundationProvider,
+        BitaKitRuntimeProvider,
         {
           config: { plugins: [organizationsPlugin(), organizations, account] },
           services: {
@@ -246,7 +246,7 @@ test('organization settings leave loading for a signed-out session before mounti
   const { SettingsAccountAccess } = await import('../dist/settings/account.js');
   const auth = testAuth({ user: null, pending: true, error: null });
   const plugin = betterAuthUIPlugin({ provider: { navigate() {}, plugins: [] }, toastProvider: false });
-  const view = await mount(h(FoundationProvider, {
+  const view = await mount(h(BitaKitRuntimeProvider, {
     config: { plugins: [auth.plugin, plugin] },
     services: { [betterAuthClient]: { client: createAuthClient({ baseURL: origin }) } },
   }, h(SettingsAccountAccess, null, h('p', null, 'Protected settings'))));

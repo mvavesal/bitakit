@@ -52,8 +52,8 @@ const { createRoot } = await import('react-dom/client');
 globalThis.KeyboardEvent = window.KeyboardEvent;
 globalThis.HTMLAnchorElement = window.HTMLAnchorElement;
 HTMLElement.prototype.scrollIntoView = function () {};
-const { FoundationProvider } = await import('@bitakit/ui');
-const { AppBar, standardFoundationUI } = await import('@bitakit/ui/components');
+const { BitaKitRuntimeProvider } = await import('@bitakit/ui');
+const { AppBar, standardBitaKitUI } = await import('@bitakit/ui/components');
 const { createActionList, ActionGroup } = await import('@bitakit/core');
 const { quickSearchPlugin } = await import('../dist/plugin.js');
 
@@ -83,11 +83,11 @@ test('automatic AppBar trigger, URL-only search, metadata, native links and live
     await act(async () =>
       root.render(
         h(
-          FoundationProvider,
+          BitaKitRuntimeProvider,
           {
             plugins,
             actionOptions: { list, shortcuts: false },
-            ui: standardFoundationUI,
+            ui: standardBitaKitUI,
             labels: {
               cancel: 'Cancel',
               submit: 'Submit',
@@ -176,11 +176,11 @@ async function openSearch({ plugins = [], list = createActionList(), results } =
   await act(async () =>
     root.render(
       h(
-        FoundationProvider,
+        BitaKitRuntimeProvider,
         {
           plugins: [quickSearchPlugin({ results }), ...plugins],
           actionOptions: { list, shortcuts: false },
-          ui: standardFoundationUI,
+          ui: standardBitaKitUI,
           labels,
         },
         h(AppBar),

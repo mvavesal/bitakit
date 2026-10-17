@@ -1,8 +1,8 @@
 'use client';
 import { useCallback, type ComponentType } from 'react';
 import { useSlot } from './use-slot.js';
-import { useFoundation } from '../providers/foundation-context.js';
-import { useFoundationNavigation } from './use-foundation-navigation.js';
+import { useBitaKit } from '../providers/foundation-context.js';
+import { useBitaKitNavigation } from './use-foundation-navigation.js';
 import type { ActionControl } from './use-action.js';
 
 export type Navigation = {
@@ -17,8 +17,8 @@ export type Navigation = {
 /** Explicit Action placements and native router bindings for one navigation region. */
 export function useNavigation(slot = 'shell.navigation'): Navigation {
   const view = useSlot(slot);
-  const { runtime } = useFoundation();
-  const { pathname, Link, navigate } = useFoundationNavigation();
+  const { runtime } = useBitaKit();
+  const { pathname, Link, navigate } = useBitaKitNavigation();
   const isActive = useCallback(
     (href: string | undefined) => href !== undefined && href.split(/[?#]/)[0] === pathname,
     [pathname],

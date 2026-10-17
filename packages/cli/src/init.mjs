@@ -181,7 +181,7 @@ export async function initProject({ cwd } = {}) {
     skip(layouts[0], 'not found; mount <BitaKitProvider> from the generated file around your app');
   else {
     const source = (await read(layout)) ?? '';
-    if (/bitakit\.gen|BitaKitProvider|FoundationProvider/.test(source))
+    if (/bitakit\.gen|BitaKitProvider|BitaKitRuntimeProvider/.test(source))
       skip(layout, 'already mounts the BitaKit provider');
     else {
       const relative = path

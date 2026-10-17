@@ -4,7 +4,7 @@ import { mount, settle, setMedia, deferred } from './support.mjs';
 import { createElement as h, act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createMemorySettingsStorage } from '@bitakit/core';
-import { FoundationProvider, useFoundation } from '@bitakit/ui';
+import { BitaKitRuntimeProvider, useBitaKit } from '@bitakit/ui';
 import { shellPlugin, ShellThemeScript } from '../dist/index.js';
 
 const root = document.documentElement;
@@ -25,11 +25,11 @@ function resetRoot() {
 async function mountShell(plugin, services) {
   let runtime;
   function Probe() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const view = await mount(
-    h(FoundationProvider, { config: { plugins: [plugin] }, services }, h(Probe)),
+    h(BitaKitRuntimeProvider, { config: { plugins: [plugin] }, services }, h(Probe)),
   );
   return { view, runtime: () => runtime };
 }

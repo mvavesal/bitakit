@@ -44,7 +44,7 @@ export type BetterAuthUIOptions = {
 };
 
 /**
- * Ordinary Foundation plugin on the host's Better Auth client (the `better-auth-client`
+ * Ordinary BitaKit plugin on the host's Better Auth client (the `better-auth-client`
  * service). Takes no host objects, so the generated configuration can create it.
  */
 export function betterAuthUIPlugin(options: BetterAuthUIOptions = {}) {

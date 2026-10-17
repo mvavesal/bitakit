@@ -1,16 +1,16 @@
-import type { FoundationRuntime } from '../runtime.js';
-import type { FoundationApp } from './types.js';
-import { FoundationServiceError } from './service-error.js';
+import type { BitaKitRuntime } from '../runtime.js';
+import type { BitaKitApp } from './types.js';
+import { BitaKitServiceError } from './service-error.js';
 import { createActionAccess } from './action-access.js';
 
 /** Projects the runtime onto the app facade. Nothing is copied; every read is live. */
-export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
+export function createBitaKitApp(runtime: BitaKitRuntime): BitaKitApp {
   // Before mount every service read explains that the runtime is not ready yet.
   const services = new Proxy(Object.create(null) as object, {
     get(_target, name, receiver) {
       if (typeof name !== 'string' || name === 'then' || name === 'toJSON') return undefined;
       const tree = runtime.servicesIfMounted();
-      if (!tree) throw new FoundationServiceError(name, 'not-ready');
+      if (!tree) throw new BitaKitServiceError(name, 'not-ready');
       return Reflect.get(tree as object, name, receiver);
     },
     has: (_target, name) => {
@@ -48,5 +48,5 @@ export function createFoundationApp(runtime: FoundationRuntime): FoundationApp {
       return runtime.isReady();
     },
     has: (service: string) => runtime.isServiceReady(service),
-  }) as unknown as FoundationApp;
+  }) as unknown as BitaKitApp;
 }

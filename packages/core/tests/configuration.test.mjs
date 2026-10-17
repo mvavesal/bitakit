@@ -5,7 +5,7 @@ import {
   defineAction,
   defineInterceptor,
   definePlugin,
-  resolveFoundationConfig,
+  resolveBitaKitConfig,
 } from '../dist/core.js';
 
 const wrap = ({ children }) => children;
@@ -22,12 +22,12 @@ test('omitted lists inherit; explicit and empty lists replace only their domain 
     interceptors: [interceptor],
     ui: { providers: [provider] },
   };
-  const inherited = resolveFoundationConfig(discovered);
+  const inherited = resolveBitaKitConfig(discovered);
   assert.equal(inherited.actions, discovered.actions);
   assert.equal(inherited.plugins, discovered.plugins);
   assert.equal(inherited.interceptors, discovered.interceptors);
   assert.deepEqual(inherited.ui.providers, [provider]);
-  const empty = resolveFoundationConfig(discovered, {
+  const empty = resolveBitaKitConfig(discovered, {
     actions: [],
     interceptors: [],
     providers: [],
@@ -38,47 +38,47 @@ test('omitted lists inherit; explicit and empty lists replace only their domain 
   assert.deepEqual(empty.ui.providers, []);
   assert.deepEqual(discovered.plugins[0].actions, [pluginAction]);
   const replacement = defineAction({ id: 'replacement', execute() {} });
-  const manual = resolveFoundationConfig(discovered, { actions: [replacement] });
+  const manual = resolveBitaKitConfig(discovered, { actions: [replacement] });
   const runtime = createRuntime(manual);
   const cleanup = runtime.mount();
   assert.deepEqual(Object.keys(runtime.actions.getState().actions), ['replacement']);
   cleanup();
-  const noPlugins = resolveFoundationConfig(
+  const noPlugins = resolveBitaKitConfig(
     { ...discovered, configOverrides: { plugin: { a: 1 } } },
     { plugins: [] },
   );
   assert.deepEqual(noPlugins.plugins, []);
   assert.equal(noPlugins.actions, discovered.actions);
   assert.deepEqual(noPlugins.configOverrides, {}, 'overrides of removed plugins are dropped');
-  assert.throws(() => resolveFoundationConfig({ plugins: [plugin, plugin] }), /duplicate plugin/);
+  assert.throws(() => resolveBitaKitConfig({ plugins: [plugin, plugin] }), /duplicate plugin/);
 });
 
 test('provider order is explicit; plugin providers come first; missing, reversed, cyclic and duplicate requirements fail early', () => {
   const theme = { id: 'theme', component: wrap };
   const widgets = { id: 'widgets', component: wrap, requires: ['theme'] };
-  assert.deepEqual(resolveFoundationConfig({ ui: { providers: [theme, widgets] } }).ui.providers, [
+  assert.deepEqual(resolveBitaKitConfig({ ui: { providers: [theme, widgets] } }).ui.providers, [
     theme,
     widgets,
   ]);
   const fromPlugin = { id: 'query', component: wrap };
   assert.deepEqual(
-    resolveFoundationConfig({
+    resolveBitaKitConfig({
       plugins: [definePlugin({ id: 'data', ui: { providers: [fromPlugin] } })],
       ui: { providers: [theme] },
     }).ui.providers,
     [fromPlugin, theme],
   );
   assert.throws(
-    () => resolveFoundationConfig({ ui: { providers: [widgets, theme] } }),
+    () => resolveBitaKitConfig({ ui: { providers: [widgets, theme] } }),
     /requires "theme" before/,
   );
   assert.throws(
-    () => resolveFoundationConfig({ ui: { providers: [theme, theme] } }),
+    () => resolveBitaKitConfig({ ui: { providers: [theme, theme] } }),
     /duplicate provider/,
   );
   assert.throws(
     () =>
-      resolveFoundationConfig({
+      resolveBitaKitConfig({
         ui: { providers: [{ ...theme, requires: ['widgets'] }, widgets] },
       }),
     /requires/,

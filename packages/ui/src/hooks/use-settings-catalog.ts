@@ -3,7 +3,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import type { SettingEntry } from '@bitakit/core';
 import { settingsCatalog } from '../settings/catalog.js';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 import { useTranslation } from './use-translation.js';
 
 export type SettingsCatalogOption = {
@@ -42,7 +42,7 @@ export type SettingsCatalogSection = {
 };
 
 export function useSettingsCatalog(): readonly SettingsCatalogSection[] {
-  const { runtime } = useFoundation();
+  const { runtime } = useBitaKit();
   const t = useTranslation();
   const state = useSyncExternalStore(
     runtime.lifecycle.subscribe,

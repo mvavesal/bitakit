@@ -1,6 +1,6 @@
 import type { PluginMetadata } from '../definitions.js';
 import type { LifecyclePhase, LifecycleSnapshot } from '../lifecycle/state.js';
-import type { FoundationRuntime } from '../runtime.js';
+import type { BitaKitRuntime } from '../runtime.js';
 import { contributionSource } from '../contribution-origin.js';
 
 export type InventoryKind =
@@ -105,7 +105,7 @@ export function createInventory(
   });
 }
 
-export function inspectRuntime(runtime: FoundationRuntime): RuntimeInventory {
+export function inspectRuntime(runtime: BitaKitRuntime): RuntimeInventory {
   const entry = (kind: InventoryKind, id: string, value?: object): InventoryDeclaration =>
     Object.freeze({
       kind,
@@ -210,7 +210,7 @@ export function inspectRuntime(runtime: FoundationRuntime): RuntimeInventory {
 }
 
 /** Stable read snapshots for React/external-store consumers; this caches diagnostics, never app values. */
-export function observeRuntimeInventory(runtime: FoundationRuntime) {
+export function observeRuntimeInventory(runtime: BitaKitRuntime) {
   let previous: unknown[] = [],
     snapshot: RuntimeInventory;
   const get = () => {

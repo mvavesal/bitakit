@@ -1,6 +1,6 @@
 'use client';
 import { useContext, type ReactNode } from 'react';
-import { FoundationContext } from '../providers/foundation-context.js';
+import { BitaKitContext } from '../providers/foundation-context.js';
 import { PluginSlot } from './plugin-slot.js';
 import { cn } from 'cn';
 
@@ -14,7 +14,7 @@ export type AppBarProps = {
 
 /** Composable application header; product content and navigation are supplied by the consumer. */
 export function AppBar({ left, center, right, bottom, className }: AppBarProps) {
-  const foundation = useContext(FoundationContext);
+  const foundation = useContext(BitaKitContext);
   return (
     <header
       className={cn(

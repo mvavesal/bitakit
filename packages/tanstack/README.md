@@ -25,13 +25,13 @@ Mount `BitaKitProvider` from `./bitakit.gen` inside the TanStack root route, aro
 through a catch-all route with `<PluginPage />`. The generator supplies these native files; it
 never copies plugin implementations.
 
-`BitaKitProvider` wraps this package's `FoundationProvider` with the discovered configuration,
+`BitaKitProvider` wraps this package's `BitaKitRuntimeProvider` with the discovered configuration,
 the standard UI provider and the nuqs TanStack Router adapter. `additionalPlugins` replaces
 matching discovered plugins in place and appends new ones; explicit `plugins` retains
 replacement semantics. Use `queryState={false}` only with an existing outer nuqs adapter.
-`FoundationProvider` from the package root needs an explicit `config` when used directly.
+`BitaKitRuntimeProvider` from the package root needs an explicit `config` when used directly.
 
-`FoundationLink` bridges dynamic action `href` links to TanStack `Link`. It does not claim
+`BitaKitLink` bridges dynamic action `href` links to TanStack `Link`. It does not claim
 compile-time typed route parameters; app-owned typed links should import the native TanStack
 `Link`. Navigation reads router state directly; there is no mirrored pathname or query store.
 Vite setup runs before React and cannot be activated by a runtime plugin; installing the

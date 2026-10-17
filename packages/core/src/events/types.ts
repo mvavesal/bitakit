@@ -19,7 +19,7 @@ export type EventsMatching<Pattern extends string> = Pattern extends `${infer Pr
     : Extract<keyof EventMap, `${Prefix}.${string}`>
   : Pattern;
 
-export type FoundationEvent<Name extends string = string> = Name extends string
+export type BitaKitEvent<Name extends string = string> = Name extends string
   ? Readonly<{
       type: Name;
       data: EventData<Name>;
@@ -29,10 +29,10 @@ export type FoundationEvent<Name extends string = string> = Name extends string
     }>
   : never;
 export type EventHandler<Name extends string = string> = (
-  event: FoundationEvent<EventsMatching<Name>>,
+  event: BitaKitEvent<EventsMatching<Name>>,
   context: { signal: AbortSignal },
 ) => void | Promise<void>;
-export type EventErrorHandler = (error: unknown, event: FoundationEvent) => void;
+export type EventErrorHandler = (error: unknown, event: BitaKitEvent) => void;
 export type EmitResult<Name extends string> = Name extends keyof CancelableEventMap
   ? Promise<boolean>
   : void;

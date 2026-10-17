@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { installDom, mount, testUI } from './support.mjs';
-import { defineFramework, useFoundationNavigation } from '../dist/index.js';
+import { defineFramework, useBitaKitNavigation } from '../dist/index.js';
 import { definePlugin } from '@bitakit/core';
 
 installDom();
@@ -22,12 +22,12 @@ test('defineFramework feeds the host router into the shared navigation context',
   });
   let seen;
   function Consumer() {
-    seen = useFoundationNavigation();
+    seen = useBitaKitNavigation();
     return null;
   }
   const view = await mount(
     h(
-      framework.FoundationProvider,
+      framework.BitaKitRuntimeProvider,
       { config: { plugins: [definePlugin({ id: 'todos' })] }, ui: testUI },
       h(Consumer),
     ),
@@ -42,12 +42,12 @@ test('defineFramework feeds the host router into the shared navigation context',
       view.container.querySelector('[data-query]'),
       'the query-state adapter wraps the app',
     );
-    assert.equal(framework.FoundationProvider.displayName, 'fake.FoundationProvider');
+    assert.equal(framework.BitaKitRuntimeProvider.displayName, 'fake.BitaKitRuntimeProvider');
   } finally {
     await view.unmount();
   }
   assert.throws(
-    () => framework.FoundationProvider({ children: null }),
-    /FoundationProvider needs a configuration/,
+    () => framework.BitaKitRuntimeProvider({ children: null }),
+    /BitaKitRuntimeProvider needs a configuration/,
   );
 });

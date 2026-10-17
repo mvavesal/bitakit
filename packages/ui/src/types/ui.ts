@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { BoundGroup } from '../hooks/use-action-group.js';
 /** Supply existing design-system primitives once, not wrappers per feature. */
-export type FoundationUI = {
+export type BitaKitUI = {
   Dialog: ComponentType<{ open: boolean; onOpenChange(open: boolean): void; children: ReactNode }>;
   DialogContent: ComponentType<any>;
   DialogHeader: ComponentType<any>;
@@ -31,7 +31,7 @@ export type DialogFrameProps = {
   children: ReactNode;
 };
 export type DialogFrame = ComponentType<DialogFrameProps>;
-export type FoundationLabels = {
+export type BitaKitLabels = {
   cancel: string;
   confirm: string;
   submit: string;

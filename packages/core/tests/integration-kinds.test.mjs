@@ -4,11 +4,11 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createJiti } from 'jiti';
-import { generateFoundation, describeFoundation } from '@bitakit/discovery';
+import { generateBitaKit, describeBitaKit } from '@bitakit/discovery';
 // Internal module: the package exports only its public entry.
 import { contributionKindSpecs } from '../../discovery/src/entries.mjs';
 import {
-  FoundationRuntime,
+  BitaKitRuntime,
   PluginScope,
   scopeModule,
   scopePlugins,
@@ -45,7 +45,7 @@ test('contributions install per module in dependency order before actions and se
     if (list.get('content.probe') && !events.includes('action registered'))
       events.push('action registered');
   });
-  const runtime = new FoundationRuntime(list, {
+  const runtime = new BitaKitRuntime(list, {
     appId: 'app',
     dependencies: ['content'],
     contributions: { widgets: ['app-widget'] },
@@ -89,21 +89,21 @@ test('contributions install per module in dependency order before actions and se
 });
 
 test('a kind without installer or with two installers is an actionable mount error', async () => {
-  const missing = new FoundationRuntime(createActionList(), {
+  const missing = new BitaKitRuntime(createActionList(), {
     plugins: [{ id: 'content', contributions: { widgets: [1] } }],
   });
   assert.throws(
     () => missing.mount(),
     /"content" contributes "widgets", but no enabled plugin installs/,
   );
-  const twice = new FoundationRuntime(createActionList(), {
+  const twice = new BitaKitRuntime(createActionList(), {
     plugins: [
       { id: 'one', installs: { widgets: () => {} } },
       { id: 'two', installs: { widgets: () => {} } },
     ],
   });
   assert.throws(() => twice.mount(), /"widgets" is installed by both "one" and "two"/);
-  const empty = new FoundationRuntime(createActionList(), {
+  const empty = new BitaKitRuntime(createActionList(), {
     plugins: [{ id: 'content', contributions: { widgets: [] } }],
   });
   empty.mount()();
@@ -111,7 +111,7 @@ test('a kind without installer or with two installers is an actionable mount err
 
 test('runtime-issued scopes identify their module; foreign scopes are rejected', async () => {
   const seen = [];
-  const runtime = new FoundationRuntime(createActionList(), {
+  const runtime = new BitaKitRuntime(createActionList(), {
     appId: 'app',
     setup: ({ scope }) => void seen.push(scopeModule(scope)),
     plugins: [{ id: 'content', setup: ({ scope }) => void seen.push(scopeModule(scope)) }],
@@ -129,7 +129,7 @@ test('runtime-issued scopes identify their module; foreign scopes are rejected',
 
 test('runtime-issued scopes list the composed plugins by ID and metadata, without the app', async () => {
   const seen = [];
-  const runtime = new FoundationRuntime(createActionList(), {
+  const runtime = new BitaKitRuntime(createActionList(), {
     appId: 'app',
     setup: ({ scope }) => void seen.push(scopePlugins(scope)),
     plugins: [
@@ -257,13 +257,13 @@ test('discovery emits imports for integration kinds per module under contributio
       'src/plugins/content/contributions/widgets/never.ts',
       'throw new Error("must not execute during discovery"); export default "never"',
     );
-    const first = await generateFoundation(root, { quiet: true });
+    const first = await generateBitaKit(root, { quiet: true });
     assert.deepEqual(first.warnings, [
       'src/contributions/widgets/helper.ts is in a widgets folder but has no default export, so it is ignored. Export the contribution as default, or prefix the file name with "-" for helpers.',
       'src/widgets/elsewhere.ts: move it under contributions/widgets/; the old location is deprecated (run "bitakit migrate").',
     ]);
     await rm(never);
-    const { generated } = await generateFoundation(root, { quiet: true });
+    const { generated } = await generateBitaKit(root, { quiet: true });
     const source = await readFile(generated, 'utf8');
     assert.doesNotMatch(source, /draft|secret|helper|disabled|ignored|never/);
     assert.match(
@@ -325,7 +325,7 @@ test('discovery emits imports for integration kinds per module under contributio
     assert.deepEqual(byId.custom.contributions['settings.sections'], undefined);
     assert.equal(byId.off, undefined);
     const installed = [];
-    const runtime = new FoundationRuntime(createActionList(), {
+    const runtime = new BitaKitRuntime(createActionList(), {
       ...config,
       plugins: [
         ...config.plugins,
@@ -347,14 +347,14 @@ test('discovery emits imports for integration kinds per module under contributio
       ['widgets', 'content', 2],
       ['widgets', 'custom', 1],
     ]);
-    assert.deepEqual((await describeFoundation(root)).installedPackages, ['@acme/widgets']);
+    assert.deepEqual((await describeBitaKit(root)).installedPackages, ['@acme/widgets']);
 
     await put(
       'src/plugins/custom/plugin.config.ts',
       'export default { entries: { widgets: "../outside" } }',
     );
     await assert.rejects(
-      generateFoundation(root, { quiet: true }),
+      generateBitaKit(root, { quiet: true }),
       /Entry "widgets" of plugin "custom" points outside the plugin/,
     );
     await put(
@@ -362,7 +362,7 @@ test('discovery emits imports for integration kinds per module under contributio
       'export default { entries: { widgets: "missing/folder" } }',
     );
     await assert.rejects(
-      generateFoundation(root, { quiet: true }),
+      generateBitaKit(root, { quiet: true }),
       /Plugin "custom" names a missing entry for "widgets"/,
     );
     await put(
@@ -372,7 +372,7 @@ test('discovery emits imports for integration kinds per module under contributio
     const without = await createJiti(import.meta.url, {
       moduleCache: false,
       alias: { '@bitakit/core': coreRuntime },
-    }).import((await generateFoundation(root, { quiet: true })).generated);
+    }).import((await generateBitaKit(root, { quiet: true })).generated);
     assert.deepEqual(
       without.createBitaKitConfig().plugins.find((plugin) => plugin.id === 'custom').contributions,
       {},
@@ -384,7 +384,7 @@ test('discovery emits imports for integration kinds per module under contributio
     );
     await put('src/contributions/other/alpha.ts', 'export default "alpha"');
     const redefined = await readFile(
-      (await generateFoundation(root, { quiet: true })).generated,
+      (await generateBitaKit(root, { quiet: true })).generated,
       'utf8',
     );
     assert.match(redefined, /import \{ discoverWidgets as normalize0 \} from 'app-normalizers';/);
@@ -395,7 +395,7 @@ test('discovery emits imports for integration kinds per module under contributio
       `export default { kinds: [{ name: 'widgets', directory: 'a', from: 'x', normalize: 'discoverWidgets' }, { name: 'widgets', directory: 'b', from: 'x', normalize: 'discoverWidgets' }] };`,
     );
     await assert.rejects(
-      generateFoundation(root, { quiet: true }),
+      generateBitaKit(root, { quiet: true }),
       /Duplicate contribution kind "widgets"/,
     );
   }));
@@ -406,13 +406,13 @@ test('owned slot definitions reserve a built-in kind and respect module entry se
     await put('src/plugins/shell/plugin.config.ts', `export default { entries: { slotDefinitions: 'extension-points' } };`);
     await put('src/plugins/shell/extension-points/logo.ts', `import { defineSlot } from '@bitakit/core'; export default defineSlot({ accepts: 'component', policy: 'single' });`);
     await put('src/plugins/shell/slots/ignored.ts', `throw new Error('overridden folder must not load'); export default {};`);
-    const result = await generateFoundation(root, { quiet: true });
+    const result = await generateBitaKit(root, { quiet: true });
     const generated = await createJiti(import.meta.url, { moduleCache: false, alias: { '@bitakit/core': coreRuntime } }).import(result.generated);
-    const runtime = new FoundationRuntime(createActionList(), generated.createBitaKitConfig());
+    const runtime = new BitaKitRuntime(createActionList(), generated.createBitaKitConfig());
     assert.deepEqual(runtime.modules[1].slots.map((slot) => slot.id), ['shell.logo']);
-    const description = await describeFoundation(root);
+    const description = await describeBitaKit(root);
     assert.deepEqual(description.slotDeclarations.map((slot) => slot.id), ['shell.logo']);
     await put('src/plugins/shell/plugin.config.ts', `export default { entries: { slotDefinitions: false } };`);
-    assert.deepEqual((await describeFoundation(root)).slotDeclarations, []);
+    assert.deepEqual((await describeBitaKit(root)).slotDeclarations, []);
   });
 });

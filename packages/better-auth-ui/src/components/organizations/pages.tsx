@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '../ui/index.js';
 import { useSyncExternalStore } from 'react';
 import { cn } from 'cn';
 import { getService } from '@bitakit/core';
-import { useFoundation } from '@bitakit/ui';
+import { useBitaKit } from '@bitakit/ui';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/index.js';
 import { Badge } from '../ui/index.js';
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from '../ui/index.js';
@@ -51,7 +51,7 @@ export function OrganizationsPage({
       .split(',')
       .map((value) => translateUI(`foundationUI.roles.${value}`, undefined, value))
       .join(', ');
-  const service = getService(useFoundation().runtime.services, organizationService);
+  const service = getService(useBitaKit().runtime.services, organizationService);
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
   const active = state.organizations.find((item) => item.id === state.activeId);
   const model = usePeopleFilters(view);

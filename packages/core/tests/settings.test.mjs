@@ -8,7 +8,7 @@ import {
   definePlugin,
   defineService,
   defineSettings,
-  isFoundationStartupError,
+  isBitaKitStartupError,
   isSettingsDefinition,
   parseSetting,
   setting,
@@ -331,10 +331,10 @@ test('setting declarations are validated at startup with attribution', async () 
           definePlugin({ id: 'todos', settings: defineSettings({ a: setting({ default: 1 }) }) }),
         ],
       }),
-    (error) => isFoundationStartupError(error) && /Rename the app setting/.test(error.message),
+    (error) => isBitaKitStartupError(error) && /Rename the app setting/.test(error.message),
   );
   assert.throws(
     () => createRuntime({ plugins: [definePlugin({ id: 'todos', settings: { a: 1 } })] }),
-    (error) => isFoundationStartupError(error) && /defineSettings/.test(error.message),
+    (error) => isBitaKitStartupError(error) && /defineSettings/.test(error.message),
   );
 });

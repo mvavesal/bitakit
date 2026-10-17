@@ -1,7 +1,7 @@
 'use client';
 import { useState, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
-import { useAction, useFoundation } from '@bitakit/ui';
+import { useAction, useBitaKit } from '@bitakit/ui';
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 /** Body of the users.invite dialog; the host renders title and description from the action. */
 export default function InviteDialog({ close }: { close(): void }) {
   const t = useTranslations('users.invite');
-  const { labels } = useFoundation();
+  const { labels } = useBitaKit();
   const [email, setEmail] = useState('');
   const [failed, setFailed] = useState(false);
   const send = useAction('users.send-invite', { email });

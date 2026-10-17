@@ -12,17 +12,17 @@ import {
 import { installDom, mount, click, deferred, silenced, testUI } from './support.mjs';
 import { ActionProvider, ActionButton, useAction, useActionList } from '../dist/actions/index.js';
 import { createActionList } from '@bitakit/core';
-import { FoundationProvider, ActionBoundary, PluginSlot, PluginPage, useCurrentPage, useFoundation, useFoundationApp, useService, useServiceState, useEvent, useTranslation, useGroupTitle } from '../dist/index.js';
+import { BitaKitRuntimeProvider, ActionBoundary, PluginSlot, PluginPage, useCurrentPage, useBitaKit, useBitaKitApp, useService, useServiceState, useEvent, useTranslation, useGroupTitle } from '../dist/index.js';
 import { defineAction, definePlugin, defineService, defineEvents, event, createTranslationPlugin, ActionGroup } from '@bitakit/core';
 import {
-  StandardFoundationProvider,
+  StandardBitaKitRuntimeProvider,
   StandardActionMenu,
-  standardFoundationUI,
+  standardBitaKitUI,
 } from '../dist/components.js';
 
 installDom();
 
-test('one FoundationProvider owns the action list; the app facade follows plugin removal', async () => {
+test('one BitaKitRuntimeProvider owns the action list; the app facade follows plugin removal', async () => {
   let calls = 0;
   const documents = definePlugin({
     id: 'documents',
@@ -32,8 +32,8 @@ test('one FoundationProvider owns the action list; the app facade follows plugin
   let app;
   let actions;
   function Consumer() {
-    app = useFoundationApp();
-    actions = useFoundation().runtime.actions;
+    app = useBitaKitApp();
+    actions = useBitaKit().runtime.actions;
     return h(
       'div',
       null,
@@ -45,7 +45,7 @@ test('one FoundationProvider owns the action list; the app facade follows plugin
       h(ActionButton, { action: app.actions.documents.create }),
     );
   }
-  const tree = (plugins) => h(FoundationProvider, { ui: testUI, plugins }, h(Consumer));
+  const tree = (plugins) => h(BitaKitRuntimeProvider, { ui: testUI, plugins }, h(Consumer));
   const view = await mount(tree([documents]));
   try {
     const list = actions;
@@ -113,7 +113,7 @@ test('Strict Mode keeps service instances and an open dialog across translation 
         ActionProvider,
         { actions: list },
         h(
-          FoundationProvider,
+          BitaKitRuntimeProvider,
           { config, ui: testUI, translate: (key) => `${locale}:${key}` },
           h(ActionButton, { action: 'users.invite', input: { email: 'b@example.com' } }),
           h(ActionBoundary, { action: 'missing', fallback: 'Blocked' }, 'Never render'),
@@ -167,7 +167,7 @@ test('ActionBoundary shows the unavailable label and follows enabled and visible
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI, labels: { unavailable: 'Not allowed' } },
       h(Capture),
       h(ActionBoundary, { action: 'access' }, 'Private content'),
@@ -213,7 +213,7 @@ test('plugin and app providers nest outside-in, survive translation changes and 
     ],
   };
   const tree = (translate, providers) =>
-    h(FoundationProvider, { config, ui: testUI, translate, providers }, h('span', null, 'Content'));
+    h(BitaKitRuntimeProvider, { config, ui: testUI, translate, providers }, h('span', null, 'Content'));
   const view = await mount(tree((key) => `en:${key}`));
   try {
     assert.equal(
@@ -265,7 +265,7 @@ test('plugin slots render after setup and disappear with the plugin', async () =
   }
   const tree = (plugins) =>
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config: { plugins: [demo] }, plugins, ui: testUI },
       h(Capture),
       h('main', null, 'Dashboard', h(PluginSlot, { name: 'dashboard' })),
@@ -317,7 +317,7 @@ test('PluginPage renders the page for the current path with its params; useCurre
   }
   const tree = (plugins, pathname) =>
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config: { plugins: [tasks] }, plugins, ui: testUI, actionOptions: { pathname } },
       h('header', null, 'Host'),
       h(PluginPage, { fallback: 'Missing' }),
@@ -350,7 +350,7 @@ test('PluginPage renders the page for the current path with its params; useCurre
     );
     await view.render(
       h(
-        FoundationProvider,
+        BitaKitRuntimeProvider,
         { config: { plugins: [tasks] }, ui: testUI },
         h(PluginPage, { pathname: '/tasks/7' }),
       ),
@@ -395,13 +395,13 @@ test('useServiceState follows a service store with shallow-equal selectors and f
     return h('output', { 'data-name': 'titles' }, titles ? `[${titles.join(',')}]` : 'loading');
   }
   function Count() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     service = useService('todos.items');
     const count = useServiceState('todos.items', (state) => state.items.length, 0);
     const whole = useServiceState('todos.items');
     return h('output', { 'data-name': 'count' }, `${count}:${whole?.filter ?? 'none'}`);
   }
-  const view = await mount(h(FoundationProvider, { config, ui: testUI }, h(Titles), h(Count)));
+  const view = await mount(h(BitaKitRuntimeProvider, { config, ui: testUI }, h(Titles), h(Count)));
   const text = (name) => view.container.querySelector(`[data-name="${name}"]`).textContent;
   try {
     assert.equal(runtime.isReady(), false, 'onStart is still pending');
@@ -433,7 +433,7 @@ test('useServiceState follows a service store with shallow-equal selectors and f
   }
   await silenced(() =>
     assert.rejects(
-      mount(h(FoundationProvider, { config, ui: testUI }, h(Plain))),
+      mount(h(BitaKitRuntimeProvider, { config, ui: testUI }, h(Plain))),
       /useServiceState\("todos.plain"\): the service has no observable state/,
     ),
   );
@@ -454,7 +454,7 @@ test('useServiceState also follows subscribe/getSnapshot services, such as host-
     return h('output', null, name);
   }
   const view = await mount(
-    h(FoundationProvider, { config: {}, ui: testUI, services: { session } }, h(User)),
+    h(BitaKitRuntimeProvider, { config: {}, ui: testUI, services: { session } }, h(User)),
   );
   try {
     assert.equal(view.container.textContent, 'anonymous');
@@ -487,7 +487,7 @@ test('useServiceState preserves class receivers during subscription, updates and
   function Consumer() {
     return h('output', null, useServiceState('counter', undefined, -1));
   }
-  const view = await mount(h(FoundationProvider, { config: {}, ui: testUI, services: { counter } }, h(Consumer)));
+  const view = await mount(h(BitaKitRuntimeProvider, { config: {}, ui: testUI, services: { counter } }, h(Consumer)));
   try {
     assert.equal(view.container.textContent, '0');
     await act(async () => counter.increment());
@@ -505,7 +505,7 @@ test('useEvent subscribes to the runtime bus once per name set and releases with
   };
   let runtime;
   function Consumer({ label, names }) {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     useEvent(names, (event) => received.push([label, event.type, event.data]));
     return null;
   }
@@ -513,7 +513,7 @@ test('useEvent subscribes to the runtime bus once per name set and releases with
     h(
       StrictMode,
       null,
-      h(FoundationProvider, { config, ui: testUI }, h(Consumer, { label, names })),
+      h(BitaKitRuntimeProvider, { config, ui: testUI }, h(Consumer, { label, names })),
     );
   const view = await mount(tree('first', ['todos.changed']));
   try {
@@ -572,12 +572,12 @@ test('DialogHost renders the action dialog with input, close and services inside
   };
   let runtime;
   function Capture() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI },
       h(Capture),
       h(ActionButton, { action: 'demo.rename', input: { id: 3 } }),
@@ -637,7 +637,7 @@ test('actions with confirm ask through ConfirmDialog: confirming executes, cance
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       {
         config,
         ui: testUI,
@@ -727,7 +727,7 @@ test('notify receives the default failure toast and explicit success feedback', 
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       {
         config,
         ui: testUI,
@@ -776,12 +776,12 @@ test('additionalPlugins replace configured plugins by ID in place and append the
   const config = { plugins: [first, last] };
   let runtime;
   function Read() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     return null;
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       {
         config,
         ui: testUI,
@@ -808,15 +808,15 @@ test('additionalPlugins replace configured plugins by ID in place and append the
   }
 });
 
-test('FoundationProvider defaults to the standard visuals and labels; partial labels merge; aliases point at the same exports', async () => {
+test('BitaKitRuntimeProvider defaults to the standard visuals and labels; partial labels merge; aliases point at the same exports', async () => {
   let seen;
   function Read() {
-    seen = useFoundation();
+    seen = useBitaKit();
     return null;
   }
-  const view = await mount(h(FoundationProvider, { config: {} }, h(Read)));
+  const view = await mount(h(BitaKitRuntimeProvider, { config: {} }, h(Read)));
   try {
-    assert.equal(seen.ui, standardFoundationUI);
+    assert.equal(seen.ui, standardBitaKitUI);
     assert.equal(seen.ui.Menu, StandardActionMenu);
     assert.deepEqual(seen.labels, {
       cancel: 'Cancel',
@@ -826,10 +826,10 @@ test('FoundationProvider defaults to the standard visuals and labels; partial la
       invalid: 'Please check your input.',
       unavailable: 'Unavailable',
     });
-    await view.render(h(FoundationProvider, { config: {}, labels: { confirm: 'Yes' } }, h(Read)));
+    await view.render(h(BitaKitRuntimeProvider, { config: {}, labels: { confirm: 'Yes' } }, h(Read)));
     assert.equal(seen.labels.confirm, 'Yes');
     assert.equal(seen.labels.cancel, 'Cancel');
-    assert.equal(StandardFoundationProvider, FoundationProvider);
+    assert.equal(StandardBitaKitRuntimeProvider, BitaKitRuntimeProvider);
   } finally {
     await view.unmount();
   }
@@ -852,7 +852,7 @@ test('translation hook reacts to translation service updates, interpolates and p
       t('missing', undefined, 'Fallback'),
     );
   }
-  const view = await mount(h(FoundationProvider, { plugins: [plugin], ui: testUI }, h(Consumer)));
+  const view = await mount(h(BitaKitRuntimeProvider, { plugins: [plugin], ui: testUI }, h(Consumer)));
   try {
     assert.equal(view.container.textContent, 'Hallo Ada / Fallback');
     await act(async () => plugin.update(makeTranslator('Hello')));
@@ -893,7 +893,7 @@ test('group headings use the title the app gave a group ID, even from an untitle
       );
     return null;
   }
-  const view = await mount(h(FoundationProvider, { plugins, ui: testUI }, h(Headings)));
+  const view = await mount(h(BitaKitRuntimeProvider, { plugins, ui: testUI }, h(Headings)));
   try {
     assert.deepEqual(headings.slice(-3), ['Bulk actions', 'General', 'other']);
   } finally {
@@ -925,7 +925,7 @@ test('an input schema disables controls while their input is invalid; app.action
   };
   let list;
   function Buttons({ first, second }) {
-    const app = useFoundationApp();
+    const app = useBitaKitApp();
     list = useActionList();
     return h(
       'div',
@@ -935,7 +935,7 @@ test('an input schema disables controls while their input is invalid; app.action
     );
   }
   const tree = (first, second) =>
-    h(FoundationProvider, { config, ui: testUI }, h(Buttons, { first, second }));
+    h(BitaKitRuntimeProvider, { config, ui: testUI }, h(Buttons, { first, second }));
   const view = await mount(tree('', ' Second '));
   const buttons = () => [...view.container.querySelectorAll('button')];
   try {

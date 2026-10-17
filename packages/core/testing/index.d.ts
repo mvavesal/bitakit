@@ -1,8 +1,8 @@
 import type {
   EventService,
-  FoundationApp,
-  FoundationEvent,
-  FoundationRuntime,
+  BitaKitApp,
+  BitaKitEvent,
+  BitaKitRuntime,
   Plugin,
   Services,
 } from '@bitakit/core';
@@ -16,14 +16,14 @@ import type {
 
 export type MountedPlugin = {
   id: string;
-  runtime: FoundationRuntime;
-  app: FoundationApp;
+  runtime: BitaKitRuntime;
+  app: BitaKitApp;
   /** The runtime's ActionList; IDs known from `ActionMap` type the input and result of `execute`. */
   actions: ActionList;
   /** Services as the plugin's contributions see them: `services.notes.items`. */
   services: Services;
   /** The runtime bus plus every event emitted while mounted. */
-  events: EventService & { recorded: Pick<FoundationEvent, 'type' | 'data'>[] };
+  events: EventService & { recorded: Pick<BitaKitEvent, 'type' | 'data'>[] };
   /**
    * Executes `<plugin>.<name>` or a full action ID. IDs known from `ActionMap` type the input and
    * the result through `ActionId` of `@bitakit/core/actions`, so no generated file is imported;

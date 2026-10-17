@@ -9,7 +9,7 @@ import {
   type AuthSnapshot,
   type AuthSignInOptions,
 } from '@bitakit/core';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 import { UIContext } from '../providers/action-context.js';
 
 const loading: AuthSnapshot = Object.freeze({ user: null, pending: true, error: null });
@@ -23,7 +23,7 @@ const serverSnapshot = () => loading;
 
 /** Observes the adapter's existing session; never copies it into a second store. */
 export function useAuth() {
-  const { runtime, signOutIntent, setSignOutIntent } = useFoundation();
+  const { runtime, signOutIntent, setSignOutIntent } = useBitaKit();
   const { navigate, pathname } = useContext(UIContext);
   const ready = useSyncExternalStore(runtime.subscribeReady, runtime.isReady, () => false);
   // The installed auth contract, read through its typed key; undefined until it is available.

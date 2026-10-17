@@ -1,19 +1,19 @@
 import type { ReactNode } from 'react';
-import type { FoundationConfig, FoundationOverrides, Plugin, Translator } from '@bitakit/core';
+import type { BitaKitRuntimeConfig, BitaKitOverrides, Plugin, Translator } from '@bitakit/core';
 import type { ActionProviderProps } from '../providers/action-provider.js';
 import type { ControlAdapters } from '../hooks/use-action.js';
-import type { DialogFrame, FoundationLabels, FoundationUI } from './ui.js';
+import type { DialogFrame, BitaKitLabels, BitaKitUI } from './ui.js';
 
 /** The one provider. Standard visuals and labels apply unless a host supplies its own. */
-export type FoundationProviderProps = FoundationOverrides & {
+export type BitaKitRuntimeProviderProps = BitaKitOverrides & {
   /** The generated configuration (`createBitaKitConfig()`), or an explicit one. */
-  config?: FoundationConfig;
+  config?: BitaKitRuntimeConfig;
   /** Plugins added to the configuration; an entry with an existing ID replaces that plugin in place. */
   additionalPlugins?: readonly Plugin[];
-  ui?: FoundationUI;
+  ui?: BitaKitUI;
   /** Frames for `dialog: { kind }` beyond the default dialog, for example `{ sheet: SheetFrame }`. */
   dialogs?: Readonly<Record<string, DialogFrame>>;
-  labels?: Partial<FoundationLabels>;
+  labels?: Partial<BitaKitLabels>;
   translate?: Translator;
   notify?: (message: string, kind: 'success' | 'failure') => unknown;
   /** Host services under their contract names, such as `{ auth }`. */

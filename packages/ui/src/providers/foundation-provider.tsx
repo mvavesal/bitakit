@@ -12,32 +12,32 @@ import {
 } from 'react';
 import {
   ConfirmationController,
-  FoundationRuntime,
+  BitaKitRuntime,
   createRuntimeController,
   describeStartupFailure,
   pluginExposesService,
-  resolveFoundationConfig,
+  resolveBitaKitConfig,
   type Confirmation,
-  type FoundationConfig,
+  type BitaKitRuntimeConfig,
   type Plugin,
 } from '@bitakit/core';
-import type { FoundationProviderProps } from '../types/provider.js';
+import type { BitaKitRuntimeProviderProps } from '../types/provider.js';
 import { ActionContext } from './action-context.js';
 import { ActionProvider } from './action-provider.js';
 import { useActionList } from '../hooks/use-action.js';
-import { FoundationContext, type SignOutIntent } from './foundation-context.js';
+import { BitaKitContext, type SignOutIntent } from './foundation-context.js';
 import { DialogHost } from '../components/dialog-host.js';
 import { ConfirmDialog } from '../components/confirm-dialog.js';
 import { StartupFailureDialog, type StartupFailure } from '../components/startup-failure-dialog.js';
-import { standardFoundationUI } from '../components/standard-foundation-ui.js';
+import { standardBitaKitUI } from '../components/standard-foundation-ui.js';
 import { defaultLabels } from '../components/foundation-labels.js';
 
 const ignore = () => {};
 const noServices = {};
-const emptyConfig: FoundationConfig = {};
+const emptyConfig: BitaKitRuntimeConfig = {};
 
 /** Owns the root ActionProvider, or reuses an existing host provider during migration. */
-export function FoundationProvider({ actionOptions, controls, ...props }: FoundationProviderProps) {
+export function BitaKitRuntimeProvider({ actionOptions, controls, ...props }: BitaKitRuntimeProviderProps) {
   const actions = useContext(ActionContext);
   const content = <FoundationRuntimeProvider {...props} />;
   return actions ? (
@@ -70,7 +70,7 @@ function FoundationRuntimeProvider({
   additionalPlugins,
   interceptors,
   providers,
-  ui = standardFoundationUI,
+  ui = standardBitaKitUI,
   dialogs,
   translate,
   labels: labelOverrides,
@@ -78,7 +78,7 @@ function FoundationRuntimeProvider({
   services = noServices,
   isolateFailures = developing(),
   children,
-}: Omit<FoundationProviderProps, 'actionOptions' | 'controls'>) {
+}: Omit<BitaKitRuntimeProviderProps, 'actionOptions' | 'controls'>) {
   const actions = useActionList();
   const labels = useMemo(() => ({ ...defaultLabels, ...labelOverrides }), [labelOverrides]);
   const plugins = useMemo(
@@ -88,7 +88,7 @@ function FoundationRuntimeProvider({
   const [signOutIntent, setSignOutIntent] = useState<SignOutIntent>(null);
   const selected = useMemo(
     () =>
-      resolveFoundationConfig(config, {
+      resolveBitaKitConfig(config, {
         actions: explicitActions,
         plugins,
         interceptors,
@@ -119,7 +119,7 @@ function FoundationRuntimeProvider({
   )
     throw new Error('Use either a translation plugin or the translate prop, not both.');
   const [fatal, setFatal] = useState<{
-    runtime?: FoundationRuntime;
+    runtime?: BitaKitRuntime;
     failure: StartupFailure;
   } | null>(null);
   const runtime = attempt.runtime;
@@ -203,7 +203,7 @@ function FoundationRuntimeProvider({
   return (
     <>
       {healthy ? (
-        <FoundationContext.Provider
+        <BitaKitContext.Provider
           value={{
             runtime,
             transition: waitingForStop ? 'stopping' : undefined,
@@ -230,7 +230,7 @@ function FoundationRuntimeProvider({
               <ConfirmDialog request={confirmation} onAnswer={confirmations.answer} />
             </>,
           )}
-        </FoundationContext.Provider>
+        </BitaKitContext.Provider>
       ) : null}
       {failures.length && dismissed !== report ? (
         <StartupFailureDialog
@@ -281,7 +281,7 @@ class TurnedOffServiceBoundary extends Component<
   }
 }
 function unavailableService(error: unknown) {
-  if (!(error instanceof Error) || error.name !== 'FoundationServiceError') return undefined;
+  if (!(error instanceof Error) || error.name !== 'BitaKitServiceError') return undefined;
   const { service } = error as Error & { service?: unknown };
   return typeof service === 'string' ? service : undefined;
 }

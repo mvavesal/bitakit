@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, type ElementType } from 'react';
-import { useFoundationNavigation } from '@bitakit/ui';
+import { useBitaKitNavigation } from '@bitakit/ui';
 import { defaultBasePath } from '../paths.js';
 
 export type SettingsLocation = {
@@ -23,7 +23,7 @@ export function useSettingsLocation(props: {
   Link?: ElementType;
 }): SettingsLocation {
   const outer = useContext(SettingsLocationContext);
-  const navigation = useFoundationNavigation();
+  const navigation = useBitaKitNavigation();
   return {
     basePath: props.basePath ?? outer?.basePath ?? defaultBasePath,
     pathname: props.pathname ?? outer?.pathname ?? navigation.pathname,

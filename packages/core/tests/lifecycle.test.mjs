@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FoundationStartupError,
+  BitaKitStartupError,
   createRuntime,
   defineAction,
   definePlugin,
@@ -9,7 +9,7 @@ import {
   createRuntimeController,
   PluginScope,
   createActionList,
-  isFoundationStartupError,
+  isBitaKitStartupError,
   scopeLifecycle,
 } from '../dist/core.js';
 
@@ -143,8 +143,8 @@ test('a failing onStart rejects ready with an attributed startup error and leave
   const stop = runtime.mount();
   try {
     await assert.rejects(runtime.ready, (error) => {
-      assert.ok(isFoundationStartupError(error));
-      assert.ok(error instanceof FoundationStartupError);
+      assert.ok(isBitaKitStartupError(error));
+      assert.ok(error instanceof BitaKitStartupError);
       assert.equal(error.plugin, 'db');
       assert.equal(error.app, false);
       assert.match(error.message, /onStart in plugin "db" failed: refused/);
@@ -533,7 +533,7 @@ test('all missing service reads are strict; optional consumers use has before re
     assert.equal(runtime.app.has(name), false);
     assert.throws(
       () => runtime.services[name],
-      (error) => error.name === 'FoundationServiceError' && error.service === name,
+      (error) => error.name === 'BitaKitServiceError' && error.service === name,
     );
   }
   await stop();

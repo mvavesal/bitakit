@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import type { FoundationRuntime } from '@bitakit/core';
+import type { BitaKitRuntime } from '@bitakit/core';
 
 /** Actions can open a dialog without a DialogTrigger, including from a transient menu. */
-export function useDialogFocus(runtime: FoundationRuntime) {
+export function useDialogFocus(runtime: BitaKitRuntime) {
   const target = useRef<HTMLElement | null>(null);
   useEffect(() => {
     let wasOpen = false;

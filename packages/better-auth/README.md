@@ -40,7 +40,7 @@ flow; without it, `useAuth().signIn()` opens `paths.signIn`. `signOut` replaces 
 sign-out; use the shared UI hook for post-logout navigation instead of redirecting inside it.
 Manual composition passes the same options and provides the client through
 `createRuntime(config, { services: { [betterAuthClient]: { client: authClient } } })`, the
-`FoundationProvider` `services` prop or any plugin service with `provides: betterAuthClient`.
+`BitaKitRuntimeProvider` `services` prop or any plugin service with `provides: betterAuthClient`.
 
 See the [client authentication guide](../../apps/docs/content/docs/reference/authentication.mdx) for `AuthBoundary`, safe return
 destinations and a provider adapter template.

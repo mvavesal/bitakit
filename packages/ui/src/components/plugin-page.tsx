@@ -1,8 +1,8 @@
 'use client';
 import { createElement, useSyncExternalStore, type ReactNode } from 'react';
-import { useFoundation } from '../providers/foundation-context.js';
-import { useFoundationNavigation } from '../hooks/use-foundation-navigation.js';
-import { useFoundationReady } from './plugin-slot.js';
+import { useBitaKit } from '../providers/foundation-context.js';
+import { useBitaKitNavigation } from '../hooks/use-foundation-navigation.js';
+import { useBitaKitReady } from './plugin-slot.js';
 import { findPluginPage } from '@bitakit/core';
 
 /**
@@ -20,11 +20,11 @@ export function PluginPage({
   /** Shown while the matched page's owner is updating, failed or blocked. */
   unavailable?: ReactNode;
 }) {
-  const { runtime } = useFoundation();
-  const navigation = useFoundationNavigation();
+  const { runtime } = useBitaKit();
+  const navigation = useBitaKitNavigation();
   useSyncExternalStore(runtime.lifecycle.subscribe, runtime.lifecycle.get, runtime.lifecycle.get);
   const page = findPluginPage(runtime.modules, pathname ?? navigation.pathname ?? '/');
-  const ready = useFoundationReady(page?.plugin);
+  const ready = useBitaKitReady(page?.plugin);
   if (!ready) return unavailable;
   return page
     ? createElement(page.component as never, { key: page.key, params: page.params })
@@ -35,8 +35,8 @@ export function PluginPage({
  * Pages are static, so layouts can read this before the runtime is ready.
  */
 export function useCurrentPage(pathname?: string) {
-  const { runtime } = useFoundation();
-  const navigation = useFoundationNavigation();
+  const { runtime } = useBitaKit();
+  const navigation = useBitaKitNavigation();
   useSyncExternalStore(runtime.lifecycle.subscribe, runtime.lifecycle.get, runtime.lifecycle.get);
   return findPluginPage(runtime.modules, pathname ?? navigation.pathname ?? '/');
 }

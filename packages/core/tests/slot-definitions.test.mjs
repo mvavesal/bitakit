@@ -6,7 +6,7 @@ import {
   defineSlot,
   discoverSlots,
   discoveredFile,
-  FoundationStartupError,
+  BitaKitStartupError,
   validate,
 } from '../dist/core.js';
 
@@ -68,7 +68,7 @@ test('duplicate canonical paths and explicit IDs name the conflicting sources an
   assert.throws(
     () => discoverSlots(files, 'shell'),
     (error) =>
-      error instanceof FoundationStartupError &&
+      error instanceof BitaKitStartupError &&
       error.plugin === 'shell' &&
       error.source === 'slots/header.actions.ts' &&
       /slots\/index.ts.*slots\/header.actions.ts/.test(error.message),

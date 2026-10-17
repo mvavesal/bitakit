@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useContext } from 'react';
-import { FoundationContext } from '../providers/foundation-context.js';
+import { BitaKitContext } from '../providers/foundation-context.js';
 import { useTranslation } from './use-translation.js';
 
 /**
@@ -10,7 +10,7 @@ import { useTranslation } from './use-translation.js';
  */
 export function useGroupTitle() {
   const t = useTranslation();
-  const groups = useContext(FoundationContext)?.runtime.groups;
+  const groups = useContext(BitaKitContext)?.runtime.groups;
   return useCallback(
     (group: { id: string; title?: string }) =>
       group.title ??

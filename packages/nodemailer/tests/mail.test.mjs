@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMailService } from '../dist/service.js';
 import { nodemailerPlugin } from '../dist/index.js';
-import { createActionList, FoundationRuntime, getService } from '@bitakit/core';
+import { createActionList, BitaKitRuntime, getService } from '@bitakit/core';
 import { emailService } from '@bitakit/email';
 
 test('mail service forwards only allowed fields and owns transport disposal', async () => {
@@ -58,7 +58,7 @@ test('Nodemailer plugin registers without connecting or sending and cleans up on
     from: 'sender@example.test',
   };
   assert.throws(() => nodemailerPlugin({ ...config, from: 'Only a name' }), /sender/);
-  const runtime = new FoundationRuntime(createActionList(), {
+  const runtime = new BitaKitRuntime(createActionList(), {
     plugins: [nodemailerPlugin(config)],
   });
   const stop = runtime.mount();

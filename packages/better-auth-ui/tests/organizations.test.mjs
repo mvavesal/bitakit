@@ -7,13 +7,13 @@ import {
 } from '@bitakit/organizations';
 import { createDemoOrganizationBackend } from '@bitakit/organizations/demo';
 import { organizationUIPlugin } from '../dist/organizations.js';
-import { createActionList, FoundationRuntime, getService } from '@bitakit/core';
+import { createActionList, BitaKitRuntime, getService } from '@bitakit/core';
 import BuildingIcon from 'reicon-react/icons/Building';
 
 test('UI uses the registered service and cleanup removes its navigation and commands', async () => {
   const actions = createActionList();
   const ui = organizationUIPlugin();
-  const runtime = new FoundationRuntime(
+  const runtime = new BitaKitRuntime(
     actions,
     { plugins: [organizationsPlugin(), ui] },
     { [organizationBackend]: createDemoOrganizationBackend() },
@@ -49,7 +49,7 @@ test('organization settings separate profile, members and personal invitations w
   );
   for (const legacy of ['pages', 'providers', 'views'])
     assert.equal(plugin[legacy], undefined, legacy);
-  const runtime = new FoundationRuntime(
+  const runtime = new BitaKitRuntime(
     actions,
     { plugins: [organizationsPlugin(), plugin] },
     { [organizationBackend]: createDemoOrganizationBackend() },
@@ -82,7 +82,7 @@ test('settings-only organization integration omits its standalone page and navig
   const plugin = organizationUIPlugin({ path: false });
   assert.deepEqual(plugin.ui.pages, []);
   assert.equal(typeof plugin.ui.settings.component, 'function');
-  const runtime = new FoundationRuntime(
+  const runtime = new BitaKitRuntime(
     actions,
     { plugins: [organizationsPlugin(), plugin] },
     { [organizationBackend]: createDemoOrganizationBackend() },

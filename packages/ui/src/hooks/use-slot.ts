@@ -1,9 +1,9 @@
 'use client';
 import { useMemo, useCallback, useContext, useSyncExternalStore, type ComponentType } from 'react';
 import type { SlotMap, SlotPayload, SlotData, SlotName, LifecyclePhase } from '@bitakit/core';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 import { UIContext } from '../providers/action-context.js';
-import { useFoundationReady } from '../components/plugin-slot.js';
+import { useBitaKitReady } from '../components/plugin-slot.js';
 import { buildControl, useActionList, useActions, type ActionControl } from './use-action.js';
 import { useSlotPayload } from './use-slot-payload.js';
 
@@ -71,8 +71,8 @@ export function useSlot<const Name extends SlotName>(
     ? [options: SlotOptions<Name>]
     : [options?: SlotOptions<Name>]
 ): SlotView<Name> {
-  const { runtime } = useFoundation();
-  const ready = useFoundationReady();
+  const { runtime } = useBitaKit();
+  const ready = useBitaKitReady();
   const lifecycle = useSyncExternalStore(
     runtime.lifecycle.subscribe,
     runtime.lifecycle.get,

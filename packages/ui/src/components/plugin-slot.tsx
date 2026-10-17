@@ -1,6 +1,6 @@
 'use client';
 import { createElement, useCallback, useSyncExternalStore } from 'react';
-import { useFoundation } from '../providers/foundation-context.js';
+import { useBitaKit } from '../providers/foundation-context.js';
 import { useSlot } from '../hooks/use-slot.js';
 import type { SlotName, SlotMap } from '@bitakit/core';
 import type { SlotOptions } from '../hooks/use-slot.js';
@@ -8,8 +8,8 @@ import { subscribeReadiness } from '../utils/subscribe-readiness.js';
 import { SlotErrorBoundary, type SlotErrorFallback } from './slot-error-boundary.js';
 const notReady = () => false;
 /** Initial readiness, optionally narrowed to an owner during compatible plugin updates. */
-export function useFoundationReady(plugin?: string) {
-  const { runtime } = useFoundation();
+export function useBitaKitReady(plugin?: string) {
+  const { runtime } = useBitaKit();
   const read = useCallback(() => runtime.isReady(plugin), [runtime, plugin]);
   const subscribe = useCallback(
     (listener: () => void) => subscribeReadiness(runtime, listener),

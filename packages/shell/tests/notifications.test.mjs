@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mount, settle } from './support.mjs';
 import { createElement as h, act } from 'react';
 import { toast } from '@heroui/react';
-import { FoundationRuntime, createActionList, createMemorySettingsStorage, createTranslationPlugin, defineAction, definePlugin } from '@bitakit/core';
-import { FoundationProvider, useFoundation } from '@bitakit/ui';
+import { BitaKitRuntime, createActionList, createMemorySettingsStorage, createTranslationPlugin, defineAction, definePlugin } from '@bitakit/core';
+import { BitaKitRuntimeProvider, useBitaKit } from '@bitakit/ui';
 import { shellPlugin, notificationService, useNotifications } from '../dist/index.js';
 
 const visible = () =>
@@ -15,7 +15,7 @@ test('the service uses the HeroUI queue, translates through i18n and stops with 
   const translation = createTranslationPlugin((key, values) =>
     key === 'files.saved' ? `Saved ${values?.name}` : key === 'files.details' ? 'Details' : key,
   );
-  const runtime = new FoundationRuntime(
+  const runtime = new BitaKitRuntime(
     createActionList(),
     { plugins: [translation, shellPlugin()] },
     { 'settings.storage': createMemorySettingsStorage() },
@@ -73,11 +73,11 @@ test('one toast region shows action feedback and native toasts at the placement 
   let runtime;
   let notifications;
   function Probe() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     notifications = useNotifications();
     return null;
   }
-  const view = await mount(h(FoundationProvider, { config, services }, h(Probe)));
+  const view = await mount(h(BitaKitRuntimeProvider, { config, services }, h(Probe)));
   try {
     await settle();
     assert.equal(notifications, runtime.app.services.notifications, 'useNotifications');

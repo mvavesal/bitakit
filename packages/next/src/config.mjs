@@ -1,9 +1,7 @@
-import { generateFoundation, watchFoundation } from '@bitakit/discovery';
-export { generateFoundation };
+import { generateBitaKit, watchBitaKit } from '@bitakit/discovery';
+export { generateBitaKit };
 /** Typed identity for `bitakit.config.ts`. */
 export const defineBitaKit = (config) => config;
-/** @deprecated Use defineBitaKit. */
-export const defineFoundation = defineBitaKit;
 const watchers = new Map();
 
 /**
@@ -15,11 +13,11 @@ export function withBitaKit(config = {}) {
   return async (phase, context) => {
     const root = process.cwd();
     const base = typeof config === 'function' ? await config(phase, context) : config;
-    const { included = [] } = (await generateFoundation(root)) ?? {};
+    const { included = [] } = (await generateBitaKit(root)) ?? {};
     if (phase === 'phase-development-server' && !watchers.has(root))
       watchers.set(
         root,
-        watchFoundation(root, (error) => console.error('[bitakit]', error)),
+        watchBitaKit(root, (error) => console.error('[bitakit]', error)),
       );
     return {
       ...base,

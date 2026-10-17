@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mountPlugin } from '../testing/index.mjs';
-import { definePlugin, defineService, isFoundationStartupError } from '../dist/core.js';
+import { definePlugin, defineService, isBitaKitStartupError } from '../dist/core.js';
 
 /** A project inside Core, so plugin files resolve @bitakit/core from the workspace. */
 async function project(files, run) {
@@ -150,7 +150,7 @@ test('a failed start or setup rejects with the attributed error and releases eve
     await assert.rejects(
       mountPlugin(path.join(root, 'src/plugins/notes'), { services: { log: failing } }),
       (error) => {
-        assert.ok(isFoundationStartupError(error));
+        assert.ok(isBitaKitStartupError(error));
         assert.equal(error.plugin, 'notes');
         assert.match(error.message, /onStart in plugin "notes" failed: queue unavailable/);
         assert.match(error.source, /src\/plugins\/notes\/services\/items\.ts$/);
@@ -167,7 +167,7 @@ test('a failed start or setup rejects with the attributed error and releases eve
     await assert.rejects(
       mountPlugin(path.join(root, 'src/plugins/notes'), { services: { log: exploding } }),
       (error) => {
-        assert.ok(isFoundationStartupError(error));
+        assert.ok(isBitaKitStartupError(error));
         assert.equal(error.plugin, 'notes');
         assert.match(error.message, /Setup in plugin "notes" failed to start: setup exploded/);
         return true;
@@ -213,7 +213,7 @@ export default defineAction({ execute: ({ services }) => services.shell.theme.na
         await custom.stop();
       }
       await assert.rejects(mountPlugin(path.join(root, 'src')), (error) => {
-        assert.ok(isFoundationStartupError(error));
+        assert.ok(isBitaKitStartupError(error));
         assert.equal(error.plugin, 'notes');
         assert.match(
           error.message,
@@ -275,7 +275,7 @@ export default setup;
         await explicit.stop();
       }
       await assert.rejects(mountPlugin(directory, { services: { log } }), (error) => {
-        assert.ok(isFoundationStartupError(error));
+        assert.ok(isBitaKitStartupError(error));
         assert.equal(error.plugin, 'books');
         assert.match(error.message, /Plugin "books" depends on "shell", which is not installed/);
         return true;

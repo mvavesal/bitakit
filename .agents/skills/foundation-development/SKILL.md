@@ -138,7 +138,7 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   id, get, update })` is sync or async; pending is set only when a promise is returned.
   `href` is navigation, `dialog` opens a component (`{ input, close, services }`), never both
   with `execute`; `dialog: { component, kind, size }` names a host frame, and hosts register
-  frames through `FoundationProvider` `dialogs` to decide the appearance. Built in without a
+  frames through `BitaKitRuntimeProvider` `dialogs` to decide the appearance. Built in without a
   registered frame: `dialog` (visible header) and `command` (shadcn's CommandDialog: no visible
   header or close button, the content's search field leads, the title stays for assistive
   technology). `confirm`
@@ -269,7 +269,7 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   not incremental replacement. Keep serial startup and existing service/Action ownership.
 - React cleanup cannot await. Keep the previous completion barrier through skipped intermediate
   configurations and StrictMode; never start a replacement while resources are still stopping.
-- `mountPlugin` exposes awaitable `stop()` and `Symbol.asyncDispose`; `renderWithFoundation`
+- `mountPlugin` exposes awaitable `stop()` and `Symbol.asyncDispose`; `renderWithBitaKit`
   awaits teardown too. Event recordings include lifecycle events; filter by domain event
   when testing business behavior. Test helpers release partial startup before rejecting.
 
@@ -305,9 +305,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   Discovery `catalog` generates literal lazy public-entry imports and static type-only imports
   in the config module, keeps CSS eager and excludes catalog entries from startup. Configured
   host packages remain eager. A new catalog/version needs a deployment. No remote code/sandbox.
-- `isReady()`/`app.ready`/`useFoundationReady()` retain completed initial startup through targeted
+- `isReady()`/`app.ready`/`useBitaKitReady()` retain completed initial startup through targeted
   updates and become false on shutdown. Owner queries use `isReady(pluginId)` or
-  `useFoundationReady(pluginId)`; service hooks and `app.has` check service plus owner readiness.
+  `useBitaKitReady(pluginId)`; service hooks and `app.has` check service plus owner readiness.
   Raw `hasService` is container presence for cleanup. Observe lifecycle for owner transitions.
   Unaffected pages/widgets/providers stay mounted; affected pages use `PluginPage.unavailable`
   when provided, and affected dialogs close. Verify draft/focus retention during slow stop/start,
@@ -339,12 +339,12 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   availability; `useSetting(key)` one setting; `useSettingsCatalog()` the sections of a
   settings UI; `useNavigation(slotName)` and `useSlot(name, { payload })` the data layouts render;
   `useCurrentPage()` the page and its `layout` name. Readiness is handled inside the hooks.
-- One `FoundationProvider` with `config`, `additionalPlugins` (merge by ID, replace only
+- One `BitaKitRuntimeProvider` with `config`, `additionalPlugins` (merge by ID, replace only
   when explicit), `controls` (prop-name adapters), `notify`, `services`, `isolateFailures`.
   The generated `BitaKitProvider` passes the discovered config; the framework adapters add
   navigation and query state through `defineFramework({ id, useRouter, QueryState })`, whose
   router contract is `pathname`, `params`, `navigate(href, { replace })` and `Link`
-  (`useFoundationNavigation()` reads it). Pending is passed as a prop, never a swapped label.
+  (`useBitaKitNavigation()` reads it). Pending is passed as a prop, never a swapped label.
 - Removed: `ActionBinding`, `ActionCheckbox`, `ActionRadioGroup`, `ActionMenuItem`,
   `ActionGroupBinding`, `ActionMenuView`, `useRegisterAction(s)`, `app.optional.services`.
 - Renderers read live snapshots and groups through the bindings; no copied action state,
@@ -354,10 +354,10 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 
 - `createRuntime(config, { actions, services })`; `runtime.mount()` returns `stop`;
   `runtime.ready` resolves after every `onStart`. Every startup failure is a
-  `FoundationStartupError` with `plugin`, `app`, `source` and the offending identifier in
+  `BitaKitStartupError` with `plugin`, `app`, `source` and the offending identifier in
   the message (duplicate IDs, cycles, missing services with suggestions, duplicate pages,
   invalid hrefs, failed start). Do not throw bare errors from startup paths.
-- In development `FoundationProvider` turns off the failed plugin and its dependents, shows
+- In development `BitaKitRuntimeProvider` turns off the failed plugin and its dependents, shows
   the startup report and explains a required service of a turned-off plugin on the page.
   Production startup fails fast; `isolateFailures` changes the default. Do not broaden that
   startup boundary to unrelated render errors; slot components use the explicit render boundary above.
@@ -483,7 +483,7 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 - Headless tests: `mountPlugin(directory, { id?, plugins, services, configOverrides })` from
   `@bitakit/core/testing` discovers one plugin folder like an app (the ID comes from
   `plugin.config.ts` or the folder), awaits `ready`, records events, types `execute` by action
-  ID and releases everything on failure. React tests use `renderWithFoundation(element, { plugins, services })`
+  ID and releases everything on failure. React tests use `renderWithBitaKit(element, { plugins, services })`
   from `@bitakit/ui/testing` (jsdom supplied by the test, events recorded). Keep services,
   actions, events, configs and `setup.ts` free of JSX and guarded against browser-only APIs.
 - Chain: `npm test` (every package), `npm run check` (web typecheck and lint),

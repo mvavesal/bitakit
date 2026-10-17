@@ -4,7 +4,7 @@ import { createElement as h, act, StrictMode, useEffect } from 'react';
 import { installDom, mount, testUI } from './support.mjs';
 import { ActionProvider, useAction, useActionList, useActions, useActionGroups, ActionButton } from '../dist/actions/index.js';
 import { createActionList, ActionGroup } from '@bitakit/core';
-import { FoundationProvider, useFoundation } from '../dist/index.js';
+import { BitaKitRuntimeProvider, useBitaKit } from '../dist/index.js';
 import { defineAction, definePlugin, defineService } from '@bitakit/core';
 
 installDom();
@@ -195,7 +195,7 @@ test('buttons and groups follow function-valued presentation when a service stor
   let runtime;
   let mounts = 0;
   function Capture() {
-    runtime = useFoundation().runtime;
+    runtime = useBitaKit().runtime;
     useEffect(() => {
       mounts++;
     }, []);
@@ -215,7 +215,7 @@ test('buttons and groups follow function-valued presentation when a service stor
   }
   const view = await mount(
     h(
-      FoundationProvider,
+      BitaKitRuntimeProvider,
       { config, ui: testUI },
       h(Capture),
       h(ActionButton, { action: 'access.run' }),

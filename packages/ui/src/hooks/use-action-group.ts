@@ -4,7 +4,7 @@ import type { ActionGroup } from '@bitakit/core';
 import { UIContext } from '../providers/action-context.js';
 import { buildControl, useActionList, useActions, type ActionControl } from './use-action.js';
 import { useGroupTitle } from './use-group-title.js';
-import { FoundationContext } from '../providers/foundation-context.js';
+import { BitaKitContext } from '../providers/foundation-context.js';
 
 export type BoundGroup = { id: string; title: string; items: readonly ActionControl[] };
 
@@ -17,7 +17,7 @@ export function useActionGroups(
   const ui = useContext(UIContext);
   const snapshots = useActions();
   const groupTitle = useGroupTitle();
-  const runtime = useContext(FoundationContext)?.runtime;
+  const runtime = useContext(BitaKitContext)?.runtime;
   const key = groups.map((group) => (typeof group === 'string' ? group : group.id)).join('\u0000');
   return useMemo(
     () =>
