@@ -60,8 +60,7 @@ Search. It can also install locally packed archives (`--packages-dir`) for relea
 The reference web app still has application-specific Better Auth integration. Its
 historical domain examples are not a requirement for applications built with BitaKit.
 
-See the [repository README](../README.md) and
-[package structure standard](../docs/architecture/package-structure-standard.md).
+See the [repository README](../README.md).
 
 Core provides runtime-local events, declared once per plugin in `events.ts`. Services and
 actions receive automatically scoped subscriptions; React's `useEvent` binding belongs to UI.

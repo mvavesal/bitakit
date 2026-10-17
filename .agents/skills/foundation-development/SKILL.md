@@ -7,8 +7,9 @@ description: Develop or review BitaKit packages, plugins, example apps and integ
 
 Goal: a thin host app and self-contained plugins. Shared mechanisms belong in the packages.
 This guide complements the rules in the nearest `AGENTS.md`. It applies to this repository,
-not to applications in general. Historical review notes live in `REVIEW.md`; the target
-API is specified in `docs/target-api.md`, the sequencing in `refactor-phases.md`.
+not to applications in general. Historical review notes live in `.private/bitakit-enhancement/review-history.md`,
+the target API in `.private/bitakit-enhancement/target-api.md` and the sequencing in `.private/bitakit-enhancement/TODO.md`.
+These planning files are local-only and may be absent in another checkout.
 
 Private analyses, proposals, working TODOs and review notes belong under `.private/`, which
 is ignored by Git. Resume an existing task from its proposal and TODO rather than recreating
@@ -503,8 +504,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   is the codemod and `bitakit doctor` names the old spellings.
 - When an API changes, update in the same step: Core tests, the CLI templates
   (`packages/cli/src/templates.mjs`, the single source for `--sample`, `bitakit add` and
-  plugin packages), the generated AGENTS.md, this skill, `docs/target-api.md` if the contract
-  moved, the package READMEs, the docs site and `docs/TODO.md`.
+  plugin packages), the generated AGENTS.md, this skill, the private target API
+  (`.private/bitakit-enhancement/target-api.md`) if the contract moved, the package READMEs, the docs site and the
+  private TODO.
 
 ## Maintenance
 
@@ -514,7 +516,7 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   migrations and compatibility contracts. Update guidance with the implementation.
 - Keep this skill a maintained guide, not a copy of the code: durable rules and invariants
   only. Record a new confirmed mistake as a rule or a check scenario here, and move resolved
-  review episodes to `REVIEW.md` ("History") as one line each.
+  review episodes to `.private/bitakit-enhancement/review-history.md` ("History") as one line each.
 - Before finishing, check code, skill and affected guides for contradictions. Mark roadmap
   items done only after implementation and verification. If a phase makes the generated
   AGENTS.md longer, the phase added complexity.

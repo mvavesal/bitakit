@@ -180,8 +180,7 @@ sofort verfügbar sind. Bestehende Organisationen/Teams werden nicht pauschal mi
 Migration `20260921010000_auth_teams_api_keys` ergänzt nur Auth-Felder und
 servereigene Tabellen. RLS und entzogene öffentliche Tabellenrechte gelten auch
 für Teams, Teammitglieder und API-Schlüssel. Keine generische CRUD-Exposition.
-Die offene Entscheidung über den lokalen1.7.15-Kandidaten bleibt unverändert;
-siehe RELEASE-CANDIDATE.md.
+Die offene Entscheidung über den lokalen 1.7.15-Kandidaten bleibt unverändert.
 
 Native Styles werden über `@bitakit/better-auth-ui/styles.css` aus der installierten Bibliothek geladen; die Host-App benötigt keine zufällig gehoistete transitive Abhängigkeit. Danach ergänzt `theme.css` die zentralen Foundation-Werte. Native Select-Trigger verwenden die Select-Geometrie (rounded-md/Squircle), umrandete Dialog-Listenzeilen die Item-Geometrie (rounded-xl/Squircle).
 

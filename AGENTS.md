@@ -54,7 +54,7 @@
 - Settings are declared once per plugin in `settings.ts` with `defineSettings({ name: setting({ default, schema?, scope?, control?, options? }) }, { title, category, order, path, shortcut })`; keys are `<plugin>.<name>` (plain names for the app). Core's runtime store is the only owner of confirmed values; read and write through `settings.<plugin>.<name>` in services and actions and `useSetting(key)` in React. No second value store, section registry, renderer registry or forwarding action (`theme.set`, `locale.set`).
 - Persistence is the `settings.storage` contract (browser storage by default; one host service with `provides: settingsStorage` for a server). Server storage re-reads the trusted `settings.ts` files and applies its own access rules; client declarations grant no persistence access. Identity follows the `auth` contract.
 - `@bitakit/app-preferences` renders a generated page per plugin under `/settings` (`SettingsRoute`, `SettingsShell`, `SettingField`, controls) and projects pages into URL actions; `ui/settings/page.tsx` replaces a plugin's page. Shell owns appearance settings (`shell.mode`, `shell.layout`, `shell.preset`, `shell.density`, `shell.corners`, `shell.toasts`) and applies them to `<html>`; theme presets are CSS under `[data-theme-preset="<id>"]`.
-- The sample apps (`apps/web`, `apps/content-demo`) still carry their pre-Phase-4 settings catalog and are rebuilt in Phase 6; do not extend that catalog.
+- The sample apps (`apps/web`, `apps/content-demo`) still carry their pre-Phase-4 settings catalog and are rebuilt later (tracked in the private plan); do not extend that catalog.
 
 ## Authentication and organizations
 
@@ -94,7 +94,7 @@
 
 ## BitaKit-Entwicklungsleitfaden
 
-Vor Änderungen an BitaKit-Packages, Actions, Plugins, Integrationen oder Beispiel-Apps den projektspezifischen [Skill zur BitaKit-Entwicklung](.agents/skills/foundation-development/SKILL.md) lesen. Er dokumentiert die vereinbarten Konventionen, die `define*`-Formen, die React-Bindings, die Paketgrenzen und den Prüfablauf; die Historie früherer Reviews steht in [REVIEW.md](REVIEW.md).
+Vor Änderungen an BitaKit-Packages, Actions, Plugins, Integrationen oder Beispiel-Apps den projektspezifischen [Skill zur BitaKit-Entwicklung](.agents/skills/foundation-development/SKILL.md) lesen. Er dokumentiert die vereinbarten Konventionen, die `define*`-Formen, die React-Bindings, die Paketgrenzen und den Prüfablauf; die Historie früherer Reviews steht lokal in `.private/bitakit-enhancement/review-history.md` (nicht im Repository).
 
 Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern den Skill im selben Arbeitsschritt aktualisieren und veraltete Aussagen entfernen. Die Übereinstimmung mit dem implementierten Stand gehört zur Abschlussprüfung.
 
