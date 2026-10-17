@@ -78,5 +78,13 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "layout",
+    "navigation",
+    "theme"
+  ]
 }

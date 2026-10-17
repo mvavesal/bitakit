@@ -30,7 +30,7 @@
     "@bitakit/core": "^0.2.0",
     "@bitakit/discovery": "^0.2.0",
     "@bitakit/ui": "^0.2.0",
-    "nuqs": "2.10.1"
+    "nuqs": "^2.10.1"
   },
   "peerDependencies": {
     "@tanstack/react-router": "^1.170.40",
@@ -50,5 +50,12 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "tanstack-start",
+    "adapter"
+  ]
 }

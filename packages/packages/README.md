@@ -93,6 +93,6 @@ un-evaluate an ES module, evict the browser's import cache, undo external effect
 shared eager styles. Persistent setting records are not deleted. Loader results no longer
 owned by the adapter are released; the platform still controls its module cache.
 
-See [Core structural lifecycle](../core/README.md#trusted-structural-plugin-changes) for supported
+See the [plugin manager guide](../../apps/docs/content/docs/plugin-management.mdx#what-can-change-live) for supported
 plugin shapes and restart-required cases. Ordinary provider/config changes still use the
 existing host composition replacement mechanism.

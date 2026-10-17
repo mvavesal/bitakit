@@ -37,7 +37,7 @@ compile-time typed route parameters; app-owned typed links should import the nat
 Vite setup runs before React and cannot be activated by a runtime plugin; installing the
 package alone does not configure Vite.
 
-`bitakit.config.ts` (optional, `defineBitaKit`) holds discovery overrides; `npx bitakit migrate`
+`bitakit.config.ts` (optional, `defineBitaKit`) holds discovery overrides; `npx @bitakit/cli migrate`
 rewrites a 0.1 project and the 0.2 renames (`foundation()` → `bitakit()`, `defineFoundation` →
 `defineBitaKit`).
 

@@ -20,7 +20,7 @@
     "./styles.css": "./styles.css",
     "./package.json": "./package.json"
   },
-  "foundation": {
+  "bitakit": {
     "styles": "./styles.css"
   },
   "scripts": {
@@ -48,5 +48,12 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "devtools",
+    "inspector"
+  ]
 }

@@ -3,7 +3,7 @@
 React bindings for the headless BitaKit runtime. The optional `./components` entry provides
 shared standard visual components; Core remains independent of React and UI libraries.
 Since 0.2 this package exports only React bindings: import `define*` helpers and other Core names
-from `@bitakit/core` (`npx bitakit migrate` moves existing imports).
+from `@bitakit/core` (`npx @bitakit/cli migrate` moves existing imports).
 
 ## First binding
 

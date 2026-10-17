@@ -78,10 +78,10 @@ with their own Action/UI providers can import `QueryProvider` from `@bitakit/nex
 
 ## Migration from 0.1
 
-`npx bitakit migrate` renames `foundation.config.ts` to `bitakit.config.ts`, rewrites
+`npx @bitakit/cli migrate` renames `foundation.config.ts` to `bitakit.config.ts`, rewrites
 `.foundation/*` and `@bitakit/next/generated` imports to `./bitakit.gen`, removes `--webpack`
 and `foundation-generate` from scripts and deletes the old generated output. `withFoundation`
-and `@bitakit/next/generated` were removed in Phase 5; use `withBitaKit` and `./bitakit.gen`.
+and `@bitakit/next/generated` were removed in 0.2; use `withBitaKit` and `./bitakit.gen`.
 
 ## Source responsibilities
 
@@ -113,7 +113,7 @@ Next development checks cover add/edit/delete, whole-plugin removal and collecti
 with a preserved document token and page draft. This is bundler Fast Refresh followed by an
 awaited composition replacement, not `reconcilePlugins` or arbitrary code hot replacement.
 Affected slot/form state can remount during composition replacement; compatible explicit
-runtime updates retain Phase 8's owner-specific guarantees. Named components are the supported
+runtime updates keep their owner-specific guarantees. Named components are the supported
 React refresh path. Structural provider changes, server code, dependency installation and
 changes outside a React refresh boundary can require a host restart/reload. Restart the dev
 server after changing Node-loaded generator/integration code. No universal HMR promise.

@@ -38,8 +38,11 @@ for (const file of await readdir(destination))
 for (const name of names) {
   const directory = path.join(root, 'packages', name);
   const manifest = JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'));
-  if (build && manifest.scripts?.build)
+  if (build && manifest.scripts?.build) {
+    // tsc never deletes output, so files from removed sources would otherwise ship.
+    await rm(path.join(directory, 'dist'), { recursive: true, force: true });
     execFileSync('npm', ['run', 'build'], { cwd: directory, stdio: 'ignore' });
+  }
   execFileSync('npm', ['pack', '--pack-destination', destination], {
     cwd: directory,
     stdio: 'ignore',

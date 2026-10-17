@@ -51,5 +51,12 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "i18n",
+    "next-intl"
+  ]
 }

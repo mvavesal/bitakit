@@ -72,7 +72,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "foundation": {
+  "bitakit": {
     "styles": "./styles.css",
     "theme": "./theme.css"
   },
@@ -80,5 +80,12 @@
     "react-dom": {
       "optional": true
     }
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "react",
+    "bindings"
+  ]
 }

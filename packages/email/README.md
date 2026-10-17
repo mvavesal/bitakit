@@ -1,6 +1,6 @@
 # @bitakit/email
 
-Gemeinsamer serverseitiger E-Mail-Vertrag und typisierter `emailService`-Schlüssel.
-Dieses Paket selbst versendet nichts. Nodemailer oder ein anderer Anbieter implementiert
-`send({ to, subject, text?, html? })` und liefert eine Nachrichten-ID zurück.
-So können Auth-Plugins E-Mails versenden, ohne einen konkreten Anbieter zu importieren.
+The shared server-side email contract and its typed `emailService` key for BitaKit apps.
+This package sends nothing itself. Nodemailer or another provider implements
+`send({ to, subject, text?, html? })` and returns a message ID.
+Auth plugins can then send email without importing a specific provider.

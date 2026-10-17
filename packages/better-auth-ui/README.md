@@ -87,7 +87,8 @@ are removed.
   `AccountSettingsPage`.
 - `/plugins` re-exports every original extension and component; `/plugins/<name>` keeps the
   official subpaths (organization, multi-session, SSO, billing and so on).
-- `/email` re-exports the original email templates.
+- `/email` re-exports the original email templates; install `react-email` (an optional peer
+  dependency) to use them.
 - `/organizations` exports `organizationUIPlugin`, `OrganizationSettingsPage`, the organization
   views and `OrganizationSwitcher`.
 - `betterAuthUIService` is the typed contract of the configuration (`services['better-auth-ui']`).
@@ -105,24 +106,6 @@ HeroUI supplies the component CSS. `theme.css` maps colors, borders, surface geo
 and squircle behavior to the existing central BitaKit tokens. The bridge does not modify
 upstream packages or create another palette. A host outside Discovery must provide the
 same root layer order, baseline tokens and declared stylesheet entries explicitly.
-
-## Content Studio
-
-Host configuration: `apps/content-demo/src/auth.tsx`.
-The regular plugin contribution supplies the **Account & Organizations** menu link.
-
-- `/better-auth`: public package entry points.
-- `/better-auth/auth/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`,
-  `/verify-email`, `/accept-invitation`, each under the same auth base path.
-- `/better-auth/settings/account`, `/security`, `/organizations`.
-- `/better-auth/organization/settings`, `/people`.
-- Original UserButton, organization switcher and multi-account selection.
-
-`npm run dev:content-auth` starts the existing web auth server on port 3101 and loads
-the ignored local SMTP data. `npm run dev:content` starts the host on port 3102.
-`FOUNDATION_AUTH_ORIGIN` controls the Next rewrite for `/api/auth/*`.
-`BETTER_AUTH_TRUSTED_ORIGINS` explicitly allows the host origin;
-`AUTH_UI_ORIGIN` sets the invitation target. The package contains no secrets.
 
 ## Limits and responsibilities
 
@@ -145,47 +128,15 @@ SMTP delivery is a host requirement and is not proven by isolated tests. Tests
 create no accounts in the shared database and send no mail. Check the
 production configuration and any additional native plugins separately.
 
-## Verification
-
-```text
-npm run build --workspace @bitakit/better-auth-ui
-npm test --workspace @bitakit/better-auth-ui
-npm run test:e2e --workspace @bitakit/content-demo -- better-auth-ui.spec.ts
-```
-
-Package tests check the BitaKit lifecycle, native API pass-through, exports and isolated
-real Better Auth flows. `tests/settings-pages.test.mjs` renders both settings pages in jsdom
-against an isolated in-memory Better Auth handler and the demo organization backend. Browser
-checks use the real imported components and an isolated real Better Auth handler instead of
-invented responses.
+## Upstream documentation
 
 The official API and license remain with the dependency:
 [HeroUI documentation](https://better-auth-ui.com/docs/heroui),
 [Next.js integration](https://better-auth-ui.com/docs/heroui/integrations/nextjs).
 
-### Content Demo: teams and API keys
-
-The running host enables native teams, including TeamSwitcher, and the native
-API key extension. Teams: `/better-auth/organization/teams`. Personal keys:
-`/better-auth/settings/security`. Organization keys:
-`/better-auth/organization/settings`. This is management only; it does not by itself
-make any domain API accessible with a key.
-
-The server uses `@better-auth/api-key` with `default` (user) and
-`organization` (organization). Organization keys remain subject to role and membership
-checks; by default the owner has access. An API key does not replace the normal
-session. New team creators are added to their team through the official AddTeamMember API,
-so native team member management and selection are available immediately.
-Existing organizations and teams are not migrated wholesale.
-
-Migration `20260921010000_auth_teams_api_keys` adds only auth fields and
-server-owned tables. RLS and revoked public table privileges also apply
-to teams, team members and API keys. There is no generic CRUD exposure.
-The open decision about the local 1.7.15 candidate remains unchanged.
+## Package styles
 
 Native styles are loaded from the installed library through `@bitakit/better-auth-ui/styles.css`; the host app needs no transitive dependency that happens to be hoisted. `theme.css` then adds the central BitaKit values. Native Select triggers use the Select geometry (rounded-md/Squircle); bordered dialog list rows use the Item geometry (rounded-xl/Squircle).
-
-### Package styles
 
 The styles entry also registers the package's own shipped classes and loads the required Core styles. The host needs no monorepo scan paths.
 

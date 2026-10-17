@@ -31,5 +31,12 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "discovery",
+    "codegen"
+  ]
 }

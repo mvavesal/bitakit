@@ -154,7 +154,7 @@ Next development checks cover add/edit/delete, whole-plugin removal and collecti
 with a preserved document token and page draft. This is bundler Fast Refresh followed by an
 awaited composition replacement, not `reconcilePlugins` or arbitrary code hot replacement.
 Affected slot/form state can remount during composition replacement; compatible explicit
-runtime updates retain Phase 8's owner-specific guarantees. Named components are the supported
+runtime updates keep their owner-specific guarantees. Named components are the supported
 React refresh path. Structural provider changes, server code, dependency installation and
 changes outside a React refresh boundary can require a host restart/reload. Restart the dev
 server after changing Node-loaded generator/integration code. No universal HMR promise.

@@ -27,9 +27,6 @@
     "tldts": "^7.4.13",
     "zod": "^4.6.5"
   },
-  "peerDependencies": {
-    "react": "^19.0.0"
-  },
   "devDependencies": {
     "@types/react": "^19",
     "typescript": "^5"
@@ -43,5 +40,12 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "organizations",
+    "multi-tenant"
+  ]
 }

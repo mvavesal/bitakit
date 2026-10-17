@@ -33,7 +33,7 @@
     "@bitakit/core": "^0.2.0",
     "@bitakit/discovery": "^0.2.0",
     "@bitakit/ui": "^0.2.0",
-    "nuqs": "2.10.1"
+    "nuqs": "^2.10.1"
   },
   "peerDependencies": {
     "next": ">=15",
@@ -55,5 +55,12 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "nextjs",
+    "adapter"
+  ]
 }

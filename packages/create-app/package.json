@@ -35,5 +35,14 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "create-app",
+    "scaffolding",
+    "nextjs",
+    "tanstack-start"
+  ]
 }

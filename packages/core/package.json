@@ -64,5 +64,15 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "runtime",
+    "plugins",
+    "actions",
+    "services",
+    "events"
+  ]
 }
