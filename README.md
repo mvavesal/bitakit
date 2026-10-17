@@ -1,32 +1,154 @@
 <p align="center">
-  <img src="docs/assets/readme/bitakit-banner.png" alt="BitaKit — Your app. Your building blocks." width="1024">
+  <img src="docs/assets/readme/bitakit-banner.png" alt="BitaKit — an AI-friendly composition layer for your application. Your app. Your building blocks." width="1024">
 </p>
 
 # BitaKit
 
-Build an application one feature at a time. A plugin groups the feature's files;
-BitaKit connects them to your framework and manages their lifecycle.
+**BitaKit is a composition layer for building apps with AI agents.** Every feature is a
+self-contained plugin in its own folder, and features meet only through explicit contracts. A
+developer or a coding agent adds or extends a feature with a small, local change, without
+touching the rest of the app and without rebuilding commands, events, extension points or
+settings.
 
-## Start with one page
+BitaKit is not another framework. It sits on top of the one you already use, through an adapter
+(Next.js today, TanStack Start experimental), which keeps routing, rendering and deployment.
 
-In a configured BitaKit app, create `src/plugins/counter/ui/pages/index.tsx`:
+## Quick start
+
+> **Release preview.** 0.2 is not on npm yet. Until it is, create the app from this repository;
+> you need Node.js 24, npm 10 or newer, and internet access for the official Next.js scaffold.
+
+**1. Create an app** (Next.js with navigation, settings and search included):
+
+```bash
+git clone https://github.com/mvavesal/bitakit.git && cd bitakit
+npm ci && npm run pack -- .tmp/packages
+node packages/create-app/src/cli.mjs ../my-app --yes --packages-dir "$PWD/.tmp/packages"
+```
+
+**2. Run it:**
+
+```bash
+cd ../my-app && npm run dev
+```
+
+Open [localhost:3000](http://localhost:3000). There is no configuration to edit.
+
+**3. Add your first feature.** A folder under `src/plugins/` is a feature; each file's path is
+its ID. Three small files give a page, shared state and a button:
+
+```text
+src/plugins/counter/
+├── services/value.ts     → services.counter.value
+├── actions/increment.ts  → action "counter.increment"
+└── ui/pages/index.tsx    → page /counter
+```
+
+```ts
+// src/plugins/counter/services/value.ts
+import { defineService } from '@bitakit/core';
+
+export default defineService(({ store }) => {
+  const state = store({ count: 0 });
+  return {
+    state,
+    increment: () => state.set((s) => ({ count: s.count + 1 })),
+  };
+});
+```
+
+```ts
+// src/plugins/counter/actions/increment.ts
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  title: 'Increment',
+  execute: ({ services }) => services.counter.value.increment(),
+});
+```
 
 ```tsx
+// src/plugins/counter/ui/pages/index.tsx
 'use client';
-import { PageHeader } from '@bitakit/ui/components';
+import { Action, useServiceState } from '@bitakit/ui';
+import { Button, PageHeader } from '@bitakit/ui/components';
 
 export default function CounterPage() {
-  return <PageHeader title="Counter" />;
+  const count = useServiceState('counter.value', (state) => state.count, 0);
+  return (
+    <>
+      <PageHeader title="Counter" />
+      <output>{count}</output>
+      <Action id="counter.increment">
+        <Button />
+      </Action>
+    </>
+  );
 }
 ```
 
-Open **`/counter`**. That is a complete plugin. Add other files only when the feature needs them.
+Open **`/counter`**. The button takes its label, disabled and pending state from the Action;
+nothing is registered by hand. Prefer a generated example? `npx bitakit add plugin notes` writes
+a complete feature with a page, a service, Actions and a navigation link.
+
+**4. Check it:** `npm run typecheck` and `npx bitakit doctor`.
+
+## Features are self-contained plugins
+
+```text
+src/plugins/
+├── projects/                      the owner
+│   ├── services/items.ts          state and logic
+│   ├── actions/add.ts             what users can do
+│   ├── events.ts                  "projects.created" for other features
+│   ├── slots/sidebar.ts           a place other features can extend
+│   └── ui/pages/index.tsx         /projects
+└── activity/                      a second feature, added later
+    ├── services/log.ts            listens to "projects.created"
+    └── ui/slots/projects/sidebar.tsx   a widget in the projects sidebar
+```
+
+- **One folder per feature.** Its pages, actions, services, events, settings and extension points
+  live together. Delete the folder and the feature is gone.
+- **Contracts, not shared files.** Features talk through the services, events and slots their
+  owners declare. The `activity` feature above extends `projects` without editing one of its files.
+- **Failures stay contained.** In development a plugin that fails to start is turned off with its
+  dependents and a named cause (`isolateFailures` does the same in production), and a widget's
+  render error stays inside its slot.
+- **Mechanisms included.** Actions carry their title, enabled and pending state and confirmation to
+  every bound control; event subscriptions are cleaned up with their owner; one `settings.ts`
+  becomes a saved value with a generated Settings page.
+
+Plugins are trusted code in one runtime: they are self-contained by structure, not sandboxed.
+
+## Built for developers and AI agents together
+
+Every kind of change has exactly one place, so a person and a coding agent find the same answer:
+
+| Task                                   | Where it goes                                                        |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| A new feature                          | `src/plugins/<feature>/`                                             |
+| A page                                 | `ui/pages/<path>.tsx` → `/<feature>/<path>` (`index` → `/<feature>`) |
+| A button, link or menu command         | `actions/<name>.ts`, bound with `<Action id="…">`                    |
+| Shared state or logic                  | `services/<name>.ts`                                                 |
+| Telling other features what happened   | `events.ts`                                                          |
+| A place other features can extend      | `slots/<name>.ts`, rendered with `<PluginSlot>` or `useSlot`         |
+| A user preference with a Settings page | `settings.ts`                                                        |
+
+- **The rules ship with the app.** `create-app` writes the conventions into `AGENTS.md` (and a
+  `CLAUDE.md` that points to it), so coding agents follow them from the first prompt.
+- **One command per file.** `npx bitakit add action notes/archive` creates the file in its place.
+- **Fast feedback.** Generated types check every name (Action IDs, events, slots, settings and
+  services), so a typo fails `npm run typecheck`. `npx bitakit doctor` finds wiring mistakes, and
+  `npx bitakit info --json` gives an agent a map of plugins, services, actions, events and pages.
+- **Reviewable changes.** A new feature is a new folder; extending another feature adds files to
+  your own. Tests and review still decide whether a change is correct.
 
 ## Learn one step at a time
 
 | Step | Build                              | Guide                                                    |
 | ---- | ---------------------------------- | -------------------------------------------------------- |
-| 1    | An empty Next.js app               | [Quickstart](apps/docs/content/docs/quickstart.mdx)      |
+| 1    | A new app                          | [Quickstart](apps/docs/content/docs/quickstart.mdx)      |
 | 2    | The one-file Counter page          | [Plugins](apps/docs/content/docs/concepts/plugins.mdx)   |
 | 3    | One value and one method           | [Services](apps/docs/content/docs/concepts/services.mdx) |
 | 4    | A button that increments it        | [Actions](apps/docs/content/docs/concepts/actions.mdx)   |
@@ -34,18 +156,14 @@ Open **`/counter`**. That is a complete plugin. Add other files only when the fe
 | 6    | One saved preference and its page  | [Settings](apps/docs/content/docs/concepts/settings.mdx) |
 
 The lessons grow the same Counter. You have a working feature after step 4; the rest can wait.
-
-These guides describe the **0.2 API in this checkout**. Use matching BitaKit package versions.
-For unpublished source changes, [create an app from local packages](apps/docs/content/docs/local-development.mdx).
-No publication is needed for that workflow.
+They describe the **0.2 API in this repository**; keep the BitaKit packages on matching versions.
 
 ## Read the documentation locally
 
-Requirements: Node.js 24 and npm 10 or newer. From this repository:
+From this repository:
 
-```sh
-npm ci
-npm run dev:docs
+```bash
+npm ci && npm run dev:docs
 ```
 
 Open [localhost:3002/docs](http://localhost:3002/docs). The site includes code highlighting,
@@ -53,31 +171,33 @@ search, short lessons and separate API references.
 
 ## Choose more when you need it
 
-| Need                                     | Where to look                                                                |
-| ---------------------------------------- | ---------------------------------------------------------------------------- |
-| Action inputs, confirmation or shortcuts | [Action reference](apps/docs/content/docs/reference/actions.mdx)             |
-| Service dependencies and cleanup         | [Service reference](apps/docs/content/docs/reference/services.mdx)           |
-| Contextual menus and custom widgets      | [Slot reference](apps/docs/content/docs/reference/slots.mdx)                 |
-| Additional Settings pages                | [Settings reference](apps/docs/content/docs/reference/settings.mdx)          |
-| Plugin updates and diagnostics           | [Runtime management](apps/docs/content/docs/concepts/runtime-management.mdx) |
-| Shell, auth, organizations or email      | [Packages](packages/README.md)                                               |
-| Trusted build-included package activation | [Package host adapter](packages/packages/README.md) |
-| Headless runtime composition             | [Core](packages/core/README.md)                                              |
-| CLI commands                             | [CLI](packages/cli/README.md)                                                |
+| Need                                      | Where to look                                                                |
+| ----------------------------------------- | ---------------------------------------------------------------------------- |
+| Action inputs, confirmation or shortcuts  | [Action reference](apps/docs/content/docs/reference/actions.mdx)             |
+| Service dependencies and cleanup          | [Service reference](apps/docs/content/docs/reference/services.mdx)           |
+| Contextual menus and custom widgets       | [Slot reference](apps/docs/content/docs/reference/slots.mdx)                 |
+| Additional Settings pages                 | [Settings reference](apps/docs/content/docs/reference/settings.mdx)          |
+| Plugin updates and diagnostics            | [Runtime management](apps/docs/content/docs/concepts/runtime-management.mdx) |
+| Shell, auth, organizations or email       | [Packages](packages/README.md)                                               |
+| Trusted build-included package activation | [Package host adapter](packages/packages/README.md)                          |
+| Headless runtime composition              | [Core](packages/core/README.md)                                              |
+| CLI commands                              | [CLI](packages/cli/README.md)                                                |
 
 ## Boundaries
 
-- Core runs without React; UI bindings and framework integrations are separate packages.
-- Next.js is the main application walkthrough. TanStack Start is experimental.
-- Plugins are trusted application code; discovery is not a remote installer or sandbox.
+- Adapters: Next.js is the main walkthrough; TanStack Start is experimental. Core runs without
+  React; UI bindings and framework adapters are separate packages.
+- Plugin pages are React client components served through the adapter's catch-all route. Server
+  Components, loaders, server actions and authorization stay in your framework's native routes.
+- Plugins are trusted application code in one runtime; discovery is not a remote installer or
+  sandbox. Tests and review still decide whether a change is correct.
 - Service stores are in memory. Settings use their storage contract. Domain persistence is yours.
 - Explicit compatible plugin updates preserve unrelated services; structural changes need a
   runtime replacement. File HMR does not promise state preservation.
-- Server Actions and protocol adapters remain separate work. Enforce permissions on the server.
 
 ## Contributing
 
 Use the [contributor guide](apps/docs/content/docs/contributing.mdx) and the nearest `AGENTS.md`.
-Keep public examples small, tested and in English. Private working analyses remain outside Git.
+Keep public examples small, tested and in English.
 
 BitaKit is [MIT licensed](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md) for dependencies.
