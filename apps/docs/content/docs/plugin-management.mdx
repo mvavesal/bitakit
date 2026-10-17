@@ -208,9 +208,24 @@ If a write starts during cleanup, affected owners remain blocked with their decl
 await the write, then retry removal or explicitly enable the owner. External effects are not
 rolled back automatically.
 
-App owners, global providers/layouts, installers/interceptors, custom contributions and
-auth/i18n/settings-storage providers still require composition replacement. The host may replace
-its runtime; these operations do not restart the website's server.
+### What can change live
+
+| Plugin shape | add · remove · enable · disable |
+| --- | --- |
+| Services, Actions, slots (including data and component slots), settings, events, pages, `setup` | `applied` |
+| A plugin whose affected set includes UI providers or layouts | `restart-required` |
+| A plugin with interceptors | `restart-required` |
+| A custom contribution kind: its owner (`installs`) or a contributor (`contributions`) | `restart-required` |
+| The provider of `auth`, `i18n` or `settings.storage`, or the app module | `restart-required` (the app module is `blocked`) |
+
+The affected set includes dependents and composition readers, so an ordinary plugin's change is
+`restart-required` when one of them has such a shape. To make an extension switchable live, build
+it from the first row: for example, the host declares a keyed data slot with a schema and keyed
+component slots, and each extension attaches its data in `setup` with `scope.slots.attach` and
+its components in `ui/slots/`. Removing the extension removes its attachments with its scope.
+
+The host may replace its runtime for the `restart-required` cases; these operations do not
+restart the website's server.
 
 For compatible changes to an existing implementation, use
 [Runtime management](/docs/concepts/runtime-management#host-driven-plugin-updates).
