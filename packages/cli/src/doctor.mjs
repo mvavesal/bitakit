@@ -126,7 +126,8 @@ async function installedPackages(root) {
       const manifest = await readFile(path.join(scope, name, 'package.json'), 'utf8')
         .then(JSON.parse)
         .catch(() => undefined);
-      if (manifest?.version)
+      // Private workspace apps link into node_modules too; they are not published packages.
+      if (manifest?.version && !manifest.private)
         packages.set(name, {
           name: manifest.name ?? `@bitakit/${name}`,
           version: manifest.version,
@@ -839,8 +840,9 @@ function checkSlots(description) {
   if (!problems.length)
     return {
       status: 'ok',
+      // A clean run stays short; `bitakit info` lists the slots.
       title: declared.size
-        ? `Slot files target declared slots (${[...declared].join(', ')})`
+        ? `Slot files target declared slots (${plural(declared.size, 'slot')} available)`
         : 'No layout slots are declared',
     };
   return {

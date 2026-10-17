@@ -226,7 +226,7 @@ program
     const project = await findProject();
     if (project.kind !== 'app') throw new Error('Run "bitakit info" inside an app.');
     const description = await describeBitaKit(project.root);
-    const inventory = inspectionFromDescription(description);
+    const inventory = await inspectionFromDescription(description);
     if (options.json) {
       console.log(JSON.stringify(inventory, null, 2));
       return;

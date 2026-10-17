@@ -4,7 +4,18 @@ import { addPlugin, doctor } from '../src/index.mjs';
 import { catchAll, find, nextApp, project, status, write } from './helpers.mjs';
 
 test('doctor passes a wired app once a route renders its plugin pages', async (t) => {
-  const root = await project(nextApp(), t);
+  const root = await project(
+    {
+      ...nextApp(),
+      // A private workspace app linked into node_modules is not a published package.
+      'node_modules/@bitakit/web/package.json': {
+        name: '@bitakit/web',
+        version: '0.1.0',
+        private: true,
+      },
+    },
+    t,
+  );
   await addPlugin('notes', { cwd: root });
   let { results } = await doctor({ cwd: root });
   assert.equal(status(results, /All 2 @bitakit packages are 0\.2\.0/), 'ok');
@@ -41,11 +52,15 @@ test('doctor passes a wired app once a route renders its plugin pages', async (t
 });
 
 test('doctor follows the root CSS import, including alternative filenames and nested imports', async (t) => {
-  const root = await project(nextApp({
-    'src/app/layout.tsx': "import './styles.css'; export default function Layout() { return null; }",
-    'src/app/styles.css': "@import './packages.css';",
-    'src/app/packages.css': "@import '../bitakit.gen.css';",
-  }), t);
+  const root = await project(
+    nextApp({
+      'src/app/layout.tsx':
+        "import './styles.css'; export default function Layout() { return null; }",
+      'src/app/styles.css': "@import './packages.css';",
+      'src/app/packages.css': "@import '../bitakit.gen.css';",
+    }),
+    t,
+  );
   let { results } = await doctor({ cwd: root });
   const styles = find(results, /Package styles are imported in src\/app\/styles.css/);
   assert.equal(styles.status, 'ok');
@@ -53,19 +68,30 @@ test('doctor follows the root CSS import, including alternative filenames and ne
   await write(root, { 'src/app/packages.css': "/* @import '../bitakit.gen.css'; */" });
   ({ results } = await doctor({ cwd: root }));
   assert.equal(status(results, /Installed packages ship styles that are not imported/), 'warn');
-  await write(root, { 'src/app/layout.tsx': "// import './globals.css';\nexport default function Layout() { return null; }" });
+  await write(root, {
+    'src/app/layout.tsx':
+      "// import './globals.css';\nexport default function Layout() { return null; }",
+  });
   ({ results } = await doctor({ cwd: root }));
   assert.equal(status(results, /Installed packages ship styles that are not imported/), 'warn');
 });
 
 test('doctor follows rendered provider wrappers but ignores unused provider imports', async (t) => {
-  const root = await project(nextApp({
-    'src/app/layout.tsx': "import { Providers } from '@/components/providers'; export default function Layout({ children }) { return <Providers>{children}</Providers>; }",
-    'src/components/providers.tsx': "import { BitaKitProvider as Root } from '@/bitakit.gen'; export function Providers({ children }) { return <Root>{children}</Root>; }",
-  }), t);
+  const root = await project(
+    nextApp({
+      'src/app/layout.tsx':
+        "import { Providers } from '@/components/providers'; export default function Layout({ children }) { return <Providers>{children}</Providers>; }",
+      'src/components/providers.tsx':
+        "import { BitaKitProvider as Root } from '@/bitakit.gen'; export function Providers({ children }) { return <Root>{children}</Root>; }",
+    }),
+    t,
+  );
   let { results } = await doctor({ cwd: root });
   assert.equal(status(results, /root layout mounts the BitaKit provider/), 'ok');
-  await write(root, { 'src/components/providers.tsx': "import { BitaKitProvider } from '@/bitakit.gen'; export function Providers({ children }) { return children; }" });
+  await write(root, {
+    'src/components/providers.tsx':
+      "import { BitaKitProvider } from '@/bitakit.gen'; export function Providers({ children }) { return children; }",
+  });
   ({ results } = await doctor({ cwd: root }));
   assert.equal(status(results, /No BitaKit provider in the root layout/), 'error');
 });
@@ -197,7 +223,8 @@ test('doctor checks TanStack Start wiring and suggests the $ route', async (t) =
     'node_modules/@bitakit/core/package.json': { name: '@bitakit/core', version: '0.2.0' },
     'vite.config.ts':
       "import { bitakit } from '@bitakit/tanstack/config';\nexport default { plugins: [bitakit()] };\n",
-    'src/routes/__root.tsx': "import { BitaKitProvider } from '../bitakit.gen'; export function Root({ children }) { return <BitaKitProvider>{children}</BitaKitProvider>; }\n",
+    'src/routes/__root.tsx':
+      "import { BitaKitProvider } from '../bitakit.gen'; export function Root({ children }) { return <BitaKitProvider>{children}</BitaKitProvider>; }\n",
     'src/routes/index.tsx': 'export const Route = {};\n',
     'src/styles.css': "@import 'tailwindcss';\n@import './bitakit.gen.css';\n",
     'src/plugins/notes/ui/pages/index.tsx': 'export default function Notes() { return null; }\n',
@@ -435,33 +462,46 @@ test('doctor reports plugin dependency cycles and enabled plugins that depend on
 });
 
 test('doctor reads slot contracts without executing source and attributes duplicate IDs', async (t) => {
-  const root = await project(nextApp({
-    'src/plugins/shell/slots/index.ts': `
+  const root = await project(
+    nextApp({
+      'src/plugins/shell/slots/index.ts': `
       import { defineSlot as slot } from '@bitakit/core';
       throw new Error('must never execute');
       const footer = slot({ accepts: 'component' });
       export default { sidebar: { footer } };
     `,
-    'src/plugins/notes/ui/slots/shell.sidebar.footer.tsx': 'export default () => null;',
-  }), t);
+      'src/plugins/notes/ui/slots/shell.sidebar.footer.tsx': 'export default () => null;',
+    }),
+    t,
+  );
   let { results } = await doctor({ cwd: root });
   assert.equal(status(results, /Slot files target declared slots/), 'ok');
-  await write(root, { 'src/plugins/other/slots/logo.ts': `import { defineSlot } from '@bitakit/core'; export default defineSlot({ id: 'shell.sidebar.footer', accepts: 'component' });` });
+  await write(root, {
+    'src/plugins/other/slots/logo.ts': `import { defineSlot } from '@bitakit/core'; export default defineSlot({ id: 'shell.sidebar.footer', accepts: 'component' });`,
+  });
   ({ results } = await doctor({ cwd: root }));
   const duplicate = find(results, /Duplicate slot declarations/);
   assert.equal(duplicate.status, 'error');
-  assert.match(duplicate.details.join(' '), /other\/slots\/logo.ts.*shell\/slots\/index.ts|shell\/slots\/index.ts.*other\/slots\/logo.ts/);
+  assert.match(
+    duplicate.details.join(' '),
+    /other\/slots\/logo.ts.*shell\/slots\/index.ts|shell\/slots\/index.ts.*other\/slots\/logo.ts/,
+  );
 });
 
 test('doctor reports unresolved contracts and mismatched component targets honestly', async (t) => {
-  const root = await project(nextApp({
-    'src/slots/menu.ts': `import { defineSlot } from '@bitakit/core'; export default defineSlot({ accepts: 'actions' });`,
-    'src/slots/dynamic.ts': 'export { default } from "./-shared";',
-    'src/slots/-shared.ts': 'export default {}',
-    'src/plugins/notes/ui/slots/menu.tsx': 'export default () => null;',
-  }), t);
+  const root = await project(
+    nextApp({
+      'src/slots/menu.ts': `import { defineSlot } from '@bitakit/core'; export default defineSlot({ accepts: 'actions' });`,
+      'src/slots/dynamic.ts': 'export { default } from "./-shared";',
+      'src/slots/-shared.ts': 'export default {}',
+      'src/plugins/notes/ui/slots/menu.tsx': 'export default () => null;',
+    }),
+    t,
+  );
   const { results } = await doctor({ cwd: root });
-  const result = results.find((entry) => entry.details?.some((item) => item.includes('contract accepts actions')));
+  const result = results.find((entry) =>
+    entry.details?.some((item) => item.includes('contract accepts actions')),
+  );
   assert.equal(result.status, 'warn');
   assert.match(result.details.join(' '), /Static inspection cannot resolve.*slots\/dynamic.ts/);
 });

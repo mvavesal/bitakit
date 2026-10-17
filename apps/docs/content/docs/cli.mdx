@@ -128,7 +128,7 @@ You rarely run `generate` yourself: the framework adapters run it during `dev` a
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | `npx bitakit generate` | Writes `src/bitakit.gen.*` from your plugin folders                                                                  | `--watch` keeps regenerating       |
 | `npx bitakit doctor`   | Reports wiring problems with a fix for each; exit code 1 when something is wrong                                     | `--json` for CI                    |
-| `npx bitakit info`     | Lists what discovery finds: plugins, services, actions, events, pages                                                | `--json`                           |
+| `npx bitakit info`     | Lists every plugin with the IDs you type: Actions, services, page URLs, events, settings and slots                   | `--json`                           |
 | `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout and API spellings: setup `{ scope }`, placement `slot`, `attach({ slot })`, `Foundation*` → `BitaKit*` (also in root config files), and Core names imported from `@bitakit/ui` move to `@bitakit/core` | `--dry-run` only lists the changes |
 
 `doctor` checks package versions, provider wiring, ignored generated files, pages and links no route reaches, colliding service names, `requires` entries that name nothing, plugin dependency cycles, slot files that target no layout and missing package styles.
@@ -150,7 +150,9 @@ npx bitakit info --json
 ```
 
 The version-1 snapshot has `static.plugins` and `live: null`: the CLI inspects source files,
-not a running application. Unresolved fields stay null. See [runtime inspection](/docs/concepts/runtime-management#shared-inspection-schema).
+not a running application. Each declaration carries the ID it declares (`notes.add`, `/notes`,
+`notes.added`), read from the file without running it; a file it cannot read statically keeps
+`id: null` and `resolution: "file"`. See [runtime inspection](/docs/concepts/runtime-management#shared-inspection-schema).
 
 To migrate old navigation group placement, choose the target explicitly:
 

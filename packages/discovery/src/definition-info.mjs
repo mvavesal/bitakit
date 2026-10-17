@@ -70,13 +70,26 @@ export async function describeDefinitions(entries, { helper, moduleId = '', prop
         helpers.has(node.expression.text)
       ) {
         const options = unwrap(node.arguments[0]);
-        if (!options || !ts.isObjectLiteralExpression(options)) return unknown();
+        // A helper called with a factory (`defineService(() => ...)`) has no literal fields;
+        // its ID comes from the file path alone.
         const fields = new Map();
+        if (!options || !ts.isObjectLiteralExpression(options)) {
+          if (!options || !ts.isFunctionLike(options)) return unknown();
+          const id = [moduleId, path].filter(Boolean).join('.');
+          if (!id) return unknown();
+          definitions.push({ id, file: entry.file });
+          return;
+        }
         for (const item of options.properties) {
-          if (!ts.isPropertyAssignment(item) && !ts.isShorthandPropertyAssignment(item))
+          // Methods (`execute() {}`) are ordinary fields without a literal value.
+          const method = ts.isMethodDeclaration(item) || ts.isAccessor(item);
+          if (!method && !ts.isPropertyAssignment(item) && !ts.isShorthandPropertyAssignment(item))
             return unknown();
           if (ts.isComputedPropertyName(item.name)) return unknown();
-          fields.set(item.name.text, ts.isPropertyAssignment(item) ? item.initializer : item.name);
+          fields.set(
+            item.name.text,
+            method ? item : ts.isPropertyAssignment(item) ? item.initializer : item.name,
+          );
         }
         const id = fields.has('id')
           ? literal(fields.get('id'))

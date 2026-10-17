@@ -144,12 +144,21 @@ test('migrate --dry-run only lists the changes; migrate applies them once and th
     plugin.declarations.filter((item) => item.kind === 'action').map((item) => item.source),
     ['src/plugins/todos/actions/add.ts', 'src/plugins/todos/actions/open.ts'],
   );
-  assert.ok(plugin.declarations.every((item) => item.resolution === 'file'));
+  // IDs are read statically from the files, with the runtime's naming rules.
+  assert.deepEqual(
+    plugin.declarations.map((item) => [item.kind, item.id, item.resolution]),
+    [
+      ['service', 'todos.todos', 'resolved'],
+      ['action', 'todos.add', 'resolved'],
+      ['action', 'todos.open', 'resolved'],
+      ['page', '/todos', 'resolved'],
+    ],
+  );
   assert.equal(JSON.stringify(description).includes(root), false);
   const text = await bitakit(root, 'info');
   assert.match(
     text.stdout,
-    /Plugin "todos" src\/plugins\/todos\n  service: src\/plugins\/todos\/services\/todos.ts\n  action: src\/plugins\/todos\/actions\/add.ts, src\/plugins\/todos\/actions\/open.ts\n  page:/,
+    /Plugin "todos" src\/plugins\/todos\n  service: todos\.todos\n  action: todos\.add, todos\.open\n  page: \/todos\n/,
   );
 });
 
