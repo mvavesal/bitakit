@@ -25,7 +25,7 @@ the file path is the ID. Discovery generates `src/bitakit.gen.*`; there is no re
 | Let other features add UI here | `slots/<file>.ts`: `defineSlot(...)`; others fill it from `ui/slots/<slot>.tsx` |
 | Change a feature you do not own | Listen to its events, fill its slots or read its settings from your own plugin |
 
-- Start with a page, then an Action, then a service; add files only when needed. A small plugin
+- Start with a page, then a service and an Action; add files only when needed. A small plugin
   may keep one record file per kind (`actions.ts` exporting `{ add, remove }`, same IDs).
 - Bind every control that runs an operation to its Action: `<Action id="<name>.<file>" input={...}><Button /></Action>`,
   `ActionButton` or `ActionLink`. Label, disabled, pending and confirmation come from the Action, not from

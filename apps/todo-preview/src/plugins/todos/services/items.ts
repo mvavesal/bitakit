@@ -34,7 +34,8 @@ export default defineService(({ store, services, onStart, onStop }) => {
       if (next !== identity) { identity = next; void load(); }
     });
     onStop(() => { ++revision; stop(); });
-    return load();
+    // Readiness does not wait for the network; the page shows `pending` while tasks load.
+    void load();
   });
   async function change(body: Record<string, unknown>) {
     const started = current();

@@ -89,6 +89,11 @@ readiness, not the success of every later update. It becomes false on full shutd
 | `useSlot(name).phase`                                            | Declared slot owner's phase; absent for legacy undeclared outlets      |
 | `<PluginPage unavailable={...} />`                               | Host fallback for an unavailable matched page owner                    |
 
+Plugin pages are client components. During server rendering and while their plugin starts,
+`PluginPage` renders `unavailable` (nothing by default). Pass a placeholder so the route keeps its
+shape, for example `<PluginPage unavailable={<Skeleton className="h-40" />} />` with `Skeleton` from
+`@bitakit/ui/components`.
+
 A failed/blocked slot owner is not indefinitely pending; read `phase` for its state.
 Payload validation failures still appear as `error`. Affected dialogs close before replacement;
 unrelated dialogs remain. `runtime.hasService(name)` is raw presence for lifecycle infrastructure,
