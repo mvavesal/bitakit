@@ -1,6 +1,7 @@
 # BitaKit packages
 
-BitaKit is the product name. Published on npm under `@bitakit/` (0.1.x).
+BitaKit is a composition layer for building apps with AI agents. Its packages are published on
+npm under `@bitakit/`; this checkout is the 0.2 release line.
 
 | Package                                      | Responsibility                                                                              |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -11,7 +12,7 @@ BitaKit is the product name. Published on npm under `@bitakit/` (0.1.x).
 | [tanstack](tanstack/README.md)               | Experimental TanStack Router/Start integration                                              |
 | [app-preferences](app-preferences/README.md) | Settings UI: generated pages, controls, the settings route and plugin overview              |
 | [shell](shell/README.md)                     | Application frame: compound AppShell, layouts, slots, notifications, appearance             |
-| [quick-search](quick-search/README.md)       | Search across public Actions and an optional App Bar contribution                           |
+| [quick-search](quick-search/README.md)       | A Mod+K dialog listing pages, Settings pages and plugins, plus an App Bar button            |
 | [next-intl](next-intl/README.md)             | Translation integration and optional language preferences                                   |
 | [better-auth](better-auth/README.md)         | Authentication/organization integration and server mail hooks                               |
 | [better-auth-ui](better-auth-ui/README.md)   | Optional account and organization interfaces                                                |

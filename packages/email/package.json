@@ -22,7 +22,7 @@
   "devDependencies": {
     "typescript": "^5"
   },
-  "description": "Provider-independent server email service contract for SaaS Foundation.",
+  "description": "Provider-independent server email service contract for BitaKit apps.",
   "license": "MIT",
   "repository": {
     "type": "git",

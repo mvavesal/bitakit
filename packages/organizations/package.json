@@ -34,7 +34,7 @@
     "@types/react": "^19",
     "typescript": "^5"
   },
-  "description": "Provider-independent organization contracts, service, and demo backend.",
+  "description": "BitaKit organization contracts, service and demo backend, independent of the auth provider.",
   "license": "MIT",
   "repository": {
     "type": "git",

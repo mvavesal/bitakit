@@ -1,3 +1,9 @@
+/**
+ * The one identity sentence. The root README, the docs introduction, generated READMEs and agent
+ * rules repeat it verbatim; a test keeps those surfaces from drifting apart.
+ */
+export const bitakitIdentity = 'BitaKit is a composition layer for building apps with AI agents.';
+
 /** Markers around the BitaKit block, so a later run can find and leave it alone. */
 export const agentRulesBegin = '<!-- BEGIN:bitakit-agent-rules -->';
 export const agentRulesEnd = '<!-- END:bitakit-agent-rules -->';
@@ -13,7 +19,7 @@ export function agentRules({ routes, shell = false }) {
 
 # BitaKit
 
-This app is composed of BitaKit plugins. One feature = one folder in \`src/plugins/<name>/\`;
+${bitakitIdentity} One feature = one folder in \`src/plugins/<name>/\`;
 the file path is the ID. Discovery generates \`src/bitakit.gen.*\`; there is no registry to edit.
 
 | Task | Where it goes |

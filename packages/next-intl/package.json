@@ -42,7 +42,7 @@
     "typescript": "^5",
     "@types/react": "^19"
   },
-  "description": "next-intl translation plugin for SaaS Foundation.",
+  "description": "BitaKit plugin for next-intl: translations and a typed interface-language setting.",
   "license": "MIT",
   "repository": {
     "type": "git",

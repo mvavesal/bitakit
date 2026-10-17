@@ -41,7 +41,7 @@
     "typescript": "^5",
     "@types/react": "^19"
   },
-  "description": "Optional TanStack Router/Start host adapter for Foundation.",
+  "description": "TanStack Start adapter for BitaKit (experimental): discovery and routing.",
   "license": "MIT",
   "repository": {
     "type": "git",

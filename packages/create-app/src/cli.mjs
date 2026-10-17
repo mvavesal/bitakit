@@ -5,12 +5,15 @@ import { Command, Option } from 'commander';
 import * as prompts from '@clack/prompts';
 import { createProject, planProject, adapters } from './create-app.mjs';
 import { features, defaultFeatures } from './features.mjs';
+import { bitakitIdentity } from '@bitakit/cli';
 
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
 const program = new Command()
   .name('create-bitakit-app')
-  .description('Create a BitaKit app (Next.js or TanStack Start) or a standalone plugin package.')
+  .description(
+    `${bitakitIdentity}\nCreate an app (Next.js, or TanStack Start experimental) or a standalone plugin package.`,
+  )
   .version(manifest.version)
   .argument('[directory]', 'new project directory')
   .option('--plugin', 'create a standalone plugin package with a playground app')
@@ -29,9 +32,9 @@ const program = new Command()
     'after',
     `
 Examples:
-  npm create @bitakit/app my-app
-  npm create @bitakit/app my-app -- --framework tanstack --sample --yes
-  npm create @bitakit/app my-plugin -- --plugin`,
+  npx @bitakit/create-app my-app
+  npx @bitakit/create-app my-app --framework tanstack --sample --yes
+  npx @bitakit/create-app my-plugin --plugin`,
   )
   .action(async (directory, options) => {
     const interactive = !options.yes && process.stdin.isTTY && process.stdout.isTTY;
@@ -51,7 +54,11 @@ Examples:
             prompts.select({
               message: 'What do you want to create?',
               options: [
-                { value: 'app', label: 'An app', hint: 'Next.js or TanStack Start' },
+                {
+                  value: 'app',
+                  label: 'An app',
+                  hint: 'Next.js, or TanStack Start (experimental)',
+                },
                 {
                   value: 'plugin',
                   label: 'A standalone plugin',

@@ -5,7 +5,10 @@ description: Develop or review BitaKit packages, plugins, example apps and integ
 
 # BitaKit development
 
-Goal: a thin host app and self-contained plugins. Shared mechanisms belong in the packages.
+Goal: a thin host app and self-contained plugins, so developers and AI agents extend an app with
+small, local changes. Shared mechanisms (Actions, events, slots, settings) belong in the packages;
+a feature should never have to rebuild them. Design test for every change: can a developer or an
+agent add this by changing only their own feature folder?
 This guide complements the rules in the nearest `AGENTS.md`. It applies to this repository,
 not to applications in general. Historical review notes live in `.private/bitakit-enhancement/review-history.md`,
 the target API in `.private/bitakit-enhancement/target-api.md` and the sequencing in `.private/bitakit-enhancement/TODO.md`.
@@ -728,6 +731,29 @@ App Preferences owns navigation/body projection. Explicit navigation migration r
 manually. Run Core reconciliation/inventory, UI reconciliation/slot and CLI command tests when
 changing these contracts. Never put private comparisons or test logs in public documentation.
 
+
+### Positioning (single source)
+
+Every entry surface (root README, docs introduction, package READMEs and descriptions,
+generated README and AGENTS.md, create-app help) uses these words:
+
+- Identity, verbatim: "BitaKit is a composition layer for building apps with AI agents."
+  The string lives in `bitakitIdentity` (`packages/cli/src/agent-rules.mjs`); a CLI test checks
+  the README, the docs introduction and the agent rules against it.
+- Message: BitaKit is not another framework. It sits on top of the framework you already use,
+  through an adapter (Next.js supported, TanStack Start experimental), and gives every feature a
+  predictable place and explicit contracts. Developers and AI agents extend an app with small,
+  local changes and get Actions, events, slots and settings without rebuilding them.
+- Pillars: a layer, not a framework · one map for humans and AI agents · extend, don't rewire ·
+  mechanisms included, not rebuilt · honest boundaries.
+- Do not claim: "any framework"; that one Action appears everywhere automatically; "extend
+  without touching anything"; "isolated plugins" or a sandbox; server plugins; `npx …@0.2`
+  before publication; that plugin pages are ordinary framework or server pages (they are client
+  components behind the adapter's catch-all route); that Quick Search finds commands (it lists
+  pages, Settings pages and plugins); that every app ships agent rules (create-app and
+  `bitakit init` write them); that `settings.ts` alone gives a Settings page (App Preferences
+  renders it); that BitaKit makes agents safe or correct. Never cite probe or test-log numbers.
+- Package descriptions name BitaKit and never Foundation; a CLI test enforces it.
 
 ### Developer documentation
 

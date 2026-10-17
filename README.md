@@ -125,22 +125,23 @@ Plugins are trusted code in one runtime: they are self-contained by structure, n
 
 Every kind of change has exactly one place, so a person and a coding agent find the same answer:
 
-| Task                                   | Where it goes                                                        |
-| -------------------------------------- | -------------------------------------------------------------------- |
-| A new feature                          | `src/plugins/<feature>/`                                             |
-| A page                                 | `ui/pages/<path>.tsx` → `/<feature>/<path>` (`index` → `/<feature>`) |
-| A button, link or menu command         | `actions/<name>.ts`, bound with `<Action id="…">`                    |
-| Shared state or logic                  | `services/<name>.ts`                                                 |
-| Telling other features what happened   | `events.ts`                                                          |
-| A place other features can extend      | `slots/<name>.ts`, rendered with `<PluginSlot>` or `useSlot`         |
-| A user preference with a Settings page | `settings.ts`                                                        |
+| Task                                 | Where it goes                                                        |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| A new feature                        | `src/plugins/<feature>/`                                             |
+| A page                               | `ui/pages/<path>.tsx` → `/<feature>/<path>` (`index` → `/<feature>`) |
+| A button, link or menu command       | `actions/<name>.ts`, bound with `<Action id="…">`                    |
+| Shared state or logic                | `services/<name>.ts`                                                 |
+| Telling other features what happened | `events.ts`                                                          |
+| A place other features can extend    | `slots/<name>.ts`, rendered with `<PluginSlot>` or `useSlot`         |
+| A user preference                    | `settings.ts` (App Preferences renders its Settings page)            |
 
-- **The rules ship with the app.** `create-app` writes the conventions into `AGENTS.md` (and a
-  `CLAUDE.md` that points to it), so coding agents follow them from the first prompt.
+- **The rules ship with the app.** `create-app` writes the conventions into a one-screen
+  `AGENTS.md` (and a `CLAUDE.md` that points to it), and `npx bitakit init` adds the same block to
+  an existing app, so coding agents follow them from the first prompt.
 - **One command per file.** `npx bitakit add action notes/archive` creates the file in its place.
 - **Fast feedback.** Generated types check every name (Action IDs, events, slots, settings and
   services), so a typo fails `npm run typecheck`. `npx bitakit doctor` finds wiring mistakes, and
-  `npx bitakit info --json` gives an agent a map of plugins, services, actions, events and pages.
+  `npx bitakit info --json` lists every ID: Actions, services, page URLs, events, settings, slots.
 - **Reviewable changes.** A new feature is a new folder; extending another feature adds files to
   your own. Tests and review still decide whether a change is correct.
 
@@ -157,6 +158,7 @@ Every kind of change has exactly one place, so a person and a coding agent find 
 
 The lessons grow the same Counter. You have a working feature after step 4; the rest can wait.
 They describe the **0.2 API in this repository**; keep the BitaKit packages on matching versions.
+Coming from 0.1? [Upgrade from 0.1](apps/docs/content/docs/upgrade.mdx) runs `npx bitakit migrate`.
 
 ## Read the documentation locally
 

@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { stylePrelude } from '@bitakit/discovery';
-import { agentRules as sharedAgentRules, gitignoreBlock } from '@bitakit/cli';
+import { agentRules as sharedAgentRules, bitakitIdentity, gitignoreBlock } from '@bitakit/cli';
 
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 /** Every @bitakit package is released together; generated projects install this one release. */
@@ -76,6 +76,7 @@ export function readme(plan, { routes }) {
   return `# ${plan.name}
 
 A ${plan.framework === 'tanstack' ? 'TanStack Start' : 'Next.js'} app built with [BitaKit](https://github.com/mvavesal/bitakit).
+${bitakitIdentity} Each feature is a folder in \`src/plugins/\`.
 
 ## 1. Run your app
 

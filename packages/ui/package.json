@@ -62,7 +62,7 @@
     "react-dom": "19.3.0",
     "typescript": "^5"
   },
-  "description": "Foundation React bindings and optional standard themed components.",
+  "description": "React bindings for BitaKit (Actions, services, slots, settings) and optional standard components.",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -41,7 +41,7 @@ imports or app-specific theme patches are needed.
 
 Dependencies resolve through npm; React 19 is a peer dependency. Configure Better Auth on the
 server and provide the same client the `auth` service uses. The UI plugin creates no second
-session and no second Foundation provider. The host owns routing, the backend URL, mail and
+session and no second BitaKit provider. The host owns routing, the backend URL, mail and
 OAuth configuration and the theme.
 
 `provider` accepts the original `AuthProviderProps` except `authClient`: native plugins,
@@ -108,44 +108,44 @@ same root layer order, baseline tokens and declared stylesheet entries explicitl
 
 ## Content Studio
 
-Host-Konfiguration: `apps/content-demo/src/auth.tsx`.
-Der reguläre Plugin-Beitrag liefert den Menülink **Konto & Organisationen**.
+Host configuration: `apps/content-demo/src/auth.tsx`.
+The regular plugin contribution supplies the **Account & Organizations** menu link.
 
-- `/better-auth`: öffentliche Paket-Einstiegspunkte.
+- `/better-auth`: public package entry points.
 - `/better-auth/auth/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`,
-  `/verify-email`, `/accept-invitation` jeweils unter demselben Auth-Basispfad.
+  `/verify-email`, `/accept-invitation`, each under the same auth base path.
 - `/better-auth/settings/account`, `/security`, `/organizations`.
 - `/better-auth/organization/settings`, `/people`.
-- Original UserButton, Organisation-Switcher und Mehrkonten-Auswahl.
+- Original UserButton, organization switcher and multi-account selection.
 
-`npm run dev:content-auth` startet den vorhandenen Web-Auth-Server auf3101 und lädt
-ignorierte lokale SMTP-Daten. `npm run dev:content` startet den Host auf3102.
-`FOUNDATION_AUTH_ORIGIN` steuert den Next-Rewrite für `/api/auth/*`.
-`BETTER_AUTH_TRUSTED_ORIGINS` erlaubt die Host-Origin ausdrücklich;
-`AUTH_UI_ORIGIN` bestimmt das Ziel der Einladung. Keine Secrets im Paket.
+`npm run dev:content-auth` starts the existing web auth server on port 3101 and loads
+the ignored local SMTP data. `npm run dev:content` starts the host on port 3102.
+`FOUNDATION_AUTH_ORIGIN` controls the Next rewrite for `/api/auth/*`.
+`BETTER_AUTH_TRUSTED_ORIGINS` explicitly allows the host origin;
+`AUTH_UI_ORIGIN` sets the invitation target. The package contains no secrets.
 
-## Grenzen und Verantwortung
+## Limits and responsibilities
 
-Im Host aktiv: E-Mail/Passwort, Organisation und MultiSession. Google/GitHub sind
-auf ausdrücklichen Wunsch sichtbar, aber **ohne Credentials nicht eingerichtet**.
-Sie sind kein Blocker für die lokale Integration und werden nicht extern getestet.
+Active in the host: email/password, organizations and MultiSession. Google/GitHub are
+visible on explicit request, but **not set up, because no credentials are configured**.
+They do not block the local integration and are not tested externally.
 
-Alle öffentlichen Komponenten sind importierbar. Das aktiviert nicht automatisch
-API Keys, MFA, SSO, Billing, Wallets oder Admin-Rechte. Diese verlangen passende
-Better-Auth-Server-/Client-Plugins, Storage und gegebenenfalls externe Anbieter.
-Kein eigener Nachbau dieser Funktionen im Foundation-Core.
+All public components can be imported. That does not automatically enable
+API keys, MFA, SSO, billing, wallets or admin rights. These require matching
+Better Auth server/client plugins, storage and, where needed, external providers.
+BitaKit Core does not reimplement these features.
 
-Die nativen Organisationsabläufe sind die angebotenen Abläufe der externen Bibliothek,
-nicht eine Behauptung vollständiger Parität zur historischen Foundation-Tabelle.
-Bestehende Serverrechte und Sperr-Hooks bleiben erhalten. Das native Logo-Fallback
-wird serverseitig auf begrenzte gültige PNG/JPEG/WebP-Daten geprüft; eigene Hosts
-können die originale Upload-Option mit ihrem Storage verbinden.
+The native organization flows are the flows the external library offers; they are
+not a claim of full parity with the organization features of the earlier custom implementation.
+Existing server permissions and suspension hooks remain in place. The server checks the
+native logo fallback for size-limited, valid PNG/JPEG/WebP data; custom hosts
+can connect the original upload option to their own storage.
 
-SMTP-Zustellung ist eine Hostvoraussetzung und wird durch isolierte Tests nicht
-bewiesen. Tests legen keine Konten in der geteilten Datenbank an und versenden keine
-Mail. Produktionskonfiguration und zusätzliche native Plugins separat prüfen.
+SMTP delivery is a host requirement and is not proven by isolated tests. Tests
+create no accounts in the shared database and send no mail. Check the
+production configuration and any additional native plugins separately.
 
-## Prüfen
+## Verification
 
 ```text
 npm run build --workspace @bitakit/better-auth-ui
@@ -153,40 +153,41 @@ npm test --workspace @bitakit/better-auth-ui
 npm run test:e2e --workspace @bitakit/content-demo -- better-auth-ui.spec.ts
 ```
 
-Package-Tests prüfen Foundation-Lebenszyklus, native API-Weitergabe, Exporte und
-isolierte echte Better-Auth-Abläufe. `tests/settings-pages.test.mjs` renders both settings pages
-in jsdom against an isolated in-memory Better Auth handler and the demo organization backend. Browserprüfungen verwenden die echten importierten
-Komponenten und einen isolierten echten Better-Auth-Handler statt erfundener Antworten.
+Package tests check the BitaKit lifecycle, native API pass-through, exports and isolated
+real Better Auth flows. `tests/settings-pages.test.mjs` renders both settings pages in jsdom
+against an isolated in-memory Better Auth handler and the demo organization backend. Browser
+checks use the real imported components and an isolated real Better Auth handler instead of
+invented responses.
 
-Offizielle API und Lizenz bleiben bei der Abhängigkeit:
-[HeroUI-Dokumentation](https://better-auth-ui.com/docs/heroui),
-[Next.js-Integration](https://better-auth-ui.com/docs/heroui/integrations/nextjs).
+The official API and license remain with the dependency:
+[HeroUI documentation](https://better-auth-ui.com/docs/heroui),
+[Next.js integration](https://better-auth-ui.com/docs/heroui/integrations/nextjs).
 
-### Content-Demo: Teams und API-Schlüssel
+### Content Demo: teams and API keys
 
-Der laufende Host aktiviert native Teams inklusive TeamSwitcher und die native
-API-Key-Erweiterung. Teams: `/better-auth/organization/teams`. Persönliche Keys:
-`/better-auth/settings/security`. Organisationskeys:
-`/better-auth/organization/settings`. Es handelt sich um Verwaltung; keine
-Domain-API wird allein dadurch automatisch für Key-Zugriff freigeschaltet.
+The running host enables native teams, including TeamSwitcher, and the native
+API key extension. Teams: `/better-auth/organization/teams`. Personal keys:
+`/better-auth/settings/security`. Organization keys:
+`/better-auth/organization/settings`. This is management only; it does not by itself
+make any domain API accessible with a key.
 
-Der Server verwendet `@better-auth/api-key` mit `default` (user) und
-`organization` (organization). Organisationskeys bleiben rollen-/mitgliedschaftsgeprüft;
-standardmäßig hat der Owner Zugriff. Die normale Sitzung wird nicht durch einen
-API-Key ersetzt. Neue Team-Ersteller werden über die offizielle AddTeamMember-API
-in ihr Team aufgenommen, damit native Team-Mitgliederverwaltung und Auswahl
-sofort verfügbar sind. Bestehende Organisationen/Teams werden nicht pauschal migriert.
+The server uses `@better-auth/api-key` with `default` (user) and
+`organization` (organization). Organization keys remain subject to role and membership
+checks; by default the owner has access. An API key does not replace the normal
+session. New team creators are added to their team through the official AddTeamMember API,
+so native team member management and selection are available immediately.
+Existing organizations and teams are not migrated wholesale.
 
-Migration `20260921010000_auth_teams_api_keys` ergänzt nur Auth-Felder und
-servereigene Tabellen. RLS und entzogene öffentliche Tabellenrechte gelten auch
-für Teams, Teammitglieder und API-Schlüssel. Keine generische CRUD-Exposition.
-Die offene Entscheidung über den lokalen 1.7.15-Kandidaten bleibt unverändert.
+Migration `20260921010000_auth_teams_api_keys` adds only auth fields and
+server-owned tables. RLS and revoked public table privileges also apply
+to teams, team members and API keys. There is no generic CRUD exposure.
+The open decision about the local 1.7.15 candidate remains unchanged.
 
-Native Styles werden über `@bitakit/better-auth-ui/styles.css` aus der installierten Bibliothek geladen; die Host-App benötigt keine zufällig gehoistete transitive Abhängigkeit. Danach ergänzt `theme.css` die zentralen Foundation-Werte. Native Select-Trigger verwenden die Select-Geometrie (rounded-md/Squircle), umrandete Dialog-Listenzeilen die Item-Geometrie (rounded-xl/Squircle).
+Native styles are loaded from the installed library through `@bitakit/better-auth-ui/styles.css`; the host app needs no transitive dependency that happens to be hoisted. `theme.css` then adds the central BitaKit values. Native Select triggers use the Select geometry (rounded-md/Squircle); bordered dialog list rows use the Item geometry (rounded-xl/Squircle).
 
-### Paket-Styles
+### Package styles
 
-Der Styles-Einstieg registriert zusätzlich die eigenen ausgelieferten Klassen und lädt die notwendigen Core-Styles. Keine Monorepo-Scanpfade im Host erforderlich.
+The styles entry also registers the package's own shipped classes and loads the required Core styles. The host needs no monorepo scan paths.
 
 ## Settings integration
 
@@ -220,7 +221,7 @@ The settings pages live in `src/settings`: `account.tsx` (`AccountSettingsPage`)
 
 ## Minimal host composition
 
-`createBetterAuthIntegration(options?)` is the manual composition for hosts without a generated configuration. It creates one standard client, a QueryClient, and the existing authentication and UI plugins, plus a `better-auth-client` plugin that provides the client (and, with `organizations`, the organization backend) through their contracts. Register its returned plugins through the ordinary Foundation config; Core owns provider installation and lifecycle. Generated hosts use the service and config files above instead.
+`createBetterAuthIntegration(options?)` is the manual composition for hosts without a generated configuration. It creates one standard client, a QueryClient, and the existing authentication and UI plugins, plus a `better-auth-client` plugin that provides the client (and, with `organizations`, the organization backend) through their contracts. Register its returned plugins through the ordinary BitaKit config; Core owns provider installation and lifecycle. Generated hosts use the service and config files above instead.
 
 Pass `organizations: { path: false, groups: [] }` to include the existing organization
 service adapter and settings-only UI using that same client. Omitting `organizations`
@@ -237,7 +238,7 @@ const authentication = createBetterAuthIntegration({
   provider: { redirectTo: '/contents', navigate },
   organizations: { path: false, groups: [] },
 });
-// Compose authentication.plugins in the existing Foundation provider.
+// Compose authentication.plugins in the existing BitaKit provider.
 ```
 
 Content Demo now keeps only its locale, paths, social providers, layout, and demo profile fallback in src/auth.tsx. It does not create the client, QueryClient, standard extensions, or auth/UI bindings itself.
@@ -255,12 +256,12 @@ When Shell notifications own the shared HeroUI surface, set `toastProvider: fals
 `betterAuthUIPlugin` or `createBetterAuthIntegration`. This only omits our adapter's duplicate
 `Toast.Provider`; the external Better Auth UI package and its notification calls are unchanged.
 The shared default HeroUI queue lets Shell's position preference affect native notifications too.
-A custom Foundation notification implementation does not redirect those native HeroUI calls;
-retain a HeroUI surface separately when replacing the Foundation renderer.
+A custom BitaKit notification implementation does not redirect those native HeroUI calls;
+retain a HeroUI surface separately when replacing the BitaKit renderer.
 
 ### Shared translation catalog
 
-The adapter reads the current `betterAuth` group from Foundation's translation service
+The adapter reads the current `betterAuth` group from BitaKit's translation service
 and passes that group to the native `AuthProvider` locale prop. The group follows the
 upstream `AuthLocale` format (`languageTag`, `localization`, optional `plugins`). Compose
 published `@better-auth-ui/locales` bundles in the host's request catalog; custom messages

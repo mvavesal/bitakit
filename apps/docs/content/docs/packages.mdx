@@ -21,10 +21,18 @@ These packages support the app and its plugins; they are not all installable app
 | `ui` | React bindings and optional standard themed components |
 | `packages` | Trusted catalog loading and active package selection through the existing runtime |
 | `discovery` | File conventions, package discovery and generated app composition |
-| `next` | Next.js navigation, URL query adapter and discovery integration |
-| `tanstack` | Experimental TanStack Router/Start integration |
 | `cli` | Scaffolding, inspection, migration and plugin package builds |
 | `create-app` | Frontend project generator |
+
+## Framework adapters
+
+BitaKit sits on top of your framework through one adapter. The adapter runs discovery with the
+build, mounts the generated provider and renders plugin pages from one catch-all route.
+
+| Adapter | Framework | Status |
+| --- | --- | --- |
+| `next` | Next.js App Router | Supported |
+| `tanstack` | TanStack Start and Router | Experimental |
 
 ## Framework ownership
 

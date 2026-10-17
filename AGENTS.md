@@ -1,5 +1,13 @@
 # Project conventions
 
+## Product intent
+
+BitaKit is a composition layer for building apps with AI agents. Every feature is a
+self-contained plugin with a predictable place and explicit contracts, so a developer or an agent
+extends an app with a small, local change. Design test for every change: can a developer or an
+agent add this by changing only their own feature folder? If not, the missing mechanism belongs
+in a package, not in the app.
+
 ## Private working documents
 
 - Keep private analyses, architecture proposals, working TODOs, phase plans and review notes under the Git-ignored `.private/` directory. Do not stage, force-add, copy into tracked docs, publish or upload them without an explicit user request.

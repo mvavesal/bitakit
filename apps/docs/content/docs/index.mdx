@@ -1,19 +1,47 @@
 ---
 title: Introduction
-description: Build your application from features that fit together.
+description: A composition layer for building apps with AI agents, where every feature is a self-contained plugin.
 ---
 
 ## What is BitaKit?
 
-BitaKit is a TypeScript foundation for applications built from **plugins**. A plugin is one
-feature: its pages, behavior, settings and extension points live together. BitaKit connects
-those pieces; your framework keeps its routes and rendering.
+**BitaKit is a composition layer for building apps with AI agents.** Every feature is a
+self-contained plugin in its own folder: its pages, behavior, settings and extension points live
+together, and features meet only through explicit contracts. A developer or a coding agent adds
+or extends a feature with a small, local change instead of rewiring the app.
+
+BitaKit is not another framework. It sits on top of the one you already use, through an adapter
+(Next.js today, TanStack Start experimental), which keeps routing, rendering and deployment.
 
 Work through predictable **file conventions**, or compose the same definitions directly with
 the **TypeScript API**. Both use the same plugin model and runtime.
 
-Start with a plugin for your feature, then give it a page. Add an Action when it needs a button, a setting when it needs a preference,
-and a slot when another plugin should be able to extend it.
+## The problem it solves
+
+As an app grows, each new feature tends to edit shared files: a route list, a menu, a provider
+tree, an event bus, a settings screen. Every edit is small, but it changes code that someone else
+owns, and that is where people and coding agents collide. BitaKit gives those shared mechanisms
+one owner and every feature one folder, so a new feature is mostly new files.
+
+## Humans and AI agents, one structure
+
+- **The path is the ID.** `src/plugins/notes/actions/archive.ts` is the Action `notes.archive`;
+  `ui/pages/index.tsx` in the same folder is the page `/notes`.
+- **Names are checked.** Generated types reject an unknown Action ID, service, event, setting
+  key or slot name in `npm run typecheck`.
+- **The same commands.** `npx bitakit add` creates files in the right place, `npx bitakit info`
+  lists every ID, and `npx bitakit doctor` reports wiring problems with the fix.
+- **Written-down rules.** Apps created with `@bitakit/create-app` or wired with `npx bitakit init`
+  carry a one-screen `AGENTS.md` that says where each task goes.
+
+## What BitaKit is not
+
+| BitaKit is not… | Instead… |
+| --- | --- |
+| A framework or a router | Your framework keeps routes, rendering and deployment; one catch-all route renders plugin pages. |
+| A component library | Core has no UI. `@bitakit/ui/components` is an optional set of standard components. |
+| A sandbox | Plugins are trusted code in the same app. A failing plugin is reported at startup and a failing slot component is contained, but plugins are not isolated from each other. |
+| A backend | Plugins run in your client app. Server-side plugins are planned, not shipped. |
 
 ## Why BitaKit?
 
@@ -24,7 +52,7 @@ and a slot when another plugin should be able to extend it.
 | Several people or agents extending the app | Feature ownership and explicit contracts between plugins. |
 | The same operation in several places | One Action, bound to buttons, links or menus. |
 | New UI inside an existing feature | Named slots that other plugins can target. |
-| Preferences with a Settings page | One declaration for saved values, fields and navigation. |
+| Preferences with a Settings page | One declaration for saved values; with App Preferences installed, its fields and navigation as well. |
 | Communication and shared observation | Events and interceptors with runtime-owned cleanup. |
 
 BitaKit is useful when several features need these shared conventions. A small page can stay

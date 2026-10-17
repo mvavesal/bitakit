@@ -55,7 +55,7 @@
     "jiti": "^2.7.0",
     "typescript": "^5.9.3"
   },
-  "description": "AI-friendly, type-safe building blocks for modular apps: plugins, services, actions, events.",
+  "description": "BitaKit Core: a framework-independent runtime for plugins, services, Actions, events, slots and settings.",
   "license": "MIT",
   "repository": {
     "type": "git",

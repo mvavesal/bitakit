@@ -8,7 +8,7 @@ A search dialog for BitaKit apps: press Mod+K, or click the search button in the
 npm install @bitakit/quick-search
 ```
 
-That is all. Foundation package discovery registers the search Action and the `app-bar.end` view automatically; the standard AppBar shows the search button in either Shell layout. You do not register results, add a provider or write a component. Discovery includes the package's declared stylesheet in the root generated CSS; it uses the host's theme tokens and has no JavaScript CSS side effects.
+That is all. BitaKit package discovery registers the search Action and the `app-bar.end` view automatically; the standard AppBar shows the search button in either Shell layout. You do not register results, add a provider or write a component. Discovery includes the package's declared stylesheet in the root generated CSS; it uses the host's theme tokens and has no JavaScript CSS side effects.
 
 ## What search finds
 
@@ -49,7 +49,7 @@ Types and owners come from existing registrations through `runtime.destinationOf
 
 ## Without package discovery
 
-In a host without Foundation discovery, add the plugin yourself: `quickSearchPlugin({ title, placeholder, empty, shortcut, results })`. A custom header can render the `PluginSlot` named `app-bar.end`, or `QuickSearchTrigger` directly. Without any header, Mod+K still opens the dialog. Installing the package cannot add a header to an arbitrary React app.
+In a host without BitaKit discovery, add the plugin yourself: `quickSearchPlugin({ title, placeholder, empty, shortcut, results })`. A custom header can render the `PluginSlot` named `app-bar.end`, or `QuickSearchTrigger` directly. Without any header, Mod+K still opens the dialog. Installing the package cannot add a header to an arbitrary React app.
 
 Such a host also owns its stylesheet entry: establish the canonical layer order, then import
 `@bitakit/quick-search/styles.css` there. Generated BitaKit apps do this automatically.

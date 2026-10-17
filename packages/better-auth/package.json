@@ -65,7 +65,7 @@
       "optional": true
     }
   },
-  "description": "Better Auth plugin, organization adapter and server email callbacks for SaaS Foundation.",
+  "description": "BitaKit plugin for Better Auth: authentication service, organization adapter and server email callbacks.",
   "license": "MIT",
   "repository": {
     "type": "git",

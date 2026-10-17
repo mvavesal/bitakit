@@ -1,7 +1,8 @@
 # Todo preview
 
-A generated Next.js app exercising BitaKit actions, services, native Better Auth accounts
-and organizations, and generated settings. Styles come from the shared platform entry;
+A verification fixture, not a starting point: a generated Next.js app that exercises BitaKit
+Actions, services, native Better Auth accounts and organizations, and generated settings. To
+start your own app, use `npx @bitakit/create-app` and its `--sample`. Styles come from the shared platform entry;
 the sample has no per-component CSS fixes.
 
 ## Run locally

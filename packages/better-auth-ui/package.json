@@ -103,7 +103,7 @@
     "tsx": "^4.23.15",
     "typescript": "^5"
   },
-  "description": "Optional Foundation adapter for the directly imported Better Auth UI HeroUI library.",
+  "description": "BitaKit plugin for Better Auth UI (HeroUI): sign-in, account and organization pages.",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -1,6 +1,6 @@
 /** Programmatic API shared by the `bitakit` CLI and the project generator. */
 export { addPlugin, addContribution, writeNewFiles, contributionKinds } from './add.mjs';
-export { agentRules, agentRulesBegin, agentRulesEnd } from './agent-rules.mjs';
+export { agentRules, agentRulesBegin, agentRulesEnd, bitakitIdentity } from './agent-rules.mjs';
 export { buildPlugin } from './build.mjs';
 export { doctor } from './doctor.mjs';
 export {

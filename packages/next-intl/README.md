@@ -26,7 +26,7 @@ literal fallbacks.
 - `locales/en.json`, `locales/de.json`: this integration's own language-setting labels.
 
 `languagePreferences({ locales, defaultLocale, category })` returns the setting, a normal
-Foundation plugin and `storage(base, { load, save, reset })`. Register the plugin beside
+BitaKit plugin and `storage(base, { load, save, reset })`. Register the plugin beside
 App Preferences and use that storage when creating its instance. Only `language.locale`
 is routed to the supplied persistence; other preferences retain their original storage.
 Use a base storage with reset support to remove the locale override on reset.

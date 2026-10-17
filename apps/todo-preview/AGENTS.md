@@ -12,7 +12,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # BitaKit
 
-This app is composed of BitaKit plugins. One feature = one folder in `src/plugins/<name>/`;
+BitaKit is a composition layer for building apps with AI agents. One feature = one folder in `src/plugins/<name>/`;
 the file path is the ID. Discovery generates `src/bitakit.gen.*`; there is no registry to edit.
 
 | Task | Where it goes |

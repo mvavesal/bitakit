@@ -65,7 +65,7 @@ export const Route = createFileRoute('${route}')({
 
 /** Official blank Start scaffold plus the few files BitaKit needs. */
 export const tanstack = {
-  label: 'TanStack Start',
+  label: 'TanStack Start (experimental)',
   routes: 'src/routes',
   async scaffold(plan, run) {
     await run(
