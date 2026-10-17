@@ -173,6 +173,20 @@ that read the composition, such as App Preferences. Removal also includes contri
 removed owner's slots. Actions are cancelled and drained, contributions are revoked, and
 cleanup finishes before declarations are released.
 
+## Parents and children
+
+A plugin can own others: discovery sets `parent` for a [nested plugin folder](/docs/concepts/discovery#nested-plugins),
+and `definePlugin({ id, parent })` does the same in code. Ownership is stronger than a
+dependency:
+
+| Operation | What happens |
+| --- | --- |
+| Start | The parent starts before its children; a child whose parent is missing fails at startup. |
+| `disable(parent, …)` or `remove([parent], …)` | All descendants follow, even with `{ dependents: 'refuse' }`; they stop before the parent. Plugins outside the subtree that depend on them follow the `dependents` policy. |
+| `disable(child, …)` | Only the child (and its own dependents); the parent and siblings keep running. |
+| `enable(child)` while the parent is disabled | `blocked`: enable the parent first. |
+| `enable(parent)` | Restores the descendants its disable switched off. A child you disabled on its own stays disabled. |
+
 Only one lifecycle operation runs at a time. Await each result before starting the next.
 An operation must not await the same Action or hook that called it.
 

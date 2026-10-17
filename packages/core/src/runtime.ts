@@ -156,9 +156,14 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
         );
     if (module.settings !== undefined && !isSettingsDefinition(module.settings))
       throw new Error('settings must be declared with defineSettings({ ... }) in settings.ts.');
+    if (module.parent === id) throw new Error('A plugin cannot be its own parent.');
     return {
       ...module,
       id,
+      // The owner is a dependency: it starts first and stops last.
+      ...(module.parent && !module.dependencies?.includes(module.parent)
+        ? { dependencies: [...(module.dependencies ?? []), module.parent] }
+        : {}),
       services,
       actions,
       slots: normalizeSlots(module, appId),
@@ -169,6 +174,20 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
   } catch (error) {
     throw attributed(error, id, 'Plugin definition', appId);
   }
+}
+
+/** Installed plugins owned, directly or through other children, by any of `ids`. */
+function descendantsOf(installed: readonly Plugin[], ids: readonly string[]): string[] {
+  const found: string[] = [];
+  for (let frontier = [...ids]; frontier.length; ) {
+    const children = installed
+      .filter((plugin) => plugin.parent && frontier.includes(plugin.parent))
+      .map((plugin) => plugin.id)
+      .filter((id) => !found.includes(id) && !ids.includes(id));
+    found.push(...children);
+    frontier = children;
+  }
+  return found;
 }
 
 function orderPlugins(plugins: readonly NormalizedPlugin[], appId: string) {
@@ -198,7 +217,9 @@ function orderPlugins(plugins: readonly NormalizedPlugin[], appId: string) {
       );
       if (missing)
         throw new BitaKitStartupError(
-          `Plugin "${item.id}" depends on "${missing}", which is not installed or is disabled. Known plugins: ${plugins.map((candidate) => candidate.id).join(', ')}.`,
+          missing === item.parent
+            ? `Plugin "${item.id}" belongs to "${missing}", which is not installed or is disabled. Install or enable "${missing}" first.`
+            : `Plugin "${item.id}" depends on "${missing}", which is not installed or is disabled. Known plugins: ${plugins.map((candidate) => candidate.id).join(', ')}.`,
           item.id,
           { app: item.id === appId },
         );
@@ -277,6 +298,8 @@ export class BitaKitRuntime implements ContributionHost {
   private updating?: Promise<PluginUpdateResult>;
   private updateController?: AbortController;
   private disabledPlugins = new Set<string>();
+  /** Descendants a parent's disable switched off, so enabling the parent restores exactly them. */
+  private disabledWithParent = new Map<string, readonly string[]>();
   /** Host-only structural changes; no package loading or persistence is performed by Core. */
   readonly plugins = Object.freeze({
     add: (plugins: readonly Plugin[]) => this.changePlugins('add', [...plugins]),
@@ -1268,26 +1291,55 @@ export class BitaKitRuntime implements ContributionHost {
             `Plugin "${id}" ${exists ? 'is already installed' : 'is not installed'}.`,
           ]);
       }
+      // Ownership: a parent's descendants follow it, whatever the dependents policy says.
+      const owned = descendantsOf(installed, ids);
+      const cascaded = new Map(this.disabledWithParent);
+      if (operation === 'remove') ids.push(...owned);
+      if (operation === 'disable')
+        for (const [parent, children] of cascaded)
+          cascaded.set(
+            parent,
+            children.filter((child) => !ids.includes(child)),
+          );
+      if (operation === 'enable')
+        for (const id of [...ids]) {
+          const parent = installed.find((plugin) => plugin.id === id)?.parent;
+          if (parent && disabled.has(parent) && !ids.includes(parent))
+            return result('blocked', [
+              `Plugin "${id}" belongs to "${parent}", which is disabled. Enable "${parent}" first.`,
+            ]);
+          ids.push(...(cascaded.get(id) ?? []).filter((child) => !ids.includes(child)));
+          cascaded.delete(id);
+        }
       const activeIds = new Set(this.modules.map((module) => module.id));
       let changed = [...ids];
       if (operation === 'disable' || operation === 'remove') {
-        const seeds = ids.filter((id) => activeIds.has(id));
+        const seeds = [...ids, ...owned].filter((id) => activeIds.has(id));
         if (operation === 'remove') seeds.push(...this.slotRuntime.contributorsTo(new Set(ids)));
         const closure = updateClosure(this.modules, seeds);
-        const dependents = closure.filter((id) => !ids.includes(id));
+        const dependents = closure.filter((id) => !ids.includes(id) && !owned.includes(id));
         if (dependents.length && options?.dependents === 'refuse')
           return result('blocked', [`Enabled dependents: ${dependents.join(', ')}.`]);
-        changed = [...new Set([...ids, ...dependents])];
+        changed = [...new Set([...ids, ...owned, ...dependents])];
+        if (operation === 'disable') {
+          const switchedOff = owned.filter((id) => !disabled.has(id));
+          for (const id of ids) cascaded.set(id, switchedOff);
+        }
         for (const id of changed) disabled.add(id);
       } else if (operation === 'enable') {
         changed = ids.filter((id) => disabled.has(id) || !this.isReady(id));
         for (const id of ids) disabled.delete(id);
       } else installed.push(...(values as Plugin[]));
+      if (operation === 'remove') for (const id of ids) cascaded.delete(id);
       const nextInstalled =
         operation === 'remove' ? installed.filter((plugin) => !ids.includes(plugin.id)) : installed;
       for (const id of ids) if (operation === 'remove') disabled.delete(id);
       if (operation === 'disable') changed = changed.filter((id) => !this.disabledPlugins.has(id));
-      if (!changed.length) return result('applied', []);
+      if (!changed.length) {
+        // An explicit disable of a child its parent already switched off: remember the intent.
+        this.disabledWithParent = cascaded;
+        return result('applied', []);
+      }
       const normalized = nextInstalled
         .filter((plugin) => !disabled.has(plugin.id))
         .map((plugin) => normalize(plugin, this.appId));
@@ -1410,6 +1462,7 @@ export class BitaKitRuntime implements ContributionHost {
               )
                 return `Setting "${entry.key}" began writing during cleanup; await it before retrying.`;
             this.disabledPlugins = disabled;
+            this.disabledWithParent = cascaded;
             this.names.replace(entries);
             this.configuration.replace(configuration);
             for (const plugin of this.config.plugins ?? []) this.events.undeclare(plugin.id);

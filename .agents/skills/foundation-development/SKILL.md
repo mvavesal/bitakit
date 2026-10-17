@@ -81,6 +81,13 @@ src/layouts/<name>.tsx     app layouts; pages opt in with `export const layout =
   `interceptors`, `configs` and `slots`; pages, slot components and providers stay under
   `ui/` (the React boundary). `actions.x.ts` and `x.action.ts` are legacy spellings that
   `bitakit migrate` rewrites; do not add them to templates, docs or apps.
+- A nested folder with its own `plugin.config.ts` is a child plugin; discovery sets
+  `parent` to the nearest plugin folder around it (`modules.mjs` `parentDirectory`; the manifest
+  may name another). Core adds the parent to `dependencies`. Structural changes treat
+  descendants as owned: disabling or removing a parent includes them regardless of
+  `dependents`, a child alone never stops its parent, enabling a child under a disabled parent is
+  blocked, and enabling a parent restores only the descendants its disable switched off
+  (`disabledWithParent`). IDs stay globally unique; ownership is not a path prefix.
 - Files need a default export; discovery parses, never executes, and warns about skipped
   files. Prefix helpers with `-`. `.d.ts` and `server/` are skipped.
 - The app module uses the same folders directly under `src/` with the ID `app` and

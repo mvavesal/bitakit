@@ -129,7 +129,13 @@ export type BitaKitDescription = {
   pluginsDirectory: string;
   appDirectory: string;
   app: DescribedModule;
-  plugins: (DescribedModule & { dependencies: readonly string[]; enabled: boolean })[];
+  plugins: (DescribedModule & {
+    /** Includes the parent: a nested plugin depends on the plugin folder around it. */
+    dependencies: readonly string[];
+    /** The owning plugin of a nested plugin folder. */
+    parent?: string;
+    enabled: boolean;
+  })[];
   /** Plugin entry specifiers of installed opt-in packages. */
   packages: string[];
   /** Included in the build, with activation chosen later by host management. */

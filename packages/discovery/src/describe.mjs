@@ -2,7 +2,7 @@ import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { createJiti } from 'jiti';
 import { files, discoverEntries } from './entries.mjs';
-import { pluginManifests } from './modules.mjs';
+import { parentDirectory, pluginManifests } from './modules.mjs';
 import { installedContributions } from './packages.mjs';
 import { detectFramework, loadDiscoveryConfig } from './generate.mjs';
 import { describeDefinitions } from './definition-info.mjs';
@@ -112,18 +112,26 @@ export async function describeBitaKit(root) {
     ...(await contributionsOf(appRoot, appFiles, relative, warnings, root, { app: true })),
   };
   const plugins = [];
-  for (const { manifestFile, id } of manifests) {
-    const base = path.dirname(manifestFile);
-    const manifest = {
-      id: path.basename(base),
-      ...(await load(manifestFile)),
-      ...(id ? { id } : {}),
-    };
+  const manifestOf = async ({ manifestFile, id }) => ({
+    id: path.basename(path.dirname(manifestFile)),
+    ...(await load(manifestFile)),
+    ...(id ? { id } : {}),
+  });
+  // Every plugin's ID first, so a nested child can name the plugin folder around it.
+  const idByDirectory = new Map();
+  for (const entry of manifests)
+    idByDirectory.set(path.dirname(entry.manifestFile), (await manifestOf(entry)).id);
+  for (const entry of manifests) {
+    const base = path.dirname(entry.manifestFile);
+    const manifest = await manifestOf(entry);
     const own = await files(base, new Set([...moduleRoots].filter((item) => item !== base)));
+    const parent = manifest.parent ?? idByDirectory.get(parentDirectory(base, moduleRoots));
     plugins.push({
       id: manifest.id,
       directory: relative(base),
-      dependencies: manifest.dependencies ?? [],
+      ...(parent ? { parent } : {}),
+      // The parent is a lifecycle dependency, as at runtime.
+      dependencies: [...new Set([...(manifest.dependencies ?? []), ...(parent ? [parent] : [])])],
       enabled:
         config.plugins?.overrides?.[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true,
       ...(await contributionsOf(base, own, relative, warnings, root, {

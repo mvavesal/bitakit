@@ -309,6 +309,12 @@ export type ContributionInstallers = {
 export type Plugin = {
   id: string;
   dependencies?: readonly string[];
+  /**
+   * The plugin that owns this one; discovery sets it for a nested plugin folder. It counts as a
+   * dependency, so the parent starts first. Disabling or removing the parent always includes its
+   * descendants; disabling this plugin never affects the parent.
+   */
+  parent?: string;
   metadata?: PluginMetadata;
   services?: readonly ServiceDefinition<any>[] | Readonly<Record<string, ServiceDefinition<any>>>;
   actions?: readonly ActionSpec<any, any>[] | Readonly<Record<string, ActionSpec<any, any>>>;
@@ -331,7 +337,7 @@ export function definePlugin<const T extends Plugin>(plugin: T): T {
   return plugin;
 }
 
-export type BitaKitRuntimeConfig = Omit<Plugin, 'id' | 'dependencies'> & {
+export type BitaKitRuntimeConfig = Omit<Plugin, 'id' | 'dependencies' | 'parent'> & {
   appId?: string;
   dependencies?: readonly string[];
   /** Receives synchronous throws and async rejections from event handlers. */

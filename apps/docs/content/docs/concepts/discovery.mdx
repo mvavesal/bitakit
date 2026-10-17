@@ -102,9 +102,31 @@ Ignore `src/bitakit.gen.*` in Git. Production changes require a new build. Brows
 
 `npx bitakit info` lists what discovery finds; `npx bitakit doctor` checks the wiring, pages, links, service names and styles; `npx bitakit generate [--watch]` runs the generator by hand.
 
+## Nested plugins
+
+A large feature can be split into child plugins. A folder inside a plugin becomes a **child
+plugin** when it has its own `plugin.config.ts`; without one it stays an ordinary part of the
+plugin around it.
+
+```text
+src/plugins/crm/
+├── services/accounts.ts        crm.accounts
+├── deals/
+│   ├── plugin.config.ts        a child plugin with the ID "deals" (or the manifest's id)
+│   └── services/pipeline.ts    deals.pipeline
+└── import/csv.ts               no manifest: still part of crm
+```
+
+Discovery sets the child's `parent` to the plugin folder around it. The parent is also a
+dependency: it starts first, and a child cannot run while its parent is disabled. Disabling or
+removing the parent includes all of its descendants; disabling one child leaves the parent and
+siblings running. Plugin IDs stay globally unique, so a child is addressed by its own ID
+(`deals.pipeline`), not by its path. The [plugin manager](/docs/plugin-management#parents-and-children)
+describes the lifecycle rules.
+
 ## `plugin.config.ts` and `bitakit.config.ts`
 
-`plugin.config.ts` is optional. It declares `dependencies`, display `metadata`, an `id` other than the folder name and `entries` that relocate a kind. Discovery derives everything else.
+`plugin.config.ts` is optional. It declares `dependencies`, display `metadata`, an `id` other than the folder name and `entries` that relocate a kind. In a nested folder its presence makes a child plugin, and it may name a different `parent`. Discovery derives everything else.
 
 An `entries` path stays inside the plugin directory; symlinks are rejected. `false`
 disables that kind. The app module uses the same conventions directly under `src/`;

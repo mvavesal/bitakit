@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { createJiti } from 'jiti';
 import { files, discoverEntries, contributionKindSpecs } from './entries.mjs';
 import { installedContributions } from './packages.mjs';
-import { pluginManifests } from './modules.mjs';
+import { parentDirectory, pluginManifests } from './modules.mjs';
 import { stylePrelude } from './styles.mjs';
 
 const quote = JSON.stringify;
@@ -101,6 +101,19 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
   });
   const modules = [...roots.map((manifestFile) => ({ manifestFile })), ...included];
   const moduleRoots = new Set(modules.map((module) => path.dirname(module.manifestFile)));
+  const loadManifest = async ({ manifestFile, id }) => {
+    const overrides = await readFile(manifestFile, 'utf8')
+      .then(() => jiti.import(manifestFile, { default: true }))
+      .catch((error) => {
+        if (error.code === 'ENOENT' && error.path === manifestFile) return {};
+        throw error;
+      });
+    return { id: path.basename(path.dirname(manifestFile)), ...overrides, ...(id ? { id } : {}) };
+  };
+  // Every plugin's ID first, so a nested child can name the plugin folder around it.
+  const idByDirectory = new Map();
+  for (const module of modules)
+    idByDirectory.set(path.dirname(module.manifestFile), (await loadManifest(module)).id);
 
   const imports = [];
   let serial = 0;
@@ -344,15 +357,10 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
   // Local plugins.
   const definitions = [];
   const allMessages = {};
-  for (const { manifestFile, id } of modules) {
+  for (const module of modules) {
+    const { manifestFile } = module;
     const base = path.dirname(manifestFile);
-    const overrides = await readFile(manifestFile, 'utf8')
-      .then(() => jiti.import(manifestFile, { default: true }))
-      .catch((error) => {
-        if (error.code === 'ENOENT' && error.path === manifestFile) return {};
-        throw error;
-      });
-    const manifest = { id: path.basename(base), ...overrides, ...(id ? { id } : {}) };
+    const manifest = await loadManifest(module);
     if (!idPattern.test(manifest.id))
       throw new Error(
         `Invalid plugin ID "${manifest.id}" (${relativeTo(base)}). Use lowercase letters, digits and hyphens.`,
@@ -362,6 +370,8 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
         `Plugin ID "${manifest.id}" is used twice (${relativeTo(base)}). Rename the folder or set id in plugin.config.ts.`,
       );
     pluginIds.add(manifest.id);
+    // A nested plugin folder belongs to the plugin folder around it.
+    const parent = manifest.parent ?? idByDirectory.get(parentDirectory(base, moduleRoots));
     const enabled =
       config.plugins?.overrides?.[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true;
     const readPackage = (folder) =>
@@ -372,7 +382,9 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
           throw error;
         });
     const packageInfo =
-      (await readPackage(base)) ?? (id ? await readPackage(path.dirname(base)) : undefined) ?? {};
+      (await readPackage(base)) ??
+      (module.id ? await readPackage(path.dirname(base)) : undefined) ??
+      {};
     const metadata = {};
     for (const key of [
       'name',
@@ -463,7 +475,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       manifest.id,
     );
     definitions.push(
-      `{ id: ${quote(manifest.id)}, metadata: ${quote(metadata)}, dependencies: ${quote(manifest.dependencies ?? [])}, events: ${events}, settings: ${settings}, actions: ${actions}, services: ${services}, slots: ${slotDefinitions}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${pluginSettingsPage ? `, settings: ${pluginSettingsPage}` : ''} }, setup: ${setup}, contributions: ${pluginContributions} }`,
+      `{ id: ${quote(manifest.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}metadata: ${quote(metadata)}, dependencies: ${quote(manifest.dependencies ?? [])}, events: ${events}, settings: ${settings}, actions: ${actions}, services: ${services}, slots: ${slotDefinitions}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${pluginSettingsPage ? `, settings: ${pluginSettingsPage}` : ''} }, setup: ${setup}, contributions: ${pluginContributions} }`,
     );
     for (const file of await resolveEntry('locales', 'locales')) {
       if (!file.endsWith('.json')) continue;

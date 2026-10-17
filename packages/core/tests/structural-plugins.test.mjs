@@ -468,3 +468,88 @@ test('retry restores composition readers whose scopes were disposed by the faile
   assert.equal(runtime.isReady('projection'), true);
   assert.equal(projections, 3);
 });
+
+/** A plugin owned by `parent`, recording its start and stop. */
+const childPlugin = (id, parent, log) =>
+  definePlugin({
+    id,
+    ...(parent ? { parent } : {}),
+    services: {
+      state: defineService(({ store, onStart, onStop }) => {
+        onStart(() => log.push(`start ${id}`));
+        onStop(() => log.push(`stop ${id}`));
+        return store(0);
+      }),
+    },
+  });
+
+test('a parent starts before its children and a missing parent is named at startup', async (t) => {
+  const log = [];
+  // Installed child-first on purpose: ownership decides the order.
+  await host(t, [
+    childPlugin('crm-deals-notes', 'crm-deals', log),
+    childPlugin('crm-deals', 'crm', log),
+    childPlugin('crm', undefined, log),
+  ]);
+  assert.deepEqual(log, ['start crm', 'start crm-deals', 'start crm-deals-notes']);
+  assert.throws(
+    () => createRuntime({ plugins: [childPlugin('contacts', 'crm', [])] }),
+    /Plugin "contacts" belongs to "crm", which is not installed or is disabled/,
+  );
+});
+
+test('disabling a parent stops every descendant even with refuse; a child alone leaves the parent', async (t) => {
+  const log = [];
+  const runtime = await host(t, [
+    childPlugin('crm', undefined, log),
+    childPlugin('deals', 'crm', log),
+    childPlugin('notes', 'deals', log),
+    childPlugin('reports', 'crm', log),
+    servicePlugin('keeper'),
+  ]);
+  log.length = 0;
+  assert.equal(
+    (await runtime.plugins.disable('notes', { dependents: 'refuse' })).status,
+    'applied',
+  );
+  assert.deepEqual(log, ['stop notes']);
+  assert.equal(runtime.isReady('crm') && runtime.isReady('deals'), true);
+  log.length = 0;
+  // Owned descendants follow their parent; they are not "dependents" the policy can refuse.
+  const disabled = await runtime.plugins.disable('crm', { dependents: 'refuse' });
+  assert.equal(disabled.status, 'applied');
+  assert.deepEqual([...disabled.changed].sort(), ['crm', 'deals', 'reports']);
+  assert.deepEqual(log.slice(-1), ['stop crm'], 'children stop before their parent');
+  assert.equal(runtime.isReady('keeper'), true);
+  // A child cannot run without its parent.
+  const refused = await runtime.plugins.enable('reports');
+  assert.equal(refused.status, 'blocked');
+  assert.match(refused.reasons[0], /belongs to "crm", which is disabled/);
+  // Enabling the parent restores what its disable switched off, not the child disabled on its own.
+  assert.equal((await runtime.plugins.enable('crm')).status, 'applied');
+  assert.deepEqual(
+    ['crm', 'deals', 'reports', 'notes'].map((id) => runtime.isReady(id)),
+    [true, true, true, false],
+  );
+});
+
+test('an external dependent of a child follows the policy; removing a parent removes its subtree', async (t) => {
+  const runtime = await host(t, [
+    childPlugin('crm', undefined, []),
+    childPlugin('deals', 'crm', []),
+    servicePlugin('dashboard', ['deals.state']),
+  ]);
+  const blocked = await runtime.plugins.remove(['crm'], { dependents: 'refuse' });
+  assert.equal(blocked.status, 'blocked');
+  assert.match(blocked.reasons[0], /dashboard/);
+  assert.equal((await runtime.plugins.remove(['crm'], { dependents: 'stop' })).status, 'applied');
+  assert.deepEqual(
+    runtime.modules.map((module) => module.id).filter((id) => id !== 'app'),
+    [],
+    'crm and deals are uninstalled; dashboard is stopped',
+  );
+  assert.equal(
+    runtime.lifecycle.get().plugins.some((entry) => entry.id === 'deals'),
+    false,
+  );
+});

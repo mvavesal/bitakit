@@ -1911,3 +1911,30 @@ test('package CSS imports that need the "style" export condition are reported as
       'style-only': path.join(root, 'node_modules/style-only/dist/animate.css'),
     });
   }));
+
+test('a nested plugin folder with its own plugin.config.ts becomes a child plugin of the folder around it', () =>
+  fixture(async (root, put) => {
+    await put('package.json', JSON.stringify({ name: 'app' }));
+    await put('src/plugins/crm/services/accounts.ts', 'export default () => ({});');
+    await put('src/plugins/crm/deals/plugin.config.ts', 'export default {};');
+    await put('src/plugins/crm/deals/services/pipeline.ts', 'export default () => ({});');
+    await put('src/plugins/crm/deals/notes/plugin.config.ts', "export default { id: 'deal-notes' };");
+    await put('src/plugins/crm/deals/notes/actions/add.ts', 'export default { execute() {} };');
+    // An ordinary subfolder without a manifest stays part of its plugin.
+    await put('src/plugins/crm/services/import/csv.ts', 'export default () => ({});');
+    const generated = await generateBitaKit(root, { quiet: true });
+    const config = (await loadGenerated(generated.generated)).createBitaKitConfig();
+    const byId = Object.fromEntries(config.plugins.map((plugin) => [plugin.id, plugin]));
+    assert.equal(byId.crm.parent, undefined);
+    assert.equal(byId.deals.parent, 'crm');
+    assert.equal(byId['deal-notes'].parent, 'deals');
+    assert.deepEqual(
+      byId.crm.services.map((service) => service.id).sort(),
+      ['crm.accounts', 'crm.import.csv'],
+      'nested child folders are not part of the parent plugin',
+    );
+    const description = await describeBitaKit(root);
+    const described = Object.fromEntries(description.plugins.map((plugin) => [plugin.id, plugin]));
+    assert.equal(described.deals.parent, 'crm');
+    assert.deepEqual(described['deal-notes'].dependencies, ['deals']);
+  }));
