@@ -59,7 +59,7 @@ src/plugins/<id>/
 ├── configs/<file>.ts      defineConfig    → app.config.<id>.<file>
 ├── slots/<file>.ts        defineSlot      → <id>.<file> (owned contract)
 ├── interceptors/<file>.ts defineInterceptor
-├── setup.ts               optional; `({ app, services }) => cleanup?`
+├── setup.ts               optional; `({ scope, services }) => cleanup?`
 ├── plugin.config.ts       optional; dependencies, metadata, id, entries
 ├── locales/<lang>.json    { "<id>": { ... } }
 └── ui/                    React only
@@ -77,7 +77,9 @@ src/layouts/<name>.tsx     app layouts; pages opt in with `export const layout =
 - Files need a default export; discovery parses, never executes, and warns about skipped
   files. Prefix helpers with `-`. `.d.ts` and `server/` are skipped.
 - The app module uses the same folders directly under `src/` with the ID `app` and
-  unprefixed IDs. App-owned routes stay native framework routes; plugin pages render
+  unprefixed IDs; events and configuration use the app module ID as their owner segment
+  (`app.<name>` events, `app.config.app.<file>`), because Core names an event's owner by its
+  first segment. App-owned routes stay native framework routes; plugin pages render
   through the generated catch-all with `<PluginPage />`.
 - `bitakit.config.ts` (`defineBitaKit` from `@bitakit/discovery`) holds host overrides:
   `configOverrides`, `actions.overrides`, `plugins.overrides/include/autoEnable`, `packages`,
@@ -206,13 +208,13 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `bitakit build` generates types and `dist/plugin.slots.json` static hints from source.
   Never maintain the sidecar by hand. Doctor never executes contributions; computed/imported
   collections are reported as unresolved, not guessed. Runtime duplicate checks are authoritative.
-- Action `slots: ['shell.navigation']` or `[{ name, input: ({ payload }) => ..., order?, key?, availability? }]`
+- Action `slots: ['shell.navigation']` or `[{ slot, input: ({ payload }) => ..., order?, key?, availability? }]`
   adds owned references to the single Action registration (default wait). Groups are logical
   queries, not implicit placement. Unknown targets fail; internal Actions never enter slots.
-  Optional integrations can explicitly test `app.slots.has(name)` before attaching.
+  Optional integrations can explicitly test `scope.slots.has(name)` in setup before attaching.
   App Preferences projects catalog pages into these slots; compatible host updates rebuild its projection.
 
-- Use runtime-issued `app.slots.attach(name, { component | data | actionId, id?, key?, order? },
+- Use runtime-issued `scope.slots.attach({ slot, component | data | actionId, id?, key?, order? },
   { availability: 'require' | 'wait' })`. Default require checks owner readiness; wait accepts
   known definitions only. Both follow subsequent availability. Contributor close immediately
   revokes entries and waiters before awaited cleanup. Never attach by emitting status events.
@@ -360,7 +362,10 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   Production startup fails fast; `isolateFailures` changes the default. Do not broaden that
   startup boundary to unrelated render errors; slot components use the explicit render boundary above.
 - Setup is synchronous; `setup` and service `create` do not receive the `app` facade before
-  mount. `PluginScope` (`app.actions.getGroup(id).attach/add`, `app.own`) tracks cleanup.
+  mount. `setup({ scope, services })` receives the `PluginScope` (`scope.slots`,
+  `scope.actions.getGroup(id).attach/add`, `scope.own`), which tracks cleanup; `app` always means
+  the application facade. One field names a slot target everywhere: `slot` in Action placements,
+  `ui.slots` and `scope.slots.attach({ slot, … })`.
 
 ## Package boundaries
 

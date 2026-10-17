@@ -5,7 +5,7 @@ import Icon from 'reicon-react/icons/Flask';
 import { DemoSettings } from './ui/components/demo-settings';
 
 /** Registers the plugin's settings page under the host's "Plugins" section; the scope removes it with the plugin. */
-const setup: Setup = ({ app, services }) => {
+const setup: Setup = ({ scope, services }) => {
   const page = getService(services, settingsService).add(
     new SettingsSection({
       id: 'demo',
@@ -16,6 +16,6 @@ const setup: Setup = ({ app, services }) => {
     }),
     { section: 'plugins' },
   );
-  app.own(page.remove);
+  scope.own(page.remove);
 };
 export default setup;

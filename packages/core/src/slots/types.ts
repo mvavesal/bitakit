@@ -89,9 +89,9 @@ export type SlotReader = Readonly<{
   watch(name: SlotName, listener: (state: SlotSnapshot) => void): () => void;
 }>;
 export type ScopedSlots = SlotReader & {
+  /** `scope.slots.attach({ slot: 'shell.toolbar', actionId: 'notes.open' })`; the slot is part of the contribution. */
   attach<const Name extends SlotName>(
-    name: Name,
-    contribution: SlotContribution<Name>,
+    contribution: { slot: Name } & SlotContribution<Name>,
     options?: { availability?: SlotAvailability },
   ): SlotAttachment;
 };

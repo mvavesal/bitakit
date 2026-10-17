@@ -35,8 +35,8 @@ test('groups are inferred, shared across plugins, and dynamic API placements cle
       {
         id: 'one',
         actions: discoverActions([file(defineAction({ groups: ['menu', typed] }), 'run')], 'one'),
-        setup({ app }) {
-          dynamic = app.actions.getGroup('extra').attach('one.run');
+        setup({ scope }) {
+          dynamic = scope.actions.getGroup('extra').attach('one.run');
         },
       },
       {

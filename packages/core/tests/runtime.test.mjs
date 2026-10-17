@@ -63,8 +63,8 @@ test('a pending action survives translation updates; scopes clean up on stop and
             },
           }),
         },
-        setup({ app }) {
-          app.actions.getGroup('users.menu').attach('users.invite');
+        setup({ scope }) {
+          scope.actions.getGroup('users.menu').attach('users.invite');
         },
       }),
     ],
@@ -106,8 +106,8 @@ test('failed setup rolls back actions, placements and services without touching 
           }),
         },
         actions: { run: defineAction({ execute() {} }) },
-        setup({ app }) {
-          app.actions.getGroup('menu').attach('host');
+        setup({ scope }) {
+          scope.actions.getGroup('menu').attach('host');
           throw new Error('Setup failed');
         },
       }),
@@ -134,9 +134,9 @@ test('setup receives the plugin scope and services, and its cleanup runs on stop
       definePlugin({
         id: 'demo',
         services: { s: defineService(() => ({ name: 'service' })) },
-        setup({ app, services }) {
-          log.push(['setup', services.demo.s.name, typeof app.actions.getGroup]);
-          const handle = app.actions
+        setup({ scope, services }) {
+          log.push(['setup', services.demo.s.name, typeof scope.actions.getGroup]);
+          const handle = scope.actions
             .getGroup('demo.menu')
             .add({ id: 'demo.dynamic', title: 'Dynamic', execute: () => 'dynamic' });
           log.push(['added', typeof handle.dispose]);

@@ -160,6 +160,16 @@ export type MigrationChange = {
   to?: string;
   detail?: string;
 };
+/**
+ * Rewrites the 0.2 API spellings in one TypeScript/TSX source on its syntax tree: a BitaKit setup's
+ * `{ app }` becomes `{ scope: app }`, `defineAction` placements use `slot`, and
+ * `slots.attach(name, contribution)` becomes `slots.attach({ slot: name, ... })`. `unresolved`
+ * lists lines of old-form calls that need a manual rewrite.
+ */
+export function rewriteScopeAndSlots(
+  source: string,
+  options?: { setupFile?: boolean; tsx?: boolean },
+): { code: string; unresolved: number[] };
 /** Rewrites a 0.1 project layout to the current one. `dryRun` only reports the changes. */
 export function migrateProject(
   root: string,

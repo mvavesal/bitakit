@@ -115,8 +115,8 @@ test('toolbar Actions keep bindings, mapped inputs and native links across Shell
       run: defineAction({
         title: ({ input }) => `Run ${input}`,
         slots: [
-          { name: 'shell.toolbar', key: 'first', input: () => 'first' },
-          { name: 'shell.toolbar', key: 'second', input: () => 'second' },
+          { slot: 'shell.toolbar', key: 'first', input: () => 'first' },
+          { slot: 'shell.toolbar', key: 'second', input: () => 'second' },
         ],
         execute: ({ input }) => {
           calls.push(input);
@@ -601,8 +601,8 @@ test('one Action can have two keyed navigation placements without merging their 
     actions: {
       open: defineAction({
         slots: [
-          { name: 'shell.navigation', key: 'alpha', input: () => 'alpha' },
-          { name: 'shell.navigation', key: 'beta', input: () => 'beta' },
+          { slot: 'shell.navigation', key: 'alpha', input: () => 'alpha' },
+          { slot: 'shell.navigation', key: 'beta', input: () => 'beta' },
         ],
         title: ({ input }) => input,
         href: ({ input }) => `/project/${input}`,

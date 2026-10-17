@@ -293,7 +293,7 @@ export default defineAction<string>({
   title: 'Copy member ID',
   description: 'Copy this member’s ID to the clipboard.',
   slots: [{
-    name: 'organizations.member.menu',
+    slot: 'organizations.member.menu',
     input: ({ payload }) => payload.memberId,
   }],
   execute: ({ input }) => navigator.clipboard.writeText(input),

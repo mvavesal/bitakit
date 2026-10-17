@@ -286,7 +286,7 @@ no pending invitations and no search results retain distinct messages. `Incoming
 accepts `emptyState` to replace the no-invitations presentation; it does not replace access
 errors or loading states. Authentication and email verification remain provider-owned.
 
-Organization member menus read the typed `organizations.member.menu` Action slot. Contributors use `slots: [{ name: 'organizations.member.menu', input: ({ payload }) => payload }]`; each row supplies `{ organizationId, memberId }`. Logical member-group membership alone no longer places an Action in that menu. Native Action bindings retain guards, confirmation and keyboard behavior. Other organization toolbars retain their current group queries.
+Organization member menus read the typed `organizations.member.menu` Action slot. Contributors use `slots: [{ slot: 'organizations.member.menu', input: ({ payload }) => payload }]`; each row supplies `{ organizationId, memberId }`. Logical member-group membership alone no longer places an Action in that menu. Native Action bindings retain guards, confirmation and keyboard behavior. Other organization toolbars retain their current group queries.
 
 The optional standalone Organizations entry uses `organizationUIPlugin({ slots: ['host.navigation'] })`; default placement joins Shell when present, and `slots: []` omits it. This does not affect the owned member-menu slot.
 

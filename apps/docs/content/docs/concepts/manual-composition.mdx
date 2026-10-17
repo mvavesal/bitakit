@@ -60,7 +60,7 @@ definePlugin({
   events: todosEvents,          // defineEvents({ ... })
   config: { limits },           // mirrors configs/limits.ts → app.config.todos.limits
   interceptors: [audit],
-  setup: ({ app, services }) => () => {},
+  setup: ({ scope, services }) => () => {},
   ui: { pages: [...], slots: [...], providers: [...] },
 });
 ```
@@ -85,9 +85,9 @@ const host = definePlugin({
 const editor = definePlugin({
   id: 'editor',
   actions: { save: defineAction({ execute: () => saveDocument() }) },
-  setup: ({ app }) => {
-    app.slots.attach('host.toolbar', { actionId: 'editor.save' }, { availability: 'wait' });
-    app.slots.watch('host.toolbar', (snapshot) => console.log(snapshot.phase));
+  setup: ({ scope }) => {
+    scope.slots.attach({ slot: 'host.toolbar', actionId: 'editor.save' }, { availability: 'wait' });
+    scope.slots.watch('host.toolbar', (snapshot) => console.log(snapshot.phase));
   },
 });
 ```
@@ -108,9 +108,10 @@ See [host updates and inspection](/docs/concepts/runtime-management) for compati
 dependencies fail startup with the involved IDs. `setup` runs after Action registration and
 may return cleanup. Put awaited work in a service's `onStart`; setup itself is synchronous.
 
-Setup receives a runtime-issued `PluginScope` as `app`. Its registrations, group attachments,
-slot contributions and observers are released with that owner. For example,
-`app.actions.getGroup(id).attach(actionId)` adds logical group membership with owned cleanup.
+Setup receives a runtime-issued `PluginScope` as `scope`; `app` always means the application
+facade. Its registrations, group attachments, slot contributions and observers are released with
+that owner. For example, `scope.actions.getGroup(id).attach(actionId)` adds logical group
+membership with owned cleanup.
 Groups do not place UI; use [slots](/docs/reference/slots) for placement.
 
 The runtime's `app` facade exposes typed `services`, `actions`, configuration snapshots and

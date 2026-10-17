@@ -41,7 +41,7 @@ it never detaches another outlet's contribution. Use standard service/setting ho
 import { defineAction } from '@bitakit/core';
 export default defineAction<string>({
   title: 'Export audit',
-  slots: [{ name: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }],
+  slots: [{ slot: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }],
   visible: ({ input }) => input === 'billing',
   execute: ({ input }) => console.log(input),
 });

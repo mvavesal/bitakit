@@ -15,7 +15,7 @@ test('two outlets bind one Action independently, with live presentation and per-
     services: { label: defineService(({ store }) => store('Remove')) },
     actions: {
       remove: defineAction({
-        slots: [{ name: 'members', input: ({ payload }) => payload.id }],
+        slots: [{ slot: 'members', input: ({ payload }) => payload.id }],
         title: ({ input, services }) => `${services.label.get()} ${input}`,
         enabled: ({ input }) => input !== 'locked',
         visible: ({ input }) => input !== 'hidden',

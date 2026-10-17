@@ -85,7 +85,7 @@ test('two page outlets select their own body, ordered extensions and contextual 
     actions: {
       export: defineAction({
         title: 'Export history',
-        slots: [{ name: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }],
+        slots: [{ slot: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }],
         visible: ({ input }) => input === 'billing/history',
         execute: ({ input }) => calls.push(input),
       }),

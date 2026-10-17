@@ -230,7 +230,8 @@ export function isActionSpec(value: unknown): value is ActionSpec {
 // Plugins
 // ---------------------------------------------------------------------------------------------
 
-export type Setup = (context: { app: PluginScope; services: Services }) => void | Cleanup;
+/** `scope` is the plugin's own scope (slots, groups, cleanup); `app` always means the whole application. */
+export type Setup = (context: { scope: PluginScope; services: Services }) => void | Cleanup;
 /** A component placed in a named slot of a layout. */
 export type PluginView = {
   slot: string;

@@ -13,7 +13,7 @@ type PlainNames = {
   [N in ActionNames]: SlotMap[N] extends { policy: 'keyed' } ? never : N;
 }[ActionNames];
 type Placement<Name extends string, Input> = {
-  name: Name;
+  slot: Name;
   /** Evaluated for each outlet occurrence, never at Action registration. */
   input?: (context: { payload: Name extends Names ? SlotPayload<Name> : unknown }) => Input;
   order?: number;
@@ -28,7 +28,7 @@ export type ActionSlotPlacement<Input = unknown> = [Names] extends [never]
 export type RuntimeActionPlacement =
   | string
   | {
-      name: string;
+      slot: string;
       input?: (context: { payload: any }) => unknown;
       order?: number;
       key?: string;

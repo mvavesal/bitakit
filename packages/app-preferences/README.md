@@ -135,7 +135,7 @@ for toolbar Actions use `visible`/`enabled` and the mapped input.
 // audit/actions/export.ts
 export default defineAction<string>({
   title: 'Export',
-  slots: [{ name: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }],
+  slots: [{ slot: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }],
   visible: ({ input }) => input === 'billing/history',
   execute: ({ input, services }) => services.audit.export(input),
 });

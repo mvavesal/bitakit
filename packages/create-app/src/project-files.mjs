@@ -159,7 +159,7 @@ time; there is no registry, provider or import list to edit. One concept, one wa
   - \`settings.ts\`: \`defineSettings({ pageSize: setting({ default: 20 }) })\`, read as \`settings.<name>.pageSize.get()\`
     in services and actions and \`useSetting('<name>.pageSize')\` in React. Settings get a generated page under
     \`/settings\`; \`ui/settings/page.tsx\` replaces it. Additional pages use \`ui.settings.pages\`; the same catalog projects their routes, navigation Actions and keyed page bodies. Slot extensions use \`app-preferences.page.after\` with \`when({ payload })\`; page \`boundary\` encloses content and extensions. Persistence is the \`settings.storage\` contract (browser by default).
-  - \`slots/<file>.ts\`: \`defineSlot({ accepts: 'actions' | 'component' | 'data', policy: 'list' | 'single' | 'keyed' })\` (data requires schema). Owned contracts; data requires schema. Attach with scoped \`app.slots.attach(name, content, { availability: 'wait' })\`; cleanup is automatic.
+  - \`slots/<file>.ts\`: \`defineSlot({ accepts: 'actions' | 'component' | 'data', policy: 'list' | 'single' | 'keyed' })\` (data requires schema). Owned contracts; data requires schema. In setup, attach with \`scope.slots.attach({ slot, component | data | actionId }, { availability: 'wait' })\`; cleanup is automatic.
   - \`ui/pages/<path>.tsx\`: a page component; the file path is the URL. \`ui/slots/<slot>.tsx\`: a component
     attached when both owners are ready; \`PluginSlot\` isolates widget render errors automatically. Everything under \`ui/\` is React; nothing else may import React.
 - In React: \`useServiceState('<name>.<file>', (state) => ...)\` for reactive data from a ready owner,

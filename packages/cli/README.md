@@ -58,7 +58,8 @@ The file path decides the ID; nested names such as `notes/team/invite` create
 npx bitakit generate            # write src/bitakit.gen.* from the plugin folders and installed packages
 npx bitakit generate --watch    # keep regenerating while files change
 npx bitakit migrate --dry-run   # list the changes from a 0.1 layout
-npx bitakit migrate             # apply them: bitakit.config.ts, folder-only files, ui/, generated imports
+npx bitakit migrate             # apply them: bitakit.config.ts, folder-only files, ui/, generated imports,
+                                # setup({ scope }), placement slot and slots.attach({ slot })
 ```
 
 The framework adapters run the generator themselves during `dev` and `build`; `generate` is for

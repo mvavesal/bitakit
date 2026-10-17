@@ -36,19 +36,18 @@ test('declarations remain unavailable until ready; require, wait and unknown nam
             return {};
           }),
         },
-        setup: ({ app }) => {
+        setup: ({ scope: app }) => {
           scope = app;
           assert.throws(
-            () => app.slots.attach('owner.header', { component: 'opaque' }),
+            () => app.slots.attach({ slot: 'owner.header', component: 'opaque' }),
             (e) => e.code === 'unavailable-slot',
           );
           assert.throws(
-            () => app.slots.attach('typo', { component: 'opaque' }, { availability: 'wait' }),
+            () => app.slots.attach({ slot: 'typo', component: 'opaque' }, { availability: 'wait' }),
             (e) => e.code === 'unknown-slot',
           );
           handle = app.slots.attach(
-            'owner.header',
-            { component: 'opaque' },
+            { slot: 'owner.header', component: 'opaque' },
             { availability: 'wait' },
           );
         },
@@ -101,7 +100,7 @@ function isolated(definition = { accepts: 'component', policy: 'list' }) {
 
 test('owner loss and a new generation reattach once; contributor close revokes waiters', async () => {
   const x = isolated();
-  const handle = x.slots.attach('surface', { component: 'widget' }, { availability: 'wait' });
+  const handle = x.slots.attach({ slot: 'surface', component: 'widget' }, { availability: 'wait' });
   const states = [];
   handle.watch((s) => states.push(s));
   x.lifecycle.plugin('owner', 'ready');
@@ -134,7 +133,7 @@ test('owner loss and a new generation reattach once; contributor close revokes w
   handle.dispose();
   await x.scope.dispose();
   assert.equal(states.at(-1).phase, 'detached');
-  assert.throws(() => x.slots.attach('surface', { component: 'late' }), /no longer active/);
+  assert.throws(() => x.slots.attach({ slot: 'surface', component: 'late' }), /no longer active/);
 });
 
 test('single and keyed conflicts include pending reservations; dispose releases the reservation', async () => {
@@ -142,23 +141,21 @@ test('single and keyed conflicts include pending reservations; dispose releases 
     const x = isolated({ accepts: 'component', policy });
     if (policy === 'keyed')
       assert.throws(
-        () => x.slots.attach('surface', { component: 1 }, { availability: 'wait' }),
+        () => x.slots.attach({ slot: 'surface', component: 1 }, { availability: 'wait' }),
         /requires a non-empty key/,
       );
     const first = x.slots.attach(
-      'surface',
-      { component: 1, key: 'main' },
+      { slot: 'surface', component: 1, key: 'main' },
       { availability: 'wait' },
     );
     assert.throws(
-      () => x.slots.attach('surface', { component: 2, key: 'main' }, { availability: 'wait' }),
+      () => x.slots.attach({ slot: 'surface', component: 2, key: 'main' }, { availability: 'wait' }),
       (e) => e instanceof SlotError && e.code === 'conflict',
     );
     first.dispose();
     await assert.rejects(first.ready, (e) => e.code === 'detached');
     const second = x.slots.attach(
-      'surface',
-      { component: 2, key: 'main' },
+      { slot: 'surface', component: 2, key: 'main' },
       { availability: 'wait' },
     );
     x.lifecycle.plugin('owner', 'ready');
@@ -185,14 +182,14 @@ test('data is validated once, failures are attributed, and late validation canno
     },
   });
   x.lifecycle.plugin('owner', 'ready');
-  const pending = x.slots.attach('surface', { data: { count: '2' } });
+  const pending = x.slots.attach({ slot: 'surface', data: { count: '2' } });
   assert.equal(pending.get().reason, 'validating');
   gate.resolve();
   await pending.ready;
   assert.equal(calls, 1);
   assert.deepEqual(x.registry.reader.get('surface').items[0].data, { count: 2 });
   pending.dispose();
-  const late = x.slots.attach('surface', { data: { count: '3' } });
+  const late = x.slots.attach({ slot: 'surface', data: { count: '3' } });
   x.scope.close();
   await assert.rejects(late.ready, (e) => e.code === 'detached');
   await Promise.resolve();
@@ -208,7 +205,7 @@ test('data is validated once, failures are attributed, and late validation canno
     },
   });
   bad.lifecycle.plugin('owner', 'ready');
-  const failure = bad.slots.attach('surface', { data: {} });
+  const failure = bad.slots.attach({ slot: 'surface', data: {} });
   await assert.rejects(
     failure.ready,
     (e) => e.plugin === 'writer' && /count required/.test(e.message),
@@ -220,7 +217,7 @@ test('data is validated once, failures are attributed, and late validation canno
   });
   assert.equal(terminal.phase, 'failed');
   assert.doesNotThrow(
-    () => bad.slots.attach('surface', { data: {} }),
+    () => bad.slots.attach({ slot: 'surface', data: {} }),
     'failed validation releases single occupancy',
   );
   await bad.scope.dispose();
@@ -232,10 +229,10 @@ test('action attachments reference the one live ActionList and exclude internal 
   x.lifecycle.plugin('owner', 'ready');
   const registration = x.list.register({ id: 'save', title: 'Save', execute() {} });
   const internal = x.list.register({ id: 'hidden', internal: true, execute() {} });
-  assert.throws(() => x.slots.attach('surface', { actionId: 'hidden' }), /public Action/);
-  assert.throws(() => x.slots.attach('surface', { actionId: 'missing' }), /public Action/);
-  assert.throws(() => x.slots.attach('surface', { component: 'wrong' }), /accepts actions/);
-  const handle = x.slots.attach('surface', { actionId: 'save' });
+  assert.throws(() => x.slots.attach({ slot: 'surface', actionId: 'hidden' }), /public Action/);
+  assert.throws(() => x.slots.attach({ slot: 'surface', actionId: 'missing' }), /public Action/);
+  assert.throws(() => x.slots.attach({ slot: 'surface', component: 'wrong' }), /accepts actions/);
+  const handle = x.slots.attach({ slot: 'surface', actionId: 'save' });
   await handle.ready;
   const snapshot = x.registry.reader.get('surface');
   registration.update({ title: 'Updated' });
@@ -258,10 +255,10 @@ test('declarative and programmatic contributions share ordering, ownership and r
       {
         id: 'writer',
         ui: { slots: [pluginSlot({ default: 'file', order: 1 }, 'header', 'ui/slots/header.tsx')] },
-        setup: ({ app }) => {
+        setup: ({ scope: app }) => {
           scope = app;
           handles.push(
-            app.slots.attach('header', { component: 'manual', order: 0 }, { availability: 'wait' }),
+            app.slots.attach({ slot: 'header', component: 'manual', order: 0 }, { availability: 'wait' }),
           );
         },
       },
@@ -273,7 +270,7 @@ test('declarative and programmatic contributions share ordering, ownership and r
     runtime.slots.get('header').items.map((x) => x.component),
     ['manual', 'file'],
   );
-  const late = scope.slots.attach('header', { component: 'later', order: 1 });
+  const late = scope.slots.attach({ slot: 'header', component: 'later', order: 1 });
   await late.ready;
   assert.deepEqual(
     runtime.slots.get('header').items.map((x) => x.component),
@@ -292,7 +289,7 @@ test('declarative and programmatic contributions share ordering, ownership and r
 
 test('observer errors and reentrant close cannot leave active or waiting contributions behind', async () => {
   const x = isolated();
-  const handle = x.slots.attach('surface', { component: 'widget' }, { availability: 'wait' });
+  const handle = x.slots.attach({ slot: 'surface', component: 'widget' }, { availability: 'wait' });
   handle.watch((s) => {
     if (s.phase === 'attached') x.scope.close();
   });
@@ -319,8 +316,8 @@ test('startup failure revokes pending attachments; cleanup pending is never read
         return {};
       }),
     },
-    setup: ({ app }) => {
-      handle = app.slots.attach('header', { component: 'widget' }, { availability: 'wait' });
+    setup: ({ scope }) => {
+      handle = scope.slots.attach({ slot: 'header', component: 'widget' }, { availability: 'wait' });
     },
   });
   runtime.mount();
@@ -332,7 +329,7 @@ test('startup failure revokes pending attachments; cleanup pending is never read
   x.lifecycle.plugin('owner', 'ready');
   x.lifecycle.update({ cleanup: 'pending' });
   assert.throws(
-    () => x.slots.attach('surface', { component: 'widget' }),
+    () => x.slots.attach({ slot: 'surface', component: 'widget' }),
     (e) => e.code === 'unavailable-slot',
   );
   assert.equal(x.registry.reader.get('surface').phase, 'stopping');
@@ -355,7 +352,7 @@ test('slot notifications use the existing reserved bus and watch subscribes befo
   let scope;
   const runtime = createRuntime({
     slots: { header: component() },
-    setup: ({ app }) => {
+    setup: ({ scope: app }) => {
       scope = app;
     },
   });
@@ -368,7 +365,7 @@ test('slot notifications use the existing reserved bus and watch subscribes befo
   let handle;
   const off = scope.slots.watch('header', (state) => {
     states.push(state);
-    if (states.length === 1) handle = scope.slots.attach('header', { component: 'live' });
+    if (states.length === 1) handle = scope.slots.attach({ slot: 'header', component: 'live' });
   });
   await handle.ready;
   assert.deepEqual(
@@ -382,8 +379,8 @@ test('slot notifications use the existing reserved bus and watch subscribes befo
 
 test('reentrant owner stop never announces later attachments as ready from an obsolete snapshot', async () => {
   const x = isolated();
-  const first = x.slots.attach('surface', { component: 1 }, { availability: 'wait' });
-  const second = x.slots.attach('surface', { component: 2 }, { availability: 'wait' });
+  const first = x.slots.attach({ slot: 'surface', component: 1 }, { availability: 'wait' });
+  const second = x.slots.attach({ slot: 'surface', component: 2 }, { availability: 'wait' });
   const states = [];
   let resolved = false;
   first.watch((s) => {

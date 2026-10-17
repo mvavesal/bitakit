@@ -931,6 +931,7 @@ export class FoundationRuntime implements ContributionHost {
         for (const [viewIndex, view] of plugin.views.entries()) {
           if (!this.slots.has(view.slot)) continue;
           const contribution = {
+            slot: view.slot,
             id: view.id ?? `view:${viewIndex}`,
             component: view.component,
             key: view.key,
@@ -939,7 +940,7 @@ export class FoundationRuntime implements ContributionHost {
           };
           preserveContributionPath(view, contribution);
           try {
-            this.scopes[index].slots.attach(view.slot, contribution, {
+            this.scopes[index].slots.attach(contribution, {
               availability: view.availability ?? 'wait',
             });
           } catch (error) {
@@ -951,7 +952,7 @@ export class FoundationRuntime implements ContributionHost {
       plugins.forEach((plugin, index) => {
         const scope = this.scopes[index];
         try {
-          const cleanup = plugin.setup?.({ app: scope, services: this.services });
+          const cleanup = plugin.setup?.({ scope, services: this.services });
           if (cleanup) scope.own(cleanup);
         } catch (error) {
           throw this.attribute(error, plugin.id, 'Setup');
@@ -1159,8 +1160,13 @@ export class FoundationRuntime implements ContributionHost {
         if (!registration.definition.internal) {
           for (const placement of (adapted.definition.slots ??
             []) as readonly RuntimeActionPlacement[]) {
-            const target = typeof placement === 'string' ? { name: placement } : placement;
+            const target = typeof placement === 'string' ? { slot: placement } : placement;
+            if (typeof target.slot !== 'string')
+              throw new TypeError(
+                'Action slot placements name their target with { slot } (formerly { name }); run "bitakit migrate".',
+              );
             const reference = {
+              slot: target.slot,
               id: `action:${registration.id}:${target.key ?? ''}`,
               actionId: registration.id,
               input: target.input,
@@ -1168,7 +1174,7 @@ export class FoundationRuntime implements ContributionHost {
               order: target.order ?? contribution.order,
             };
             preserveContributionPath(contribution, reference);
-            const attached = scope.slots.attach(target.name, reference, {
+            const attached = scope.slots.attach(reference, {
               availability: target.availability ?? 'wait',
             });
             handle.onDispose(attached.dispose);
@@ -1748,6 +1754,7 @@ export class FoundationRuntime implements ContributionHost {
         for (const [index, view] of plugin.views.entries())
           if (this.slots.has(view.slot)) {
             const contribution = {
+              slot: view.slot,
               id: view.id ?? `view:${index}`,
               component: view.component,
               key: view.key,
@@ -1755,12 +1762,12 @@ export class FoundationRuntime implements ContributionHost {
               when: view.when,
             };
             preserveContributionPath(view, contribution);
-            scope.slots.attach(view.slot, contribution, {
+            scope.slots.attach(contribution, {
               availability: view.availability ?? 'wait',
             });
           }
         try {
-          const cleanup = plugin.setup?.({ app: scope, services: this.services });
+          const cleanup = plugin.setup?.({ scope, services: this.services });
           if (cleanup) scope.own(cleanup);
         } catch (error) {
           throw this.attribute(error, plugin.id, 'Setup');

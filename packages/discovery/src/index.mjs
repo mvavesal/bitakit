@@ -12,6 +12,7 @@ export const defineFoundation = defineBitaKit;
 export { generateFoundationHost } from './host.mjs';
 export { describeFoundation, describeModule } from './describe.mjs';
 export { migrateProject } from './migrate.mjs';
+export { rewriteScopeAndSlots } from './scope-and-slots.mjs';
 export {
   styleLayers,
   stylePrelude,

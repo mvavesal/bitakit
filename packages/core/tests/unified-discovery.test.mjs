@@ -23,6 +23,7 @@ import {
   defineBitaKit,
   watchFoundation,
   migrateProject,
+  rewriteScopeAndSlots,
 } from '@bitakit/discovery';
 // Internal module: the package exports only its public entry.
 import { discoverEntries } from '../../discovery/src/entries.mjs';
@@ -1696,3 +1697,52 @@ test('slot definitions use every discovery spelling, generate payload types and 
       /Duplicate contribution.*index.ts.*header.actions.ts|Duplicate contribution.*header.actions.ts.*index.ts/,
     );
   }));
+
+test('migration rewrites setup scope, placement slot names and slot attachments on the syntax tree', () => {
+  const rewrite = (source, options) => rewriteScopeAndSlots(source, options).code;
+  const setup = [
+    'export default ({ app, services }) => {',
+    "  // the row's menu: an apostrophe in a comment must not stop later rewrites",
+    "  app.slots.attach('shell.toolbar', { actionId: 'notes.open' }, { availability: 'wait' });",
+    "  app.slots.attach(contribution, { availability: 'wait' });",
+    '};',
+  ].join('\n');
+  assert.equal(
+    rewrite(setup, { setupFile: true }),
+    [
+      'export default ({ scope: app, services }) => {',
+      "  // the row's menu: an apostrophe in a comment must not stop later rewrites",
+      "  app.slots.attach({ slot: 'shell.toolbar', actionId: 'notes.open' }, { availability: 'wait' });",
+      "  app.slots.attach(contribution, { availability: 'wait' });",
+      '};',
+    ].join('\n'),
+  );
+  const actions = [
+    "defineAction({ slots: ['shell.navigation', { key: 'a', name: 'notes.row' }], execute() {} });",
+    "defineAction({ slots: [{ name: 'people.menu', input: ({ payload }) => ({ name: payload.name }) }] });",
+  ].join('\n');
+  assert.equal(
+    rewrite(actions),
+    [
+      "defineAction({ slots: ['shell.navigation', { key: 'a', slot: 'notes.row' }], execute() {} });",
+      "defineAction({ slots: [{ slot: 'people.menu', input: ({ payload }) => ({ name: payload.name }) }] });",
+    ].join('\n'),
+  );
+  // Plugin objects and runtime options are BitaKit setup positions; other `setup` helpers are not.
+  assert.equal(
+    rewrite("definePlugin({ id: 'notes', setup: ({ app }) => app.own(() => {}) });"),
+    "definePlugin({ id: 'notes', setup: ({ scope: app }) => app.own(() => {}) });",
+  );
+  const unrelated = [
+    'function setup({ app, db }) { return app.listen(3000); }',
+    'setup({ app: server, db });',
+    "const schedule = { slots: [{ name: 'Morning', start: 9 }] };",
+    'defineAction({ execute: ({ app }) => app.actions.notes.add.execute() });',
+  ].join('\n');
+  assert.equal(rewrite(unrelated), unrelated);
+  // An old-form call that cannot be rewritten safely is reported, not guessed.
+  assert.deepEqual(
+    rewriteScopeAndSlots("scope.slots.attach('notes.row', contribution);").unresolved,
+    [1],
+  );
+});

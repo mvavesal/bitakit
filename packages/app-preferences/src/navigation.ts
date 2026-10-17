@@ -131,8 +131,8 @@ export function bindSettingsNavigation(
     for (const section of visibleSections(catalog))
       if (!projections.has(section.id)) {
         const navigation = scope.slots.attach(
-          'app-preferences.navigation',
           {
+            slot: 'app-preferences.navigation',
             id: `page:${section.id}`,
             actionId: `settings.section.${section.id}`,
             order: section.order,
@@ -140,8 +140,8 @@ export function bindSettingsNavigation(
           { availability: 'wait' },
         );
         const body = scope.slots.attach(
-          'app-preferences.page.body',
           {
+            slot: 'app-preferences.page.body',
             id: `page:${section.id}`,
             key: section.id,
             component: SettingsBody,
@@ -184,8 +184,8 @@ export function bindSettingsNavigation(
   const targets = slots ?? (scope.slots.has('shell.navigation') ? ['shell.navigation'] : []);
   const placements = targets.map((name) =>
     scope.slots.attach(
-      name,
       {
+        slot: name,
         id: 'settings-entry',
         actionId: 'app-preferences.settings',
       },

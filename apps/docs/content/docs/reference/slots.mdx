@@ -31,7 +31,7 @@ export default defineAction<string>({
   title: ({ input }) => (input ? `Inspect ${input}` : 'Inspect'),
   slots: [
     {
-      name: 'reports.row.menu',
+      slot: 'reports.row.menu',
       input: ({ payload }) => payload.reportId,
     },
   ],
@@ -143,11 +143,10 @@ render tree, not the plugin's services, event handlers or its own failing fallba
 // setup.ts — reuse an already registered Action in a host that may provide Shell.
 import type { Setup } from '@bitakit/core';
 
-const setup: Setup = ({ app }) => {
-  if (app.slots.has('shell.navigation')) {
-    app.slots.attach(
-      'shell.navigation',
-      { actionId: 'reports.open' },
+const setup: Setup = ({ scope }) => {
+  if (scope.slots.has('shell.navigation')) {
+    scope.slots.attach(
+      { slot: 'shell.navigation', actionId: 'reports.open' },
       {
         availability: 'wait',
       },

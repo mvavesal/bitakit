@@ -220,8 +220,8 @@ test('composition readers refresh after additions and removals', async (t) => {
   const seen = [];
   const projection = definePlugin({
     id: 'projection',
-    setup: ({ app }) => {
-      seen.push(scopeModules(app).map((module) => module.id));
+    setup: ({ scope }) => {
+      seen.push(scopeModules(scope).map((module) => module.id));
     },
   });
   const runtime = await host(t, [projection]);
@@ -242,10 +242,9 @@ test('waiting slot contributions survive disabling and enabling their owner', as
   });
   const contributor = definePlugin({
     id: 'contributor',
-    setup: ({ app }) => {
-      attachment = app.slots.attach(
-        'owner.extra',
-        { id: 'widget', component: () => null },
+    setup: ({ scope }) => {
+      attachment = scope.slots.attach(
+        { slot: 'owner.extra', id: 'widget', component: () => null },
         { availability: 'wait' },
       );
     },
@@ -419,8 +418,8 @@ test('a setting write started during awaited removal cleanup retains its declara
   });
   const projection = definePlugin({
     id: 'projection',
-    setup: ({ app }) => {
-      scopeModules(app);
+    setup: ({ scope }) => {
+      scopeModules(scope);
     },
   });
   const runtime = await host(t, [persistence, projection, notes]);
@@ -451,8 +450,8 @@ test('retry restores composition readers whose scopes were disposed by the faile
   let projections = 0;
   const projection = definePlugin({
     id: 'projection',
-    setup: ({ app }) => {
-      scopeModules(app);
+    setup: ({ scope }) => {
+      scopeModules(scope);
       projections++;
     },
   });

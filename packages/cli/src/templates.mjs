@@ -272,7 +272,7 @@ export function slotDefinitionFile() {
   return `import { defineSlot } from '@bitakit/core';
 
 // Owned contract; declaring it does not activate it or mount a renderer.
-// UI files attach automatically. In setup use app.slots.attach(name, content, { availability: 'wait' }).
+// UI files attach automatically. In setup use scope.slots.attach({ slot, component }, { availability: 'wait' }).
 export default defineSlot({ accepts: 'component', policy: 'list' });
 `;
 }

@@ -331,7 +331,7 @@ declare module '@bitakit/core' {
   }
 }
 defineAction<string>({
-  slots: [{ name: 'members.menu', input: ({ payload }) => payload.memberId }],
+  slots: [{ slot: 'members.menu', input: ({ payload }) => payload.memberId }],
   execute: () => {},
 });
 // @ts-expect-error Components cannot accept an Action placement.
@@ -340,7 +340,7 @@ defineAction({ slots: ['shell.footer'] });
 defineAction({ slots: ['misspelled.menu'] });
 defineAction<string>({
   // @ts-expect-error The input mapper must return the Action's input type.
-  slots: [{ name: 'members.menu', input: ({ payload }) => payload }],
+  slots: [{ slot: 'members.menu', input: ({ payload }) => payload }],
 });
 function slotTypes() {
   const menu = useSlot('members.menu', { payload: { memberId: 'ada' } });
@@ -369,5 +369,5 @@ declare module '@bitakit/core' {
 // @ts-expect-error Keyed placements require an explicit key, so string shorthand is insufficient.
 defineAction({ slots: ['keyed.menu'] });
 // @ts-expect-error Keyed placements require an explicit key.
-defineAction({ slots: [{ name: 'keyed.menu' }] });
-defineAction({ slots: [{ name: 'keyed.menu', key: 'primary' }] });
+defineAction({ slots: [{ slot: 'keyed.menu' }] });
+defineAction({ slots: [{ slot: 'keyed.menu', key: 'primary' }] });

@@ -45,14 +45,14 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) 
       },
     ),
     ui: { settings: { component: PluginsOverview, showHeader: false }, providers: [] },
-    setup: ({ app }) => {
+    setup: ({ scope }) => {
       if (!basePath.startsWith('/'))
         throw new Error(`basePath "${basePath}" must start with "/", for example "/settings".`);
-      const modules = scopeModules(app);
-      return bindSettingsNavigation(app, {
+      const modules = scopeModules(scope);
+      return bindSettingsNavigation(scope, {
         modules,
         appId: modules.find((module) => module.app)?.id ?? 'app',
-        translation: scopeTranslation(app),
+        translation: scopeTranslation(scope),
         basePath,
         groups,
         slots: options.slots,

@@ -19,7 +19,7 @@ export default defineAction<string>({
   visible: ({ input }) => input === 'counter',
   execute: ({ settings }) => settings.counter.step.set(1),
   slots: [{
-    name: 'app-preferences.page.toolbar',
+    slot: 'app-preferences.page.toolbar',
     input: ({ payload }) => payload.pageId,
   }],
 });`,

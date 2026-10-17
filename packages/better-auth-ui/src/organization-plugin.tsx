@@ -52,15 +52,14 @@ export function organizationUIPlugin(options: OrganizationUIOptions = {}): Plugi
     ),
     slots: organizationSlots,
     actions: organizationActions(options),
-    setup: ({ app }) => {
+    setup: ({ scope }) => {
       // Shell is optional. A known target waits for its owner; absence is intentional.
       if (options.path === false) return;
       const targets =
-        options.slots ?? (app.slots.has('shell.navigation') ? ['shell.navigation'] : []);
+        options.slots ?? (scope.slots.has('shell.navigation') ? ['shell.navigation'] : []);
       for (const name of targets)
-        app.slots.attach(
-          name,
-          { id: 'navigation-entry', actionId: 'organizations.open' },
+        scope.slots.attach(
+          { slot: name, id: 'navigation-entry', actionId: 'organizations.open' },
           { availability: 'wait' },
         );
     },

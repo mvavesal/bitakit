@@ -50,7 +50,7 @@ src/plugins/todos/
     └── providers/query.tsx   React provider wrapped around the app
 ```
 
-Every immediate folder under `src/plugins` is a plugin; its folder name is the plugin ID. Folders are the one convention: the kind comes from the folder, the name from the file path, and nested folders add segments (`actions/tasks/clear.ts` → `todos.tasks.clear`). Root app contributions live in the same folders directly under `src`; their IDs carry no prefix.
+Every immediate folder under `src/plugins` is a plugin; its folder name is the plugin ID. Folders are the one convention: the kind comes from the folder, the name from the file path, and nested folders add segments (`actions/tasks/clear.ts` → `todos.tasks.clear`). Root app contributions live in the same folders directly under `src`; their IDs carry no prefix (events and configuration use the app module ID: `app.<name>`).
 
 <Callout title="Legacy spellings">
   `actions.add.ts` and `add.action.ts` from 0.1, and the old `pages/`, `views/` and `providers/`
@@ -135,7 +135,7 @@ export default defineSlot({ accepts: 'actions', policy: 'list' });
 `slots/header.actions.ts`, `slots/header/actions.ts`, `slots/header/index.ts` exporting
 `{ actions: defineSlot(...) }`, and manual `slots: { header: { actions: defineSlot(...) } }`
 produce the same `shell.header.actions` contract. Choose one spelling; duplicate declarations
-are errors. App-root names have no prefix. Explicit IDs are absolute; manual arrays need IDs.
+are errors. App-root names have no prefix, except events and configuration, which use the app module ID (`app.<name>` by default), because an event's first segment names its owner. Explicit IDs are absolute; manual arrays need IDs.
 
 | Field     | Contract                                                                              |
 | --------- | ------------------------------------------------------------------------------------- |

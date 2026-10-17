@@ -388,8 +388,8 @@ test('structural changes are restart-required without side effects; composition 
   let reads = 0;
   const projection = definePlugin({
     id: 'projection',
-    setup: ({ app }) => {
-      scopeModules(app);
+    setup: ({ scope }) => {
+      scopeModules(scope);
       reads++;
     },
   });
@@ -446,11 +446,10 @@ test('an unchanged contributor waits through a real slot-owner update and reatta
   let contributorStarts = 0;
   const contributor = definePlugin({
     id: 'contributor',
-    setup: ({ app }) => {
+    setup: ({ scope }) => {
       contributorStarts++;
-      attachment = app.slots.attach(
-        'owner.panel',
-        { id: 'widget', component: widget },
+      attachment = scope.slots.attach(
+        { slot: 'owner.panel', id: 'widget', component: widget },
         { availability: 'wait' },
       );
     },

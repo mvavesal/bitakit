@@ -182,14 +182,21 @@ export class SlotRuntime {
       ...this.reader,
       subscribe: (name, listener) => observe(name, listener, false),
       watch: (name, listener) => observe(name, listener, true),
-      attach: (name, contribution, options) =>
-        this.attach(
+      attach: (contribution, options) => {
+        const slot = (contribution as { slot?: unknown } | undefined)?.slot;
+        if (typeof slot !== 'string')
+          throw new TypeError(
+            'slots.attach expects one contribution with its target: attach({ slot: "name", component | data | actionId }).',
+          );
+        // The same object is attached, so its recorded source still names the contributing file.
+        return this.attach(
           scope,
           plugin,
-          name,
+          slot,
           contribution as SlotContribution,
           options?.availability ?? 'require',
-        ),
+        );
+      },
     });
   }
   private attach(

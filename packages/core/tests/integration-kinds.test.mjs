@@ -113,8 +113,8 @@ test('runtime-issued scopes identify their module; foreign scopes are rejected',
   const seen = [];
   const runtime = new FoundationRuntime(createActionList(), {
     appId: 'app',
-    setup: ({ app }) => void seen.push(scopeModule(app)),
-    plugins: [{ id: 'content', setup: ({ app }) => void seen.push(scopeModule(app)) }],
+    setup: ({ scope }) => void seen.push(scopeModule(scope)),
+    plugins: [{ id: 'content', setup: ({ scope }) => void seen.push(scopeModule(scope)) }],
   });
   runtime.mount()();
   assert.deepEqual(seen, [
@@ -131,13 +131,13 @@ test('runtime-issued scopes list the composed plugins by ID and metadata, withou
   const seen = [];
   const runtime = new FoundationRuntime(createActionList(), {
     appId: 'app',
-    setup: ({ app }) => void seen.push(scopePlugins(app)),
+    setup: ({ scope }) => void seen.push(scopePlugins(scope)),
     plugins: [
       { id: 'notes', metadata: { name: 'Notes' }, services: {} },
       {
         id: 'reports',
         dependencies: ['notes'],
-        setup: ({ app }) => void seen.push(scopePlugins(app)),
+        setup: ({ scope }) => void seen.push(scopePlugins(scope)),
       },
     ],
   });

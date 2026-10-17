@@ -67,7 +67,7 @@ test('inventory external-store snapshots are stable and update on scoped runtime
   let scope;
   const plugin = definePlugin({
     id: 'sample',
-    setup: ({ app }) => {
+    setup: ({ scope: app }) => {
       scope = app;
     },
     slots: { tools: defineSlot({ accepts: 'component' }) },
@@ -80,7 +80,7 @@ test('inventory external-store snapshots are stable and update on scoped runtime
   let calls = 0;
   const off = reader.subscribe(() => calls++);
   const before = reader.get();
-  const handle = scope.slots.attach('sample.tools', { component: () => null });
+  const handle = scope.slots.attach({ slot: 'sample.tools', component: () => null });
   assert.ok(calls);
   assert.notEqual(reader.get(), before);
   assert.equal(reader.get().live.slots[0].count, 1);

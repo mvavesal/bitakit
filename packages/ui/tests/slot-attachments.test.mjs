@@ -21,7 +21,7 @@ test('declared outlets follow readiness and attachments without owning their lif
             return {};
           }),
         },
-        setup: ({ app }) => {
+        setup: ({ scope: app }) => {
           scope = app;
         },
         ui: { slots: [{ slot: 'toolbar', component: () => h('b', null, 'Declarative') }] },
@@ -47,7 +47,7 @@ test('declared outlets follow readiness and attachments without owning their lif
     });
     assert.equal(view.container.querySelector('b').textContent, 'Declarative');
     await act(async () => {
-      attachment = scope.slots.attach('toolbar', { component: () => h('i', null, 'Live') });
+      attachment = scope.slots.attach({ slot: 'toolbar', component: () => h('i', null, 'Live') });
       await attachment.ready;
     });
     assert.equal(view.container.querySelector('i').textContent, 'Live');
@@ -76,10 +76,9 @@ test('replacing the composition removes old attachments and keeps legacy outlets
   const plugins = [
     {
       id: 'tools',
-      setup: ({ app }) => {
-        old = app.slots.attach(
-          'toolbar',
-          { component: () => h('b', null, 'Live') },
+      setup: ({ scope }) => {
+        old = scope.slots.attach(
+          { slot: 'toolbar', component: () => h('b', null, 'Live') },
           { availability: 'wait' },
         );
       },

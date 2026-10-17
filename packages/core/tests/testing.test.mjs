@@ -59,11 +59,11 @@ export default defineEvents({ changed: event<{ title: string }>() });
   'src/plugins/notes/configs/limits.ts': `export default { maxItems: 3 };
 `,
   'src/plugins/notes/setup.ts': `import type { Setup } from '@bitakit/core';
-const setup: Setup = ({ app, services }) => {
+const setup: Setup = ({ scope, services }) => {
   const log = (services as any).log as { entries: string[]; failSetup?: boolean };
   log.entries.push('setup');
   if (log.failSetup) throw new Error('setup exploded');
-  app.actions.getGroup('notes').add({ id: 'notes.count', title: 'Count', execute: () => services.notes.items.state.get().items.length });
+  scope.actions.getGroup('notes').add({ id: 'notes.count', title: 'Count', execute: () => services.notes.items.state.get().items.length });
   return () => log.entries.push('cleanup');
 };
 export default setup;
@@ -237,8 +237,8 @@ export default defineService(({ services }) => ({ theme: () => services.shell.th
 export default defineAction({ execute: ({ services }) => services.books.entries.theme() });
 `,
       'src/plugins/ledger/setup.ts': `import { scopePlugins, type Setup } from '@bitakit/core';
-const setup: Setup = ({ app, services }) => {
-  (services as any).log.plugins = scopePlugins(app).map(({ id, metadata }) => ({ id, metadata }));
+const setup: Setup = ({ scope, services }) => {
+  (services as any).log.plugins = scopePlugins(scope).map(({ id, metadata }) => ({ id, metadata }));
 };
 export default setup;
 `,

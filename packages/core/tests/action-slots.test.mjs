@@ -23,7 +23,7 @@ test('placements reference one public Action; groups do not select UI and cleanu
     actions: {
       open: defineAction({
         groups: ['search'],
-        slots: ['navigation', { name: 'menu', input: map }],
+        slots: ['navigation', { slot: 'menu', input: map }],
         execute() {},
       }),
       unplaced: defineAction({ groups: ['navigation'], execute() {} }),
@@ -104,4 +104,12 @@ test('an Action placed in an undeclared slot fails startup naming the slot and t
       error.source === 'src/plugins/projects/actions/open.ts' &&
       /Install and enable the plugin that declares it/.test(error.message),
   );
+});
+
+test('an unmigrated { name } placement fails with a message about the slot field', () => {
+  const runtime = createRuntime({
+    slots,
+    actions: { open: defineAction({ slots: [{ name: 'navigation' }], execute() {} }) },
+  });
+  assert.throws(() => runtime.mount(), /\{ slot \} \(formerly \{ name \}\)/);
 });

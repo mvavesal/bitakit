@@ -137,8 +137,8 @@ async function configurePlayground(plan, playground, id) {
     'src/setup.ts': `import type { Setup } from '@bitakit/core';
 
 // Host-owned placement: the plugin also works without Shell.
-const setup: Setup = ({ app }) => {
-  app.slots.attach('shell.navigation', { actionId: '${id}.open' }, { availability: 'wait' });
+const setup: Setup = ({ scope }) => {
+  scope.slots.attach({ slot: 'shell.navigation', actionId: '${id}.open' }, { availability: 'wait' });
 };
 export default setup;
 `,

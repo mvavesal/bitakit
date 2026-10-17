@@ -67,18 +67,18 @@ interface EmptyManual extends PublicSlotsOf<readonly [typeof empty, typeof empty
 interface EmptyDiscovered extends DiscoveredSlotEntry<typeof emptyFile, 'empty'> {}
 
 declare const slots: ScopedSlots;
-slots.attach('shell.totals', { key: 'count', data: { count: 1 } });
-slots.attach('shell.sidebar.footer', { component: () => null }, { availability: 'wait' });
+slots.attach({ slot: 'shell.totals', key: 'count', data: { count: 1 } });
+slots.attach({ slot: 'shell.sidebar.footer', component: () => null }, { availability: 'wait' });
 // @ts-expect-error Keyed slots require an explicit key.
-slots.attach('shell.totals', { data: { count: 1 } });
+slots.attach({ slot: 'shell.totals', data: { count: 1 } });
 // @ts-expect-error The data contract comes from SlotMap.
-slots.attach('shell.totals', { key: 'count', data: { count: '1' } });
+slots.attach({ slot: 'shell.totals', key: 'count', data: { count: '1' } });
 // @ts-expect-error Data cannot be contributed to a component slot.
-slots.attach('shell.sidebar.footer', { data: {} });
+slots.attach({ slot: 'shell.sidebar.footer', data: {} });
 // @ts-expect-error A contribution has exactly one content kind.
-slots.attach('shell.sidebar.footer', { component: () => null, data: {} });
-const mixed = { component: () => null, data: {} };
+slots.attach({ slot: 'shell.sidebar.footer', component: () => null, data: {} });
+const mixed = { slot: 'shell.sidebar.footer' as const, component: () => null, data: {} };
 // @ts-expect-error Kind exclusivity also applies to variables, not only literals.
-slots.attach('shell.sidebar.footer', mixed);
+slots.attach(mixed);
 // @ts-expect-error Availability does not invent lifecycle modes.
-slots.attach('shell.sidebar.footer', { component: () => null }, { availability: 'ignore' });
+slots.attach({ slot: 'shell.sidebar.footer', component: () => null }, { availability: 'ignore' });

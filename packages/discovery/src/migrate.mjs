@@ -1,4 +1,5 @@
 import { navigationPlacement } from './navigation-placement.mjs';
+import { rewriteScopeAndSlots } from './scope-and-slots.mjs';
 import { readFile, writeFile, rename, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { files } from './entries.mjs';
@@ -15,6 +16,7 @@ const suffixes = {
   providers: ['provider'],
 };
 const legacyFolders = { pages: 'ui/pages', views: 'ui/slots', providers: 'ui/providers' };
+
 
 async function exists(file) {
   return stat(file).then(
@@ -181,7 +183,11 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
   const hasLocales = (
     await Promise.all(moduleDirs.map((dir) => files(path.join(dir, 'locales'))))
   ).some((list) => list.some((file) => file.endsWith('.json')));
-  for (const file of await files(appRoot)) {
+  // Plugin folders can live outside the app root (`plugins.directory`); read each source file once.
+  const sourceFiles = [
+    ...new Set((await Promise.all([appRoot, ...moduleDirs].map((dir) => files(dir)))).flat()),
+  ];
+  for (const file of sourceFiles) {
     if (!/\.(tsx?|css|mjs)$/.test(file) || /\.d\.ts$/.test(file) || /bitakit\.gen\./.test(file))
       continue;
     const source = await readFile(file, 'utf8');
@@ -238,12 +244,25 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
         )
         .replace(/<FoundationProvider\b/g, '<BitaKitProvider')
         .replace(/<\/FoundationProvider>/g, '</BitaKitProvider>');
+    if (/\.tsx?$/.test(file)) {
+      const scoped = rewriteScopeAndSlots(rewritten, {
+        setupFile: /(^|\/)setup\.tsx?$/.test(file),
+        tsx: file.endsWith('.tsx'),
+      });
+      rewritten = scoped.code;
+      for (const line of scoped.unresolved)
+        changes.push({
+          kind: 'skip',
+          from: `${relative(file)}:${line}`,
+          detail: 'slots.attach(name, contribution) needs the 0.2 form attach({ slot: name, ... }); rewrite it by hand',
+        });
+    }
     if (rewritten !== source)
       await apply(
         {
           kind: 'rewrite',
           from: relative(file),
-          detail: 'generated-file imports and renamed helpers',
+          detail: 'generated-file imports, renamed helpers, setup scope and slot targets',
         },
         () => writeFile(file, rewritten),
       );

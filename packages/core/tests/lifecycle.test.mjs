@@ -16,7 +16,7 @@ import {
 test('scope lifecycle observes retained state and revokes subscriptions at owner close', async () => {
   let scope;
   const runtime = createRuntime({ plugins: [definePlugin({
-    id: 'projection', setup: ({ app }) => { scope = app; },
+    id: 'projection', setup: ({ scope: app }) => { scope = app; },
   })] });
   const stop = runtime.mount(); await runtime.ready;
   const lifecycle = scopeLifecycle(scope);
@@ -37,7 +37,7 @@ test('scope lifecycle observes retained state and revokes subscriptions at owner
 test('a lifecycle watcher can close its scope during immediate delivery without leaking', async () => {
   let scope;
   const runtime = createRuntime({ plugins: [definePlugin({
-    id: 'projection', setup: ({ app }) => { scope = app; },
+    id: 'projection', setup: ({ scope: app }) => { scope = app; },
   })] });
   const stop = runtime.mount(); await runtime.ready;
   let calls = 0;
@@ -557,8 +557,8 @@ test('cleanup failures continue through other owners and retain the responsible 
       definePlugin({
         id: 'consumer',
         dependencies: ['provider'],
-        setup({ app }) {
-          app.own(() => {
+        setup({ scope }) {
+          scope.own(() => {
             log.push('earlier');
           });
           return async () => {

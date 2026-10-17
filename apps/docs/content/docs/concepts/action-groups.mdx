@@ -178,8 +178,8 @@ A `setup.ts` file can put an existing action into a group without changing that 
 // src/setup.ts
 import type { Setup } from '@bitakit/core';
 
-const setup: Setup = ({ app }) => {
-  app.actions.getGroup('app.quick').attach('todos.add'); // undone when the app stops
+const setup: Setup = ({ scope }) => {
+  scope.actions.getGroup('app.quick').attach('todos.add'); // undone when the scope stops
 };
 export default setup;
 ```
@@ -192,8 +192,8 @@ export default setup;
 // src/plugins/help/setup.ts
 import type { Setup } from '@bitakit/core';
 
-const setup: Setup = ({ app }) => {
-  app.actions.getGroup('navigation').add({ id: 'help.open', title: 'Help', href: '/help' });
+const setup: Setup = ({ scope }) => {
+  scope.actions.getGroup('navigation').add({ id: 'help.open', title: 'Help', href: '/help' });
 };
 export default setup;
 ```

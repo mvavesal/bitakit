@@ -22,7 +22,7 @@ import type {} from '../slots.js';
 import type { OrganizationService } from '@bitakit/organizations';
 const memberPlacement = [
   {
-    name: 'organizations.member.menu' as const,
+    slot: 'organizations.member.menu' as const,
     input: ({ payload }: { payload: SlotPayload<'organizations.member.menu'> }) => payload,
   },
 ];
@@ -113,7 +113,7 @@ export function organizationActions(options: {
         title: operation === 'accept' ? 'Accept' : 'Decline',
         icon: operation === 'accept' ? AcceptIcon : CancelIcon,
         groups: [organizationGroups.incoming],
-        slots: [{ name: 'organizations.incoming', input: ({ payload }) => payload }],
+        slots: [{ slot: 'organizations.incoming', input: ({ payload }) => payload }],
         enabled: idle,
         visible: ({ input, services }) => {
           const service = organizations(services);
@@ -151,14 +151,14 @@ export function organizationActions(options: {
       id: 'organizations.edit',
       title: 'Edit organization',
       groups: [organizationGroups.management],
-      slots: [{ name: 'organizations.management', input: ({ payload }) => payload }],
+      slots: [{ slot: 'organizations.management', input: ({ payload }) => payload }],
       dialog: EditOrganization,
     }),
     defineAction({
       id: 'organizations.delete',
       title: 'Delete organization',
       groups: [organizationGroups.danger],
-      slots: [{ name: 'organizations.danger', input: ({ payload }) => payload }],
+      slots: [{ slot: 'organizations.danger', input: ({ payload }) => payload }],
       dialog: DeleteOrganization,
     }),
     defineAction({
@@ -194,7 +194,7 @@ export function organizationActions(options: {
     defineAction({
       id: ids.invite,
       groups: [organizationGroups.members],
-      slots: [{ name: 'organizations.members', input: ({ payload }) => payload }],
+      slots: [{ slot: 'organizations.members', input: ({ payload }) => payload }],
       title: 'Invite member',
       icon: UserAddIcon,
       dialog: { component: InviteMember, size: 'wide' },
@@ -262,10 +262,10 @@ export function organizationActions(options: {
         slots: suspension
           ? memberPlacement
           : id === ids.retry
-            ? [{ name: 'organizations.toolbar', input: ({ payload }) => payload }]
+            ? [{ slot: 'organizations.toolbar', input: ({ payload }) => payload }]
             : id === ids.select
-              ? [{ name: 'organizations.organization', input: ({ payload }) => payload }]
-              : [{ name: 'organizations.invitation', input: ({ payload }) => payload }],
+              ? [{ slot: 'organizations.organization', input: ({ payload }) => payload }]
+              : [{ slot: 'organizations.invitation', input: ({ payload }) => payload }],
         enabled: ({ services }) => {
           const state = organizations(services).getSnapshot();
           return !state.pending && (!administrative || state.canManage);
