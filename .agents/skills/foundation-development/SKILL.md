@@ -471,7 +471,7 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 - Responsive behavior is mandatory for every new or changed surface: narrow, medium and
   wide viewports, long unbroken content, missing images, no horizontal page overflow; table
   scrolling stays inside the table container; one table implementation for all sizes.
-- Dialogs use the shared `DialogHost` and semantic sizes (`dialogSize: 'wide'`); measure
+- Dialogs use the shared `DialogHost` and semantic sizes (`dialog: { component, size: 'wide' }`); measure
   rendered widths, do not only read CSS classes. Boolean `data-*` flags are set as
   `value || undefined`. `Field` stays a direct child of `FieldLabel`.
 - Explicitly local demos must not present login, invitations or tokens as real, and add no

@@ -129,7 +129,7 @@ You rarely run `generate` yourself: the framework adapters run it during `dev` a
 | `npx bitakit generate` | Writes `src/bitakit.gen.*` from your plugin folders                                                                  | `--watch` keeps regenerating       |
 | `npx bitakit doctor`   | Reports wiring problems with a fix for each; exit code 1 when something is wrong                                     | `--json` for CI                    |
 | `npx bitakit info`     | Lists what discovery finds: plugins, services, actions, events, pages                                                | `--json`                           |
-| `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout and API spellings (setup `{ scope }`, placement `slot`, `attach({ slot })`) | `--dry-run` only lists the changes |
+| `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout and API spellings: setup `{ scope }`, placement `slot`, `attach({ slot })`, `Foundation*` → `BitaKit*` (also in root config files), and Core names imported from `@bitakit/ui` move to `@bitakit/core` | `--dry-run` only lists the changes |
 
 `doctor` checks package versions, provider wiring, ignored generated files, pages and links no route reaches, colliding service names, `requires` entries that name nothing, plugin dependency cycles, slot files that target no layout and missing package styles.
 

@@ -1,5 +1,6 @@
 import { navigationPlacement } from './navigation-placement.mjs';
 import { rewriteScopeAndSlots } from './scope-and-slots.mjs';
+import { exportedNames, importsFromUi, moveCoreImports } from './core-imports.mjs';
 import { readFile, writeFile, rename, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { files } from './entries.mjs';
@@ -19,7 +20,7 @@ const legacyFolders = { pages: 'ui/pages', views: 'ui/slots', providers: 'ui/pro
 
 
 /** 0.2 renames of the public Foundation* names; word-bounded, so longer names are not touched. */
-const renamed = {
+export const renamed = {
   FoundationApp: 'BitaKitApp',
   FoundationActions: 'BitaKitActions',
   FoundationConfig: 'BitaKitRuntimeConfig',
@@ -51,18 +52,32 @@ const renamed = {
   FoundationLink: 'BitaKitLink',
   standardFoundationUI: 'standardBitaKitUI',
   generateFoundation: 'generateBitaKit',
-  generateFoundationHost: 'generateBitaKitHost',
+  // A deprecated alias of generateFoundation; 0.2 has only generateBitaKit.
+  generateFoundationHost: 'generateBitaKit',
   watchFoundation: 'watchBitaKit',
   describeFoundation: 'describeBitaKit',
   FoundationDescription: 'BitaKitDescription',
+  defineFoundation: 'defineBitaKit',
+  withFoundation: 'withBitaKit',
 };
 const renamedPattern = new RegExp(`\\b(${Object.keys(renamed).join('|')})\\b`, 'g');
 
-/** Applies the 0.2 name table, plus TanStack's `foundation()` Vite plugin when it is imported. */
+const tanstackConfigImport = /import \{([^}]*)\} from (['"])@bitakit\/tanstack\/config\2/;
+
+/**
+ * Applies the 0.2 name table, plus TanStack's `foundation()` Vite plugin when it is imported:
+ * only the imported binding and its calls change, never the word in comments or strings.
+ */
 export function rewriteRenamedNames(source) {
   let text = source.replace(renamedPattern, (name) => renamed[name]);
-  if (/import \{[^}]*\bfoundation\b[^}]*\} from ['"]@bitakit\/tanstack\/config['"]/.test(text))
-    text = text.replace(/\bfoundation\b(?=[\s,}(])/g, 'bitakit');
+  const names = tanstackConfigImport.exec(text)?.[1];
+  if (names && /\bfoundation\b/.test(names)) {
+    text = text.replace(tanstackConfigImport, (whole) =>
+      whole.replace(names, names.replace(/\bfoundation\b/, 'bitakit')),
+    );
+    // `foundation as vite` keeps its local name; a plain import renames its calls.
+    if (!/\bfoundation\s+as\b/.test(names)) text = text.replace(/\bfoundation\(/g, 'bitakit(');
+  }
   return text;
 }
 
@@ -236,6 +251,19 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
   const sourceFiles = [
     ...new Set((await Promise.all([appRoot, ...moduleDirs].map((dir) => files(dir)))).flat()),
   ];
+  // 0.2 @bitakit/ui exports only React bindings; Core names it re-exported move to
+  // @bitakit/core. The export lists come from the installed packages, read once when needed.
+  let exportLists;
+  const coreImports = () => {
+    exportLists ??= {
+      core: exportedNames(root, '@bitakit/core'),
+      ui: new Map(
+        ['@bitakit/ui', '@bitakit/ui/actions'].map((entry) => [entry, exportedNames(root, entry)]),
+      ),
+    };
+    return exportLists;
+  };
+  let reportedMissingCore = false;
   for (const file of sourceFiles) {
     if (!/\.(tsx?|css|mjs)$/.test(file) || /\.d\.ts$/.test(file) || /bitakit\.gen\./.test(file))
       continue;
@@ -295,6 +323,19 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
         .replace(/<\/FoundationProvider>/g, '</BitaKitProvider>');
     // After the 0.1 root-layout step above, which still recognizes <FoundationProvider>.
     if (/\.(tsx?|mjs)$/.test(file)) rewritten = rewriteRenamedNames(rewritten);
+    if (/\.(tsx?|mjs)$/.test(file) && importsFromUi(rewritten)) {
+      const { core, ui } = coreImports();
+      if (core) rewritten = moveCoreImports(rewritten, { core, ui, tsx: file.endsWith('.tsx') });
+      else if (!reportedMissingCore) {
+        reportedMissingCore = true;
+        changes.push({
+          kind: 'skip',
+          from: relative(file),
+          detail:
+            'imports from @bitakit/ui, but @bitakit/core is not installed; install it and run migrate again to move Core names',
+        });
+      }
+    }
     if (/\.tsx?$/.test(file)) {
       const scoped = rewriteScopeAndSlots(rewritten, {
         setupFile: /(^|\/)setup\.tsx?$/.test(file),
@@ -316,6 +357,28 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
           detail: 'generated-file imports, renamed helpers and names, setup scope and slot targets',
         },
         () => writeFile(file, rewritten),
+      );
+  }
+  // Root configuration files sit outside src but use renamed helpers (defineFoundation,
+  // withFoundation, TanStack's foundation()).
+  for (const name of [
+    'bitakit.config.ts',
+    'next.config.ts',
+    'next.config.mjs',
+    'next.config.js',
+    'vite.config.ts',
+    'vite.config.mts',
+    'vite.config.js',
+    'vite.config.mjs',
+  ]) {
+    const file = path.join(root, name);
+    const source = await readFile(file, 'utf8').catch(() => null);
+    // A dry run has not written bitakit.config.ts from foundation.config.ts yet; step 1 renames it.
+    if (source === null) continue;
+    const rewritten = rewriteRenamedNames(source);
+    if (rewritten !== source)
+      await apply({ kind: 'rewrite', from: name, detail: 'renamed configuration helpers' }, () =>
+        writeFile(file, rewritten),
       );
   }
 

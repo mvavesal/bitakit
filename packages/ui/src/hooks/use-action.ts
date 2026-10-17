@@ -175,7 +175,12 @@ export function buildControl<Id extends string>(
           )
             return;
           event.preventDefault();
-          ui.navigate(href);
+          // A router that throws reports like a failed execution; the link stays usable.
+          try {
+            ui.navigate(href);
+          } catch (error) {
+            (options?.onError ?? ui.onError)(error);
+          }
         },
       });
     },

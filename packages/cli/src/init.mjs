@@ -153,8 +153,10 @@ export async function initProject({ cwd } = {}) {
       at('next.config.ts');
     const source = await read(file);
     if (source === undefined) await put(file, nextConfigFile, true);
-    else if (/withBitaKit|withFoundation/.test(source))
+    else if (/withBitaKit/.test(source))
       skip(file, 'already wraps the configuration with withBitaKit');
+    else if (/withFoundation/.test(source))
+      skip(file, 'uses the removed withFoundation; run "npx bitakit migrate"');
     else {
       const wrapped = wrapConfig(source, file);
       if (wrapped) await put(file, wrapped);
@@ -169,7 +171,9 @@ export async function initProject({ cwd } = {}) {
     const source = await read(file);
     if (source === undefined)
       skip(file, 'not found; add bitakit() from @bitakit/tanstack/config to the Vite plugins');
-    else if (/bitakit\(|foundation\(/.test(source)) skip(file, 'already runs the BitaKit plugin');
+    else if (/\bbitakit\(/.test(source)) skip(file, 'already runs the BitaKit plugin');
+    else if (/\bfoundation\(/.test(source))
+      skip(file, 'uses the removed foundation() plugin; run "npx bitakit migrate"');
     else {
       const updated = addVitePlugin(source, file);
       if (updated) await put(file, updated);

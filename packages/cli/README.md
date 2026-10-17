@@ -59,7 +59,8 @@ npx bitakit generate            # write src/bitakit.gen.* from the plugin folder
 npx bitakit generate --watch    # keep regenerating while files change
 npx bitakit migrate --dry-run   # list the changes from a 0.1 layout
 npx bitakit migrate             # apply them: bitakit.config.ts, folder-only files, ui/, generated imports,
-                                # setup({ scope }), placement slot and slots.attach({ slot })
+                                # setup({ scope }), placement slot, slots.attach({ slot }), Foundation* →
+                                # BitaKit* names and Core names moved from @bitakit/ui to @bitakit/core
 ```
 
 The framework adapters run the generator themselves during `dev` and `build`; `generate` is for

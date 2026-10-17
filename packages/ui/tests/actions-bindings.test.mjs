@@ -724,3 +724,27 @@ test('ActionButton and ActionLink are sugar over <Action> with custom components
     await view.unmount();
   }
 });
+
+test('linkProps report a failing client navigation to onError instead of throwing from the click', async () => {
+  const list = createActionList([{ id: 'docs', title: 'Docs', href: '/docs' }]);
+  const view = await mount(
+    h(
+      ActionProvider,
+      {
+        actions: list,
+        navigate: () => {
+          throw new Error('router unavailable');
+        },
+      },
+      h(Probe, { name: 'failing', id: 'docs' }),
+    ),
+  );
+  try {
+    const errors = [];
+    const link = controls.failing.linkProps({ onError: (error) => errors.push(error.message) });
+    link.onClick(fakeClick());
+    assert.deepEqual(errors, ['router unavailable']);
+  } finally {
+    await view.unmount();
+  }
+});

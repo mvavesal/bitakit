@@ -12,6 +12,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createJiti } from 'jiti';
 import ts from 'typescript';
 import {
@@ -27,7 +28,9 @@ import {
   rewriteScopeAndSlots,
 } from '@bitakit/discovery';
 // Internal module: the package exports only its public entry.
-import { discoverEntries } from '../../discovery/src/entries.mjs';
+import { discoverEntries, files } from '../../discovery/src/entries.mjs';
+import { renamed } from '../../discovery/src/migrate.mjs';
+import { exportedNames, moveCoreImports } from '../../discovery/src/core-imports.mjs';
 import {
   discoverActions,
   discoverServices,
@@ -1758,12 +1761,106 @@ test('migration renames the public Foundation* names to BitaKit*', () => {
     ),
     "import { BitaKitRuntimeProvider, useBitaKitApp, type BitaKitRuntimeConfig } from '@bitakit/ui';",
   );
+  // Only the imported Vite plugin and its calls change; the word in comments and strings stays.
   assert.equal(
-    rewriteRenamedNames("import { foundation } from '@bitakit/tanstack/config';\nplugins: [foundation()]"),
-    "import { bitakit } from '@bitakit/tanstack/config';\nplugins: [bitakit()]",
+    rewriteRenamedNames(
+      "import { foundation } from '@bitakit/tanstack/config';\n// The foundation (shared) layer\nplugins: [foundation()]",
+    ),
+    "import { bitakit } from '@bitakit/tanstack/config';\n// The foundation (shared) layer\nplugins: [bitakit()]",
+  );
+  assert.equal(
+    rewriteRenamedNames("import { foundation as vite } from '@bitakit/tanstack/config';\nplugins: [vite()]"),
+    "import { bitakit as vite } from '@bitakit/tanstack/config';\nplugins: [vite()]",
+  );
+  assert.equal(
+    rewriteRenamedNames("import { withFoundation, defineFoundation } from '@bitakit/next/config';"),
+    "import { withBitaKit, defineBitaKit } from '@bitakit/next/config';",
   );
   // Longer names and unrelated words stay.
   const other = 'const foundationLayer = MyFoundationProviderWrapper;';
   assert.equal(rewriteRenamedNames(other), other);
 });
 
+test('every 0.2 rename target is exported by a package, so migrated code compiles', async () => {
+  const packages = fileURLToPath(new URL('../../', import.meta.url));
+  const sources = (
+    await Promise.all(
+      (await readdir(packages)).map(async (name) =>
+        (await files(path.join(packages, name, 'src')).catch(() => []))
+          .filter((file) => /\.(ts|tsx|mjs)$/.test(file))
+          .map((file) => readFile(file, 'utf8')),
+      ),
+    )
+  ).flat();
+  const text = (await Promise.all(sources)).join('\n');
+  for (const target of new Set(Object.values(renamed))) {
+    const declared = new RegExp(
+      `export\\s+(?:declare\\s+)?(?:async\\s+)?(?:function\\*?|const|let|class|type|interface|enum)\\s+${target}\\b|export\\s+(?:type\\s+)?\\{[^}]*\\b${target}\\b[^}]*\\}`,
+    );
+    assert.match(text, declared, `${target} is not exported by any package`);
+  }
+});
+
+test('migration moves Core names out of @bitakit/ui imports; React bindings stay', () => {
+  const core = new Set(['defineAction', 'ActionStatus', 'BitaKitRuntimeConfig', 'createActionList']);
+  const ui = new Map([
+    ['@bitakit/ui', new Set(['useAction', 'BitaKitRuntimeProvider', 'useBitaKitApp'])],
+    ['@bitakit/ui/actions', new Set(['ActionButton', 'useAction'])],
+  ]);
+  const move = (source) => moveCoreImports(source, { core, ui });
+  assert.equal(
+    move("import { BitaKitRuntimeProvider, useBitaKitApp, type BitaKitRuntimeConfig } from '@bitakit/ui';"),
+    "import { BitaKitRuntimeProvider, useBitaKitApp } from '@bitakit/ui';\nimport { type BitaKitRuntimeConfig } from '@bitakit/core';",
+  );
+  assert.equal(
+    move('import type { ActionStatus } from "@bitakit/ui/actions";'),
+    'import type { ActionStatus } from "@bitakit/core";',
+  );
+  assert.equal(
+    move("import { ActionButton, createActionList as list } from '@bitakit/ui/actions';"),
+    "import { ActionButton } from '@bitakit/ui/actions';\nimport { createActionList as list } from '@bitakit/core';",
+  );
+  const untouched = "import { useAction } from '@bitakit/ui';\nimport { unknownName } from '@bitakit/ui';";
+  assert.equal(move(untouched), untouched);
+  // The real lists come from the installed type declarations.
+  const installed = exportedNames(fileURLToPath(new URL('..', import.meta.url)), '@bitakit/core');
+  assert.ok(installed.has('defineAction') && installed.has('BitaKitRuntimeConfig'));
+  assert.equal(installed.has('useAction'), false);
+  assert.equal(exportedNames(tmpdir(), '@bitakit/not-installed'), undefined);
+});
+
+
+test('migrateProject renames helpers in root config files and reports Core names it cannot move', () =>
+  fixture(async (root, put) => {
+    await put('package.json', JSON.stringify({ name: 'start', type: 'module' }));
+    await put(
+      'vite.config.ts',
+      "import { foundation } from '@bitakit/tanstack/config';\n// The foundation layer\nexport default { plugins: [foundation()] };\n",
+    );
+    await put(
+      'bitakit.config.ts',
+      "import { defineFoundation } from '@bitakit/next/config';\nexport default defineFoundation({});\n",
+    );
+    await put('src/lib/types.ts', "import { defineAction } from '@bitakit/ui';\nexport { defineAction };\n");
+    const { changes: planned } = await migrateProject(root, { dryRun: true });
+    const { changes } = await migrateProject(root);
+    assert.deepEqual(planned, changes);
+    assert.deepEqual(
+      changes.filter((change) => change.kind === 'rewrite').map((change) => change.from),
+      ['bitakit.config.ts', 'vite.config.ts'],
+    );
+    assert.equal(
+      await readFile(path.join(root, 'vite.config.ts'), 'utf8'),
+      "import { bitakit } from '@bitakit/tanstack/config';\n// The foundation layer\nexport default { plugins: [bitakit()] };\n",
+    );
+    assert.match(await readFile(path.join(root, 'bitakit.config.ts'), 'utf8'), /defineBitaKit\(\{\}\)/);
+    // Without an installed @bitakit/core the export lists are unknown: report, never guess.
+    assert.deepEqual(
+      changes.filter((change) => change.kind === 'skip').map((change) => change.from),
+      ['src/lib/types.ts'],
+    );
+    assert.equal(
+      await readFile(path.join(root, 'src/lib/types.ts'), 'utf8'),
+      "import { defineAction } from '@bitakit/ui';\nexport { defineAction };\n",
+    );
+  }));

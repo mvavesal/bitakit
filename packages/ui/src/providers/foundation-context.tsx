@@ -17,7 +17,10 @@ export const BitaKitContext = createContext<{
 } | null>(null);
 export function useBitaKit() {
   const value = useContext(BitaKitContext);
-  if (!value) throw new Error('Foundation components require BitaKitRuntimeProvider.');
+  if (!value)
+    throw new Error(
+      "BitaKit hooks need a provider: mount <BitaKitProvider> from './bitakit.gen' (or BitaKitRuntimeProvider with a config).",
+    );
   return value;
 }
 

@@ -233,9 +233,15 @@ async function checkWiring(project) {
       (await read('next.config.mjs')) ||
       (await read('next.config.js'));
     results.push(
-      /withBitaKit|withFoundation/.test(config)
+      /withBitaKit/.test(config)
         ? { status: 'ok', title: 'next.config wraps the configuration with withBitaKit' }
-        : {
+        : /withFoundation/.test(config)
+          ? {
+              status: 'error',
+              title: 'next.config uses withFoundation, which 0.2 removed',
+              fix: 'Run "npx bitakit migrate", or rename withFoundation to withBitaKit.',
+            }
+          : {
             status: 'error',
             title: 'next.config does not run BitaKit discovery',
             fix: "import { withBitaKit } from '@bitakit/next/config';\nexport default withBitaKit({});",
@@ -258,9 +264,15 @@ async function checkWiring(project) {
   if (project.framework === 'tanstack') {
     const config = await read('vite.config.ts');
     results.push(
-      /bitakit\(|foundation\(/.test(config)
+      /\bbitakit\(/.test(config)
         ? { status: 'ok', title: 'vite.config runs the BitaKit plugin' }
-        : {
+        : /\bfoundation\(/.test(config)
+          ? {
+              status: 'error',
+              title: 'vite.config uses foundation(), which 0.2 removed',
+              fix: 'Run "npx bitakit migrate", or import { bitakit } from \'@bitakit/tanstack/config\' and call bitakit().',
+            }
+          : {
             status: 'error',
             title: 'vite.config does not run BitaKit discovery',
             fix: "import { bitakit } from '@bitakit/tanstack/config';\nplugins: [bitakit(), tanstackStart(), ...]",
@@ -325,9 +337,10 @@ async function mountsProvider(file, root, seen = new Set()) {
   for (const name of rendered) {
     const entry = imports.get(name);
     if (!entry) continue;
+    // The generated file exports BitaKitProvider; the packages export BitaKitRuntimeProvider.
     if (
-      ['BitaKitProvider', 'BitaKitRuntimeProvider'].includes(entry.name) &&
-      /bitakit\.gen|^@bitakit\/(?:ui|next|tanstack)$/.test(entry.from)
+      (entry.name === 'BitaKitProvider' && /bitakit\.gen$/.test(entry.from)) ||
+      (entry.name === 'BitaKitRuntimeProvider' && /^@bitakit\/(?:ui|next|tanstack)$/.test(entry.from))
     )
       return true;
     const base = entry.from.startsWith('@/')

@@ -21,7 +21,7 @@ const legacyApp = () => {
     'foundation.config.ts':
       "import { defineFoundation } from '@bitakit/next/config';\n\nexport default defineFoundation({ groups: ['navigation'] });\n",
     'src/app/layout.tsx':
-      "import { BitaKitRuntimeProvider } from '@/.foundation/plugins';\nexport default function Layout({ children }) { return <BitaKitRuntimeProvider>{children}</BitaKitRuntimeProvider>; }\n",
+      "import { FoundationProvider } from '@bitakit/next';\nexport default function Layout({ children }) { return <FoundationProvider>{children}</FoundationProvider>; }\n",
     'src/app/globals.css': "@import 'tailwindcss';\n@import '../../.foundation/styles.css';\n",
     ...catchAll,
     'src/plugins/todos/actions/add.action.ts':
@@ -92,7 +92,11 @@ test('migrate --dry-run only lists the changes; migrate applies them once and th
     await read(root, 'src/app/globals.css'),
     "@import 'tailwindcss';\n@import '../bitakit.gen.css';\n",
   );
-  assert.match(await read(root, 'src/app/layout.tsx'), /from '\.\.\/bitakit\.gen'/);
+  // The 0.1 adapter provider becomes the generated one; doctor accepts only real export pairs.
+  assert.match(
+    await read(root, 'src/app/layout.tsx'),
+    /^import \{ BitaKitProvider \} from '\.\.\/bitakit\.gen';\n.*<BitaKitProvider>\{children\}<\/BitaKitProvider>/s,
+  );
   assert.match(
     await read(root, 'src/plugins/todos/actions/open.ts'),
     /^import \{ defineAction \} from '@bitakit\/core';\nexport default defineAction\(\{ title: 'Todos'/,

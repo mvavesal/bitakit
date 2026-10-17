@@ -90,7 +90,7 @@ export async function renderWithBitaKit(
   try {
     await act(async () => root.render(tree(element)));
     if (!current)
-      throw new Error('The foundation did not mount. Check the plugins and the configuration.');
+      throw new Error('BitaKit did not mount. Check the plugins and the configuration.');
     const { ready } = current;
     await act(async () => {
       await ready;
