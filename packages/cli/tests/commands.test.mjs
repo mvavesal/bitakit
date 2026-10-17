@@ -151,7 +151,7 @@ test('migrate --dry-run only lists the changes; migrate applies them once and th
 
 test('add prints the created files, doctor --json reports counts and the exit code follows the errors', async (t) => {
   const root = await project(nextApp(), t);
-  const added = await bitakit(root, 'add', 'plugin', 'notes');
+  const added = await bitakit(root, 'add', 'plugin', 'notes', '--example');
   assert.equal(added.code, 0, added.stderr);
   assert.match(added.stdout, /Created plugin "notes":/);
   assert.match(added.stdout, /\+ src\/plugins\/notes\/services\/items\.ts/);

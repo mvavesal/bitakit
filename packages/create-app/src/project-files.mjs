@@ -129,7 +129,7 @@ problems. Use \`npm run build\` when ready to check a production build.
 ## Later: a fuller example
 
 \`\`\`sh
-npx bitakit add plugin notes
+npx bitakit add plugin notes --example
 \`\`\`
 
 This scaffolds a service, typed events, Actions and a page at /notes. It is a fuller example,
@@ -164,7 +164,7 @@ time; there is no registry, provider or import list to edit. One concept, one wa
     attached when both owners are ready; \`PluginSlot\` isolates widget render errors automatically. Everything under \`ui/\` is React; nothing else may import React.
 - In React: \`useServiceState('<name>.<file>', (state) => ...)\` for reactive data from a ready owner,
   \`<Action id="<name>.<file>" input={...}><Button /></Action>\` to bind any control, \`useEvent('<name>.changed', fn)\`.
-- Create files with the CLI: \`npx bitakit add plugin <name>\`,
+- Create files with the CLI: \`npx bitakit add plugin <name>\` (a page and its menu entry),
   \`npx bitakit add action|service|page|interceptor|config|slot-definition <name>/<file>\`, \`npx bitakit add events|settings|settings-page <name>\`.
 - App layouts live in \`src/layouts/<name>.tsx\`; a page opts in with \`export const layout = '<name>'\` (\`'blank'\` for none).
 - Inspect declarations with \`npx bitakit info --json\` (static only); verify with \`npx bitakit doctor\` and \`npm run typecheck\`.

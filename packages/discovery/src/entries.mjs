@@ -35,6 +35,9 @@ export async function files(directory, boundaries = new Set()) {
   return result;
 }
 
+/** A contribution path's segments: folders and dots mean the same (`a/b.c.ts` → a, b, c). */
+export const contributionSegments = (relative) => relative.replace(/\.tsx?$/, '').split(/[\\/.]/);
+
 /**
  * Where each built-in kind lives. UI kinds live under `ui/`; their old root folders are still
  * read with a migration warning. Legacy filename suffixes (`x.action.ts`) are accepted the same way.
@@ -134,7 +137,7 @@ export async function discoverEntries(
     const relative = path.relative(base, file).split(path.sep).join('/');
     if (!directory && !explicitFile && (relative.startsWith('..') || path.isAbsolute(relative)))
       continue;
-    let segments = relative.replace(/\.tsx?$/, '').split(/[/.]/);
+    let segments = contributionSegments(relative);
     if (segments.some((segment) => segment.startsWith('-'))) continue;
     // Server files never reach the client bundle.
     if (segments[0] === 'server') continue;
@@ -143,7 +146,7 @@ export async function discoverEntries(
     else if (directory) {
       const local = path.relative(directory, file);
       if (local.startsWith('..') || path.isAbsolute(local)) continue;
-      segments = local.replace(/\.tsx?$/, '').split(/[\\/.]/);
+      segments = contributionSegments(local);
     } else {
       const root = roots.find(({ folder }) =>
         folder.every((part, index) => segments[index] === part),

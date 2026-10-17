@@ -31,6 +31,38 @@ const member = (name) =>
   /^[A-Za-z_$][\w$]*$/.test(name) ? `.${name}` : `[${JSON.stringify(name)}]`;
 
 /**
+ * The smallest working feature: one page, plus its navigation link when the app has a navigation
+ * slot. More files are added one at a time with `bitakit add <kind>`.
+ */
+export function starterFiles(name, { navigationSlot } = {}) {
+  validateName(name, 'plugin name');
+  const title = titleOf(name);
+  const component = `${pascalOf(name)}Page`;
+  return {
+    ...(navigationSlot
+      ? {
+          'actions/open.ts': `import { defineAction } from '@bitakit/core';
+
+// The menu entry for this feature; the page lives in ui/pages/index.tsx.
+export default defineAction({ title: '${title}', href: '/${name}', groups: ['navigation'], slots: [${JSON.stringify(navigationSlot)}] });
+`,
+        }
+      : {}),
+    'ui/pages/index.tsx': `'use client';
+import { PageHeader } from '@bitakit/ui/components';
+
+// Served at /${name}; the file's place under ui/pages is the URL.
+// Grow the feature one file at a time:
+//   shared state -> npx bitakit add service ${name}/items
+//   a button     -> npx bitakit add action ${name}/archive (bind it with <Action id="${name}.archive">)
+export default function ${component}() {
+  return <PageHeader title="${title}" subtitle="Edit this page in src/plugins/${name}/ui/pages/index.tsx." />;
+}
+`,
+  };
+}
+
+/**
  * A complete feature: a service that owns the data, typed events, actions that change it, a
  * navigation link and a page. `minimal` keeps only the service, the events and one action.
  */
@@ -202,13 +234,17 @@ export default function SettingsPage({ section, renderField }: {
 `;
 }
 
-export function serviceFile(name) {
+export function serviceFile(name, plugin = '<plugin>') {
   const segments = name.split('/');
   segments.forEach((segment) => validateName(segment, 'service name'));
+  const id = `${plugin}.${segments.join('.')}`;
   return `import { defineService } from '@bitakit/core';
 
-/** Other contributions call these methods as services.<plugin>.${segments.join('.')}.
- * Acquire resources in onStart and return cleanup work from onStop; Core awaits it. */
+/**
+ * Shared state and logic: services.${id} in services and Actions,
+ * useServiceState('${id}', (state) => state.count, 0) in React.
+ * Async work goes in onStart, cleanup in onStop.
+ */
 export default defineService(({ store }) => {
   const state = store({ count: 0 });
   return {
@@ -232,10 +268,8 @@ export default defineEvents({
 export function settingsFile(plugin) {
   return `import { defineSettings, setting } from '@bitakit/core';
 
-// Keys are prefixed with the plugin ID: read and write as settings.${plugin}.<name> or useSetting('${plugin}.<name>').
-// A generated page under /settings shows every setting; ui/settings/page.tsx replaces it.
-// Its default export may also declare { component, boundary?, pages: [{ id, title, component }] }.
-// App Preferences automatically projects navigation and keyed bodies; extensions target app-preferences.page.after.
+// Saved preferences of this feature. Read them as settings.${plugin}.<name>.get() in services and
+// Actions, or useSetting('${plugin}.<name>').value in React. Each gets a field on /settings/${plugin}.
 export default defineSettings({
   pageSize: setting({ default: 20, control: 'number', label: 'Items per page' }),
 });
@@ -257,9 +291,8 @@ export function slotFile(plugin, slot) {
   const component = `${pascalOf(slot.replace(/\./g, '-'))}Slot`;
   return `'use client';
 
-// Declared targets wait for both plugins to be ready; cleanup belongs to this plugin.
-// The owner renders "${slot}" with PluginSlot (isolated errors). Export order to sort, and key for keyed targets.
-// Export a typed when({ payload }) predicate to filter this outlet occurrence.
+// A widget for the "${slot}" extension point; its owner renders it with <PluginSlot name="${slot}" />.
+// It appears once both plugins are ready. Optional: export const order = 1 to sort widgets.
 export default function ${component}() {
   return <span className="text-sm text-muted-foreground">${plugin}</span>;
 }
@@ -267,12 +300,12 @@ export default function ${component}() {
 `;
 }
 
-/** An owned declaration; the existing slot template contributes UI to a target. */
-export function slotDefinitionFile() {
+/** An extension point this plugin owns; `slotFile` contributes a widget to one. */
+export function slotDefinitionFile(id = '<plugin>.<name>') {
   return `import { defineSlot } from '@bitakit/core';
 
-// Owned contract; declaring it does not activate it or mount a renderer.
-// UI files attach automatically. In setup use scope.slots.attach({ slot, component }, { availability: 'wait' }).
+// An extension point other plugins can fill. Render it where it belongs: <PluginSlot name="${id}" />.
+// Another plugin adds a widget with: npx bitakit add slot <their-plugin>/${id}
 export default defineSlot({ accepts: 'component', policy: 'list' });
 `;
 }

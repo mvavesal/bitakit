@@ -50,7 +50,20 @@ src/plugins/todos/
     └── providers/query.tsx   React provider wrapped around the app
 ```
 
-Every immediate folder under `src/plugins` is a plugin; its folder name is the plugin ID. Folders are the one convention: the kind comes from the folder, the name from the file path, and nested folders add segments (`actions/tasks/clear.ts` → `todos.tasks.clear`). Root app contributions live in the same folders directly under `src`; their IDs carry no prefix (events and configuration use the app module ID: `app.<name>`).
+Every immediate folder under `src/plugins` is a plugin; its folder name is the plugin ID. The kind comes from the folder, the name from the file path, and nested folders add segments (`actions/tasks/clear.ts` → `todos.tasks.clear`).
+
+A small plugin can keep one file per kind instead of a folder. `actions.ts` exporting a record declares one Action per key, with the same IDs the folder would give:
+
+```ts title="src/plugins/todos/actions.ts"
+import { defineAction } from '@bitakit/core';
+
+export default {
+  add: defineAction({ title: 'Add', execute: () => {} }), // todos.add
+  clear: defineAction({ title: 'Clear', execute: () => {} }), // todos.clear
+};
+```
+
+When the file grows, move each entry to `actions/add.ts` and `actions/clear.ts`; no ID changes. The same works for `services.ts`, `interceptors.ts`, `configs.ts` and `slots.ts`. Pages, slot components and providers stay under `ui/`, the only place that imports React. Root app contributions live in the same folders directly under `src`; their IDs carry no prefix (events and configuration use the app module ID: `app.<name>`).
 
 <Callout title="Legacy spellings">
   `actions.add.ts` and `add.action.ts` from 0.1, and the old `pages/`, `views/` and `providers/`

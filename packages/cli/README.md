@@ -34,9 +34,9 @@ skipped with the line to add by hand. Packages are not installed: `init` lists t
 npx bitakit add plugin notes
 ```
 
-This creates `src/plugins/notes/` with a service, typed events, actions, a navigation link and
-a page at `/notes`; discovery connects it, so there is nothing to register. `--minimal` creates
-only the service, the events and one action.
+This creates `src/plugins/notes/` with a page at `/notes` and, with Shell, its navigation
+Action; discovery connects it, so there is nothing to register. `--example` writes a complete
+feature (service, events, Actions, page); `--minimal` only a service, its events and one action.
 
 Add single files to an existing plugin (inside a plugin package, give only the name):
 

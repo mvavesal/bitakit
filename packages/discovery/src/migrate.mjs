@@ -198,9 +198,10 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
       );
       if (!kind) continue;
       let next = rel;
-      // actions.create.ts at the module root → actions/create.ts; actions.ts → actions/index.ts
-      if (parts[0] in suffixes && !rel.includes('/'))
-        next = `${parts[0]}/${parts.length > 1 ? parts.slice(1).join('/') : 'index'}${extension}`;
+      // actions.create.ts at the module root → actions/create.ts. A plain actions.ts is the
+      // supported one-file-per-kind layout (a record of contributions) and stays as it is.
+      if (parts[0] in suffixes && !rel.includes('/') && parts.length > 1)
+        next = `${parts[0]}/${parts.slice(1).join('/')}${extension}`;
       // actions/create.action.ts → actions/create.ts
       const trailing = parts.at(-1);
       const suffixKind = Object.entries(suffixes).find(([, list]) => list.includes(trailing))?.[0];

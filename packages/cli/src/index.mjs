@@ -19,6 +19,7 @@ export {
   interceptorFile,
   pageFile,
   pluginFiles,
+  starterFiles,
   serviceFile,
   titleOf,
   pascalOf,

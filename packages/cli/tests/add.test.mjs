@@ -9,9 +9,27 @@ const read = (root, file) => readFile(path.join(root, file), 'utf8');
 const relative = (root, files) =>
   files.map((file) => path.relative(root, file).split(path.sep).join('/')).sort();
 
-test('add plugin writes a service, its events, actions, a navigation link and a page', async (t) => {
+test('add plugin starts with one page and its navigation link', async (t) => {
   const root = await project(nextApp(), t);
   const result = await addPlugin('user-notes', { cwd: root });
+  assert.equal(result.path, '/user-notes');
+  assert.equal(result.navigation, true);
+  assert.deepEqual(relative(root, result.created), [
+    'src/plugins/user-notes/actions/open.ts',
+    'src/plugins/user-notes/ui/pages/index.tsx',
+  ]);
+  const page = await read(root, 'src/plugins/user-notes/ui/pages/index.tsx');
+  assert.match(page, /export default function UserNotesPage\(\)/);
+  assert.match(page, /npx bitakit add service user-notes\/items/);
+  assert.match(
+    await read(root, 'src/plugins/user-notes/actions/open.ts'),
+    /href: '\/user-notes', groups: \['navigation'\], slots: \["shell\.navigation"\]/,
+  );
+});
+
+test('add plugin --example writes a service, its events, actions, a navigation link and a page', async (t) => {
+  const root = await project(nextApp(), t);
+  const result = await addPlugin('user-notes', { cwd: root, example: true });
   assert.equal(result.path, '/user-notes');
   assert.equal(result.title, 'User notes');
   assert.deepEqual(relative(root, result.created), [
@@ -156,10 +174,16 @@ test('add rejects missing plugins, missing or invalid names and unknown kinds', 
     addContribution('action', 'archive', { cwd: root }),
     /Name the plugin too, for example "bitakit add action notes\/archive"/,
   );
-  await assert.rejects(
-    addContribution('service', 'missing/x', { cwd: root }),
-    /Plugin "missing" does not exist/,
-  );
+  // The first contribution creates a missing plugin folder.
+  const created = await addContribution('service', 'listener/log', { cwd: root });
+  assert.equal(created.createdPlugin, true);
+  assert.deepEqual(relative(root, created.created), ['src/plugins/listener/services/log.ts']);
+  // Dotted slot names work like folders, the same rule discovery uses.
+  const widget = await addContribution('slot', 'listener/notes.sidebar', { cwd: root });
+  assert.equal(widget.id, 'notes.sidebar');
+  assert.deepEqual(relative(root, widget.created), [
+    'src/plugins/listener/ui/slots/notes/sidebar.tsx',
+  ]);
   await assert.rejects(addContribution('action', 'notes/', { cwd: root }), /Name the action/);
   await assert.rejects(
     addContribution('action', 'notes/Bad', { cwd: root }),

@@ -8,6 +8,7 @@ export { watchBitaKit } from './watch.mjs';
 export const defineBitaKit = (config) => config;
 export { describeBitaKit, describeModule } from './describe.mjs';
 export { migrateProject, rewriteRenamedNames } from './migrate.mjs';
+export { contributionSegments } from './entries.mjs';
 export { rewriteScopeAndSlots } from './scope-and-slots.mjs';
 export {
   styleLayers,

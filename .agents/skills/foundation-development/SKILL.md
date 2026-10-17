@@ -71,9 +71,13 @@ src/plugins/<id>/
 src/layouts/<name>.tsx     app layouts; pages opt in with `export const layout = '<name>'`
 ```
 
-- The folder name is the plugin ID. Folders only: `actions.x.ts` and `x.action.ts` are
-  legacy spellings that discovery warns about and `bitakit migrate` rewrites. Do not add
-  them to templates, docs or apps.
+- The folder name is the plugin ID. A small plugin may keep one record file per kind
+  instead of a folder: `actions.ts` exporting `{ add, remove }` declares `<plugin>.add` and
+  `<plugin>.remove`, exactly as `actions/add.ts` and `actions/remove.ts` would; split it into
+  the folder later without changing an ID. This works for `actions`, `services`,
+  `interceptors`, `configs` and `slots`; pages, slot components and providers stay under
+  `ui/` (the React boundary). `actions.x.ts` and `x.action.ts` are legacy spellings that
+  `bitakit migrate` rewrites; do not add them to templates, docs or apps.
 - Files need a default export; discovery parses, never executes, and warns about skipped
   files. Prefix helpers with `-`. `.d.ts` and `server/` are skipped.
 - The app module uses the same folders directly under `src/` with the ID `app` and

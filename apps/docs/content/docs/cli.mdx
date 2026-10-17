@@ -72,13 +72,13 @@ Run it in the root of an existing Next.js or TanStack Start project. It wires th
 
 ## Add a feature or a file
 
-A feature is a plugin. This creates `src/plugins/notes/` with a service, typed events, actions, a navigation link and a page at `/notes`:
+A feature is a plugin. This creates `src/plugins/notes/` with a page at `/notes` and, when Shell is installed, the one-line Action that puts it in the navigation:
 
 ```sh
 npx bitakit add plugin notes
 ```
 
-Add `--minimal` for only the service, its events and one action. To grow the plugin, add one file at a time. These two give it an `archive` action and a page at `/notes/archive`:
+`--example` writes a complete feature instead (a service, typed events, Actions and a page); `--minimal` writes only a service, its events and one Action. To grow the plugin, add one file at a time. A missing plugin folder is created by its first file. These two give it an `archive` action and a page at `/notes/archive`:
 
 ```sh
 npx bitakit add action notes/archive
@@ -92,7 +92,7 @@ npx bitakit add settings notes
 npx bitakit add settings-page notes
 ```
 
-The full `add plugin` template already declares events; do not add that file twice. `add events <plugin>` is for a plugin that does not have `events.ts`. Discovery connects new files. The path decides the ID or route, so `notes/team/invite` creates `actions/team/invite.ts` with the ID `notes.team.invite`. Existing files are never overwritten. Inside a plugin package, give only the name.
+The `--example` and `--minimal` templates already declare events; do not add that file twice. `add events <plugin>` is for a plugin that does not have `events.ts`. Discovery connects new files. The path decides the ID or route, so `notes/team/invite` (or `notes/team.invite`) creates `actions/team/invite.ts` with the ID `notes.team.invite`. Existing files are never overwritten. Inside a plugin package, give only the name.
 
 `npx bitakit add <kind> <plugin>/<name>` supports these kinds:
 

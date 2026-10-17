@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { contributionSegments } from '@bitakit/discovery';
 import { exists, findProject } from './project.mjs';
 import {
   actionFile,
@@ -16,6 +17,7 @@ import {
   providerFile,
   pluginFiles,
   serviceFile,
+  starterFiles,
   titleOf,
   validateName,
 } from './templates.mjs';
@@ -44,7 +46,7 @@ async function configuredProject(cwd) {
 }
 
 /** `bitakit add plugin <name>`: a new folder under the app's plugin directory. */
-export async function addPlugin(name, { cwd, minimal = false } = {}) {
+export async function addPlugin(name, { cwd, minimal = false, example = false } = {}) {
   validateName(name, 'plugin name');
   const project = await configuredProject(cwd);
   if (project.kind !== 'app')
@@ -57,7 +59,13 @@ export async function addPlugin(name, { cwd, minimal = false } = {}) {
   const navigationSlot = { ...manifest.devDependencies, ...manifest.dependencies }['@bitakit/shell']
     ? 'shell.navigation'
     : undefined;
-  const created = await writeNewFiles(root, pluginFiles(name, { minimal, navigationSlot }));
+  // Default: the smallest feature (a page and its menu entry); --example writes a complete one.
+  const files = minimal
+    ? pluginFiles(name, { minimal: true, navigationSlot })
+    : example
+      ? pluginFiles(name, { navigationSlot })
+      : starterFiles(name, { navigationSlot });
+  const created = await writeNewFiles(root, files);
   return {
     project,
     root,
@@ -115,6 +123,7 @@ export async function addContribution(kind, target, { cwd } = {}) {
     ? `bitakit add ${kind} notes`
     : `bitakit add ${kind} notes/${target || 'archive'}`;
   let plugin;
+  let createdPlugin = false;
   let name = target ?? '';
   let moduleRoot;
   if (project.kind === 'plugin') {
@@ -133,10 +142,8 @@ export async function addContribution(kind, target, { cwd } = {}) {
     if (!plugin) throw new Error(`Name the plugin too, for example "${example}".`);
     validateName(plugin, 'plugin name');
     moduleRoot = path.join(project.pluginsDirectory, plugin);
-    if (!(await exists(moduleRoot)))
-      throw new Error(
-        `Plugin "${plugin}" does not exist. Create it with "bitakit add plugin ${plugin}".`,
-      );
+    // A plugin is just its folder: the first contribution creates it.
+    createdPlugin = !(await exists(moduleRoot));
   }
   if (single) {
     if (name)
@@ -145,6 +152,8 @@ export async function addContribution(kind, target, { cwd } = {}) {
       );
   } else {
     if (!name) throw new Error(`Name the ${kind}, for example "${example}".`);
+    // Dots and folders mean the same, as in discovery: notes/app-bar.end equals notes/app-bar/end.
+    name = contributionSegments(name).join('/');
     name.split('/').forEach((segment) => validateName(segment, `${kind} name`));
   }
   const segments = name ? name.split('/') : [];
@@ -154,7 +163,7 @@ export async function addContribution(kind, target, { cwd } = {}) {
   const pagePath = `/${plugin}${pageSegments.map((segment) => `/${segment}`).join('')}`;
   const files = {
     action: () => ({ [`actions/${name}.ts`]: actionFile(name) }),
-    service: () => ({ [`services/${name}.ts`]: serviceFile(name) }),
+    service: () => ({ [`services/${name}.ts`]: serviceFile(name, plugin) }),
     page: () => ({
       [`ui/pages/${name}.tsx`]: pageFile(plugin, pagePath, titleOf(pageSegments.at(-1) ?? plugin)),
     }),
@@ -164,7 +173,7 @@ export async function addContribution(kind, target, { cwd } = {}) {
     settings: () => ({ 'settings.ts': settingsFile(plugin) }),
     'settings-page': () => ({ 'ui/settings/page.tsx': settingsPageFile() }),
     slot: () => ({ [`ui/slots/${name}.tsx`]: slotFile(plugin, dotted) }),
-    'slot-definition': () => ({ [`slots/${name}.ts`]: slotDefinitionFile() }),
+    'slot-definition': () => ({ [`slots/${name}.ts`]: slotDefinitionFile(`${plugin}.${dotted}`) }),
     dialog: () => ({ [`ui/dialogs/${name}.tsx`]: dialogFile(plugin, dotted) }),
     provider: () => ({ [`ui/providers/${name}.tsx`]: providerFile(plugin, dotted) }),
   }[kind];
@@ -172,6 +181,7 @@ export async function addContribution(kind, target, { cwd } = {}) {
   return {
     project,
     created,
+    createdPlugin,
     // A ui/slots file fills the slot named by its path, which is not prefixed with this plugin.
     id: single ? `${plugin}.*` : kind === 'slot' ? dotted : `${plugin}.${dotted}`,
     plugin,

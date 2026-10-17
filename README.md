@@ -88,8 +88,8 @@ export default function CounterPage() {
 ```
 
 Open **`/counter`**. The button takes its label, disabled and pending state from the Action;
-nothing is registered by hand. Prefer a generated example? `npx bitakit add plugin notes` writes
-a complete feature with a page, a service, Actions and a navigation link.
+nothing is registered by hand. Prefer a generated example? `npx bitakit add plugin notes --example`
+writes a complete feature with a page, a service, events, Actions and a navigation link.
 
 **4. Check it:** `npm run typecheck` and `npx bitakit doctor`.
 

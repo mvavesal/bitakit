@@ -34,20 +34,21 @@ const add = program
 add
   .command('plugin')
   .argument('<name>', 'plugin name, for example "notes"')
+  .option('--example', 'a complete example feature: a service, events, actions and a list page')
   .option(
     '--minimal',
     'only a service, its events and one action, without a page or navigation link',
   )
   .description(
-    'Create src/plugins/<name> with a service, events, actions, a navigation link and a page.',
+    'Create src/plugins/<name> with one page and, when the app has Shell, its navigation link.',
   )
   .action(async (name, options) => {
-    const result = await addPlugin(name, { minimal: options.minimal });
+    const result = await addPlugin(name, { minimal: options.minimal, example: options.example });
     console.log(`\nCreated plugin "${name}":`);
     created(result.created);
     console.log(
       result.navigation
-        ? `\n"${result.title}" now appears in the navigation and opens ${result.path}.\nThe dev server picks it up automatically; no registration needed.\n`
+        ? `\n"${result.title}" now appears in the navigation and opens ${result.path}.\nThe dev server picks it up automatically; no registration needed.\nNext: npx bitakit add service ${name}/items, then npx bitakit add action ${name}/<name>.\n`
         : result.path
           ? `\n"${result.title}" opens ${result.path}.\nThe dev server picks it up automatically; no registration needed.\n`
           : `\nThe dev server picks it up automatically; no registration needed.\n`,
@@ -81,6 +82,7 @@ for (const kind of contributionKinds)
     )
     .action(async (target) => {
       const result = await addContribution(kind, target);
+      if (result.createdPlugin) console.log(`\nCreated plugin "${result.plugin}".`);
       console.log(
         kind === 'slot'
           ? `\nCreated a component of plugin "${result.plugin}" for slot "${result.id}":`

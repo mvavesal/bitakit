@@ -164,6 +164,8 @@ export function rewriteScopeAndSlots(
   source: string,
   options?: { setupFile?: boolean; tsx?: boolean },
 ): { code: string; unresolved: number[] };
+/** A contribution path's segments; folders and dots mean the same (`a/b.c` → a, b, c). */
+export function contributionSegments(relative: string): string[];
 /** Renames the public `Foundation*` names to their 0.2 `BitaKit*` names in one source. */
 export function rewriteRenamedNames(source: string): string;
 /** Rewrites a 0.1 project layout to the current one. `dryRun` only reports the changes. */
