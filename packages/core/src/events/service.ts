@@ -75,8 +75,17 @@ export class EventService implements Events {
 
   private dispatch = (name: string, data?: unknown): void | Promise<boolean> => {
     const schema = this.declared.get(name.split('.')[0])?.schemas.get(name);
+    if (this.isCancelable(name)) {
+      // Cancelable emits return a promise, so an invalid payload rejects it instead of throwing.
+      let checked: unknown;
+      try {
+        checked = schema ? schema.parse(data) : data;
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return this.emitCancelable(name, checked);
+    }
     const payload = schema ? schema.parse(data) : data;
-    if (this.isCancelable(name)) return this.emitCancelable(name, payload);
     const event = Object.freeze({ type: name, data: payload }) as FoundationEvent;
     for (const listener of this.listenersFor(name)) {
       try {

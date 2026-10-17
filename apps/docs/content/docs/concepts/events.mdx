@@ -46,8 +46,8 @@ select Counter to see the complete publishing Action. The event was declared in 
 
 Subscriptions belong in a service, or in React's `useEvent` hook, so their lifetime is owned.
 An Action definition does not subscribe by itself. A listener can call a service operation;
-if it explicitly invokes an Action through `app.actions.execute`, the Action's usual guards
-and execution rules still apply.
+if it explicitly invokes an Action, for example `app.actions.counter.increment.execute()`, the
+Action's usual guards and execution rules still apply.
 
 The subscription is released with its service. Events are not replayed; read current state
 through its owning service rather than waiting for an event that may already have happened.

@@ -171,7 +171,8 @@ function pluginReadme(plan, id, title) {
   return `# ${plan.name}
 
 A [BitaKit](https://github.com/mvavesal/bitakit) plugin. Apps that install this package get
-the "${title}" feature automatically: its services, actions, navigation link and pages.
+the "${title}" feature automatically: its services, actions and pages. Each app chooses where
+the "${id}.open" link appears, for example with a slot placement.
 
 \`\`\`sh
 npm run dev        # playground app with the Inspector, reloads when src/ changes
@@ -217,7 +218,8 @@ through \`bitakit.plugin\` in package.json; nothing needs registering.
 - \`src/services/<name>.ts\` (\`defineService\`, reached as \`services.${id}.<name>\`), \`src/actions/<name>.ts\`
   (\`defineAction\`, ID \`${id}.<name>\`), \`src/events.ts\` (\`defineEvents\`) and \`src/ui/pages/<path>.tsx\`
   (the file path is the URL): the same conventions as plugins in an app.
-- Add files with \`npx bitakit add action|service|page|interceptor|config|events <name>\`.
+- Add files with \`npx bitakit add action|service|page|interceptor|config <name>\`; declare events once
+  with \`npx bitakit add events\`.
 - \`npm run dev\` starts the playground (\`playground/\`) with the Inspector; it discovers \`src/\`
   directly. \`npm test\` runs \`tests/*.test.ts\` headlessly with \`mountPlugin\`, including
   \`src/setup.ts\`; keep services, actions and setup free of JSX and guard browser-only APIs. \`npm run typecheck\` and \`npm run build\` (dist/ for npm) use \`bitakit build\`.

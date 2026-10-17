@@ -255,6 +255,9 @@ test('slot-definition scaffolds an owned contract separately from a UI slot cont
   );
   const view = await addContribution('slot', 'notes/header/tools', { cwd: root });
   assert.deepEqual(relative(root, view.created), ['src/plugins/notes/ui/slots/header/tools.tsx']);
+  // A ui/slots file fills the slot its path names; the slot name is not prefixed with the plugin.
+  assert.equal(view.id, 'header.tools');
+  assert.equal(view.plugin, 'notes');
 });
 
 test('custom settings page scaffold retains canonical fields without duplicate registration', async (t) => {

@@ -21,7 +21,7 @@
     "@bitakit/cli": "^0.2.0",
     "@clack/prompts": "1.8.1",
     "commander": "15.0.0",
-    "create-next-app": "16.3.5",
+    "create-next-app": "16.4.2",
     "execa": "^9.6.0",
     "validate-npm-package-name": "^7.0.0",
     "@tanstack/cli": "0.71.0",

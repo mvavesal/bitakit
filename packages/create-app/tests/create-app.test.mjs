@@ -28,7 +28,7 @@ async function scaffoldNext(command, args) {
   await writeFile(
     path.join(target, 'package.json'),
     JSON.stringify({
-      dependencies: { next: '16.3.5', react: '19.2.0', 'react-dom': '19.2.0' },
+      dependencies: { next: '16.4.2', react: '19.2.0', 'react-dom': '19.2.0' },
       devDependencies: {},
       scripts: {},
     }),

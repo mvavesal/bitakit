@@ -241,3 +241,22 @@ test('a service factory receives one context object and may read its dependencie
   }
   assert.throws(() => defineService({ id: 'x' }), /expects a factory function/);
 });
+
+test('reading a declared service before it is created explains the missing requires', () => {
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'demo',
+        services: {
+          reader: defineService(({ services }) => ({ value: services.demo.source.value })),
+          source: defineService(() => ({ value: 1 })),
+        },
+      }),
+    ],
+  });
+  assert.throws(
+    () => runtime.mount(),
+    (error) =>
+      /requires: \["demo\.source"\]/.test(error.message) && !/Plugin "undefined"/.test(error.message),
+  );
+});

@@ -97,15 +97,16 @@ export class SlotRuntime {
     });
     lifecycle.subscribe(() => this.refresh());
   }
-  private entry(name: string, plugin = this.appId) {
+  /** `source` names the contributing file when an unknown target comes from an attachment. */
+  private entry(name: string, plugin = this.appId, source?: string) {
     const entry = this.entries.get(name);
     if (!entry)
       throw new SlotError(
         'unknown-slot',
         name,
         plugin,
-        'no owning definition exists.',
-        undefined,
+        'no owning definition exists. Install and enable the plugin that declares it (in tests, pass that plugin to mountPlugin).',
+        source,
         plugin === this.appId,
       );
     return entry;
@@ -198,7 +199,7 @@ export class SlotRuntime {
     contribution: SlotContribution,
     availability: SlotAvailability,
   ): SlotAttachment {
-    const { definition } = this.entry(name, plugin);
+    const { definition } = this.entry(name, plugin, contributionSource(contribution));
     const source = contributionSource(contribution) ?? contributionSource(definition);
     const error = (code: SlotError['code'], message: string) =>
       new SlotError(code, name, plugin, message, source, plugin === this.appId);

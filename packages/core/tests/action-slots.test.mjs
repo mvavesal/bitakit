@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRuntime, defineAction, defineSlot } from '../dist/core.js';
+import {
+  createRuntime,
+  defineAction,
+  definePlugin,
+  defineSlot,
+  discoverActions,
+} from '../dist/core.js';
 
 const slots = {
   navigation: defineSlot({ accepts: 'actions' }),
@@ -70,4 +76,32 @@ test('invalid or duplicate placements fail with attribution and release partial 
     assert.equal(runtime.actions.get('broken.open'), undefined);
     assert.equal(runtime.slots.get('navigation').items.length, 0);
   }
+});
+
+test('an Action placed in an undeclared slot fails startup naming the slot and the Action file', () => {
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'projects',
+        actions: discoverActions(
+          [
+            {
+              value: defineAction({ title: 'Projects', href: '/projects', slots: ['shell.navigation'] }),
+              path: 'open',
+              source: 'src/plugins/projects/actions/open.ts',
+            },
+          ],
+          'projects',
+        ),
+      }),
+    ],
+  });
+  assert.throws(
+    () => runtime.mount(),
+    (error) =>
+      error.code === 'unknown-slot' &&
+      error.slot === 'shell.navigation' &&
+      error.source === 'src/plugins/projects/actions/open.ts' &&
+      /Install and enable the plugin that declares it/.test(error.message),
+  );
 });

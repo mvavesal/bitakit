@@ -41,7 +41,7 @@ export default defineService(({ services }) => ({ total: () => services.billing.
 });
 ```
 
-A service that is not listed still fails with a named error, with suggestions for close names, when it is first read.
+A service that is not listed still fails with a named error when it is first read. Startup suggests close names only for services listed in `requires`. A service that reads another one while it is being created must list it there, because `requires` also orders creation.
 
 ## Lifecycle and resources
 

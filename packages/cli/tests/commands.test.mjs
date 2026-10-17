@@ -367,3 +367,21 @@ test('doctor explains group-only navigation; explicit migration is previewable a
     ),
   );
 });
+
+test('add plugin without Shell does not promise a navigation entry', async (t) => {
+  const app = nextApp();
+  const root = await project(
+    {
+      ...app,
+      'package.json': {
+        ...app['package.json'],
+        dependencies: { next: '16.0.0', '@bitakit/core': '^0.2.0' },
+      },
+    },
+    t,
+  );
+  const added = await bitakit(root, 'add', 'plugin', 'notes');
+  assert.equal(added.code, 0, added.stderr);
+  assert.doesNotMatch(added.stdout, /navigation/);
+  assert.match(added.stdout, /"Notes" opens \/notes\./);
+});

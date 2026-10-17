@@ -58,7 +58,15 @@ export async function addPlugin(name, { cwd, minimal = false } = {}) {
     ? 'shell.navigation'
     : undefined;
   const created = await writeNewFiles(root, pluginFiles(name, { minimal, navigationSlot }));
-  return { project, root, created, title: titleOf(name), path: minimal ? undefined : `/${name}` };
+  return {
+    project,
+    root,
+    created,
+    title: titleOf(name),
+    path: minimal ? undefined : `/${name}`,
+    // Only a placed open Action shows in a navigation; without Shell the page is reached by URL.
+    navigation: !minimal && Boolean(navigationSlot),
+  };
 }
 
 export const contributionKinds = [
@@ -164,7 +172,9 @@ export async function addContribution(kind, target, { cwd } = {}) {
   return {
     project,
     created,
-    id: single ? `${plugin}.*` : `${plugin}.${dotted}`,
+    // A ui/slots file fills the slot named by its path, which is not prefixed with this plugin.
+    id: single ? `${plugin}.*` : kind === 'slot' ? dotted : `${plugin}.${dotted}`,
+    plugin,
     path: kind === 'page' ? pagePath : undefined,
   };
 }

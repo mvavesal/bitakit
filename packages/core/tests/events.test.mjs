@@ -291,3 +291,36 @@ test('each runtime has its own bus; stopping releases the listeners of its servi
   assert.equal(b.events.subscriptionCount, 1);
   await stopB();
 });
+
+test('a cancelable event rejects instead of throwing when its payload fails the schema', async () => {
+  const name = {
+    parse: (value) => {
+      if (typeof value !== 'string') throw new Error('name must be a string');
+      return value;
+    },
+  };
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'files',
+        events: defineEvents({ deleting: event({ cancelable: true, schema: name }) }),
+        services: {
+          store: defineService(({ events }) => ({
+            remove: (file) => events.emit('files.deleting', file),
+          })),
+        },
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  try {
+    let pending;
+    assert.doesNotThrow(() => {
+      pending = runtime.services.files.store.remove(1);
+    });
+    await assert.rejects(pending, /name must be a string/);
+    assert.equal(await runtime.services.files.store.remove('notes.txt'), true);
+  } finally {
+    await stop();
+  }
+});

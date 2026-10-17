@@ -177,7 +177,7 @@ export function actionFile(name) {
 
 export default defineAction({
   title: '${titleOf(segments.at(-1))}',
-  // Services are services.<plugin>.<name>; the ones you use are checked at startup.
+  // Services are services.<plugin>.<name>; reading an unknown one fails with a named error.
   execute: ({ services }) => {
     // Call your services here, for example services.notes.items.add('…').
   },

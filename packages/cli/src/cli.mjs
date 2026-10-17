@@ -46,36 +46,46 @@ add
     console.log(`\nCreated plugin "${name}":`);
     created(result.created);
     console.log(
-      result.path
+      result.navigation
         ? `\n"${result.title}" now appears in the navigation and opens ${result.path}.\nThe dev server picks it up automatically; no registration needed.\n`
-        : `\nThe dev server picks it up automatically; no registration needed.\n`,
+        : result.path
+          ? `\n"${result.title}" opens ${result.path}.\nThe dev server picks it up automatically; no registration needed.\n`
+          : `\nThe dev server picks it up automatically; no registration needed.\n`,
     );
   });
 for (const kind of contributionKinds)
   add
     .command(kind)
     .argument(
-      kind === 'events' || kind === 'settings'
+      kind === 'events' || kind === 'settings' || kind === 'settings-page'
         ? '[plugin]'
         : kind === 'layout'
           ? '<name>'
           : '<target>',
-      kind === 'events' || kind === 'settings'
-        ? `the plugin that declares the ${kind}; omit it inside a plugin package`
+      kind === 'events' || kind === 'settings' || kind === 'settings-page'
+        ? `the plugin that owns the ${kind}; omit it inside a plugin package`
         : kind === 'layout'
           ? 'the layout name; pages choose it with export const layout'
-          : `"<plugin>/<name>" in an app (nested names allowed), or "<name>" inside a plugin package`,
+          : kind === 'slot'
+            ? '"<plugin>/<slot path>": "activity/projects/sidebar" adds a component of plugin "activity" to slot "projects.sidebar"'
+            : `"<plugin>/<name>" in an app (nested names allowed), or "<name>" inside a plugin package`,
     )
     .description(
       kind === 'events' || kind === 'settings'
         ? `Create the ${kind}.ts of a plugin.`
-        : kind === 'layout'
-          ? 'Create src/layouts/<name>.tsx of the app.'
-          : `Create a ${kind} file. Its ID comes from the file path.`,
+        : kind === 'settings-page'
+          ? "Create ui/settings/page.tsx, which replaces the plugin's generated settings page."
+          : kind === 'layout'
+            ? 'Create src/layouts/<name>.tsx of the app.'
+            : `Create ${/^[aeiou]/.test(kind) ? 'an' : 'a'} ${kind} file. Its ID comes from the file path.`,
     )
     .action(async (target) => {
       const result = await addContribution(kind, target);
-      console.log(`\nCreated ${kind} ${kind === 'page' ? result.path : `"${result.id}"`}:`);
+      console.log(
+        kind === 'slot'
+          ? `\nCreated a component of plugin "${result.plugin}" for slot "${result.id}":`
+          : `\nCreated ${kind} ${kind === 'page' ? result.path : `"${result.id}"`}:`,
+      );
       created(result.created);
       console.log('');
     });

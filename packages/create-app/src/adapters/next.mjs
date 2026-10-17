@@ -78,8 +78,11 @@ export const next = {
       },
     });
     await rm(path.join(plan.target, 'src/app/page.tsx'), { force: true });
+    // Without Shell there is no navigation, so the sample is reached by its URL.
     const subtitle = plan.sample
-      ? 'Open Todos in the navigation, or add a feature with npx bitakit add plugin notes.'
+      ? shell
+        ? 'Open Todos in the navigation, or add a feature with npx bitakit add plugin notes.'
+        : 'Open /todos, or add a feature with npx bitakit add plugin notes.'
       : 'Edit this page, or add a feature with npx bitakit add plugin notes.';
     const files = {
       'next.config.ts': nextConfigFile,

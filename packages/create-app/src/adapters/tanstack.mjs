@@ -98,8 +98,11 @@ export const tanstack = {
       scripts: { typecheck: 'bitakit generate && tsr generate && tsc --noEmit' },
     });
     await rm(path.join(plan.target, 'src/routes/index.tsx'), { force: true });
+    // Without Shell there is no navigation, so the sample is reached by its URL.
     const subtitle = plan.sample
-      ? 'Open Todos in the navigation, or add a feature with npx bitakit add plugin notes.'
+      ? shell
+        ? 'Open Todos in the navigation, or add a feature with npx bitakit add plugin notes.'
+        : 'Open /todos, or add a feature with npx bitakit add plugin notes.'
       : 'Edit this page, or add a feature with npx bitakit add plugin notes.';
     const files = {
       'vite.config.ts': `import { defineConfig } from 'vite';
