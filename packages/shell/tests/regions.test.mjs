@@ -3,12 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createElement as h } from 'react';
 import { mount, click, settle } from './support.mjs';
-import { createRuntime, inspectRuntime } from '@bitakit/core';
-import {
-  defineAction,
-  definePlugin,
-  createMemorySettingsStorage,
-} from '@bitakit/ui';
+import { createRuntime, inspectRuntime, defineAction, definePlugin, createMemorySettingsStorage } from '@bitakit/core';
 import {
   AppShell,
   ErrorPage,

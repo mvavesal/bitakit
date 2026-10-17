@@ -2,13 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mount, settle, catalogTranslator } from './support.mjs';
 import { createElement as h } from 'react';
-import {
-  FoundationProvider,
-  FoundationRuntime,
-  createActionList,
-  createMemorySettingsStorage,
-  useSettingsCatalog,
-} from '@bitakit/ui';
+import { FoundationRuntime, createActionList, createMemorySettingsStorage } from '@bitakit/core';
+import { FoundationProvider, useSettingsCatalog } from '@bitakit/ui';
 import { shellPlugin, shellOptions } from '../dist/index.js';
 import foundationEntry from '../dist/foundation.js';
 import en from '../locales/en.json' with { type: 'json' };

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FoundationRuntime, createActionList, createMemorySettingsStorage } from '@bitakit/ui';
+import { FoundationRuntime, createActionList, createMemorySettingsStorage } from '@bitakit/core';
 import { shellPlugin } from '../dist/index.js';
 import { themeCatalog, defaultTheme, themeTokens } from '../dist/themes.js';
 

@@ -3,16 +3,8 @@ import assert from 'node:assert/strict';
 import { mount, settle } from './support.mjs';
 import { createElement as h, act } from 'react';
 import { toast } from '@heroui/react';
-import {
-  FoundationProvider,
-  FoundationRuntime,
-  createActionList,
-  createMemorySettingsStorage,
-  createTranslationPlugin,
-  defineAction,
-  definePlugin,
-  useFoundation,
-} from '@bitakit/ui';
+import { FoundationRuntime, createActionList, createMemorySettingsStorage, createTranslationPlugin, defineAction, definePlugin } from '@bitakit/core';
+import { FoundationProvider, useFoundation } from '@bitakit/ui';
 import { shellPlugin, notificationService, useNotifications } from '../dist/index.js';
 
 const visible = () =>

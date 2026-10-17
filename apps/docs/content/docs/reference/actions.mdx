@@ -71,7 +71,7 @@ Any React component that accepts `className` and `aria-hidden`, for example from
 
 ```ts
 // src/plugins/todos/actions/add.ts
-import { defineAction } from '@bitakit/core';
+import { defineAction, ActionStatus } from '@bitakit/core';
 import Plus from 'reicon-react/icons/Plus';
 
 export default defineAction<string>({
@@ -565,7 +565,7 @@ The control for one action, for full control or your own component:
 // src/plugins/todos/ui/add-with-status.tsx
 'use client';
 
-import { ActionStatus, useAction } from '@bitakit/ui';
+import { useAction } from '@bitakit/ui';
 
 export function AddWithStatus({ draft }: { draft: string }) {
   const add = useAction('todos.add', draft);

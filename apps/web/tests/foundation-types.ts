@@ -1,6 +1,6 @@
-import { getService, authService, translationService, defineAction } from '@bitakit/core';
+import { getService, authService, translationService, defineAction, type ActionInput, type ExecutionResult } from '@bitakit/core';
 import type { Services } from '@bitakit/core';
-import { useAction, type ActionInput, type ExecutionResult } from '@bitakit/ui/actions';
+import { useAction } from '@bitakit/ui/actions';
 import { z } from 'zod';
 
 /** Compile-time contract only; never called or bundled into the application. */

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mount, settle, setMedia, deferred } from './support.mjs';
 import { createElement as h, act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { FoundationProvider, createMemorySettingsStorage, useFoundation } from '@bitakit/ui';
+import { createMemorySettingsStorage } from '@bitakit/core';
+import { FoundationProvider, useFoundation } from '@bitakit/ui';
 import { shellPlugin, ShellThemeScript } from '../dist/index.js';
 
 const root = document.documentElement;

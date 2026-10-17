@@ -125,7 +125,7 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
 ## Headless Core and generic UI bindings
 
 - Core must remain usable on the backend without React or a UI library. Presentation payloads are opaque extension types; Core never renders them. React belongs under `ui/` of a plugin; nothing outside `ui/` may import React.
-- packages/ui contains generic bindings and host-driven rendering only. Do not add shadcn, Radix, HeroUI, or copied visual components to this package.
+- The `@bitakit/ui` root entry contains generic bindings and host-driven rendering only and does not re-export Core; `define*` always come from `@bitakit/core`. Standard shadcn/Radix Vega primitives live only in the optional `@bitakit/ui/components` entry and use the central theme tokens. Do not add other visual libraries (HeroUI, copied components) to this package.
 - Apps and optional visual plugins own only their required UI components. Visual plugins never import app code or request a host component catalog. They consume generic action bindings from packages/ui and inherit the central application CSS theme tokens.
 - Do not replace removed primitives with another central component-library package. Keep standard library components in the consuming app, and keep business execution/guards in Core.
 

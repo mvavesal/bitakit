@@ -1,6 +1,5 @@
 'use client';
 import '../types/presentation.js';
-export * from '@bitakit/core';
 export { ActionProvider } from '../providers/action-provider.js';
 export type { ActionProviderProps } from '../providers/action-provider.js';
 export {

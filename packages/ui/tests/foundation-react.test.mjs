@@ -10,34 +10,10 @@ import {
   useContext,
 } from 'react';
 import { installDom, mount, click, deferred, silenced, testUI } from './support.mjs';
-import {
-  ActionProvider,
-  ActionButton,
-  createActionList,
-  useAction,
-  useActionList,
-} from '../dist/actions/index.js';
-import {
-  FoundationProvider,
-  ActionBoundary,
-  PluginSlot,
-  PluginPage,
-  useCurrentPage,
-  useFoundation,
-  useFoundationApp,
-  useService,
-  useServiceState,
-  useEvent,
-  useTranslation,
-  useGroupTitle,
-  defineAction,
-  definePlugin,
-  defineService,
-  defineEvents,
-  event,
-  createTranslationPlugin,
-  ActionGroup,
-} from '../dist/index.js';
+import { ActionProvider, ActionButton, useAction, useActionList } from '../dist/actions/index.js';
+import { createActionList } from '@bitakit/core';
+import { FoundationProvider, ActionBoundary, PluginSlot, PluginPage, useCurrentPage, useFoundation, useFoundationApp, useService, useServiceState, useEvent, useTranslation, useGroupTitle } from '../dist/index.js';
+import { defineAction, definePlugin, defineService, defineEvents, event, createTranslationPlugin, ActionGroup } from '@bitakit/core';
 import {
   StandardFoundationProvider,
   StandardActionMenu,

@@ -1,6 +1,5 @@
 'use client';
 import './types/presentation.js';
-export * from '@bitakit/core';
 export { FoundationProvider } from './providers/foundation-provider.js';
 export {
   defineFramework,
@@ -27,7 +26,6 @@ export { PluginPage, useCurrentPage } from './components/plugin-page.js';
 export { useFoundationNavigation } from './hooks/use-foundation-navigation.js';
 export { useGroupTitle } from './hooks/use-group-title.js';
 export * from './actions/index.js';
-// The React binding wins over Core's low-level Action class, which stays available from @bitakit/core.
 export { Action } from './components/action.js';
 export { usePluginConfig } from './hooks/use-plugin-config.js';
 export { useTranslation, type Translate } from './hooks/use-translation.js';

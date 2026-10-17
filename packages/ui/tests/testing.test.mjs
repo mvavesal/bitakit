@@ -2,17 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
 import { installDom, click, silenced, testUI } from './support.mjs';
-import {
-  PluginPage,
-  defineAction,
-  defineEvents,
-  definePlugin,
-  defineService,
-  event,
-  isFoundationStartupError,
-  useService,
-  useServiceState,
-} from '../dist/index.js';
+import { PluginPage, useService, useServiceState } from '../dist/index.js';
+import { defineAction, defineEvents, definePlugin, defineService, event, isFoundationStartupError } from '@bitakit/core';
 import { renderWithFoundation } from '../dist/testing/index.js';
 
 installDom();

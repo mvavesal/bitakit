@@ -7,14 +7,8 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { createAuthClient } from 'better-auth/react';
-import {
-  FoundationProvider,
-  authService,
-  definePlugin,
-  defineService,
-  useFoundation,
-  useSettingsCatalog,
-} from '@bitakit/ui';
+import { authService, definePlugin, defineService } from '@bitakit/core';
+import { FoundationProvider, useFoundation, useSettingsCatalog } from '@bitakit/ui';
 import { betterAuthClient } from '@bitakit/better-auth';
 import { organizationBackend, organizationsPlugin } from '@bitakit/organizations';
 import { createDemoOrganizationBackend } from '@bitakit/organizations/demo';

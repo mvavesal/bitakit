@@ -1,5 +1,6 @@
 // Type checks for the public API; compiled by `tsc -p tsconfig.test.json`, never executed.
-import { defineConfig, useFoundationApp } from '@bitakit/ui';
+import { defineConfig } from '@bitakit/core';
+import { useFoundationApp } from '@bitakit/ui';
 import {
   AppShell,
   shellOptions,

@@ -2,16 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mount, settle, setMedia, click, deferred } from './support.mjs';
 import { Component, createElement as h, act, useEffect } from 'react';
-import {
-  FoundationProvider,
-  createMemorySettingsStorage,
-  defineAction,
-  definePlugin,
-  useFoundation,
-  useNavigation,
-  useSetting,
-  useSlot,
-} from '@bitakit/ui';
+import { createMemorySettingsStorage, defineAction, definePlugin } from '@bitakit/core';
+import { FoundationProvider, useFoundation, useNavigation, useSetting, useSlot } from '@bitakit/ui';
 import { Sidebar, SidebarProvider, SidebarTrigger } from '@bitakit/ui/components';
 import { AppShell, shellPlugin, useShellLayout } from '../dist/index.js';
 

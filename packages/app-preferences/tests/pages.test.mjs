@@ -2,7 +2,7 @@ import { click, controlledStorage, renderApp, setMobile, text, tick } from './su
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { act, createElement as h } from 'react';
-import { definePlugin, defineSettings, setting } from '@bitakit/ui';
+import { definePlugin, defineSettings, setting } from '@bitakit/core';
 import {
   SettingsNavigation,
   SettingsOverview,

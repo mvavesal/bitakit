@@ -2,14 +2,8 @@ import { renderApp } from './support.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
-import {
-  createMemorySettingsStorage,
-  definePlugin,
-  defineSettings,
-  setting,
-  useFoundation,
-  useSettingsCatalog,
-} from '@bitakit/ui';
+import { createMemorySettingsStorage, definePlugin, defineSettings, setting } from '@bitakit/core';
+import { useFoundation, useSettingsCatalog } from '@bitakit/ui';
 import { appPreferencesPlugin } from '../dist/foundation.js';
 import { settingsCategories } from '../dist/index.js';
 import { settingsCatalog } from '../dist/catalog.js';

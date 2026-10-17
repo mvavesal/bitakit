@@ -2,21 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
 import { installDom, mount, tick, testUI } from './support.mjs';
-import {
-  FoundationProvider,
-  PluginSlot,
-  createMemorySettingsStorage,
-  defineAction,
-  definePlugin,
-  defineSettings,
-  setting,
-  useFoundation,
-  useNavigation,
-  useSetting,
-  useSettingsCatalog,
-  useSlot,
-  defineSlot,
-} from '../dist/index.js';
+import { FoundationProvider, PluginSlot, useFoundation, useNavigation, useSetting, useSettingsCatalog, useSlot } from '../dist/index.js';
+import { createMemorySettingsStorage, defineAction, definePlugin, defineSettings, setting, defineSlot } from '@bitakit/core';
 
 installDom();
 

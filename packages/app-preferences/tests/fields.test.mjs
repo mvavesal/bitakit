@@ -2,7 +2,8 @@ import { blur, click, controlledStorage, press, renderApp, text, tick, type } fr
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { act, createElement as h } from 'react';
-import { definePlugin, defineSettings, setting, useSettingsCatalog } from '@bitakit/ui';
+import { definePlugin, defineSettings, setting } from '@bitakit/core';
+import { useSettingsCatalog } from '@bitakit/ui';
 import { SettingField, SettingsFields, controlFor } from '../dist/index.js';
 import { appPreferencesPlugin } from '../dist/foundation.js';
 

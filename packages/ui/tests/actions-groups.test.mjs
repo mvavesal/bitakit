@@ -2,20 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
 import { installDom, mount, click, testUI } from './support.mjs';
-import {
-  ActionGroup,
-  createActionList,
-  ActionProvider,
-  useActionGroups,
-  useActionGroup,
-} from '../dist/actions/index.js';
-import {
-  ActionMenu,
-  FoundationProvider,
-  defineAction,
-  definePlugin,
-  useFoundation,
-} from '../dist/index.js';
+import { ActionProvider, useActionGroups, useActionGroup } from '../dist/actions/index.js';
+import { ActionGroup, createActionList } from '@bitakit/core';
+import { ActionMenu, FoundationProvider, useFoundation } from '../dist/index.js';
+import { defineAction, definePlugin } from '@bitakit/core';
 
 installDom();
 
@@ -183,7 +173,8 @@ test('groups are ordered, bound to the caller input, titled and free of internal
 });
 
 test('group members react to service state through function-valued presentation', async () => {
-  const { defineService, useServiceState } = await import('../dist/index.js');
+  const { useServiceState } = await import('../dist/index.js');
+  const { defineService } = await import('@bitakit/core');
   const config = {
     plugins: [
       definePlugin({

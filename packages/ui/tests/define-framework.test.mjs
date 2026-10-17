@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { installDom, mount, testUI } from './support.mjs';
-import { defineFramework, definePlugin, useFoundationNavigation } from '../dist/index.js';
+import { defineFramework, useFoundationNavigation } from '../dist/index.js';
+import { definePlugin } from '@bitakit/core';
 
 installDom();
 

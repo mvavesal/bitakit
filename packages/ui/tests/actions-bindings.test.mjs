@@ -2,15 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act, memo } from 'react';
 import { installDom, mount, click, deferred, testUI } from './support.mjs';
-import {
-  ActionProvider,
-  useAction,
-  createActionList,
-  Action,
-  ActionButton,
-  ActionLink,
-} from '../dist/actions/index.js';
-import { FoundationProvider, defineAction, definePlugin } from '../dist/index.js';
+import { ActionProvider, useAction, Action, ActionButton, ActionLink } from '../dist/actions/index.js';
+import { createActionList } from '@bitakit/core';
+import { FoundationProvider } from '../dist/index.js';
+import { defineAction, definePlugin } from '@bitakit/core';
 
 installDom();
 

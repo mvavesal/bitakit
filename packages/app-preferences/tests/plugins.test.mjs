@@ -2,7 +2,7 @@ import { controlledStorage, renderApp, text, type, press, click } from './suppor
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
-import { definePlugin, defineSettings, setting } from '@bitakit/ui';
+import { definePlugin, defineSettings, setting } from '@bitakit/core';
 import { PluginsOverview, SettingsRoute } from '../dist/index.js';
 import { appPreferencesPlugin } from '../dist/foundation.js';
 
