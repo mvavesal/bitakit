@@ -37,15 +37,15 @@ the minimal app above needs no additional options.
 
 ## Options
 
-| Option                       | What it does                                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------------------------------- |
-| `--framework next\|tanstack` | The framework. Default: `next`. TanStack Start is experimental.                                   |
-| `--features <list>`          | Comma-separated `preferences`, `shell`, `quick-search`, or `none`. Default: `shell,quick-search`. |
+| Option                       | What it does                                                                                                                  |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `--framework next\|tanstack` | The framework. Default: `next`. TanStack Start is experimental.                                                               |
+| `--features <list>`          | Comma-separated `preferences`, `shell`, `quick-search`, or `none`. Default: `shell,quick-search`.                             |
 | `--sample` / `--no-sample`   | Add the Todo sample: `src/plugins/todos` and `src/plugins/activity`, which extends it. Asked interactively; off with `--yes`. |
-| `--plugin`                   | Create a standalone plugin package with a playground app instead of an app.                       |
-| `-y, --yes`                  | Use the defaults without prompts.                                                                 |
-| `--no-install`               | Write the files without installing dependencies.                                                  |
-| `--dry-run`                  | Print the resolved plan without writing anything.                                                 |
+| `--plugin`                   | Create a standalone plugin package with a playground app instead of an app.                                                   |
+| `-y, --yes`                  | Use the defaults without prompts.                                                                                             |
+| `--no-install`               | Write the files without installing dependencies.                                                                              |
+| `--dry-run`                  | Print the resolved plan without writing anything.                                                                             |
 
 Features bring their prerequisites: Shell adds App Preferences, and Quick Search adds Shell. The generator never overwrites an existing directory. If installing fails, the generated files stay for inspection and the command exits with an error.
 
@@ -55,7 +55,7 @@ Features bring their prerequisites: Shell adds App Preferences, and Quick Search
 - Build-time discovery (`withBitaKit` in `next.config.ts`, or the `bitakit()` Vite plugin) and `<BitaKitProvider>` from the generated `src/bitakit.gen.tsx` in the root layout: files in `src/plugins/<name>/` become plugins without a registry.
 - A catch-all route that renders plugin pages, and the generated package stylesheet `src/bitakit.gen.css` imported once. `src/bitakit.gen.*` is ignored by Git.
 - With Shell: the application layout, the theme script in the root layout, settings pages and `src/configs/shell.ts`. In Next.js, your home page is then `src/app/(app)/page.tsx`.
-- `README.md`, `AGENTS.md` and a `CLAUDE.md` that imports it (Claude Code reads `CLAUDE.md`) for your project, and the `bitakit` command (`@bitakit/cli`, with `@bitakit/discovery` for `bitakit.config.ts`) as dev dependencies: `npx bitakit add plugin notes` adds a feature, `npx bitakit doctor` checks the project. In an existing app, `npx bitakit init` writes the same wiring.
+- `README.md`, `AGENTS.md` and a `CLAUDE.md` that imports it (Claude Code reads `CLAUDE.md`) for your project, plus the `bitakit-app-development` skill in `.agents/skills/bitakit-app-development/`. The generated `AGENTS.md` points assistants to the skill for version-aware project inspection, layout/slot selection and focused verification. The `bitakit` command (`@bitakit/cli`, with `@bitakit/discovery` for `bitakit.config.ts`) is a dev dependency. In an existing app, `npx bitakit init` writes the same guidance and preserves a skill already at that path.
 
 The generator does not create a backend, authentication, a database or email; those are separate integrations.
 

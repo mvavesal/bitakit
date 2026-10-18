@@ -162,13 +162,21 @@ async function verify(name, scenario) {
       work,
     ),
   );
-  // Agent rules must reach the agent: AGENTS.md carries them, CLAUDE.md makes Claude Code load them.
+  // Agent rules and the app-authoring skill must reach the agent through the project.
   await step('agent rules', async () => {
     const read = (file) => readFile(path.join(work, name, file), 'utf8');
-    if (!(await read('AGENTS.md')).includes('BEGIN:bitakit-agent-rules'))
+    const rules = await read('AGENTS.md');
+    if (!rules.includes('BEGIN:bitakit-agent-rules'))
       throw new Error('AGENTS.md has no BitaKit rules block.');
+    if (!rules.includes('.agents/skills/bitakit-app-development/SKILL.md'))
+      throw new Error('AGENTS.md does not point to the app-authoring skill.');
     if (!/^@AGENTS\.md$/m.test(await read('CLAUDE.md')))
       throw new Error('CLAUDE.md does not import AGENTS.md.');
+    const skill = await read('.agents/skills/bitakit-app-development/SKILL.md');
+    if (!/^name: bitakit-app-development$/m.test(skill))
+      throw new Error('The project is missing the bitakit-app-development skill.');
+    if (!skill.includes('Create a new application') || !skill.includes('actual outlet'))
+      throw new Error('The app-authoring skill is incomplete.');
   });
   if (scenario.auth) {
     const archives = Object.fromEntries(

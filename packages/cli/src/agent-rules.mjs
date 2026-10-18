@@ -1,3 +1,6 @@
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
 /**
  * The one identity sentence. The root README, the docs introduction, generated READMEs and agent
  * rules repeat it verbatim; a test keeps those surfaces from drifting apart.
@@ -7,6 +10,28 @@ export const bitakitIdentity = 'BitaKit is a composition layer for building apps
 /** Markers around the BitaKit block, so a later run can find and leave it alone. */
 export const agentRulesBegin = '<!-- BEGIN:bitakit-agent-rules -->';
 export const agentRulesEnd = '<!-- END:bitakit-agent-rules -->';
+export const appDevelopmentSkillPath = '.agents/skills/bitakit-app-development/SKILL.md';
+
+/**
+ * Install the app-authoring skill shipped with this CLI into the standard project skill folder.
+ * Existing files are user-owned and left untouched; callers can report that outcome to the user.
+ */
+export async function writeAppDevelopmentSkill(root) {
+  const file = path.join(root, appDevelopmentSkillPath);
+  try {
+    await access(file);
+    return { file, created: false };
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  const content = await readFile(
+    new URL('../skills/bitakit-app-development/SKILL.md', import.meta.url),
+    'utf8',
+  );
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, content);
+  return { file, created: true };
+}
 
 /**
  * Claude Code reads `CLAUDE.md`, not `AGENTS.md`, so the app's `CLAUDE.md` imports the rules with
@@ -55,6 +80,7 @@ the file path is the ID. Discovery generates \`src/bitakit.gen.*\`; there is no 
 ${shell ? "- Shell: place an Action with `slots: ['shell.navigation']` or `['shell.toolbar']`; header content goes in `ui/slots/shell.header.end.tsx`.\n" : ''}- App-owned routes stay native framework routes in \`${routes}\`; layouts live in \`src/layouts/<name>.tsx\`.
 - Create files with \`npx bitakit add plugin <name>\` and \`npx bitakit add <kind> <name>/<file>\`; list IDs with
   \`npx bitakit info --json\`; check with \`npx bitakit doctor\` and \`npm run typecheck\`.
+- For app feature work, read \`.agents/skills/bitakit-app-development/SKILL.md\` for project inspection, layout/slot contracts and focused verification.
 - Advanced, only when needed: interceptors, configs, providers, dialogs, \`setup.ts\`, \`plugin.config.ts\`.
 - Never edit generated files: \`src/bitakit.gen.*\`.
 

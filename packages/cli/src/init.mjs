@@ -1,7 +1,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
-import { agentRules, agentRulesBegin, claudeFileFor } from './agent-rules.mjs';
+import {
+  agentRules,
+  agentRulesBegin,
+  appDevelopmentSkillPath,
+  claudeFileFor,
+  writeAppDevelopmentSkill,
+} from './agent-rules.mjs';
 import { exists, findProject } from './project.mjs';
 import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
 
@@ -251,6 +257,11 @@ export async function initProject({ cwd } = {}) {
   const claudeNext = claudeFileFor(claude);
   if (claudeNext === claude) skip(claudeFile, 'already imports AGENTS.md');
   else await put(claudeFile, claudeNext, claude === undefined);
+
+  const skill = await writeAppDevelopmentSkill(project.root);
+  if (skill.created) written.push({ file: skill.file, created: true });
+  else skip(at(appDevelopmentSkillPath), 'already exists; preserved');
+
   const install = [
     '@bitakit/core',
     '@bitakit/discovery',
