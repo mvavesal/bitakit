@@ -527,6 +527,10 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `npm run verify:generated` (packed packages, every generated shape, install, types, build,
   browser smoke), `bitakit doctor` in generated apps, `npm run build:docs` for the docs site.
   Run the checks relevant to the change; do not rerun green suites without new changes.
+- Release: a change to a published package's shipped content adds a changeset (`npm run changeset`);
+  `release.yml` on `main` opens the "Version packages" pull request and, once it is merged,
+  publishes through npm trusted publishing. Generated apps depend on the release line
+  (`^0.2.0`), so create-app may be released alone. Never bump versions or publish by hand.
 - UI consistency is an acceptance criterion: central components and tokens, keyboard
   operation, narrow viewports, light and dark, computed styles in a browser. A successful
   build is not a visual check; package or DOM tests are not a full-host check.

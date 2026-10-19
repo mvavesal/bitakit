@@ -11,12 +11,13 @@ import {
   access,
   chmod,
 } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execa } from 'execa';
 import { fileURLToPath } from 'node:url';
 import { planProject, createApp, createProject, useLocalPackages } from '../src/create-app.mjs';
-import { bitakitRange } from '../src/project-files.mjs';
+import { bitakitRange, releaseLineRange } from '../src/project-files.mjs';
 import { bundledSkillFiles, readSkillFiles } from '@bitakit/cli';
 
 async function workspace(t) {
@@ -134,6 +135,14 @@ test('an empty folder becomes the app; scaffolding runs in a sibling and install
     JSON.parse(await read(target, 'package.json')).dependencies['@bitakit/core'],
     bitakitRange,
   );
+});
+
+test('generated projects depend on the release line, not the generator version', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(bitakitRange, releaseLineRange(manifest.version));
+  assert.equal(releaseLineRange('0.2.4'), '^0.2.0');
+  assert.equal(releaseLineRange('0.3.0'), '^0.3.0');
+  assert.equal(releaseLineRange('1.4.2'), '^1.0.0');
 });
 
 /** Writes `files` (relative path to content) into `target`. */

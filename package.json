@@ -14,6 +14,8 @@
     "dev:docs": "npm run dev --workspace @bitakit/docs",
     "build:docs": "npm run build --workspace @bitakit/docs",
     "pack": "node scripts/pack-packages.mjs",
+    "changeset": "changeset",
+    "version-packages": "changeset version && npm install --package-lock-only --ignore-scripts",
     "verify:generated": "node scripts/verify-generated.mjs",
     "check:css": "node scripts/check-package-css.mjs"
   },
@@ -27,6 +29,7 @@
     "apps/todo-preview"
   ],
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "prettier": "3.6.2"
   },
   "license": "MIT"

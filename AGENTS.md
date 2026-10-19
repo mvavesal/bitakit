@@ -117,6 +117,12 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
 - Provider-specific adapters belong to optional packages, never Core. Register them as ordinary plugins, not a parallel integration system. Packages opt into discovery with `bitakit: { plugin: './plugin' }` in `package.json`; `bitakit build` produces that entry.
 - Use shared typed contracts (`defineContract`, `provides`) for plugin services; declare required services with `requires` and preserve server/client separation.
 
+## Releases
+
+- Releases run from `main` in `.github/workflows/release.yml` with Changesets and npm trusted publishing. Do not publish from a local machine.
+- A change to a published package's shipped content adds a changeset (`npm run changeset`; `patch` within the line). A new release line is one changeset that lists every published package as `minor`.
+- Do not edit package versions or `CHANGELOG.md` files by hand; the "Version packages" pull request does. See the Release section of `apps/docs/content/docs/contributing.mdx`.
+
 ## Minimal host application code
 
 - Reuse the existing BitaKit architecture and package APIs before adding host code. Keep application code limited to product behavior, native framework routes, and essential composition/configuration (`next.config.ts` with `withBitaKit`, `<BitaKitProvider>` in the root layout, optional `bitakit.config.ts`).
