@@ -32,40 +32,36 @@ cd my-app && npm run dev
 Open [localhost:3000](http://localhost:3000). There is no configuration to edit.
 
 **3. Add your first feature.** A folder under `src/plugins/` is a feature; each file's path is
-its ID. Start with a page, then add a service and Action when the feature needs behavior:
+its ID. Three small files give a page, shared state and a button:
 
 ```text
 src/plugins/counter/
-├── services.ts           → services.counter.value
-├── actions.ts            → Action "counter.increment"
+├── services/value.ts     → services.counter.value
+├── actions/increment.ts  → action "counter.increment"
 └── ui/pages/index.tsx    → page /counter
 ```
 
 ```ts
-// src/plugins/counter/services.ts
+// src/plugins/counter/services/value.ts
 import { defineService } from '@bitakit/core';
 
-export default {
-  value: defineService(({ store }) => {
-    const state = store({ count: 0 });
-    return {
-      state,
-      increment: () => state.set((s) => ({ count: s.count + 1 })),
-    };
-  }),
-};
+export default defineService(({ store }) => {
+  const state = store({ count: 0 });
+  return {
+    state,
+    increment: () => state.set((s) => ({ count: s.count + 1 })),
+  };
+});
 ```
 
 ```ts
-// src/plugins/counter/actions.ts
+// src/plugins/counter/actions/increment.ts
 import { defineAction } from '@bitakit/core';
 
-export default {
-  increment: defineAction({
-    title: 'Increment',
-    execute: ({ services }) => services.counter.value.increment(),
-  }),
-};
+export default defineAction({
+  title: 'Increment',
+  execute: ({ services }) => services.counter.value.increment(),
+});
 ```
 
 ```tsx
@@ -98,16 +94,21 @@ writes a complete feature with a page, a service, events, Actions and a navigati
 
 ```text
 src/plugins/
-└── counter/                       one feature, owned in one folder
-    ├── services.ts                shared count state and behavior
-    ├── actions.ts                 the increment Action
-    └── ui/pages/index.tsx         /counter
+├── projects/                      the owner
+│   ├── services/items.ts          state and logic
+│   ├── actions/add.ts             what users can do
+│   ├── events.ts                  "projects.created" for other features
+│   ├── slots/sidebar.ts           a place other features can extend
+│   └── ui/pages/index.tsx         /projects
+└── activity/                      a second feature, added later
+    ├── services/log.ts            listens to "projects.created"
+    └── ui/slots/projects/sidebar.tsx   a widget in the projects sidebar
 ```
 
 - **One folder per feature.** Its pages, actions, services, events, settings and extension points
   live together. Delete the folder and the feature is gone.
-- **Contracts, not shared files.** Other features can extend Counter through a service, event or
-  slot contract when that need arises; they do not need to edit Counter's files.
+- **Contracts, not shared files.** Features talk through the services, events and slots their
+  owners declare. The `activity` feature above extends `projects` without editing one of its files.
 - **Failures stay contained.** In development a plugin that fails to start is turned off with its
   dependents and a named cause (`isolateFailures` does the same in production), and a widget's
   render error stays inside its slot.
@@ -116,7 +117,6 @@ src/plugins/
   becomes a saved value with a generated Settings page.
 
 Plugins are trusted code in one runtime: they are self-contained by structure, not sandboxed.
-For a second feature extending Counter, see the [extension lesson](apps/docs/content/docs/concepts/extend.mdx).
 
 ## Built for developers and AI agents together
 
@@ -156,9 +156,7 @@ Every kind of change has exactly one place, so a person and a coding agent find 
 | Advanced     | 8    | A second plugin that extends the Counter | [Extend](apps/docs/content/docs/concepts/extend.mdx)     |
 
 The lessons grow the same Counter. You have a working feature after step 4; the rest can wait.
-Working with a coding agent? Read [Work with AI coding agents](apps/docs/content/docs/guides/ai-agents.mdx)
-and the [BitaKit app-development skill quick start](packages/cli/skills/bitakit-app-development/README.md)
-for host-specific installation and a copyable feature request.
+Working with a coding agent? [Work with AI coding agents](apps/docs/content/docs/guides/ai-agents.mdx).
 They describe the **0.2 API**; keep all BitaKit packages on the same version.
 Coming from 0.1? [Upgrade from 0.1](apps/docs/content/docs/upgrade.mdx) runs `npx bitakit migrate`.
 

@@ -1,79 +1,45 @@
-# BitaKit app development with Codex or Claude Code
+# Build BitaKit apps with an agent
 
-Use this skill to build a feature in the right place in a BitaKit app. It helps the agent inspect
-the app's installed packages and layout, choose the plugin that owns the feature, find a real
-rendered extension point, and verify the result. It favors a page first, then adds only the
-services, Actions, settings or slots the feature needs.
+The `bitakit-app-development` skill guides Codex and Claude Code through adding features to a
+BitaKit app. It helps the agent find the feature's owner, inspect the selected layout and its real
+extension points, and verify the result. It is guidance for the coding agent, not a BitaKit
+runtime package.
 
-## Install in a project workspace
+## Install the skill
 
-Run the command for your agent from the workspace where you want the skill available. These
-commands install a project copy, not a user-global skill. `--copy` keeps the skill files in the
-repository instead of creating a symlink.
-
-This GitHub source URL pins the tested skill snapshot. The branch name contains a slash, which the
-Skills CLI currently parses as two URL path segments; use the commit URL rather than the branch
-URL. Replace the commit with a newer one when you want a later skill revision.
-
-### Codex
+The `skills` command installs a project-local copy for each agent. To use the skill from this
+branch before it is merged, run this from your app directory and replace `/path/to/bitakit` with
+the path to your existing BitaKit checkout:
 
 ```sh
-npx skills add 'https://github.com/mvavesal/bitakit/tree/93cb760ec97e3a1f809ffecfc33646f76897a78e/packages/cli/skills/bitakit-app-development' \
-  --skill bitakit-app-development --agent codex --copy --yes
+npx skills add "/path/to/bitakit/packages/cli/skills/bitakit-app-development" \
+  --agent codex --agent claude-code --copy
 ```
 
-This installs to `.agents/skills/bitakit-app-development/`. Ask Codex:
-
-> Use the `bitakit-app-development` skill. Add a Counter feature under `src/plugins/counter/`
-> that displays 0 and increments when I click its button. Check the selected layout before adding
-> navigation. Then typecheck, run Doctor, and verify `/counter` in the browser.
-
-### Claude Code
+After this branch is merged into the default branch, you can install it directly from the
+repository:
 
 ```sh
-npx skills add 'https://github.com/mvavesal/bitakit/tree/93cb760ec97e3a1f809ffecfc33646f76897a78e/packages/cli/skills/bitakit-app-development' \
-  --skill bitakit-app-development --agent claude-code --copy --yes
+npx skills add mvavesal/bitakit --full-depth --skill bitakit-app-development \
+  --agent codex --agent claude-code --copy
 ```
 
-This installs to `.claude/skills/bitakit-app-development/`. Use the native skill command:
+The installer copies the skill into `.agents/skills/` for Codex and `.claude/skills/` for Claude
+Code. The npm command above runs the Skills CLI; the BitaKit skill itself is a folder in the
+repository and does not need a separate npm release. See the [Skills CLI documentation](https://github.com/vercel-labs/skills#readme)
+for installer options.
 
-```text
-/bitakit-app-development Add a Counter feature under src/plugins/counter/ that displays 0 and
-increments from a button. Check the selected layout before adding navigation, then typecheck, run
-Doctor, and verify /counter in the browser.
-```
+## Use the skill
 
-The command names and folders differ by host. BitaKit's generated `CLAUDE.md` imports `AGENTS.md`
-project instructions, but that alone does not install a native Claude Code skill or create its
-slash command. For Codex skill discovery guidance, see [Codex skills](https://learn.chatgpt.com/docs/build-skills);
-for Claude Code, see [skills](https://code.claude.com/docs/en/skills). The standard installer is
-[`npx skills`](https://github.com/vercel-labs/skills).
+In Codex, invoke `$bitakit-app-development`. In Claude Code, use `/bitakit-app-development`.
+For example:
 
-## What success looks like
+> Add a Counter page under `src/plugins/counter/` that starts at 0 and increments from a button.
+> Check the selected layout before adding navigation, then typecheck and verify `/counter`.
 
-The Counter has a `/counter` page that shows a count and an Action-bound button that increments
-it. The agent checks the current framework and installed BitaKit versions, keeps feature files in
-`src/plugins/counter/`, inspects any layout outlet before placing navigation, and reports the
-focused typecheck, Doctor and browser results. A slot declaration by itself is not proof that a
-chosen layout renders that slot.
+The skill starts with a page under `ui/`, then adds `services.ts` or `actions.ts` only if the
+feature needs them. Keep React in `ui/` and place navigation only where the selected layout has a
+real rendered outlet.
 
-For a first page with no behavior, start with only `src/plugins/counter/ui/pages/index.tsx`. When
-the feature needs state and an operation, a small plugin can keep a record in `services.ts` and a
-record in `actions.ts`; split them into named files as the feature grows. React stays in `ui/`.
-
-## New and existing apps
-
-On this source branch, `create-app` and `bitakit init` copy the skill into the app's
-`.agents/skills/` directory and point generated `AGENTS.md` to it. This supplies project-local
-Codex guidance for later work. For Claude Code, run its install command above from the app root
-when you want the native `/bitakit-app-development` skill there too.
-
-The change is not in the current published npm packages yet. To create or initialize an app from
-this source branch, use the [local checkout guide](../../../../apps/docs/content/docs/local-development.mdx).
-After release, the regular BitaKit create and init commands will deliver the project copy.
-
-The Skills CLI was verified to copy this skill into both host-specific folders in an isolated
-workspace. That verifies installation paths, not automatic activation in a fresh Codex, Claude
-Code or cloud session. The guide supports Next.js and TanStack Start consumer apps; it does not
-promise that every framework layout or responsive state has been exercised. GitHub access is
-required to fetch the source; for a private fork, use your existing Git or GitHub CLI credentials.
+The skill assumes the app already has the BitaKit packages needed for its workflow. Installing
+the skill does not install the BitaKit CLI or app dependencies.

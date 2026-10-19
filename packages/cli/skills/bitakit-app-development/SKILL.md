@@ -13,7 +13,7 @@ guidance.
 ## Create a new application
 
 When the request is for a new app, first establish the requested framework and visual composition.
-Use `npx @bitakit/create-app <directory> --framework <next|tanstack> --yes` with the requested
+Use `npx @bitakit/create-app <directory> --framework <next|tanstack>` with the requested
 feature selections; add `--sample` when a working reference is useful. The sample is two plugins
 (`todos` and `activity`) that demonstrate an event and a real slot contribution. Do not add Shell
 or a sidebar by default when the requested app shape does not call for them.
