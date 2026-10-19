@@ -8,8 +8,10 @@ go?". This guide shows what an agent gets from a BitaKit app and how to brief it
 
 ## What the agent reads
 
-Apps created with `npx @bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that points
-to it, which is the file Claude Code reads). `npx bitakit init` does the same for an existing app. The rules fit on one screen:
+Apps created with `npx @bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that imports
+it, which Claude Code reads), plus the `bitakit-app-development` skill under `.agents/skills/`.
+`npx bitakit init` delivers the same project guidance to a supported existing app. The rules fit
+on one screen and point to the skill for the fuller workflow:
 
 - a table that maps each task to its file, from a page to extending a feature you do not own;
 - the rules: start small, bind every control to its Action, React only under `ui/`, and do not
@@ -17,6 +19,28 @@ to it, which is the file Claude Code reads). `npx bitakit init` does the same fo
 - the commands to create files and check the result.
 
 Keep the block as it is and add your own product rules above or below it.
+
+The skill guides an assistant through both new app creation and existing app changes. It checks
+installed package versions, the framework root/provider, the chosen visual layout and its actual
+slot renderers, then uses the existing CLI, test helpers and browser preview. The Codex project
+skill location is `.agents/skills/`. The `CLAUDE.md` import gives Claude Code the shared project
+instructions; it does not register a native Claude Code skill slash command. For host-specific
+installation and a ready-to-use request, see the [skill quick start](https://github.com/mvavesal/bitakit/blob/majid/bitakit-app-development-skill/packages/cli/skills/bitakit-app-development/README.md).
+
+### Start before an app exists
+
+To let Codex use the skill while creating a new app, place the bundled file in the workspace's
+standard project skill directory before scaffolding. In a BitaKit checkout:
+
+```sh
+mkdir -p .agents/skills/bitakit-app-development
+cp packages/cli/skills/bitakit-app-development/SKILL.md .agents/skills/bitakit-app-development/SKILL.md
+```
+
+If `@bitakit/cli` is already installed in the workspace, its bundled source is at
+`node_modules/@bitakit/cli/skills/bitakit-app-development/SKILL.md`. This is a normal Agent Skills
+file placement, not a BitaKit installer. Do not change user-global host settings. Once the app is
+created, its own `.agents/skills/` copy and `AGENTS.md` reference provide the same guidance.
 
 ## What the agent can run
 

@@ -1,7 +1,12 @@
 import { createRequire } from 'node:module';
 import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { claudeFileFor, nextConfigFile, wrapNextConfig } from '@bitakit/cli';
+import {
+  claudeFileFor,
+  nextConfigFile,
+  wrapNextConfig,
+  writeAppDevelopmentSkill,
+} from '@bitakit/cli';
 import {
   agentRules,
   configureProject,
@@ -151,5 +156,6 @@ export default function Page() {
       'CLAUDE.md': claudeFileFor(claude),
       'README.md': readme(plan, next),
     });
+    await writeAppDevelopmentSkill(plan.target);
   },
 };

@@ -739,6 +739,13 @@ App Preferences owns navigation/body projection. Explicit navigation migration r
 manually. Run Core reconciliation/inventory, UI reconciliation/slot and CLI command tests when
 changing these contracts. Never put private comparisons or test logs in public documentation.
 
+The consumer-facing `bitakit-app-development` skill is shipped from `packages/cli/skills/` and
+installed by create-app/init into both `.agents/skills/` (Codex) and `.claude/skills/` (Claude
+Code); generated `AGENTS.md` names it for app feature work. Preserve existing files in either
+location. Keep this repository skill focused on package and framework implementation, not
+duplicate app-author instructions. When changing delivery behavior, verify both generated copies
+and existing-file preservation in create-app and CLI tests.
+
 
 ### Positioning (single source)
 

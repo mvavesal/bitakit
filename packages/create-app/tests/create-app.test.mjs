@@ -156,6 +156,19 @@ test('a bare app wraps next.config, mounts one provider, imports one generated s
   assert.match(rules, /`ui\/pages\/<path>\.tsx`/);
   assert.match(rules, /App-owned routes stay native framework routes in `src\/app`/);
   assert.match(rules, /Never edit generated files: `src\/bitakit\.gen\.\*`/);
+  assert.match(rules, /bitakit-app-development\/SKILL\.md/);
+  assert.match(
+    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
+    /^---\nname: bitakit-app-development\n/,
+  );
+  assert.equal(
+    await read(plan.target, '.claude/skills/bitakit-app-development/SKILL.md'),
+    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
+  );
+  assert.match(
+    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
+    /the CLI does not report every Action placement/,
+  );
   // One screen: the block may change, but it must not grow back past this budget.
   const block = rules.slice(rules.indexOf('<!-- BEGIN:bitakit-agent-rules -->'));
   assert.ok(block.length <= 3200, `agent rules are ${block.length} characters; the budget is 3200`);
@@ -338,6 +351,14 @@ test('TanStack apps get the same frame through native file routes and the Vite p
   );
   await missing(plan.target, 'src/routes/index.tsx');
   assert.equal(await read(plan.target, 'CLAUDE.md'), '@AGENTS.md\n');
+  assert.equal(
+    await read(plan.target, '.claude/skills/bitakit-app-development/SKILL.md'),
+    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
+  );
+  assert.match(
+    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
+    /Use `npx @bitakit\/create-app <directory>/,
+  );
   assert.match(
     await read(plan.target, 'AGENTS.md'),
     /App-owned routes stay native framework routes in `src\/routes`/,

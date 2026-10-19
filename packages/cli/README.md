@@ -21,12 +21,19 @@ npx bitakit init
 In an existing Next.js or TanStack Start app, `init` writes `bitakit.config.ts`, wraps
 `next.config` with `withBitaKit` (or adds `bitakit()` to the Vite plugins), mounts
 `<BitaKitProvider>` around `{children}` of the root layout, adds the catch-all route that renders
-`<PluginPage />`, ignores `src/bitakit.gen.*`, appends the agent rules to `AGENTS.md` and makes `CLAUDE.md` import it (an existing `CLAUDE.md` only gains the `@AGENTS.md` line). It prints what it wrote (`+` new file, `~`
-changed file) and what it skipped. Files that already carry the wiring are never touched, so it
+`<PluginPage />`, ignores `src/bitakit.gen.*`, appends the agent rules to `AGENTS.md` and makes `CLAUDE.md` import it (an existing `CLAUDE.md` only gains the `@AGENTS.md` line). It also delivers the
+`bitakit-app-development` skill at `.agents/skills/bitakit-app-development/SKILL.md`; an existing
+skill at that path is preserved. It prints what it wrote (`+` new file, `~` changed file) and what
+it skipped. Files that already carry the wiring are never touched, so it
 is safe to run again; a shape it cannot edit (for example a CommonJS `next.config.js`) is
 skipped with the line to add by hand. Packages are not installed: `init` lists the missing ones
 (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the framework adapter). Then run `generate` and `doctor`.
 `create-bitakit-app` writes the same wiring for new apps from the same templates.
+
+For host-specific skill installation and a copyable app request, see the
+[app-development skill quick start](skills/bitakit-app-development/README.md). `init` writes the
+project skill location used by Codex; Claude Code's native skill command uses `.claude/skills/`
+and is installed separately.
 
 ## Add a feature
 
@@ -103,7 +110,6 @@ npx bitakit build --check  # type-check only
 The package's `package.json` declares `bitakit: { plugin: './plugin' }`; apps that install the
 built package discover the plugin automatically.
 
-
 ### Slot declaration or UI contribution
 
 ```sh
@@ -116,7 +122,6 @@ In a plugin package, omit the plugin prefix. `bitakit build` compiles definition
 Keep it with the published entry. Doctor reports duplicate contracts, component/contract
 mismatches and unresolved computed records without executing plugin source. It does not prove
 that a UI outlet is mounted or that a plugin is ready.
-
 
 `bitakit build` preserves `settings.ts` and `ui/settings/page.tsx` in the package factory and
 emits SettingsMap augmentations. Custom/extra page descriptors, named page boundaries and
