@@ -8,9 +8,9 @@ go?". This guide shows what an agent gets from a BitaKit app and how to brief it
 
 ## What the agent reads
 
-Apps created with `npx @bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that points
-to it, which is the file Claude Code reads), plus the `bitakit-app-development` skill under
-`.agents/skills/`. `npx bitakit init` delivers the same guidance to an existing app. The rules fit
+Apps created with `npx @bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that imports
+it, which Claude Code reads), plus the `bitakit-app-development` skill under `.agents/skills/`.
+`npx bitakit init` delivers the same project guidance to a supported existing app. The rules fit
 on one screen and point to the skill for the fuller workflow:
 
 - a table that maps each task to its file, from a page to extending a feature you do not own;
@@ -22,8 +22,10 @@ Keep the block as it is and add your own product rules above or below it.
 
 The skill guides an assistant through both new app creation and existing app changes. It checks
 installed package versions, the framework root/provider, the chosen visual layout and its actual
-slot renderers, then uses the existing CLI, test helpers and browser preview. Hosts differ in how
-they discover skills; `AGENTS.md` also names the file directly so an assistant can read it.
+slot renderers, then uses the existing CLI, test helpers and browser preview. The Codex project
+skill location is `.agents/skills/`. The `CLAUDE.md` import gives Claude Code the shared project
+instructions; it does not register a native Claude Code skill slash command. For host-specific
+installation and a ready-to-use request, see the [skill quick start](https://github.com/mvavesal/bitakit/blob/majid/bitakit-app-development-skill/packages/cli/skills/bitakit-app-development/README.md).
 
 ### Start before an app exists
 

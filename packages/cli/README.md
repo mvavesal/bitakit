@@ -30,6 +30,11 @@ skipped with the line to add by hand. Packages are not installed: `init` lists t
 (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the framework adapter). Then run `generate` and `doctor`.
 `create-bitakit-app` writes the same wiring for new apps from the same templates.
 
+For host-specific skill installation and a copyable app request, see the
+[app-development skill quick start](skills/bitakit-app-development/README.md). `init` writes the
+project skill location used by Codex; Claude Code's native skill command uses `.claude/skills/`
+and is installed separately.
+
 ## Add a feature
 
 ```sh

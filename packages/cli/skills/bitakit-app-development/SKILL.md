@@ -1,6 +1,6 @@
 ---
 name: bitakit-app-development
-description: Add or change a feature in an existing BitaKit application. Use when inspecting an app, choosing its feature owner or layout extension point, scaffolding a plugin, or checking the rendered result.
+description: Create or extend an application built with BitaKit. Use when scaffolding an app or feature, inspecting a consumer project, choosing its owner or layout extension point, or checking rendered behavior.
 ---
 
 # BitaKit app development
@@ -72,12 +72,16 @@ Before placing UI, inspect the app's selected composition and the layout owner's
 
 ## Implement in the owning plugin
 
-Use `npx bitakit add plugin <name>` for a new feature, then add only the files it needs. Use
-`npx bitakit add <kind> <plugin>/<name>` for supported contributions to an existing plugin.
-For example, `npx bitakit add slot <plugin>/<slot>` creates a component contribution; it does not
-declare a new slot contract. Add Actions, services, settings, events and slot declarations in
-the plugin that owns those behaviors. Extend another feature through its public service, event or
-slot contract rather than editing its folder when the contract is sufficient.
+Use `npx bitakit add plugin <name>` for a new feature, then add only the files it needs. Start
+page-only when that is enough. For a small interactive feature, one `services.ts` record and one
+`actions.ts` record can hold the service and Action; split them into named files as the feature
+grows without changing their IDs. Pages and other React components stay under `ui/`, where
+discovery reads them. Use `npx bitakit add <kind> <plugin>/<name>` for supported contributions to
+an existing plugin. For example, `npx bitakit add slot <plugin>/<slot>` creates a component
+contribution; it does not declare a new slot contract. Add Actions, services, settings, events and
+slot declarations in the plugin that owns those behaviors. Extend another feature through its
+public service, event or slot contract rather than editing its folder when the contract is
+sufficient.
 
 Keep state in the owning service store, preferences in `defineSettings`, and host configuration
 in `defineConfig`/host overrides. Bind controls that run operations to the existing Action
