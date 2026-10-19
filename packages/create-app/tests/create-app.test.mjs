@@ -1,12 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile, rm, symlink, access } from 'node:fs/promises';
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  writeFile,
+  rm,
+  symlink,
+  access,
+  chmod,
+} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { execa } from 'execa';
 import { fileURLToPath } from 'node:url';
 import { planProject, createApp, createProject, useLocalPackages } from '../src/create-app.mjs';
 import { bitakitRange } from '../src/project-files.mjs';
+import { bundledSkillFiles, readSkillFiles } from '@bitakit/cli';
 
 async function workspace(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'bitakit-create-test-'));
@@ -73,15 +84,266 @@ async function scaffoldStart(command, args) {
   await writeFile(path.join(target, 'src/routes/__root.tsx'), 'export {};');
 }
 
-test('rejects existing directories and symlinks without touching user files', async (t) => {
+test('rejects existing projects, files and symlinks without touching user files', async (t) => {
   const root = await workspace(t);
   const existing = path.join(root, 'existing');
-  await mkdir(existing);
+  await mkdir(path.join(existing, '.git'), { recursive: true });
+  await writeFile(path.join(existing, 'package.json'), '{}');
   await writeFile(path.join(existing, 'keep.txt'), 'user content');
+  await writeFile(path.join(root, 'file'), '');
   await symlink(existing, path.join(root, 'linked'));
-  await assert.rejects(planProject(existing), /already exists/);
+  // Only the unexpected entries are listed; .git is allowed.
+  await assert.rejects(
+    planProject(existing),
+    /already exists: .*existing\..* also contains keep\.txt, package\.json\. Choose a new directory\./,
+  );
+  await assert.rejects(planProject(path.join(root, 'file')), /already exists/);
   await assert.rejects(planProject(path.join(root, 'linked')), /already exists/);
+  await assert.rejects(createProject({ target: existing }, { run: scaffoldNext }), /keep\.txt/);
   assert.equal(await readFile(path.join(existing, 'keep.txt'), 'utf8'), 'user content');
+  assert.equal(await read(existing, 'package.json'), '{}');
+  assert.deepEqual(await readdir(root), ['existing', 'file', 'linked']);
+});
+
+test('an empty folder becomes the app; scaffolding runs in a sibling and installing in place', async (t) => {
+  const root = await workspace(t);
+  const target = path.join(root, 'here');
+  await mkdir(target);
+  const plan = await planProject(target);
+  assert.deepEqual(plan.existing, []);
+  const calls = [];
+  const result = await createProject(plan, {
+    run: async (command, args, cwd) => {
+      calls.push({ command, args, cwd });
+      if (command !== 'npm') await scaffoldNext(command, args);
+    },
+  });
+  assert.deepEqual(result, { target, kept: [] });
+  // The scaffolder sees a new folder with the target's name next to the target.
+  const staged = calls[0].args[1];
+  assert.equal(path.basename(staged), 'here');
+  assert.equal(path.dirname(path.dirname(staged)), root);
+  assert.deepEqual(calls.at(-1), { command: 'npm', args: ['install'], cwd: target });
+  assert.deepEqual(await readdir(root), ['here']);
+  await exists(target, 'src/app/layout.tsx');
+  await exists(target, '.agents/skills/bitakit-app-development/references/slots.md');
+  await exists(target, '.claude/skills/bitakit-app-development/SKILL.md');
+  assert.equal(await read(target, 'CLAUDE.md'), '@AGENTS.md\n');
+  assert.match(await read(target, 'AGENTS.md'), /^<!-- next rules -->\n\n<!-- BEGIN:bitakit/);
+  assert.equal(
+    JSON.parse(await read(target, 'package.json')).dependencies['@bitakit/core'],
+    bitakitRange,
+  );
+});
+
+/** Writes `files` (relative path to content) into `target`. */
+async function seed(target, files) {
+  for (const [file, content] of Object.entries(files)) {
+    await mkdir(path.dirname(path.join(target, file)), { recursive: true });
+    await writeFile(path.join(target, file), content);
+  }
+}
+
+const nextRules =
+  '<!-- BEGIN:nextjs-agent-rules -->\nNext.js rules\n<!-- END:nextjs-agent-rules -->\n';
+
+/** The minimal Next scaffold with create-next-app's own managed AGENTS.md block. */
+async function scaffoldNextWithRules(command, args) {
+  await scaffoldNext(command, args);
+  await writeFile(path.join(args[1], 'AGENTS.md'), nextRules);
+}
+
+/** Asserts that `rules` begins with `start` and has each managed block once, framework first. */
+function assertMergedRules(rules, start) {
+  assert.ok(rules.startsWith(start), rules);
+  assert.equal(rules.match(/BEGIN:nextjs-agent-rules/g).length, 1);
+  assert.equal(rules.match(/BEGIN:bitakit-agent-rules/g).length, 1);
+  assert.ok(rules.indexOf('END:nextjs-agent-rules') < rules.indexOf('BEGIN:bitakit-agent-rules'));
+}
+
+test('a folder with .git and agent files keeps them and gains the rules, import and skill', async (t) => {
+  const root = await workspace(t);
+  const target = path.join(root, 'workspace');
+  const files = {
+    '.git/HEAD': 'ref: refs/heads/main\n',
+    'AGENTS.md': `# Team rules\n\nBe brief.\n\n${nextRules}`,
+    'CLAUDE.md': '# Claude\n\nUse tabs.\n',
+    '.claude/settings.local.json': '{ "permissions": { "allow": [] } }\n',
+    '.agents/skills/bitakit-app-development/SKILL.md': 'team copy\n',
+    '.gitignore': 'node_modules/\n.env\n',
+    '.vscode/settings.json': '{ "editor.tabSize": 2 }\n',
+  };
+  await seed(target, files);
+  const plan = await planProject(target, { install: false });
+  assert.deepEqual(plan.existing, [
+    '.agents',
+    '.claude',
+    '.git',
+    '.gitignore',
+    '.vscode',
+    'AGENTS.md',
+    'CLAUDE.md',
+  ]);
+  const { kept } = await createProject(plan, {
+    run: async (command, args) => {
+      // create-next-app's managed block is already present in the user's file.
+      await scaffoldNextWithRules(command, args);
+      await mkdir(path.join(args[1], '.vscode'));
+      await writeFile(path.join(args[1], '.vscode/settings.json'), '{}\n');
+    },
+  });
+  // The user's files win over generated ones, and the caller learns which were not applied.
+  assert.deepEqual(kept.sort(), [
+    '.agents/skills/bitakit-app-development',
+    '.vscode/settings.json',
+  ]);
+  assert.equal(await read(target, '.vscode/settings.json'), files['.vscode/settings.json']);
+  assert.equal(await read(target, '.git/HEAD'), files['.git/HEAD']);
+  assert.equal(
+    await read(target, '.claude/settings.local.json'),
+    files['.claude/settings.local.json'],
+  );
+  assertMergedRules(
+    await read(target, 'AGENTS.md'),
+    `# Team rules\n\nBe brief.\n\n${nextRules}\n<!-- BEGIN:bitakit-agent-rules -->`,
+  );
+  assert.equal(await read(target, 'CLAUDE.md'), '# Claude\n\nUse tabs.\n\n@AGENTS.md\n');
+  // Missing generated lines go first, so the user's own patterns still win.
+  assert.equal(
+    await read(target, '.gitignore'),
+    '# Generated by BitaKit discovery\nsrc/bitakit.gen.*\n\nnode_modules/\n.env\n',
+  );
+  // An existing skill folder is preserved whole; the other agent folder gains the skill.
+  assert.equal(
+    await read(target, '.agents/skills/bitakit-app-development/SKILL.md'),
+    'team copy\n',
+  );
+  await missing(target, '.agents/skills/bitakit-app-development/references');
+  await exists(target, '.claude/skills/bitakit-app-development/references/slots.md');
+  await exists(target, 'next.config.ts');
+  assert.deepEqual(await readdir(root), ['workspace']);
+});
+
+test('a plain AGENTS.md gains the framework rules and then the BitaKit rules', async (t) => {
+  const target = path.join(await workspace(t), 'here');
+  await seed(target, { 'AGENTS.md': '# Team rules\n' });
+  const plan = await planProject(target, { install: false });
+  await createProject(plan, { run: scaffoldNextWithRules });
+  const rules = await read(target, 'AGENTS.md');
+  assertMergedRules(rules, '# Team rules\n\n<!-- BEGIN:nextjs-agent-rules -->');
+  assert.equal(await read(target, 'CLAUDE.md'), '@AGENTS.md\n');
+});
+
+test('linked AGENTS.md and CLAUDE.md get the rules once and no self-import', async (t) => {
+  const root = await workspace(t);
+  for (const [link, file] of [
+    ['AGENTS.md', 'CLAUDE.md'],
+    ['CLAUDE.md', 'AGENTS.md'],
+  ]) {
+    const target = path.join(root, `linked-${file.toLowerCase().replace('.md', '')}`);
+    await seed(target, { [file]: '# Team rules\n' });
+    await symlink(file, path.join(target, link));
+    const plan = await planProject(target, { install: false });
+    const { kept } = await createProject(plan, { run: scaffoldNextWithRules });
+    assert.deepEqual(kept, []);
+    const rules = await read(target, file);
+    assertMergedRules(rules, '# Team rules\n\n<!-- BEGIN:nextjs-agent-rules -->');
+    assert.doesNotMatch(rules, /^@AGENTS\.md/m);
+    assert.equal(await read(target, link), rules);
+  }
+});
+
+test('a link out of the project or a dangling link is kept and reported', async (t) => {
+  const root = await workspace(t);
+  const target = path.join(root, 'here');
+  await seed(root, { 'shared/AGENTS.md': '# Shared rules\n' });
+  await mkdir(target);
+  await symlink(path.join(root, 'shared/AGENTS.md'), path.join(target, 'AGENTS.md'));
+  await symlink('missing.md', path.join(target, 'CLAUDE.md'));
+  const plan = await planProject(target, { install: false });
+  const { kept } = await createProject(plan, { run: scaffoldNextWithRules });
+  assert.deepEqual(kept.sort(), ['AGENTS.md', 'CLAUDE.md']);
+  assert.equal(await read(root, 'shared/AGENTS.md'), '# Shared rules\n');
+});
+
+test("generated .gitignore lines go first, so the user's negations stay effective", async (t) => {
+  const target = path.join(await workspace(t), 'here');
+  const own = '# dotenv environment variable files\n.env\n.env.*\n!.env.example\n';
+  await seed(target, { '.gitignore': own, LICENSE: 'MIT\n' });
+  const plan = await planProject(target, { install: false });
+  await createProject(plan, {
+    run: async (command, args) => {
+      await scaffoldNext(command, args);
+      await writeFile(path.join(args[1], '.gitignore'), 'node_modules/\n\n# env files\n.env*\n');
+    },
+  });
+  assert.equal(
+    await read(target, '.gitignore'),
+    `node_modules/\n\n# env files\n.env*\n\n# Generated by BitaKit discovery\nsrc/bitakit.gen.*\n\n${own}`,
+  );
+});
+
+test('a failed scaffold leaves the existing folder unchanged and removes the staging folder', async (t) => {
+  const root = await workspace(t);
+  const target = path.join(root, 'here');
+  await mkdir(target);
+  await writeFile(path.join(target, 'AGENTS.md'), '# Rules\n');
+  const plan = await planProject(target, { install: false });
+  await assert.rejects(
+    createProject(plan, {
+      run: async (command, args) => {
+        await scaffoldNext(command, args);
+        throw new Error('Scaffold failed');
+      },
+    }),
+    (error) => error.targetUnchanged && /Scaffold failed/.test(error.message),
+  );
+  assert.deepEqual(await readdir(root), ['here']);
+  assert.deepEqual(await readdir(target), ['AGENTS.md']);
+  assert.equal(await read(target, 'AGENTS.md'), '# Rules\n');
+});
+
+// Directory permissions do not restrict root, and Windows ignores the mode bits used here.
+const permissions = process.platform !== 'win32' && process.getuid?.() !== 0;
+
+test(
+  'without write access next to the folder, staging happens inside it',
+  { skip: !permissions && 'directory permissions are not enforced' },
+  async (t) => {
+    const root = await workspace(t);
+    const parent = path.join(root, 'locked');
+    const target = path.join(parent, 'here');
+    await mkdir(target, { recursive: true });
+    const plan = await planProject(target, { type: 'plugin', install: false });
+    let scaffolded;
+    await chmod(parent, 0o555);
+    try {
+      await createProject(plan, {
+        run: async (command, args) => {
+          scaffolded = args[1];
+          await scaffoldNext(command, args);
+        },
+      });
+    } finally {
+      await chmod(parent, 0o755);
+    }
+    // <target>/<staging>/here/playground; nothing is left behind in either folder.
+    assert.equal(path.dirname(path.dirname(path.dirname(scaffolded))), target);
+    assert.deepEqual(await readdir(parent), ['here']);
+    assert.ok((await readdir(target)).every((entry) => !entry.startsWith('.bitakit-staging-')));
+    // Plugin packages use the same mechanism.
+    assert.equal(JSON.parse(await read(target, 'package.json')).name, 'here');
+    await exists(target, 'playground/next.config.ts');
+  },
+);
+
+test('the package name comes from the folder name', async (t) => {
+  const root = await workspace(t);
+  await mkdir(path.join(root, 'My App'));
+  await assert.rejects(
+    planProject(path.join(root, 'My App')),
+    /Invalid project name "My App": .*rename the folder or choose a new directory/,
+  );
 });
 
 test('defaults to the full app frame and resolves prerequisites before writing', async (t) => {
@@ -156,6 +418,23 @@ test('a bare app wraps next.config, mounts one provider, imports one generated s
   assert.match(rules, /`ui\/pages\/<path>\.tsx`/);
   assert.match(rules, /App-owned routes stay native framework routes in `src\/app`/);
   assert.match(rules, /Never edit generated files: `src\/bitakit\.gen\.\*`/);
+  assert.match(rules, /bitakit-app-development\/SKILL\.md/);
+  const skill = await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md');
+  assert.match(skill, /^---\nname: bitakit-app-development\n/);
+  // The installed copy records the CLI release, so `bitakit init --update-agent-files` can tell
+  // an unedited copy from a team's edit.
+  assert.match(
+    skill,
+    /\nmetadata:\n {2}bitakit-version: "[^"]+"\n {2}bitakit-checksum: "[0-9a-f]{64}"\n---\n/,
+  );
+  assert.equal(await read(plan.target, '.claude/skills/bitakit-app-development/SKILL.md'), skill);
+  // The references travel with SKILL.md, so its links resolve in both agent folders.
+  for (const folder of ['.agents', '.claude'])
+    assert.deepEqual(
+      await readSkillFiles(path.join(plan.target, folder, 'skills/bitakit-app-development')),
+      await bundledSkillFiles(),
+      folder,
+    );
   // One screen: the block may change, but it must not grow back past this budget.
   const block = rules.slice(rules.indexOf('<!-- BEGIN:bitakit-agent-rules -->'));
   assert.ok(block.length <= 3200, `agent rules are ${block.length} characters; the budget is 3200`);
@@ -212,7 +491,7 @@ test('the shell app adds the App Shell, settings, a not-found fallback and the T
   assert.match(await read(plan.target, 'src/app/(app)/page.tsx'), /Open Todos in the navigation/);
   const todos = (file) => path.join(plan.target, 'src/plugins/todos', file);
   for (const file of [
-    'services/items.ts',
+    'services/list.ts',
     'settings.ts',
     'events.ts',
     'slots/footer.ts',
@@ -239,7 +518,7 @@ test('the shell app adds the App Shell, settings, a not-found fallback and the T
   assert.match(await readFile(todos('actions/open.ts'), 'utf8'), /href: '\/todos'/);
   assert.match(
     await readFile(todos('ui/pages/index.tsx'), 'utf8'),
-    /useServiceState\('todos\.items'/,
+    /useServiceState\('todos\.list', \(state\) => state\.todos, \[\]\)/,
   );
   const readme = await read(plan.target, 'README.md');
   assert.match(readme, /Todo sample is a working example in two plugins/);
@@ -279,6 +558,68 @@ test('CLI dry-run does not create files and unsupported framework exits with an 
   );
   assert.notEqual(rejected.exitCode, 0);
   await missing(root, 'app');
+});
+
+test('CLI dry-run with . states that the app is created in the existing folder', async (t) => {
+  const root = await workspace(t);
+  const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url));
+  const target = path.join(root, 'here');
+  await mkdir(path.join(target, '.git'), { recursive: true });
+  await writeFile(path.join(target, 'AGENTS.md'), '# Rules\n');
+  const result = await execa(process.execPath, [cli, '.', '--dry-run', '--yes'], { cwd: target });
+  assert.match(
+    result.stdout,
+    /Folder: +existing; the app is created in it, next to \.git, AGENTS\.md/,
+  );
+  assert.deepEqual(await readdir(target), ['.git', 'AGENTS.md']);
+  await writeFile(path.join(target, 'index.html'), '');
+  const rejected = await execa(process.execPath, [cli, '.', '--dry-run', '--yes'], {
+    cwd: target,
+    reject: false,
+  });
+  assert.notEqual(rejected.exitCode, 0);
+  assert.match(rejected.stderr, /also contains index\.html/);
+});
+
+// Runs the real create-next-app, which copies its template without network access when it
+// does not install.
+test('CLI creates the app in the current folder and reports kept files and failures', async (t) => {
+  const root = await workspace(t);
+  const cli = fileURLToPath(new URL('../src/cli.mjs', import.meta.url));
+  const target = path.join(root, 'here');
+  await seed(target, {
+    '.git/HEAD': 'ref: refs/heads/main\n',
+    'AGENTS.md': '# Team rules\n',
+    '.agents/skills/bitakit-app-development/SKILL.md': 'team copy\n',
+  });
+  const args = ['.', '--yes', '--no-install', '--features', 'none'];
+  const { stdout } = await execa(process.execPath, [cli, ...args], { cwd: target });
+  assert.match(stdout, /Generating in a temporary folder, then moving it into \S*here\./);
+  assert.match(
+    stdout,
+    /Kept your own \.agents\/skills\/bitakit-app-development; the generated versions were not applied\./,
+  );
+  assert.doesNotMatch(stdout, /^cd /m);
+  assert.match(stdout, /Start a new session so it loads the new AGENTS\.md and skill\./);
+  assertMergedRules(
+    await read(target, 'AGENTS.md'),
+    '# Team rules\n\n<!-- BEGIN:nextjs-agent-rules',
+  );
+  assert.equal(await read(target, 'CLAUDE.md'), '@AGENTS.md\n');
+  await exists(target, 'next.config.ts');
+  assert.deepEqual(await readdir(root), ['here']);
+
+  const broken = path.join(root, 'broken');
+  await seed(broken, { 'AGENTS.md': '# Team rules\n' });
+  const failed = await execa(
+    process.execPath,
+    [cli, ...args, '--packages-dir', path.join(root, 'missing')],
+    { cwd: broken, reject: false },
+  );
+  assert.notEqual(failed.exitCode, 0);
+  assert.match(failed.stderr, /Nothing in \S*broken was changed\./);
+  assert.deepEqual(await readdir(broken), ['AGENTS.md']);
+  assert.deepEqual((await readdir(root)).sort(), ['broken', 'here']);
 });
 
 test('installation failures propagate and leave generated files available for inspection', async (t) => {
@@ -338,6 +679,11 @@ test('TanStack apps get the same frame through native file routes and the Vite p
   );
   await missing(plan.target, 'src/routes/index.tsx');
   assert.equal(await read(plan.target, 'CLAUDE.md'), '@AGENTS.md\n');
+  assert.equal(
+    await read(plan.target, '.claude/skills/bitakit-app-development/SKILL.md'),
+    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
+  );
+  await exists(plan.target, '.agents/skills/bitakit-app-development/references/slots.md');
   assert.match(
     await read(plan.target, 'AGENTS.md'),
     /App-owned routes stay native framework routes in `src\/routes`/,
@@ -380,14 +726,15 @@ test('a plugin package has the same folders as an app plugin, a headless test an
   const spec = await read(plan.target, 'tests/my-notes.test.ts');
   assert.match(spec, /import \{ mountPlugin \} from '@bitakit\/core\/testing';/);
   assert.match(spec, /const plugin = await mountPlugin\('src'\);/);
-  assert.match(spec, /await plugin\.execute\('add', 'First item'\);/);
+  assert.match(spec, /await plugin\.execute\('add', 'First entry'\);/);
+  assert.match(spec, /\.list\.state\.get\(\)\.entries;/);
   assert.match(
     spec,
     /plugin\.events\.recorded\.some\(\(event\) => event\.type === 'my-notes\.changed'\)/,
   );
   assert.match(spec, /plugin\.actions\.get\('my-notes\.clear'\)\?\.enabled/);
   for (const file of [
-    'services/items.ts',
+    'services/list.ts',
     'events.ts',
     'actions/add.ts',
     'actions/remove.ts',
@@ -398,7 +745,7 @@ test('a plugin package has the same folders as an app plugin, a headless test an
     await exists(plan.target, `src/${file}`);
   assert.match(
     await read(plan.target, 'src/actions/add.ts'),
-    /services\["my-notes"\]\.items\.add\(input\)/,
+    /services\["my-notes"\]\.list\.add\(input\)/,
   );
   assert.match(await read(plan.target, '.gitignore'), /^node_modules\/\ndist\/\n\.bitakit\/\n/);
   assert.match(

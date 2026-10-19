@@ -6,6 +6,22 @@ description: Mount a plugin folder, exercise its Actions and inspect state with 
 `mountPlugin` from `@bitakit/core/testing` runs one plugin folder without React or a framework.
 It uses the same discovery conventions as an app and awaits service startup before returning.
 
+## Generate a first test
+
+In an app, the CLI writes a starting test for an existing plugin:
+
+```sh
+npx bitakit add test counter
+```
+
+`tests/counter.test.ts` mounts `src/plugins/counter`, checks that the plugin starts, then stops
+it. When the plugin places Actions in `shell.*` slots, the file includes the
+[Shell stand-in](#a-plugin-in-the-shell-navigation). The command then prints what the app still
+needs as commands: the dev dependencies below that `package.json` does not list,
+`npm pkg set type=module` and `npm pkg set scripts.test="node --test tests/*.test.ts"`. It never
+edits `package.json` or overwrites a file. Add the behavior you want to keep, as in the next
+section.
+
 ## Test the Counter
 
 Use the service and increment Action from [Add state](/docs/concepts/services) and
@@ -55,12 +71,15 @@ the helper skips `ui/` and does not verify rendering.
 
 A plugin made by `npx bitakit add plugin` places its `open` Action in `shell.navigation`.
 Without Shell, startup fails with `Slot "shell.navigation": no owning definition exists`.
-Pass a one-line stand-in for the slot owner:
+Pass a stand-in for the slot owner:
 
 ```ts
 import { definePlugin, defineSlot } from '@bitakit/core';
 
-const shell = definePlugin({ id: 'shell', slots: { navigation: defineSlot({ accepts: 'actions' }) } });
+const shell = definePlugin({
+  id: 'shell',
+  slots: { navigation: defineSlot({ accepts: 'actions' }) },
+});
 const plugin = await mountPlugin('src/plugins/notes', { plugins: [shell] });
 ```
 
@@ -81,12 +100,12 @@ assert.deepEqual(getService(plugin.services, feedService).state.get().titles, ['
 
 ## Options and returned handles
 
-| Option | Purpose |
-| --- | --- |
-| `id` | Override the ID inferred from the manifest, plugin folder or package. |
-| `plugins` | Other plugins for this test: plugin folders or `definePlugin` objects (stubs). |
-| `services` | Supply host-owned services, for example a fake `auth` implementation. |
-| `configOverrides` | Override developer configuration for the test. |
+| Option            | Purpose                                                                        |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `id`              | Override the ID inferred from the manifest, plugin folder or package.          |
+| `plugins`         | Other plugins for this test: plugin folders or `definePlugin` objects (stubs). |
+| `services`        | Supply host-owned services, for example a fake `auth` implementation.          |
+| `configOverrides` | Override developer configuration for the test.                                 |
 
 The result contains `id`, `runtime`, `app`, `actions`, `services`, `events`, `execute` and
 `stop`. `execute('increment')` uses the mounted plugin's prefix; full Action IDs also work.

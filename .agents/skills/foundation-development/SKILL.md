@@ -229,6 +229,11 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `bitakit build` generates types and `dist/plugin.slots.json` static hints from source.
   Never maintain the sidecar by hand. Doctor never executes contributions; computed/imported
   collections are reported as unresolved, not guessed. Runtime duplicate checks are authoritative.
+  `bitakit slots` lists the same set doctor counts, with static `ui/slots` and literal Action
+  `slots` contributions; sidecars carry no payload, so package payloads stay `null`.
+  Contributions to undeclared IDs are listed in `unknownTargets`, never dropped. Tools that need
+  non-literal fields use `describeDefinitions({ inspect })` and classify its nodes with the `ts`
+  it passes, never a second ID parser or TypeScript instance.
 - Action `slots: ['shell.navigation']` or `[{ slot, input: ({ payload }) => ..., order?, key?, availability? }]`
   adds owned references to the single Action registration (default wait). Groups are logical
   queries, not implicit placement. Unknown targets fail; internal Actions never enter slots.
@@ -383,6 +388,13 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   the startup report and explains a required service of a turned-off plugin on the page.
   Production startup fails fast; `isolateFailures` changes the default. Do not broaden that
   startup boundary to unrelated render errors; slot components use the explicit render boundary above.
+- The provider's mount effect mirrors startup on `<html data-bitakit-runtime>`: `starting`, then
+  `ready` once `controller.ready` resolves (isolated plugin failures included) or `failed`. In
+  Next.js a fail-fast startup error can replace the document with the framework's error page,
+  which drops the attribute; `bitakit check-page` therefore records every state it sees and
+  reports `failed` from that history. Never render it (hydration stays stable) and never derive
+  it from transient controller phases. check-page reads causes from the `[bitakit]` console
+  lines; change the three together.
 - Setup is synchronous; `setup` and service `create` do not receive the `app` facade before
   mount. `setup({ scope, services })` receives the `PluginScope` (`scope.slots`,
   `scope.actions.getGroup(id).attach/add`, `scope.own`), which tracks cleanup; `app` always means
@@ -509,6 +521,8 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   ID and releases everything on failure. React tests use `renderWithBitaKit(element, { plugins, services })`
   from `@bitakit/ui/testing` (jsdom supplied by the test, events recorded). Keep services,
   actions, events, configs and `setup.ts` free of JSX and guarded against browser-only APIs.
+  `bitakit add test <plugin>` writes an app's first such test (with the Shell stub when its
+  Actions target `shell.*` slots) and prints the missing setup without editing `package.json`.
 - Chain: `npm test` (every package), `npm run check` (web typecheck and lint),
   `npm run verify:generated` (packed packages, every generated shape, install, types, build,
   browser smoke), `bitakit doctor` in generated apps, `npm run build:docs` for the docs site.
@@ -545,7 +559,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   (`packages/cli/src/templates.mjs`, the single source for `--sample` (`sampleFiles`: `todos`
   plus an `activity` plugin that extends it through `todos.changed` and `todos.footer`),
   `bitakit add` and plugin packages), the agent rules (`packages/cli/src/agent-rules.mjs`, shared
-  by create-app and `bitakit init`, held to one screen by a test), this skill, the private target API
+  by create-app and `bitakit init`, held to one screen by a test), the app skill and its recipes
+  (`packages/cli/skills/bitakit-app-development/`, whose snippets must compile in a `--sample`
+  app), this skill, the private target API
   (`.private/bitakit-enhancement/target-api.md`) if the contract moved, the package READMEs, the docs site and the
   private TODO.
 
@@ -737,14 +753,36 @@ Input-dependent action presentation must handle absent input during action enume
 
 ### Authoring and migration workflow
 
-For human or AI-assisted authoring: read the owning slot contracts with `bitakit info --json`
-and generated SlotMap, use `bitakit add` templates, implement the smallest service/Action/UI
-files, then generate, typecheck, Doctor and exercise the real outlet. Static unknowns require
-source inspection, not guessed IDs. `add settings-page <plugin>` retains canonical fields;
-App Preferences owns navigation/body projection. Explicit navigation migration requires
-`--navigation-slot <target>`; preview and review, preserve groups, handle ambiguous spreads
-manually. Run Core reconciliation/inventory, UI reconciliation/slot and CLI command tests when
-changing these contracts. Never put private comparisons or test logs in public documentation.
+For human or AI-assisted authoring: read the owning slot contracts with `bitakit slots --json`
+(IDs with `bitakit info --json`) and generated SlotMap, use `bitakit add` templates, implement
+the smallest service/Action/UI files, then generate, typecheck, Doctor and exercise the real
+outlet. Static unknowns require source inspection, not guessed IDs. `add settings-page <plugin>`
+retains canonical fields; App Preferences owns navigation/body projection. Explicit navigation
+migration requires `--navigation-slot <target>`; preview and review, preserve groups, handle
+ambiguous spreads manually. Run Core reconciliation/inventory, UI reconciliation/slot and CLI
+command tests when changing these contracts. Never put private comparisons or test logs in
+public documentation.
+
+The consumer-facing `bitakit-app-development` skill is shipped from `packages/cli/skills/` and
+installed by create-app/init into both `.agents/skills/` (Codex and most other agents) and
+`.claude/skills/` (Claude Code): `SKILL.md` plus `references/`, without the folder's human README.
+Generated `AGENTS.md` names it for app feature work. A folder that already has a SKILL.md is
+preserved whole; `init --update-agent-files` replaces it only when its frontmatter `metadata` stamp
+(`bitakit-version`, `bitakit-checksum` of the files as shipped) proves it unedited, and replaces
+the BitaKit-owned `AGENTS.md` block. Compare installed copies with `readSkillFiles` and
+`bundledSkillFiles` (stamp ignored), never byte by byte; the source SKILL.md has no `metadata`.
+Its recipes extend the `--sample` Todo plugins (`todos`, `activity`) with `about`, `summary`,
+`print` and `todos.toolbar`; keep those names consistent. Templates and docs name their data
+concretely: the sample service is `todos.list` (state `todos`), and `add plugin --example` writes
+`<plugin>.list` (state `entries`, type `Entry`). Keep this repository skill focused on package and
+framework implementation, not
+duplicate app-author instructions. When changing delivery behavior, verify both generated copies
+and existing-file preservation in create-app and CLI tests. create-app also targets an existing
+folder that holds only version control, editor and agent files (`keptEntries` in
+`packages/create-app/src/existing-folder.mjs`): it generates in a staging folder on the same
+filesystem and moves in without replacing user files (managed AGENTS.md blocks once,
+`claudeFileFor`, missing `.gitignore` lines ahead of the user's, root text files also through links
+inside the folder, folders entry by entry, SKILL.md folders whole, other kept files reported).
 
 
 ### Positioning (single source)

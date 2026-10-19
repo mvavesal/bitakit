@@ -19,30 +19,30 @@ The sections below explain those same files; you do not need to create a second 
 No React, router, database or discovery is required. For a TypeScript standalone example
 with derived service, Action and Settings maps, see [Plugin manager](/docs/plugin-management).
 
-The service owns tasks in a store, three actions invoke it, the events file declares `todos.changed`, and the plugin groups them. The delete action is disabled while the list is empty because its `enabled` function reads the store.
+The service owns todos in a store, three actions invoke it, the events file declares `todos.changed`, and the plugin groups them. The delete action is disabled while the list is empty because its `enabled` function reads the store.
 
-## todos/services/tasks.mjs
+## todos/services/list.mjs
 
 ```js
 import { defineService } from '@bitakit/core';
 
 /** The Todos data and behavior: an observable store plus the methods that change it. */
 export default defineService(({ store, events }) => {
-  const state = store({ items: [], nextId: 1 });
+  const state = store({ todos: [], nextId: 1 });
 
   return {
     state,
     create(title) {
-      const task = { id: state.get().nextId, title, done: false };
-      state.set((s) => ({ items: [...s.items, task], nextId: s.nextId + 1 }));
-      events.emit('todos.changed', { kind: 'added', id: task.id });
-      return task;
+      const todo = { id: state.get().nextId, title, done: false };
+      state.set((s) => ({ todos: [...s.todos, todo], nextId: s.nextId + 1 }));
+      events.emit('todos.changed', { kind: 'added', id: todo.id });
+      return todo;
     },
-    list: () => [...state.get().items],
+    all: () => [...state.get().todos],
     delete(id) {
-      const before = state.get().items.length;
-      state.set((s) => ({ ...s, items: s.items.filter((task) => task.id !== id) }));
-      const removed = state.get().items.length < before;
+      const before = state.get().todos.length;
+      state.set((s) => ({ ...s, todos: s.todos.filter((todo) => todo.id !== id) }));
+      const removed = state.get().todos.length < before;
       if (removed) events.emit('todos.changed', { kind: 'removed', id });
       return removed;
     },
@@ -66,17 +66,17 @@ export default defineEvents({
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  execute: ({ services, input }) => services.todos.tasks.create(input),
+  execute: ({ services, input }) => services.todos.list.create(input),
 });
 ```
 
-## todos/actions/list.mjs
+## todos/actions/all.mjs
 
 ```js
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  execute: ({ services }) => services.todos.tasks.list(),
+  execute: ({ services }) => services.todos.list.all(),
 });
 ```
 
@@ -86,9 +86,9 @@ export default defineAction({
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  // Re-evaluated whenever the tasks store changes: disabled while the list is empty.
-  enabled: ({ services }) => services.todos.tasks.state.get().items.length > 0,
-  execute: ({ services, input }) => services.todos.tasks.delete(input),
+  // Re-evaluated whenever the list store changes: disabled while the list is empty.
+  enabled: ({ services }) => services.todos.list.state.get().todos.length > 0,
+  execute: ({ services, input }) => services.todos.list.delete(input),
 });
 ```
 
@@ -96,17 +96,17 @@ export default defineAction({
 
 ```js
 import { definePlugin } from '@bitakit/core';
-import tasks from './services/tasks.mjs';
+import list from './services/list.mjs';
 import events from './events.mjs';
 import create from './actions/create.mjs';
-import list from './actions/list.mjs';
+import all from './actions/all.mjs';
 import remove from './actions/delete.mjs';
 
 export default definePlugin({
   id: 'todos',
   events,
-  services: { tasks }, // todos.tasks → services.todos.tasks
-  actions: { create, list, delete: remove }, // todos.create, todos.list, todos.delete
+  services: { list }, // todos.list → services.todos.list
+  actions: { create, all, delete: remove }, // todos.create, todos.all, todos.delete
 });
 ```
 
@@ -125,9 +125,9 @@ try {
   await actions.execute('todos.create', 'Learn plugins');
   await actions.execute('todos.create', 'Connect a service');
   console.log('Delete enabled after:', actions.get('todos.delete').enabled);
-  console.log('Before:', (await actions.execute('todos.list')).value);
+  console.log('Before:', (await actions.execute('todos.all')).value);
   await actions.execute('todos.delete', 2);
-  console.log('After:', (await actions.execute('todos.list')).value);
+  console.log('After:', (await actions.execute('todos.all')).value);
 } finally {
   await stop();
 }
@@ -141,8 +141,8 @@ try {
 node todos.mjs
 ```
 
-The delete action reports `false` before the first task and `true` after it. The first list contains two tasks; after deleting ID 2, the second contains only ID 1. Successful execution returns `{ status: 'completed', value: ... }`. Failed execution rejects; inspect the execution outcome rather than assuming every call ran.
+The delete action reports `false` before the first todo and `true` after it. The first list contains two todos; after deleting ID 2, the second contains only ID 1. Successful execution returns `{ status: 'completed', value: ... }`. Failed execution rejects; inspect the execution outcome rather than assuming every call ran.
 
-The store is temporary memory. Events notify subscribers after a mutation; they do not hold the task data. Removing a task does not unregister the delete action. Runtime cleanup releases registrations, stores and owned subscriptions.
+The store is temporary memory. Events notify subscribers after a mutation; they do not hold the todo data. Removing a todo does not unregister the delete action. Runtime cleanup releases registrations, stores and owned subscriptions.
 
-Try deleting every task: the `enabled` function makes the delete action unavailable once the store is empty. A real product must still validate inputs and authorize mutations on the server.
+Try deleting every todo: the `enabled` function makes the delete action unavailable once the store is empty. A real product must still validate inputs and authorize mutations on the server.

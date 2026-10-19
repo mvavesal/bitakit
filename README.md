@@ -85,30 +85,32 @@ export default function CounterPage() {
 ```
 
 Open **`/counter`**. The button takes its label, disabled and pending state from the Action;
-nothing is registered by hand. Prefer a generated example? `npx bitakit add plugin notes --example`
-writes a complete feature with a page, a service, events, Actions and a navigation link.
+nothing is registered by hand. Prefer a working example? `npx @bitakit/create-app my-todos --sample`
+creates an app with a Todo list and a second feature that extends it.
 
 **4. Check it:** `npm run typecheck` and `npx bitakit doctor`.
 
 ## Features are self-contained plugins
 
+This is the Todo sample that `create-app --sample` writes:
+
 ```text
 src/plugins/
-├── projects/                      the owner
-│   ├── services/items.ts          state and logic
-│   ├── actions/add.ts             what users can do
-│   ├── events.ts                  "projects.created" for other features
-│   ├── slots/sidebar.ts           a place other features can extend
-│   └── ui/pages/index.tsx         /projects
+├── todos/                         the owner
+│   ├── services/list.ts           the list and its methods
+│   ├── actions/add.ts             what users can do: "todos.add"
+│   ├── events.ts                  "todos.changed" for other features
+│   ├── slots/footer.ts            "todos.footer", a place other features can extend
+│   └── ui/pages/index.tsx         /todos
 └── activity/                      a second feature, added later
-    ├── services/log.ts            listens to "projects.created"
-    └── ui/slots/projects/sidebar.tsx   a widget in the projects sidebar
+    ├── services/feed.ts           listens to "todos.changed"
+    └── ui/slots/todos.footer.tsx  recent changes, shown below the list
 ```
 
 - **One folder per feature.** Its pages, actions, services, events, settings and extension points
   live together. Delete the folder and the feature is gone.
 - **Contracts, not shared files.** Features talk through the services, events and slots their
-  owners declare. The `activity` feature above extends `projects` without editing one of its files.
+  owners declare. The `activity` feature above extends `todos` without editing one of its files.
 - **Failures stay contained.** In development a plugin that fails to start is turned off with its
   dependents and a named cause (`isolateFailures` does the same in production), and a widget's
   render error stays inside its slot.
@@ -133,12 +135,18 @@ Every kind of change has exactly one place, so a person and a coding agent find 
 | A user preference                    | `settings.ts` (App Preferences renders its Settings page)            |
 
 - **The rules ship with the app.** `create-app` writes the conventions into a one-screen
-  `AGENTS.md` (and a `CLAUDE.md` that points to it), and `npx bitakit init` adds the same block to
+  `AGENTS.md` (and a `CLAUDE.md` that points to it), and `npx @bitakit/cli init` adds the same block to
   an existing app, so coding agents follow them from the first prompt.
+- **A skill for the details.** Both also add the `bitakit-app-development`
+  [agent skill](packages/cli/skills/bitakit-app-development/README.md): recipes for pages, Actions,
+  services, events, settings, interceptors and slots, and a browser check after each change. Ask
+  `/bitakit-app-development` in Claude Code or `$bitakit-app-development` in Codex, for example
+  "Show the number of todos in the app header from a new `summary` plugin."
 - **One command per file.** `npx bitakit add action notes/archive` creates the file in its place.
 - **Fast feedback.** Generated types check every name (Action IDs, events, slots, settings and
   services), so a typo fails `npm run typecheck`. `npx bitakit doctor` finds wiring mistakes, and
-  `npx bitakit info --json` lists every ID: Actions, services, page URLs, events, settings, slots.
+  `npx bitakit info --json` lists the IDs your plugins declare: Actions, services, page URLs,
+  events, settings, slots.
 - **Reviewable changes.** A new feature is a new folder; extending another feature adds files to
   your own. Tests and review still decide whether a change is correct.
 

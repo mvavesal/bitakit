@@ -10,9 +10,9 @@ try {
   await actions.execute('todos.create', 'Learn plugins');
   await actions.execute('todos.create', 'Connect a service');
   console.log('Delete enabled after:', actions.get('todos.delete').enabled);
-  console.log('Before:', (await actions.execute('todos.list')).value);
+  console.log('Before:', (await actions.execute('todos.all')).value);
   await actions.execute('todos.delete', 2);
-  console.log('After:', (await actions.execute('todos.list')).value);
+  console.log('After:', (await actions.execute('todos.all')).value);
 } finally {
   await stop();
 }

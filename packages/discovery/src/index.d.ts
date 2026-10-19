@@ -89,7 +89,33 @@ export function loadDiscoveryConfig(
 ): Promise<{ config: DiscoveryConfig; file?: string; legacy: boolean }>;
 
 export type DescribedEntry = { path: string; file: string };
-/** Non-executing static hints. Computed/imported records remain explicitly unresolved. */
+/**
+ * Non-executing static hints. Computed/imported records remain explicitly unresolved.
+ * `inspect` reads further fields of each object-form definition: `fields` maps field names to
+ * their TypeScript syntax nodes, `unwrap` follows local variables and `as`/`satisfies`,
+ * `literal` returns a string literal's text and `ts` is the TypeScript instance that parsed the
+ * nodes; classify them with it, since SyntaxKind numbers differ between TypeScript versions. Its
+ * result is merged into the definition.
+ */
+export function describeDefinitions<Extra extends object>(
+  entries: DescribedEntry[],
+  options: {
+    helper: string;
+    moduleId?: string;
+    properties?: string[];
+    inspect: (
+      fields: ReadonlyMap<string, unknown>,
+      helpers: {
+        unwrap(node: unknown): unknown;
+        literal(node: unknown): string | undefined;
+        ts: typeof import('typescript');
+      },
+    ) => Extra;
+  },
+): Promise<{
+  definitions: ({ id: string; file: string; [property: string]: unknown } & Extra)[];
+  unresolved: string[];
+}>;
 export function describeDefinitions(
   entries: DescribedEntry[],
   options: { helper: string; moduleId?: string; properties?: string[] },

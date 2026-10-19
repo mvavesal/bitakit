@@ -26,6 +26,7 @@ import { ActionContext } from './action-context.js';
 import { ActionProvider } from './action-provider.js';
 import { useActionList } from '../hooks/use-action.js';
 import { BitaKitContext, type SignOutIntent } from './foundation-context.js';
+import { runtimeStateMarker } from './runtime-state-attribute.js';
 import { DialogHost } from '../components/dialog-host.js';
 import { ConfirmDialog } from '../components/confirm-dialog.js';
 import { StartupFailureDialog, type StartupFailure } from '../components/startup-failure-dialog.js';
@@ -37,7 +38,11 @@ const noServices = {};
 const emptyConfig: BitaKitRuntimeConfig = {};
 
 /** Owns the root ActionProvider, or reuses an existing host provider during migration. */
-export function BitaKitRuntimeProvider({ actionOptions, controls, ...props }: BitaKitRuntimeProviderProps) {
+export function BitaKitRuntimeProvider({
+  actionOptions,
+  controls,
+  ...props
+}: BitaKitRuntimeProviderProps) {
   const actions = useContext(ActionContext);
   const content = <FoundationRuntimeProvider {...props} />;
   return actions ? (
@@ -137,8 +142,11 @@ function FoundationRuntimeProvider({
     let active = true;
     let started = false;
     const predecessor = previousStop.current;
+    const state = runtimeStateMarker();
+    state.set('starting');
     const report = (error: unknown) => {
       if (!active) return;
+      state.set('failed');
       if (!isolateFailures) {
         setFatal(() => {
           throw error;
@@ -154,11 +162,14 @@ function FoundationRuntimeProvider({
       try {
         controller.mount();
       } catch (error) {
+        state.set('failed');
         if (!isolateFailures) throw error;
         report(error);
         return;
       }
-      void controller.ready.catch(report);
+      void controller.ready.then(() => {
+        if (active) state.set('ready');
+      }, report);
     };
     if (predecessor) {
       setWaitingForStop(true);
@@ -166,6 +177,7 @@ function FoundationRuntimeProvider({
     } else begin();
     return () => {
       active = false;
+      state.release();
       setSignOutIntent(null);
       confirmations.dispose();
       const stopping = controller.stop();

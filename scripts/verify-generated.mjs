@@ -11,6 +11,11 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { configureAuthFixture, verifyAuthStyles } from './fixtures/generated-auth.mjs';
 import { configureThemeFixture, verifyDeveloperTheme } from './fixtures/generated-theme.mjs';
+import {
+  bundledSkillFiles,
+  readSkillFiles,
+  readSkillStamp,
+} from '../packages/cli/src/agent-skill.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const argv = process.argv.slice(2);
@@ -21,7 +26,7 @@ const packs = path.join(work, 'packs');
 const generator = path.join(root, 'packages/create-app/src/cli.mjs');
 let port = 4100;
 
-const addItem = async (page) => {
+const addTodo = async (page) => {
   // Enter submits the form through the Action-bound Add button.
   await page.getByLabel('New todo').fill('Verify the generator');
   await page.getByLabel('New todo').press('Enter');
@@ -41,9 +46,9 @@ const addItem = async (page) => {
     .waitFor({ state: 'detached' });
 };
 // A plugin package's playground uses the full plugin template, not the Todo sample.
-const addPluginItem = async (page) => {
-  await page.getByLabel('New item').fill('Verify the generator');
-  await page.getByRole('button', { name: 'Add item' }).click();
+const addPluginEntry = async (page) => {
+  await page.getByLabel('New entry').fill('Verify the generator');
+  await page.getByRole('button', { name: 'Add entry' }).click();
   await page.getByText('Verify the generator').waitFor();
   await page.getByRole('button', { name: 'Clear all' }).click();
   await page.getByRole('button', { name: 'Confirm' }).click();
@@ -54,7 +59,7 @@ const app = (framework, sample) => ({
   visits: sample
     ? [
         ['/', 'Welcome'],
-        ['/todos', 'Todos', addItem],
+        ['/todos', 'Todos', addTodo],
         ['/settings', 'Appearance'],
         ['/missing', 'Page not found'],
       ]
@@ -162,13 +167,40 @@ async function verify(name, scenario) {
       work,
     ),
   );
-  // Agent rules must reach the agent: AGENTS.md carries them, CLAUDE.md makes Claude Code load them.
+  // Agent rules and the app-authoring skill must reach the agent through the project.
   await step('agent rules', async () => {
     const read = (file) => readFile(path.join(work, name, file), 'utf8');
-    if (!(await read('AGENTS.md')).includes('BEGIN:bitakit-agent-rules'))
+    const rules = await read('AGENTS.md');
+    if (!rules.includes('BEGIN:bitakit-agent-rules'))
       throw new Error('AGENTS.md has no BitaKit rules block.');
     if (!/^@AGENTS\.md$/m.test(await read('CLAUDE.md')))
       throw new Error('CLAUDE.md does not import AGENTS.md.');
+    // Plugin packages get package rules; the app-authoring skill is for apps.
+    if (scenario.plugin) return;
+    if (!rules.includes('bitakit-app-development` skill'))
+      throw new Error('AGENTS.md does not name the app-authoring skill.');
+    const skill = await read('.agents/skills/bitakit-app-development/SKILL.md');
+    if (!/^name: bitakit-app-development$/m.test(skill))
+      throw new Error('The project is missing the bitakit-app-development skill.');
+    if ((await read('.claude/skills/bitakit-app-development/SKILL.md')) !== skill)
+      throw new Error('Codex and Claude Code do not have the same project skill.');
+    if (!readSkillStamp(skill)) throw new Error('The project skill has no install stamp.');
+    // The installed @bitakit/cli is the packed tarball, so this also proves the package ships the
+    // skill with its references. The comparison ignores the install stamp.
+    const packed = JSON.stringify(
+      await bundledSkillFiles(
+        path.join(target, 'node_modules/@bitakit/cli/skills/bitakit-app-development'),
+      ),
+    );
+    if (!packed.includes('"references/slots.md"'))
+      throw new Error('The packed skill has no references.');
+    for (const folder of ['.agents', '.claude'])
+      if (
+        JSON.stringify(
+          await readSkillFiles(path.join(target, folder, 'skills/bitakit-app-development')),
+        ) !== packed
+      )
+        throw new Error(`${folder}/skills/bitakit-app-development differs from the package.`);
   });
   if (scenario.auth) {
     const archives = Object.fromEntries(
@@ -195,8 +227,8 @@ async function verify(name, scenario) {
     try {
       await step('browser', () =>
         smoke(server.url, [
-          ['/', 'Add item'],
-          [`/${scenario.plugin}`, 'Add and remove items', addPluginItem],
+          ['/', 'Add entry'],
+          [`/${scenario.plugin}`, 'Add and remove entries', addPluginEntry],
         ]),
       );
     } finally {

@@ -5,7 +5,7 @@ description: Put related actions under one name. Components decide how to show t
 
 **Owner:** logical groups in `@bitakit/core`; query bindings in `@bitakit/ui`. UI placement uses slots.
 
-An action group is a name for a set of related actions. `todos.bulk`, for example, can hold every action that works on the whole task list.
+An action group is a name for a set of related actions. `todos.bulk`, for example, can hold every action that works on the whole todo list.
 
 A group only groups. It does not render anything and does not decide where its actions appear. Components read a group and choose what to do with it: an explicitly bound menu can show its members, and search can use its title as a heading.
 
@@ -22,7 +22,7 @@ import { defineAction } from '@bitakit/core';
 export default defineAction({
   title: 'Clear all',
   groups: ['todos.bulk'],
-  execute: ({ services }) => services.todos.tasks.clear(),
+  execute: ({ services }) => services.todos.list.clear(),
 });
 ```
 
@@ -31,15 +31,15 @@ export default defineAction({
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  title: 'Export tasks',
+  title: 'Export todos',
   groups: ['todos.bulk'],
-  execute: ({ services }) => JSON.stringify(services.todos.tasks.list()),
+  execute: ({ services }) => JSON.stringify(services.todos.list.state.get().todos),
 });
 ```
 
 Both actions are now in the group `todos.bulk`. You do not create a group first; naming it is enough. An action can be in several groups, and one group can hold actions from different plugins. Group names follow the [action ID rules](/docs/reference/actions#identity).
 
-These examples use the `tasks` service from the [Actions guide](/docs/reference/actions#example-service).
+These examples use the `todos.list` service from the [Actions guide](/docs/reference/actions#example-service).
 
 ## Show a group
 
@@ -97,7 +97,7 @@ For Shell navigation, target the owner's slot explicitly (Shell must be installe
 // src/plugins/todos/actions/open.ts
 import { defineAction } from '@bitakit/core';
 
-export default defineAction({ title: 'Tasks', href: '/todos', slots: ['shell.navigation'] });
+export default defineAction({ title: 'Todos', href: '/todos', slots: ['shell.navigation'] });
 ```
 
 ## Give a group a title
@@ -121,7 +121,7 @@ import { bulk } from '../groups';
 export default defineAction({
   title: 'Clear all',
   groups: [bulk],
-  execute: ({ services }) => services.todos.tasks.clear(),
+  execute: ({ services }) => services.todos.list.clear(),
 });
 ```
 
@@ -142,7 +142,7 @@ export default defineAction({
   groups: ['todos.bulk'],
   order: 100, // after items with smaller numbers
   dividerBefore: true,
-  execute: ({ services }) => services.todos.tasks.clear(),
+  execute: ({ services }) => services.todos.list.clear(),
 });
 ```
 
@@ -153,11 +153,11 @@ export default defineAction({
 `useActionGroup` passes its `input` to every action of the group. One set of row actions can then serve every row of a table:
 
 ```tsx
-function TaskRow({ task }: { task: Task }) {
-  const row = useActionGroup('todos.row', task.id);
+function TodoRow({ todo }: { todo: Todo }) {
+  const row = useActionGroup('todos.row', todo.id);
   return (
     <li>
-      {task.title}
+      {todo.title}
       {row.items.map((item) => (
         <button key={item.id} {...item.props()}>
           {item.title}
@@ -168,7 +168,7 @@ function TaskRow({ task }: { task: Task }) {
 }
 ```
 
-Each row passes its own task ID, so the function-valued properties and `execute` see that row's value, and `concurrency: 'per-input'` shows pending per row. `<ActionMenu group="todos.row" label="More" input={task.id} />` does the same as a menu.
+Each row passes its own todo ID, so the function-valued properties and `execute` see that row's value, and `concurrency: 'per-input'` shows pending per row. `<ActionMenu group="todos.row" label="More" input={todo.id} />` does the same as a menu.
 
 ### Add an action you do not own
 

@@ -9,8 +9,8 @@ export type ServiceEntry = { id: string; aliases: readonly string[]; plugin: str
 type Node = { leaf?: string; children: Map<string, Node> };
 
 /**
- * Service names as contributions see them: IDs such as `todos.items` form the tree
- * `services.todos.items`; aliases (`exposeAs`, contracts) are extra paths onto the same
+ * Service names as contributions see them: IDs such as `todos.list` form the tree
+ * `services.todos.list`; aliases (`exposeAs`, contracts) are extra paths onto the same
  * instance. Resolution never creates instances; the container stays the only owner.
  */
 export class ServiceNames {

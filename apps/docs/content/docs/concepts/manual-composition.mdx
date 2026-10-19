@@ -55,7 +55,7 @@ The same shape composes everything a plugin folder holds:
 definePlugin({
   id: 'todos',
   dependencies: ['shell'],
-  services: { tasks },
+  services: { list },           // mirrors services/list.ts → services.todos.list
   actions: { add, clear },
   events: todosEvents,          // defineEvents({ ... })
   config: { limits },           // mirrors configs/limits.ts → app.config.todos.limits

@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { bundledSkillFiles, readSkillFiles } from '../src/index.mjs';
+import { cliVersion, readSkillStamp, skillChecksum } from '../src/agent-skill.mjs';
 import { bitakit, catchAll, link, nextApp, project, write } from './helpers.mjs';
 
 const read = (root, file) => readFile(path.join(root, file), 'utf8');
@@ -171,9 +173,19 @@ test('add prints the created files, doctor --json reports counts and the exit co
   const added = await bitakit(root, 'add', 'plugin', 'notes', '--example');
   assert.equal(added.code, 0, added.stderr);
   assert.match(added.stdout, /Created plugin "notes":/);
-  assert.match(added.stdout, /\+ src\/plugins\/notes\/services\/items\.ts/);
+  assert.match(added.stdout, /\+ src\/plugins\/notes\/services\/list\.ts/);
   assert.match(added.stdout, /\+ src\/plugins\/notes\/ui\/pages\/index\.tsx/);
   assert.match(added.stdout, /"Notes" now appears in the navigation and opens \/notes\./);
+  // The hint names no file the templates do not write.
+  assert.match(
+    added.stdout,
+    /Next: shared state with npx bitakit add service notes\/<name>, a button with npx bitakit add action notes\/<name>\./,
+  );
+  const slotHelp = await bitakit(root, 'add', 'slot', '--help');
+  assert.match(
+    slotHelp.stdout,
+    /"activity\/todos\.footer"\s+adds\s+a\s+component\s+of\s+plugin\s+"activity"\s+to\s+slot\s+"todos\.footer"/,
+  );
   const minimal = await bitakit(root, 'add', 'plugin', 'stats', '--minimal');
   assert.equal(minimal.code, 0, minimal.stderr);
   assert.doesNotMatch(minimal.stdout, /navigation/);
@@ -219,12 +231,12 @@ test('add prints the created files, doctor --json reports counts and the exit co
   );
 });
 
-test('generate and info refuse to run inside a plugin package', async (t) => {
+test('generate, info and slots refuse to run inside a plugin package', async (t) => {
   const root = await project(
     { 'package.json': { name: 'bitakit-widget', bitakit: { plugin: './plugin' } } },
     t,
   );
-  for (const command of ['generate', 'info']) {
+  for (const command of ['generate', 'info', 'slots']) {
     const result = await bitakit(root, command);
     assert.equal(result.code, 1);
     assert.match(result.stderr, new RegExp(`Run "bitakit ${command}" inside an app`));
@@ -261,10 +273,12 @@ test('init wires a bare Next app and a bare TanStack Start app, skips what is wi
   assert.equal(init.code, 0, init.stderr);
   assert.match(
     init.stdout,
-    /Written:\n {2}\+ bitakit\.config\.ts\n {2}~ next\.config\.ts\n {2}~ src\/app\/layout\.tsx\n {2}\+ src\/app\/\[\.\.\.path\]\/page\.tsx\n {2}~ \.gitignore\n {2}\+ AGENTS\.md\n {2}\+ CLAUDE\.md\n/,
+    /Written:\n {2}\+ bitakit\.config\.ts\n {2}~ next\.config\.ts\n {2}~ src\/app\/layout\.tsx\n {2}\+ src\/app\/\[\.\.\.path\]\/page\.tsx\n {2}~ \.gitignore\n {2}\+ AGENTS\.md\n {2}\+ CLAUDE\.md\n {2}\+ \.agents\/skills\/bitakit-app-development\/SKILL\.md\n {2}\+ \.claude\/skills\/bitakit-app-development\/SKILL\.md\n/,
   );
   assert.doesNotMatch(init.stdout, /Skipped:/);
   assert.match(init.stdout, /npm install @bitakit\/discovery @bitakit\/ui @bitakit\/next\n/);
+  // The rules tell agents to run `npx bitakit`, so a one-off `npx @bitakit/cli init` names the CLI.
+  assert.match(init.stdout, /npm install --save-dev @bitakit\/cli\n/);
   assert.equal(
     await read(next, 'bitakit.config.ts'),
     "import { defineBitaKit } from '@bitakit/discovery';\n\nexport default defineBitaKit({});\n",
@@ -291,8 +305,28 @@ test('init wires a bare Next app and a bare TanStack Start app, skips what is wi
   assert.doesNotMatch(agents, /shell\.navigation/, 'Shell guidance only when Shell is installed');
   // Claude Code loads CLAUDE.md, which imports the rules.
   assert.equal(await read(next, 'CLAUDE.md'), '@AGENTS.md\n');
+  // Both agent folders get the whole bundled skill (SKILL.md and references), not its README,
+  // and the installed SKILL.md records the CLI release in its frontmatter.
+  const shipped = await bundledSkillFiles();
+  assert.ok(
+    shipped.some(([file]) => file === 'SKILL.md') &&
+      shipped.some(([file]) => file.startsWith('references/')),
+  );
+  for (const folder of ['.agents', '.claude']) {
+    const installed = path.join(next, folder, 'skills/bitakit-app-development');
+    assert.deepEqual(await readSkillFiles(installed), shipped, folder);
+    assert.deepEqual(readSkillStamp(await read(installed, 'SKILL.md')), {
+      version: cliVersion,
+      checksum: skillChecksum(shipped),
+    });
+    await assert.rejects(read(installed, 'README.md'));
+  }
 
   // A second run changes nothing: every step reports the wiring it found.
+  await write(next, {
+    '.agents/skills/bitakit-app-development/SKILL.md': '# Team skill\n',
+    '.claude/skills/bitakit-app-development/SKILL.md': '# Claude team skill\n',
+  });
   const before = await read(next, 'src/app/layout.tsx');
   const again = await bitakit(next, 'init');
   assert.equal(again.code, 0, again.stderr);
@@ -310,13 +344,33 @@ test('init wires a bare Next app and a bare TanStack Start app, skips what is wi
   assert.match(again.stdout, /- \.gitignore \(already ignores the generated files\)/);
   assert.match(again.stdout, /- AGENTS\.md \(already has the BitaKit rules\)/);
   assert.match(again.stdout, /- CLAUDE\.md \(already imports AGENTS\.md\)/);
+  assert.match(
+    again.stdout,
+    /- \.agents\/skills\/bitakit-app-development\/SKILL\.md \(already exists; preserved\)/,
+  );
+  assert.match(
+    again.stdout,
+    /- \.claude\/skills\/bitakit-app-development\/SKILL\.md \(already exists; preserved\)/,
+  );
   assert.equal(await read(next, 'src/app/layout.tsx'), before);
+  assert.equal(
+    await read(next, '.agents/skills/bitakit-app-development/SKILL.md'),
+    '# Team skill\n',
+  );
+  assert.equal(
+    await read(next, '.claude/skills/bitakit-app-development/SKILL.md'),
+    '# Claude team skill\n',
+  );
+  // The two edited copies are kept, but agents would read different skills, so doctor says so.
   const nextReport = JSON.parse((await bitakit(next, 'doctor', '--json')).stdout);
   assert.deepEqual(
     [nextReport.errors, nextReport.warnings],
-    [0, 0],
+    [0, 1],
     JSON.stringify(nextReport, null, 2),
   );
+  assert.deepEqual(nextReport.results.find((result) => result.status === 'warn').details, [
+    '.agents/skills/bitakit-app-development and .claude/skills/bitakit-app-development differ.',
+  ]);
 
   const start = await project(
     {

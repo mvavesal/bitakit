@@ -139,7 +139,7 @@ export async function mountPlugin(directory = 'src', options = {}) {
     runtime,
     app: runtime.app,
     actions,
-    /** Services as the plugin's contributions see them: `services.notes.items`. */
+    /** Services as the plugin's contributions see them: `services.notes.list`. */
     services: runtime.services,
     events: Object.assign(runtime.events, { recorded }),
     /** Executes `<plugin>.<name>` (or a full action ID) and returns the execution outcome. */
