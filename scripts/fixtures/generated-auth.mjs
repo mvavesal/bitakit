@@ -2,12 +2,21 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
-/** Explicit native auth configuration in an otherwise unmodified generated app. */
+/**
+ * Explicit native auth configuration in an otherwise unmodified generated app. The Better Auth
+ * packages live in the bitakit-integrations repository, so they come from npm at the current
+ * release line; the overrides still point every @bitakit dependency of theirs at the local
+ * archives, which checks the published integrations against this checkout.
+ */
 export async function configureAuthFixture(target, archives) {
   const file = path.join(target, 'package.json');
   const manifest = JSON.parse(await readFile(file, 'utf8'));
+  const core = JSON.parse(
+    await readFile(path.resolve(import.meta.dirname, '../../packages/core/package.json'), 'utf8'),
+  );
+  const releaseLine = `^${core.version.split('.').slice(0, 2).join('.')}.0`;
   for (const name of ['better-auth', 'better-auth-ui', 'organizations', 'devtools'])
-    manifest.dependencies[`@bitakit/${name}`] = archives[`@bitakit/${name}`];
+    manifest.dependencies[`@bitakit/${name}`] = archives[`@bitakit/${name}`] ?? releaseLine;
   Object.assign(manifest.dependencies, {
     'better-auth': '^1.7.5',
     '@better-auth/api-key': '^1.7.5',

@@ -1,7 +1,0 @@
-/* Resolve the unchanged upstream stylesheet from its owning adapter package. */
-@import '@heroui/styles';
-@import '@better-auth-ui/heroui/styles';
-/* HeroUI's dark variant also styles ::before/::after (e.g. radio hit areas); restore the theme's. */
-@custom-variant dark (&:is(.dark *));
-@import '@bitakit/ui/styles.css';
-@source './dist';

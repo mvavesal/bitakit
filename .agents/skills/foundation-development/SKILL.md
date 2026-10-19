@@ -416,6 +416,10 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   lifecycle, registry, provider bootstrap, session store or preference store. Contracts via
   `defineContract`/`provides`/`requires`; optional services are not declared as installed by
   global types alone.
+- Vendor integrations (`@bitakit/better-auth`, `@bitakit/better-auth-ui`, future CMS and auth
+  providers) live in https://github.com/mvavesal/bitakit-integrations and use only published
+  `@bitakit/*` APIs. A gap they hit is fixed and released here first; this repository's apps
+  and fixtures install them from npm.
 - Settings: Core's `SettingsStore` is the only owner of confirmed values; sections derive
   from `defineSettings` declarations and `ui/settings/page.tsx`; `@bitakit/app-preferences`
   renders them and projects them into URL actions; nothing else registers sections or
