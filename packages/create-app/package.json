@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/create-app",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Create a BitaKit app (Next.js or TanStack Start) or a standalone plugin package.",
   "type": "module",
   "bin": {
