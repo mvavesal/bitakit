@@ -10,30 +10,49 @@ Apps created with `@bitakit/create-app` 0.2 already include it as a dev dependen
 npm install --save-dev @bitakit/cli
 ```
 
-Run it with `npx bitakit <command>` inside your app or plugin package.
+Run it with `npx bitakit <command>` when installed, or
+`npx @bitakit/cli@latest <command>` to use the latest published CLI directly.
 
 ## Wire an existing app
 
 ```sh
-npx bitakit init
+npx @bitakit/cli@latest init
 ```
 
 In an existing Next.js or TanStack Start app, `init` writes `bitakit.config.ts`, wraps
 `next.config` with `withBitaKit` (or adds `bitakit()` to the Vite plugins), mounts
 `<BitaKitProvider>` around `{children}` of the root layout, adds the catch-all route that renders
 `<PluginPage />`, ignores `src/bitakit.gen.*`, appends the agent rules to `AGENTS.md` and makes `CLAUDE.md` import it (an existing `CLAUDE.md` only gains the `@AGENTS.md` line). It also delivers the
-`bitakit-app-development` skill at `.agents/skills/bitakit-app-development/SKILL.md`; an existing
-skill at that path is preserved. It prints what it wrote (`+` new file, `~` changed file) and what
+`bitakit-app-development` skill in the native project folders for Codex and Claude Code; existing
+skills at either path are preserved (see [Keep agent files current](#keep-agent-files-current)). It prints what it wrote (`+` new file, `~` changed file) and what
 it skipped. Files that already carry the wiring are never touched, so it
 is safe to run again; a shape it cannot edit (for example a CommonJS `next.config.js`) is
 skipped with the line to add by hand. Packages are not installed: `init` lists the missing ones
-(`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the framework adapter). Then run `generate` and `doctor`.
+(`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the framework adapter, plus `@bitakit/cli`
+as a dev dependency for the `bitakit` command). Then run `generate` and `doctor`.
 `create-bitakit-app` writes the same wiring for new apps from the same templates.
 
-For host-specific skill installation and a copyable app request, see the
-[app-development skill quick start](skills/bitakit-app-development/README.md). `init` writes the
-project skill location used by Codex; Claude Code's native skill command uses `.claude/skills/`
-and is installed separately.
+The skill (`SKILL.md` and its `references/` recipes) is copied to `.agents/skills/` for Codex and
+most other agents and to `.claude/skills/` for Claude Code. `create-app` 0.2.2 and later include it
+in new apps; `npx @bitakit/create-app .` creates the app in a folder that holds only `.git` and
+agent files, so the skill lands where an open agent session works. See the [skill README](skills/bitakit-app-development/README.md) for how to use it
+and requests to try.
+
+### Keep agent files current
+
+The installed `SKILL.md` records the CLI version and a checksum of the files as shipped in its
+frontmatter `metadata`. After upgrading the BitaKit packages, run:
+
+```sh
+npx bitakit init --update-agent-files
+```
+
+It installs a missing skill copy, replaces a copy nobody edited with this version's skill, and
+replaces the BitaKit block of `AGENTS.md` (between its `bitakit-agent-rules` markers) with the
+current rules; keep your own rules above or below that block. A skill copy you edited is
+kept and reported; delete its folder and run the command again to take the new version. `doctor`
+warns when a copy is missing or older than the installed CLI, when the two copies differ, or when
+the `AGENTS.md` block differs from the current rules.
 
 ## Add a feature
 
@@ -43,7 +62,8 @@ npx bitakit add plugin notes
 
 This creates `src/plugins/notes/` with a page at `/notes` and, with Shell, its navigation
 Action; discovery connects it, so there is nothing to register. `--example` writes a complete
-feature (service, events, Actions, page); `--minimal` only a service, its events and one action.
+feature (the service `notes.list`, events, Actions, page); `--minimal` only that service, its
+events and one action.
 
 Add single files to an existing plugin (inside a plugin package, give only the name):
 
@@ -58,6 +78,17 @@ npx bitakit add events notes                # events.ts
 
 The file path decides the ID; nested names such as `notes/team/invite` create
 `actions/team/invite.ts` with the ID `notes.team.invite`. Existing files are never overwritten.
+
+In an app, add a headless test for an existing plugin:
+
+```sh
+npx bitakit add test notes                  # tests/notes.test.ts at the app root
+```
+
+The test mounts `src/plugins/notes` with `mountPlugin` from `@bitakit/core/testing`, checks that
+the plugin starts, then stops it; a stand-in for Shell is included when the plugin places Actions
+in `shell.*` slots. The command prints the setup the app still lacks as commands (missing dev
+dependencies, `"type": "module"`, a `test` script) and never edits `package.json`.
 
 ## Generate and migrate
 
@@ -81,22 +112,60 @@ dev dependency if the project does not list it yet.
 npx bitakit doctor          # human-readable report, exit code 1 on problems
 npx bitakit doctor --json   # for CI
 npx bitakit info [--json]   # the plugins, services, actions, events and pages discovery finds
+npx bitakit slots [--json]  # every slot you can fill: owner, accepts and this app's contributions
 ```
 
 Doctor checks package versions, duplicate copies of `@bitakit/core`, the config wrapper and
 provider wiring, scripts that still force Webpack or `foundation-generate`, ignored generated
 files, plugin pages and links no route reaches, colliding service names, `requires` entries that
-name nothing, plugin dependency cycles, missing package styles and deprecated layouts, and prints
-a fix for each problem.
+name nothing, plugin dependency cycles, missing package styles, deprecated layouts and agent files
+that are out of sync, and prints a fix for each problem.
 
 The `requires` check reads the string literals of `requires` in services, actions, interceptors
 and in `export const requires` of provider files. A name must be a service ID, an `exposeAs`
 alias or the contract of a `provides` key of the app or a local plugin. Dotted names inside a
-local plugin's namespace (`notes.items`) are checked exactly, including against plugins turned
+local plugin's namespace (`notes.list`) are checked exactly, including against plugins turned
 off in `plugins.overrides`. Other names, such as the contract `auth`, can come from installed
 plugin packages, from host `services` or from keys declared in other files, which doctor cannot
 list, so they are only checked when none of those exist. The graph check reports a cycle in the `dependencies` of
 `plugin.config.ts` as an error and enabled plugins that depend on disabled ones as a warning.
+
+## Check a page in a headless browser
+
+Plugin pages and slots render only in the browser, so an HTTP 200 proves nothing. With the dev
+server running, `check-page` opens a page in headless Chromium and reports what rendered:
+
+```sh
+npx bitakit check-page /todos         # against --base-url, default http://localhost:3000
+npx bitakit check-page /todos --json  # { "version": 1, ... } for agents and CI
+npx bitakit check-page http://localhost:3230/todos --screenshot todos.png --timeout 60000
+```
+
+It waits for the network to go idle and for the BitaKit runtime to finish starting
+(`<html data-bitakit-runtime>`, set by `@bitakit/ui`), then reports the final URL, HTTP status,
+title, h1–h3 headings, a short excerpt of `<main>`, the runtime state, BitaKit errors (the
+`[bitakit]` console errors: startup failures, such as a plugin turned off in development, and
+other runtime errors), console
+errors and warnings, page errors and failed same-origin requests. It exits with 1 when it saw
+any error (warnings do not count) and 0 otherwise. `--timeout` (default 30000 ms) covers loading
+and startup. The JSON report has `url`, `finalUrl`, `status`, `title`, `headings`, `text`,
+`textSource`, `runtime` (`ready`, `starting`, `failed`, or `null` without a BitaKit provider),
+`networkIdle`, `loadError`, `bitakitErrors`, `consoleErrors`, `consoleWarnings`, `pageErrors`,
+`failedRequests`, `screenshot`, `errors` and `ok`.
+
+The catch-all route answers unknown paths with status 200 and a "Page not found" state, so
+read the headings as well as the exit code.
+
+`check-page` uses the project's own Playwright (`playwright` or `@playwright/test`) and never
+installs anything. Without it, it exits with 2 and prints the commands to run:
+
+```sh
+npm install --save-dev playwright
+npx playwright install chromium
+```
+
+On Linux (containers, CI) install Chromium with its system libraries:
+`npx playwright install --with-deps chromium`. A browser that cannot start also exits with 2.
 
 ## Build a plugin package
 
@@ -138,6 +207,49 @@ slot `when` exports pass through the same normalizers used for local app discove
 This replaces the old raw discovery JSON. Files remain `resolution: "file"` with an unavailable
 ID until resolved; installed package entrypoints can have `pluginId`/`declarations: null`.
 The CLI does not execute plugins to invent live readiness. Config and Settings values are omitted.
+
+`bitakit slots` answers "where can I put this?". It lists the slot contracts of the app, its
+enabled plugins and installed packages (from their `*.slots.json`), plus name hints from package
+manifests and `bitakit.config.ts`: the same set doctor counts. The human output groups them by
+owner, one line per slot with what it accepts and its contribution count. `--json` prints:
+
+```json
+{
+  "version": 1,
+  "slots": [
+    {
+      "id": "todos.footer",
+      "owner": "todos",
+      "plugin": "todos",
+      "contract": true,
+      "accepts": "component",
+      "policy": "list",
+      "payload": false,
+      "payloadKeys": [],
+      "source": "src/plugins/todos/slots/footer.ts",
+      "contributions": [
+        {
+          "kind": "component",
+          "id": null,
+          "plugin": "activity",
+          "source": "src/plugins/activity/ui/slots/todos.footer.tsx"
+        }
+      ]
+    }
+  ],
+  "unresolved": [],
+  "unknownTargets": []
+}
+```
+
+`owner` is the plugin ID of a local slot or the package name of an installed one; name hints
+have `contract: false`. `payloadKeys` are read from a literal `z.object({ ... })` (or another
+`.object({ ... })` schema). Contributions come from the app's own files: `ui/slots` components and
+Actions whose literal `slots` list names the slot; packages and `setup()` attach theirs at runtime.
+Nothing is executed. A value the files do not state literally is `null` (package payloads, for
+example), and files that could not be read are listed in `unresolved`. `unknownTargets` lists
+contributions to a slot nobody declares (`{ slot, kind, id, plugin, source }`), such as a misspelled
+name; they render nowhere. The human output lists both after the slots.
 
 ```sh
 bitakit add slot-definition notes/toolbar

@@ -4,7 +4,7 @@ description: Look up an Action property, binding or execution result.
 ---
 
 Use this page to look up an option after completing [the small Action guide](/docs/concepts/actions).
-The examples use the [tasks service at the end](#example-service); you do not need that full service for your first Action.
+The examples use the [`todos.list` service at the end](#example-service); you do not need that full service for your first Action.
 
 ## Properties at a glance
 
@@ -45,13 +45,13 @@ The examples use the [tasks service at the end](#example-service); you do not ne
 
 The displayed text is the first match of:
 
-1. `title` as a translation key, for example `title: 'todos.addTask'`;
+1. `title` as a translation key, for example `title: 'todos.addTodo'`;
 2. the key `<id>.title`, here `todos.add.title`;
 3. `title` as written.
 
-Without `title`, the key `<id>.title` is tried and then a title made from the last part of the ID: `todos.clear-done` becomes "Clear done". Titles update when the language changes. A plugin ships its texts in `locales/en.json` under its own namespace (`{ "todos": { "add": { "title": "Add task" } } }`); discovery merges them for the host's translation provider.
+Without `title`, the key `<id>.title` is tried and then a title made from the last part of the ID: `todos.clear-done` becomes "Clear done". Titles update when the language changes. A plugin ships its texts in `locales/en.json` under its own namespace (`{ "todos": { "add": { "title": "Add todo" } } }`); discovery merges them for the host's translation provider.
 
-A function title is computed per binding: ``title: ({ input }) => (input ? `Add "${input}"` : 'Add task')``.
+A function title is computed per binding: ``title: ({ input }) => (input ? `Add "${input}"` : 'Add todo')``.
 
 Presentation functions (`title`, `description`, `tooltip`, `variant`, `href`, `enabled`, `visible`, `checked`, `value`) and `confirm` also run without input, for menus, search, group items and slot placements without an input mapping, so their `input` is typed as possibly `undefined`. They see the raw value before schema validation; only `execute` receives the parsed input.
 
@@ -75,9 +75,9 @@ import { defineAction } from '@bitakit/core';
 import Plus from 'reicon-react/icons/Plus';
 
 export default defineAction<string>({
-  title: 'Add task',
+  title: 'Add todo',
   icon: Plus,
-  execute: ({ services, input }) => services.todos.tasks.add(input),
+  execute: ({ services, input }) => services.todos.list.add(input),
 });
 ```
 
@@ -109,9 +109,9 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   title: 'Clear all',
-  // Re-evaluated whenever the tasks store changes: disabled while the list is empty.
-  enabled: ({ services }) => services.todos.tasks.list().length > 0,
-  execute: ({ services }) => services.todos.tasks.clear(),
+  // Re-evaluated whenever the list's store changes: disabled while the list is empty.
+  enabled: ({ services }) => services.todos.list.state.get().todos.length > 0,
+  execute: ({ services }) => services.todos.list.clear(),
 });
 ```
 
@@ -135,9 +135,9 @@ import { defineAction } from '@bitakit/core';
 import { z } from 'zod';
 
 export default defineAction({
-  title: 'Add task',
+  title: 'Add todo',
   input: z.string().trim().min(1, 'Enter a title.'),
-  execute: ({ services, input }) => services.todos.tasks.add(input), // input is a string
+  execute: ({ services, input }) => services.todos.list.add(input), // input is a string
 });
 ```
 
@@ -152,7 +152,7 @@ The operation itself. It receives one context object:
 | Field           | What it is                                                                                    |
 | --------------- | --------------------------------------------------------------------------------------------- |
 | `input`         | The value the binding or caller passed, validated when the action has a schema                |
-| `services`      | Every service: `services.todos.tasks`, `services.auth`                                        |
+| `services`      | Every service: `services.todos.list`, `services.auth`                                         |
 | `config`        | `config.plugin` and `config.action` scopes; see [configuration](/docs/concepts/configuration) |
 | `app`           | The app: `app.services`, `app.actions`, `app.events`, `app.config`, `app.has()`               |
 | `events`        | Emit this plugin's events                                                                     |
@@ -166,12 +166,13 @@ The operation itself. It receives one context object:
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<string, number>({
-  title: 'Add task',
+  title: 'Add todo',
   async execute({ input, services, config }) {
     const limit = config.action.get('limit', 100);
-    if (services.todos.tasks.list().length >= limit) throw new Error('Task limit reached.');
-    services.todos.tasks.add(input);
-    return services.todos.tasks.list().length; // the caller receives this value
+    const { list } = services.todos;
+    if (list.state.get().todos.length >= limit) throw new Error('Todo limit reached.');
+    list.add(input);
+    return list.state.get().todos.length; // the caller receives this value
   },
 });
 ```
@@ -202,11 +203,11 @@ export default defineAction({
   title: 'Clear all',
   variant: 'destructive',
   confirm: ({ services }) => ({
-    title: 'Remove every task?',
-    description: `${services.todos.tasks.list().length} tasks will be deleted.`,
+    title: 'Remove every todo?',
+    description: `${services.todos.list.state.get().todos.length} todos will be deleted.`,
     destructive: true,
   }),
-  execute: ({ services }) => services.todos.tasks.clear(),
+  execute: ({ services }) => services.todos.list.clear(),
 });
 ```
 
@@ -222,12 +223,12 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   title: 'Export report',
-  // The tasks service belongs to another plugin, so declare it.
-  requires: ['todos.tasks'],
+  // The todos.list service belongs to another plugin, so declare it.
+  requires: ['todos.list'],
   execute: ({ services }) =>
-    services.todos.tasks
-      .list()
-      .map((task) => task.title)
+    services.todos.list.state
+      .get()
+      .todos.map((todo) => todo.title)
       .join('\n'),
 });
 ```
@@ -243,10 +244,10 @@ Messages after a run. The defaults: success is silent, a failure shows one messa
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<string>({
-  title: 'Add task',
-  execute: ({ services, input }) => services.todos.tasks.add(input),
+  title: 'Add todo',
+  execute: ({ services, input }) => services.todos.list.add(input),
   success: ({ input }) => `Added "${input}"`,
-  failure: 'Could not add the task.',
+  failure: 'Could not add the todo.',
 });
 ```
 
@@ -273,23 +274,23 @@ An action with `href` is a link:
 // src/plugins/todos/actions/open.ts
 import { defineAction } from '@bitakit/core';
 
-export default defineAction({ title: 'Tasks', href: '/todos' });
+export default defineAction({ title: 'Todos', href: '/todos' });
 ```
 
-`href` must be a path starting with `/`, a `#hash` or an `http(s)` URL without credentials; anything else is rejected when the action is registered. `<Action>` renders it as a real link through the app's router, so open-in-new-tab and copy-link work; running it from code navigates. With Shell installed and mounted, add `slots: ['shell.navigation']` to place it in navigation. Group membership alone does not place UI. The route itself is a plugin page (`ui/pages/index.tsx`) or a normal framework route; a navigation action does not create it. `href` may be a function of the input: ``href: ({ input }) => (input ? `/todos/tasks/${input}` : undefined)``. Search skips an Action without an href.
+`href` must be a path starting with `/`, a `#hash` or an `http(s)` URL without credentials; anything else is rejected when the action is registered. `<Action>` renders it as a real link through the app's router, so open-in-new-tab and copy-link work; running it from code navigates. With Shell installed and mounted, add `slots: ['shell.navigation']` to place it in navigation. Group membership alone does not place UI. The route itself is a plugin page (`ui/pages/index.tsx`) or a normal framework route; a navigation action does not create it. `href` may be a function of the input: ``href: ({ input }) => (input ? `/todos/${input}` : undefined)``. Search skips an Action without an href.
 
 ### Dialog actions
 
 An action with `dialog` opens a component in the shared dialog instead of running `execute`:
 
 ```tsx
-// src/plugins/todos/ui/dialogs/task-details.tsx
+// src/plugins/todos/ui/dialogs/todo-details.tsx
 'use client';
 
-export function TaskDetails({ input, close }: { input: number; close(): void }) {
+export function TodoDetails({ input, close }: { input: number; close(): void }) {
   return (
     <div>
-      <p>Task {input}</p>
+      <p>Todo {input}</p>
       <button type="button" onClick={close}>
         Close
       </button>
@@ -301,15 +302,15 @@ export function TaskDetails({ input, close }: { input: number; close(): void }) 
 ```ts
 // src/plugins/todos/actions/details.ts
 import { defineAction } from '@bitakit/core';
-import { TaskDetails } from '../ui/dialogs/task-details';
+import { TodoDetails } from '../ui/dialogs/todo-details';
 
 export default defineAction<number>({
-  title: 'Task details',
-  dialog: { component: TaskDetails, size: 'wide' },
+  title: 'Todo details',
+  dialog: { component: TodoDetails, size: 'wide' },
 });
 ```
 
-The component receives `{ input, close, services }` and runs its own logic, for example an ordinary action through `useAction`. The dialog shows the action's title and description; only one is open at a time. Bind it like any action: `<Action id="todos.details" input={task.id}><Button /></Action>`. An action opens a dialog or runs `execute`, not both.
+The component receives `{ input, close, services }` and runs its own logic, for example an ordinary action through `useAction`. The dialog shows the action's title and description; only one is open at a time. Bind it like any action: `<Action id="todos.details" input={todo.id}><Button /></Action>`. An action opens a dialog or runs `execute`, not both.
 
 ## Keyboard
 
@@ -320,9 +321,9 @@ The component receives `{ input, close, services }` and runs its own logic, for 
 import { defineAction } from '@bitakit/core';
 
 export default defineAction<string>({
-  title: 'Add task',
-  shortcut: { keys: 'Mod+Shift+N', input: 'New task' },
-  execute: ({ services, input }) => services.todos.tasks.add(input),
+  title: 'Add todo',
+  shortcut: { keys: 'Mod+Shift+N', input: 'New todo' },
+  execute: ({ services, input }) => services.todos.list.add(input),
 });
 ```
 
@@ -349,8 +350,8 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction<boolean>({
   title: 'Show completed',
-  checked: ({ services }) => services.todos.tasks.state.get().showDone,
-  execute: ({ services, input }) => services.todos.tasks.setShowDone(input),
+  checked: ({ services }) => services.todos.list.state.get().showDone,
+  execute: ({ services, input }) => services.todos.list.setShowDone(input),
 });
 ```
 
@@ -372,8 +373,8 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction<'newest' | 'title'>({
   title: 'Sort by',
-  value: ({ services }) => services.todos.tasks.state.get().sort,
-  execute: ({ services, input }) => services.todos.tasks.setSort(input),
+  value: ({ services }) => services.todos.list.state.get().sort,
+  execute: ({ services, input }) => services.todos.list.setSort(input),
 });
 ```
 
@@ -404,7 +405,7 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction<string[]>({
   internal: true, // run from code only
-  execute: ({ services, input }) => input.forEach((title) => services.todos.tasks.add(title)),
+  execute: ({ services, input }) => input.forEach((title) => services.todos.list.add(title)),
 });
 ```
 
@@ -422,39 +423,39 @@ A form collects values and an action receives them as input. The form can sit on
 // src/plugins/todos/schema.ts
 import { z } from 'zod';
 
-export const taskSchema = z.object({
+export const todoSchema = z.object({
   title: z.string().trim().min(1, 'Enter a title.'),
 });
-export type TaskInput = z.infer<typeof taskSchema>;
+export type TodoInput = z.infer<typeof todoSchema>;
 ```
 
 ```ts
 // src/plugins/todos/actions/create.ts
 import { defineAction } from '@bitakit/core';
-import { taskSchema } from '../schema';
+import { todoSchema } from '../schema';
 
 export default defineAction({
-  title: 'Create task',
+  title: 'Create todo',
   // Actions also run from code and shortcuts, so the action validates too.
-  input: taskSchema,
-  execute: ({ services, input }) => services.todos.tasks.add(input.title),
+  input: todoSchema,
+  execute: ({ services, input }) => services.todos.list.add(input.title),
 });
 ```
 
 ```tsx
-// src/plugins/todos/ui/task-form.tsx
+// src/plugins/todos/ui/todo-form.tsx
 'use client';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAction } from '@bitakit/ui';
-import { taskSchema, type TaskInput } from '../schema';
+import { todoSchema, type TodoInput } from '../schema';
 
-export function TaskForm({ onCreated }: { onCreated?: () => void }) {
+export function TodoForm({ onCreated }: { onCreated?: () => void }) {
   const create = useAction('todos.create');
-  const form = useForm<TaskInput>({
-    resolver: zodResolver(taskSchema),
+  const form = useForm<TodoInput>({
+    resolver: zodResolver(todoSchema),
     defaultValues: { title: '' },
   });
   const [error, setError] = useState<string>();
@@ -468,7 +469,7 @@ export function TaskForm({ onCreated }: { onCreated?: () => void }) {
       onCreated?.();
     } catch (failure) {
       // The values stay in the form, so the user can correct them and retry.
-      setError(failure instanceof Error ? failure.message : 'Could not create the task.');
+      setError(failure instanceof Error ? failure.message : 'Could not create the todo.');
     }
   });
 
@@ -477,8 +478,8 @@ export function TaskForm({ onCreated }: { onCreated?: () => void }) {
 
   return (
     <form onSubmit={submit} noValidate>
-      <label htmlFor="task-title">Title</label>
-      <input id="task-title" aria-invalid={Boolean(titleError)} {...form.register('title')} />
+      <label htmlFor="todo-title">Title</label>
+      <input id="todo-title" aria-invalid={Boolean(titleError)} {...form.register('title')} />
       {titleError && <p role="alert">{titleError}</p>}
       {error && <p role="alert">{error}</p>}
       <button type="submit" disabled={create.disabled} aria-busy={create.pending || undefined}>
@@ -491,7 +492,7 @@ export function TaskForm({ onCreated }: { onCreated?: () => void }) {
 
 What you get: no popup; the validated values are the action's input; while the action runs, `create.pending` disables the button and a second submit is skipped; a failure rejects `execute`, the form shows the message and keeps the values; it resets only after a `completed` outcome. For a section of a larger form, do not nest `<form>` elements: validate the section's fields (react-hook-form's `trigger`) and run the section's action from a `type="button"`.
 
-A dialog is an optional host. Render the same form in a [dialog action](#dialog-actions): `defineAction({ title: 'New task', dialog: TaskFormDialog })`, where the dialog component renders `<TaskForm onCreated={close} />`.
+A dialog is an optional host. Render the same form in a [dialog action](#dialog-actions): `defineAction({ title: 'New todo', dialog: TodoFormDialog })`, where the dialog component renders `<TodoForm onCreated={close} />`.
 
 ## Bindings
 
@@ -599,8 +600,8 @@ import { ActionMenu, useActionGroup } from '@bitakit/ui';
 
 <ActionMenu group="todos.bulk" label="Bulk actions" />;
 
-function RowActions({ task }: { task: Task }) {
-  const row = useActionGroup('todos.row', task.id);
+function RowActions({ todo }: { todo: Todo }) {
+  const row = useActionGroup('todos.row', todo.id);
   return row.items.map((item) => (
     <button key={item.id} {...item.props()}>
       {item.title}
@@ -652,11 +653,11 @@ Skip reasons: `missing` (unknown ID), `hidden`, `disabled`, `pending` (already r
 
 The ID is the action's name. Bindings, shortcuts, overrides and tests refer to the action by its ID. With discovery, the plugin folder and the file path build it:
 
-| File                                       | ID                  |
-| ------------------------------------------ | ------------------- |
-| `src/plugins/todos/actions/add.ts`         | `todos.add`         |
-| `src/plugins/todos/actions/tasks/clear.ts` | `todos.tasks.clear` |
-| `src/actions/reset.ts` (app action)        | `reset`             |
+| File                                        | ID                   |
+| ------------------------------------------- | -------------------- |
+| `src/plugins/todos/actions/add.ts`          | `todos.add`          |
+| `src/plugins/todos/actions/bulk/archive.ts` | `todos.bulk.archive` |
+| `src/actions/reset.ts` (app action)         | `reset`              |
 
 Moving or renaming the file renames the action; `bitakit doctor` and the type check point at every stale ID. An ID starts with a letter or digit and may contain letters, digits, `.`, `_`, `:`, `/` and `-`. It is unique in the app: registering the same ID twice fails at startup with both sources. Without discovery ([manual composition](/docs/concepts/manual-composition)) the record key or `id` supplies the name.
 
@@ -667,30 +668,29 @@ Translation keys (`<id>.title`, `<id>.success`, …) and the action's config sco
 This fixture supports the independent examples above; it is not a starter template.
 
 ```ts
-// src/plugins/todos/services/tasks.ts
+// src/plugins/todos/services/list.ts
 import { defineService } from '@bitakit/core';
 
-export type Task = { id: number; title: string; done: boolean };
+export type Todo = { id: number; title: string; done: boolean };
 
 export default defineService(({ store }) => {
   // Observable state: actions and pages follow it without any wiring.
-  const state = store<{ items: Task[]; showDone: boolean; sort: 'newest' | 'title' }>({
-    items: [],
+  const state = store<{ todos: Todo[]; showDone: boolean; sort: 'newest' | 'title' }>({
+    todos: [],
     showDone: false,
     sort: 'newest',
   });
 
   return {
     state,
-    list: () => state.get().items,
     add(title: string) {
-      state.set((s) => ({ ...s, items: [...s.items, { id: Date.now(), title, done: false }] }));
+      state.set((s) => ({ ...s, todos: [...s.todos, { id: Date.now(), title, done: false }] }));
     },
     remove(id: number) {
-      state.set((s) => ({ ...s, items: s.items.filter((task) => task.id !== id) }));
+      state.set((s) => ({ ...s, todos: s.todos.filter((todo) => todo.id !== id) }));
     },
     clear() {
-      state.set((s) => ({ ...s, items: [] }));
+      state.set((s) => ({ ...s, todos: [] }));
     },
     setShowDone(showDone: boolean) {
       state.set((s) => ({ ...s, showDone }));

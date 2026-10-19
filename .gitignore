@@ -34,7 +34,10 @@ apps/web/zenstack/~schema*.prisma
 # Local editor settings and scratch files
 .idea/
 .vscode/
-.claude/
+# Agent settings stay local; an app's committed agent skills (.claude/skills) stay visible.
+/.claude/
+**/.claude/*
+!**/.claude/skills/
 .codex/
 tmp/
 *.bak

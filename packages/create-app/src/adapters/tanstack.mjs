@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { claudeFileFor, viteConfigImport, writeAppDevelopmentSkill } from '@bitakit/cli';
+import { claudeFileFor, viteConfigImport, writeAppDevelopmentSkills } from '@bitakit/cli';
 import {
   agentRules,
   configureProject,
@@ -173,6 +173,6 @@ export const Route = createFileRoute('/$')({
       'CLAUDE.md': claudeFileFor(claude),
       'README.md': readme(plan, tanstack),
     });
-    await writeAppDevelopmentSkill(plan.target);
+    await writeAppDevelopmentSkills(plan.target);
   },
 };

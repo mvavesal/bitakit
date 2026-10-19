@@ -202,6 +202,7 @@ test('the todos example: store-driven enabled state and declared events, with le
     assert.equal(actions.get('todos.delete').enabled, false);
     const created = await actions.execute('todos.create', 'Example');
     assert.equal(actions.get('todos.delete').enabled, true);
+    assert.deepEqual((await actions.execute('todos.all')).value, [created.value]);
     await actions.execute('todos.delete', created.value.id);
     assert.equal(actions.get('todos.delete').enabled, false);
     assert.deepEqual(await actions.execute('todos.delete', created.value.id), {
@@ -216,7 +217,7 @@ test('the todos example: store-driven enabled state and declared events, with le
     await stop();
     await stop();
     await runtime.stopped;
-  assert.equal(runtime.events.subscriptionCount, 0);
+    assert.equal(runtime.events.subscriptionCount, 0);
     assert.equal(actions.get('todos.create'), undefined);
   }
 });

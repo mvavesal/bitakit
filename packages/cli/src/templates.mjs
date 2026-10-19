@@ -53,7 +53,7 @@ import { PageHeader } from '@bitakit/ui/components';
 
 // Served at /${name}; the file's place under ui/pages is the URL.
 // Grow the feature one file at a time:
-//   shared state -> npx bitakit add service ${name}/items
+//   shared state -> npx bitakit add service ${name}/<name> (starts as a counter store)
 //   a button     -> npx bitakit add action ${name}/archive (bind it with <Action id="${name}.archive">)
 export default function ${component}() {
   return <PageHeader title="${title}" subtitle="Edit this page in src/plugins/${name}/ui/pages/index.tsx." />;
@@ -69,28 +69,28 @@ export default function ${component}() {
 export function pluginFiles(name, { minimal = false, navigationSlot } = {}) {
   validateName(name, 'plugin name');
   const title = titleOf(name);
-  const items = `services${member(name)}.items`;
+  const list = `services${member(name)}.list`;
   const files = {
-    'services/items.ts': `import { defineService } from '@bitakit/core';
+    'services/list.ts': `import { defineService } from '@bitakit/core';
 
-export type Item = { id: number; title: string };
+export type Entry = { id: number; title: string };
 
 /**
- * The ${title} plugin's data and behavior. Items live in memory, so a page reload starts
+ * The ${title} plugin's data and behavior. Entries live in memory, so a page reload starts
  * empty. Replace the body with calls to your API or database when you are ready.
  */
 export default defineService(({ store, events }) => {
   // Observable state: actions and pages follow it without any wiring.
   // Resources belong in onStart/onStop; Core awaits cleanup before replacement.
-  const state = store<{ items: Item[] }>({ items: [] });
+  const state = store<{ entries: Entry[] }>({ entries: [] });
   return {
     state,
     add(title: string) {
-      state.set((s) => ({ items: [...s.items, { id: Date.now(), title: title.trim() }] }));
+      state.set((s) => ({ entries: [...s.entries, { id: Date.now(), title: title.trim() }] }));
       events.emit('${name}.changed', { kind: 'added' });
     },
     remove(id: number) {
-      state.set((s) => ({ items: s.items.filter((item) => item.id !== id) }));
+      state.set((s) => ({ entries: s.entries.filter((entry) => entry.id !== id) }));
       events.emit('${name}.changed', { kind: 'removed' });
     },
   };
@@ -106,11 +106,11 @@ export default defineEvents({
     'actions/add.ts': `import { defineAction } from '@bitakit/core';
 
 export default defineAction<string>({
-  title: 'Add item',
+  title: 'Add entry',
   // Buttons bound to this action are disabled while their input is empty.
   enabled: ({ input }) => typeof input === 'string' && input.trim().length > 0,
   // Runs when a bound button or your code executes "${name}.add".
-  execute: ({ services, input }) => ${items}.add(input),
+  execute: ({ services, input }) => ${list}.add(input),
 });
 `,
   };
@@ -123,20 +123,20 @@ export default defineAction<number>({
   title: 'Remove',
   // Each row tracks its own pending state.
   concurrency: 'per-input',
-  execute: ({ services, input }) => ${items}.remove(input),
+  execute: ({ services, input }) => ${list}.remove(input),
 });
 `,
     'actions/clear.ts': `import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   title: 'Clear all',
-  // Re-evaluated whenever the items store changes.
-  enabled: ({ services }) => ${items}.state.get().items.length > 0,
-  confirm: 'Remove all items?',
+  // Re-evaluated whenever the list's store changes.
+  enabled: ({ services }) => ${list}.state.get().entries.length > 0,
+  confirm: 'Remove all entries?',
   execute: ({ services }) => {
-    for (const item of ${items}.state.get().items) ${items}.remove(item.id);
+    for (const entry of ${list}.state.get().entries) ${list}.remove(entry.id);
   },
-  success: 'All items removed',
+  success: 'All entries removed',
 });
 `,
     'actions/open.ts': `import { defineAction } from '@bitakit/core';
@@ -156,28 +156,28 @@ export default defineAction({ title: '${title}', href: '/${name}', groups: ['nav
  */
 export function sampleFiles({ navigationSlot } = {}) {
   return {
-    'todos/services/items.ts': `import { defineService } from '@bitakit/core';
+    'todos/services/list.ts': `import { defineService } from '@bitakit/core';
 
 export type Todo = { id: number; title: string };
 
 // The todo list. It lives in memory, so a reload starts empty; call your API here later.
 export default defineService(({ store, events }) => {
-  const state = store<{ items: Todo[] }>({ items: [] });
+  const state = store<{ todos: Todo[] }>({ todos: [] });
   let next = 1;
   return {
     state,
     add(title: string) {
-      const item = { id: next++, title: title.trim() };
-      state.set((current) => ({ items: [...current.items, item] }));
-      events.emit('todos.changed', { kind: 'added', title: item.title });
+      const todo = { id: next++, title: title.trim() };
+      state.set((current) => ({ todos: [...current.todos, todo] }));
+      events.emit('todos.changed', { kind: 'added', title: todo.title });
     },
     remove(id: number) {
-      const item = state.get().items.find((entry) => entry.id === id);
-      state.set((current) => ({ items: current.items.filter((entry) => entry.id !== id) }));
-      if (item) events.emit('todos.changed', { kind: 'removed', title: item.title });
+      const removed = state.get().todos.find((todo) => todo.id === id);
+      state.set((current) => ({ todos: current.todos.filter((todo) => todo.id !== id) }));
+      if (removed) events.emit('todos.changed', { kind: 'removed', title: removed.title });
     },
     clear() {
-      state.set({ items: [] });
+      state.set({ todos: [] });
       events.emit('todos.changed', { kind: 'cleared' });
     },
   };
@@ -189,8 +189,8 @@ export default defineAction<string>({
   title: 'Add',
   // Bound buttons stay disabled while the input is empty or the list is full.
   enabled: ({ input, services, settings }) =>
-    !!input?.trim() && services.todos.items.state.get().items.length < settings.todos.limit.get(),
-  execute: ({ services, input }) => services.todos.items.add(input),
+    !!input?.trim() && services.todos.list.state.get().todos.length < settings.todos.limit.get(),
+  execute: ({ services, input }) => services.todos.list.add(input),
 });
 `,
     'todos/actions/remove.ts': `import { defineAction } from '@bitakit/core';
@@ -199,16 +199,16 @@ export default defineAction<number>({
   title: 'Remove',
   // Each row tracks its own pending state.
   concurrency: 'per-input',
-  execute: ({ services, input }) => services.todos.items.remove(input),
+  execute: ({ services, input }) => services.todos.list.remove(input),
 });
 `,
     'todos/actions/clear.ts': `import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   title: 'Clear all',
-  enabled: ({ services }) => services.todos.items.state.get().items.length > 0,
+  enabled: ({ services }) => services.todos.list.state.get().todos.length > 0,
   confirm: 'Delete every todo?',
-  execute: ({ services }) => services.todos.items.clear(),
+  execute: ({ services }) => services.todos.list.clear(),
   success: 'All todos deleted',
 });
 `,
@@ -243,7 +243,7 @@ import { Button, Input, PageHeader } from '@bitakit/ui/components';
 
 // Served at /todos. Each button takes its label, disabled and pending state from its Action.
 export default function TodosPage() {
-  const items = useServiceState('todos.items', (state) => state.items, []);
+  const todos = useServiceState('todos.list', (state) => state.todos, []);
   const [title, setTitle] = useState('');
   return (
     <div className="flex flex-col gap-6">
@@ -261,10 +261,10 @@ export default function TodosPage() {
         </Action>
       </form>
       <ul className="flex flex-col gap-2">
-        {items.map((item) => (
-          <li key={item.id} className="flex items-center justify-between gap-2">
-            <span className="min-w-0 truncate">{item.title}</span>
-            <Action id="todos.remove" input={item.id}>
+        {todos.map((todo) => (
+          <li key={todo.id} className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate">{todo.title}</span>
+            <Action id="todos.remove" input={todo.id}>
               <Button variant="ghost" size="sm" />
             </Action>
           </li>
@@ -332,16 +332,16 @@ import { Button, Input, PageHeader } from '@bitakit/ui/components';
 // Served at ${path}; the path comes from this file's location under ui/pages.
 export default function ${component}() {
   // Re-renders whenever the service's store changes.
-  const items = useServiceState('${plugin}.items', (state) => state.items, []);
+  const entries = useServiceState('${plugin}.list', (state) => state.entries, []);
   const [title, setTitle] = useState('');
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="${title}" subtitle="Add and remove items. Everything here lives in the ${plugin} plugin." />
+      <PageHeader title="${title}" subtitle="Add and remove entries. Everything here lives in the ${plugin} plugin." />
       <div className="flex gap-2">
         <Input
           value={title}
-          placeholder="New item"
-          aria-label="New item"
+          placeholder="New entry"
+          aria-label="New entry"
           onChange={(event) => setTitle(event.target.value)}
         />
         <Action id="${plugin}.add" input={title} onExecuted={() => setTitle('')}>
@@ -349,10 +349,10 @@ export default function ${component}() {
         </Action>
       </div>
       <ul className="flex flex-col gap-2">
-        {items.map((item) => (
-          <li key={item.id} className="flex items-center justify-between gap-2">
-            <span className="min-w-0 truncate">{item.title}</span>
-            <Action id="${plugin}.remove" input={item.id}>
+        {entries.map((entry) => (
+          <li key={entry.id} className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate">{entry.title}</span>
+            <Action id="${plugin}.remove" input={entry.id}>
               <Button variant="ghost" size="sm" />
             </Action>
           </li>
@@ -367,16 +367,18 @@ export default function ${component}() {
 `;
 }
 
-export function actionFile(name) {
+/** `plugin` names the owning plugin in the hint when the caller knows it. */
+export function actionFile(name, plugin) {
   const segments = name.split('/');
   segments.forEach((segment) => validateName(segment, 'action name'));
+  const services = plugin ? `services${member(plugin)}` : 'services.<plugin>';
   return `import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   title: '${titleOf(segments.at(-1))}',
   // Services are services.<plugin>.<name>; reading an unknown one fails with a named error.
   execute: ({ services }) => {
-    // Call your services here, for example services.notes.items.add('…').
+    // Call your services here, for example ${services}.<name>.<method>().
   },
 });
 `;
@@ -515,6 +517,45 @@ export default defineInterceptor({
   before: ({ id, input }) => {
     console.debug('[${plugin}] ${name}', id, input);
   },
+});
+`;
+}
+
+/**
+ * A headless test of one app plugin (`bitakit add test`), run from the app root with `node --test`.
+ * `directory` is the plugin folder relative to that root; `id` is only needed when the folder is
+ * not under a `plugins` directory. `shellSlots` are the Shell slots its Actions are placed in:
+ * without Shell in the test, a stand-in has to own them or startup fails.
+ */
+export function testFile(plugin, { directory, id, shellSlots = [] }) {
+  const options = [
+    ...(id ? [`id: '${id}'`] : []),
+    ...(shellSlots.length ? ['plugins: [shell]'] : []),
+  ];
+  const slots = shellSlots.map(
+    (slot) =>
+      `${/^[A-Za-z_$][\w$]*$/.test(slot) ? slot : `'${slot}'`}: defineSlot({ accepts: 'actions' })`,
+  );
+  const shell = shellSlots.length
+    ? `
+// ${plugin} places Actions in Shell slots; this stand-in owns them so the plugin starts without Shell.
+const shell = definePlugin({
+  id: 'shell',
+  slots: ${slots.length === 1 ? `{ ${slots[0]} }` : `{\n    ${slots.join(',\n    ')},\n  }`},
+});
+`
+    : '';
+  return `import assert from 'node:assert/strict';
+import test from 'node:test';
+${shellSlots.length ? "import { definePlugin, defineSlot } from '@bitakit/core';\n" : ''}import { mountPlugin } from '@bitakit/core/testing';
+${shell}
+test('the ${plugin} plugin starts headlessly', async () => {
+  const plugin = await mountPlugin('${directory}'${options.length ? `, { ${options.join(', ')} }` : ''});
+  try {
+    assert.equal(plugin.runtime.isReady(plugin.id), true);
+  } finally {
+    await plugin.stop();
+  }
 });
 `;
 }

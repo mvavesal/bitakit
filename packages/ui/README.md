@@ -45,6 +45,11 @@ depend on it, and a startup report names the plugin, the cause and the file; a p
 still requires one of its services shows an explanation instead of crashing. Production fails
 fast.
 
+After hydration the provider marks its startup on the document element for tools without React
+access, such as `npx bitakit check-page` and browser tests: `<html data-bitakit-runtime>` is
+`starting`, then `ready` once initial startup completed (plugins turned off in development
+included) or `failed` when the app cannot start. Server and hydration markup never carry it.
+
 ## Bind actions
 
 ```tsx
@@ -77,8 +82,8 @@ snapshots.
 ## Read services, settings and events
 
 ```tsx
-const items = useServiceState('todos.items', (state) => state.items, []); // reactive
-const service = useService('todos.items'); // the instance
+const todos = useServiceState('todos.list', (state) => state.todos, []); // reactive
+const service = useService('todos.list'); // the instance
 useEvent('todos.changed', (event) => {
   /* event.data */
 });
@@ -106,7 +111,7 @@ config snapshot.
 ## Plugin UI
 
 `<PluginPage pathname? fallback? unavailable? />` renders the plugin page registered for the current path
-and passes `params` (`ui/pages/tasks/[id].tsx` receives `{ id }`); `<PluginSlot name payload? />` renders
+and passes `params` (`ui/pages/[id].tsx` receives `{ id }`); `<PluginSlot name payload? />` renders
 the components plugins placed in a slot. Declared targets read owned live attachments;
 legacy targets retain the existing view path. Hiding an outlet never detaches its entries.
 Both paths retain the runtime-wide readiness barrier used by service hooks. `PluginSlot`
@@ -186,7 +191,7 @@ visual dependency and does not enforce server authorization. See
 
 - `components/`: `<Action>`, `ActionButton`, `ActionLink`, `ActionMenu`, `ActionBoundary`, dialog hosts, plugin pages and slots, standard primitives under `components/primitives`.
 - `hooks/`: `useAction`, `useActionGroup`, `useService`, `useServiceState`, `useSetting`, `useSettingsCatalog`, `useNavigation`, `useSlot`, `useEvent`, `useBitaKitApp`, `usePluginConfig`, `useTranslation`, `useAuth`.
-- `providers/`: `BitaKitRuntimeProvider`, `ActionProvider` and the shared contexts.
+- `providers/`: `BitaKitRuntimeProvider`, `ActionProvider`, the shared contexts and the `data-bitakit-runtime` startup marker.
 - `bindings/`: keyboard shortcut registration.
 - `utils/`: `mergeProps`.
 - `testing/`: `renderWithBitaKit`, the `@bitakit/ui/testing` entry (needs `react-dom`; imports no DOM).
@@ -237,7 +242,6 @@ The hook reads Core's shared versioned inventory with stable snapshots. It owns 
 values. `live` is `null` during server rendering and hydration, because the runtime starts only
 in the browser; the live state follows right after hydration. Use ordinary Action/service hooks for interactive operations. App Preferences and
 Devtools use this same inventory; static CLI fields may be explicitly unavailable.
-
 
 ### Isolate a widget render failure
 

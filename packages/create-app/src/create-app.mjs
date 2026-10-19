@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile, lstat } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execa } from 'execa';
 import validateName from 'validate-npm-package-name';
@@ -8,24 +8,28 @@ import { next } from './adapters/next.mjs';
 import { tanstack } from './adapters/tanstack.mjs';
 import { createPluginPackage } from './plugin-package.mjs';
 import { writeProjectFiles } from './project-files.mjs';
+import { createInExistingFolder, existingFolder, failUnchanged } from './existing-folder.mjs';
 
 export const adapters = { next, tanstack };
 
-/** Refuse existing paths, including symlinks; a starter never edits an existing project. */
+/**
+ * Resolves the options into a plan. The destination is a new directory, or an existing folder
+ * that holds only version control, editor and agent files (`existing` lists them); anything else,
+ * including a symbolic link, is refused, so a starter never edits an existing project.
+ */
 export async function planProject(directory, options = {}) {
   const target = path.resolve(directory);
   const name = path.basename(target);
+  const existing = await existingFolder(target);
   const validation = validateName(name);
   if (!validation.validForNewPackages) {
+    const reasons = [...(validation.errors ?? []), ...(validation.warnings ?? [])];
     throw new Error(
-      `Invalid project name: ${[...(validation.errors ?? []), ...(validation.warnings ?? [])].join(' ')}`,
+      existing
+        ? `Invalid project name "${name}": ${reasons.join('; ')}. The package name comes from the folder name; rename the folder or choose a new directory.`
+        : `Invalid project name: ${reasons.join('; ')}.`,
     );
   }
-  const existing = await lstat(target).catch((error) => {
-    if (error.code !== 'ENOENT') throw error;
-    return undefined;
-  });
-  if (existing) throw new Error(`Destination already exists: ${target}. Choose a new directory.`);
   const type = options.type ?? 'app';
   if (!['app', 'plugin'].includes(type))
     throw new Error(`Unknown project type: ${type}. Use app or plugin.`);
@@ -46,10 +50,16 @@ export async function planProject(directory, options = {}) {
     features,
     sample: type === 'app' && !!options.sample,
     install: options.install !== false,
+    existing,
   };
 }
 
-/** Creates an app or a standalone plugin package with its playground. */
+/**
+ * Creates an app or a standalone plugin package, in a new directory or an existing folder.
+ * Resolves to the target and, for an existing folder, the generated paths left out because the
+ * user's own version stays (`kept`). An error raised before anything was written to the
+ * destination has `targetUnchanged: true`.
+ */
 export async function createProject(plan, options = {}) {
   const run =
     options.run ??
@@ -60,10 +70,21 @@ export async function createProject(plan, options = {}) {
         env: { TANSTACK_CLI_TELEMETRY_DISABLED: '1' },
       }));
   // Repeat the destination check immediately before anything is written.
-  await planProject(plan.target, plan);
-  await mkdir(path.dirname(plan.target), { recursive: true });
-  if (plan.type === 'plugin') return createPluginPackage(plan, { ...options, run, createApp });
-  return createApp(plan, { ...options, run });
+  const { existing } = await planProject(plan.target, plan).catch(failUnchanged);
+  const create = (overrides) =>
+    plan.type === 'plugin'
+      ? createPluginPackage({ ...plan, ...overrides }, { ...options, run, createApp })
+      : createApp({ ...plan, ...overrides }, { ...options, run });
+  if (!existing) {
+    await mkdir(path.dirname(plan.target), { recursive: true });
+    return { target: await create({}), kept: [] };
+  }
+  const kept = await createInExistingFolder(plan.target, (staged) =>
+    create({ target: staged, install: false }),
+  );
+  // Installing runs once the project is in place, so a failed install leaves it there to inspect.
+  if (plan.install) await run('npm', ['install'], plan.target);
+  return { target: plan.target, kept };
 }
 
 /** Native framework files first, then only the selected BitaKit composition. */

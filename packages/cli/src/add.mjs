@@ -1,6 +1,7 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { contributionSegments } from '@bitakit/discovery';
+import ts from 'typescript';
+import { contributionSegments, describeBitaKit, describeModule } from '@bitakit/discovery';
 import { exists, findProject } from './project.mjs';
 import {
   actionFile,
@@ -18,6 +19,7 @@ import {
   pluginFiles,
   serviceFile,
   starterFiles,
+  testFile,
   titleOf,
   validateName,
 } from './templates.mjs';
@@ -91,6 +93,7 @@ export const contributionKinds = [
   'slot-definition',
   'dialog',
   'provider',
+  'test',
 ];
 /** Declared once per plugin, in one root file. */
 const singleFile = {
@@ -102,12 +105,14 @@ const singleFile = {
 /**
  * `bitakit add <kind> <plugin>/<name>` in an app, or `<name>` in a plugin package. Nested names
  * such as `notes/team/invite` create `actions/team/invite.ts` with the ID `notes.team.invite`.
- * `events` takes only the plugin: a plugin declares its events once in `events.ts`.
+ * `events` takes only the plugin: a plugin declares its events once in `events.ts`. `test` also
+ * takes only an existing plugin of an app and writes `tests/<plugin>.test.ts` at the app root.
  */
 export async function addContribution(kind, target, { cwd } = {}) {
   if (!contributionKinds.includes(kind))
     throw new Error(`Unknown kind "${kind}". Use ${contributionKinds.join(', ')}.`);
   const project = await configuredProject(cwd);
+  if (kind === 'test') return addTest(project, target);
   if (kind === 'layout') {
     if (project.kind !== 'app')
       throw new Error('Layouts belong to the app: run "bitakit add layout <name>" inside an app.');
@@ -162,7 +167,7 @@ export async function addContribution(kind, target, { cwd } = {}) {
   const pageSegments = segments.at(-1) === 'index' ? segments.slice(0, -1) : segments;
   const pagePath = `/${plugin}${pageSegments.map((segment) => `/${segment}`).join('')}`;
   const files = {
-    action: () => ({ [`actions/${name}.ts`]: actionFile(name) }),
+    action: () => ({ [`actions/${name}.ts`]: actionFile(name, plugin) }),
     service: () => ({ [`services/${name}.ts`]: serviceFile(name, plugin) }),
     page: () => ({
       [`ui/pages/${name}.tsx`]: pageFile(plugin, pagePath, titleOf(pageSegments.at(-1) ?? plugin)),
@@ -187,4 +192,91 @@ export async function addContribution(kind, target, { cwd } = {}) {
     plugin,
     path: kind === 'page' ? pagePath : undefined,
   };
+}
+
+/** What `mountPlugin` needs under Node besides `@bitakit/core`, as the testing guide lists it. */
+const testDependencies = ['@bitakit/discovery', 'jiti', 'typescript', '@types/node'];
+
+const nameOf = (node) =>
+  ts.isIdentifier(node) || ts.isStringLiteralLike(node) ? node.text : undefined;
+
+/**
+ * The Shell slots a plugin's Actions are placed in: the `'shell.…'` entries of every `slots: [...]`
+ * in its action files, written as a string or as `{ slot }`. Read from the syntax tree, never run.
+ */
+async function shellSlotsOf(directory) {
+  const slots = new Set();
+  for (const { file } of (await describeModule(directory)).actions) {
+    const visit = (node) => {
+      if (
+        ts.isPropertyAssignment(node) &&
+        nameOf(node.name) === 'slots' &&
+        ts.isArrayLiteralExpression(node.initializer)
+      )
+        for (const element of node.initializer.elements) {
+          const target = ts.isObjectLiteralExpression(element)
+            ? element.properties.find(
+                (item) => ts.isPropertyAssignment(item) && nameOf(item.name) === 'slot',
+              )?.initializer
+            : element;
+          if (target && ts.isStringLiteralLike(target) && target.text.startsWith('shell.'))
+            slots.add(target.text.slice('shell.'.length));
+        }
+      ts.forEachChild(node, visit);
+    };
+    visit(ts.createSourceFile(file, await readFile(file, 'utf8'), ts.ScriptTarget.Latest, true));
+  }
+  return [...slots].sort();
+}
+
+/** The commands an app still needs to run the test; the CLI never edits package.json itself. */
+function testSetup(manifest, file) {
+  const installed = { ...manifest.dependencies, ...manifest.devDependencies };
+  const missing = testDependencies.filter((name) => !installed[name]);
+  const script = manifest.scripts?.test;
+  // npm init writes a test script that only fails; it counts as missing.
+  const needsScript = !script || /no test specified/.test(script);
+  return {
+    setup: [
+      ...(missing.length ? [`npm install --save-dev ${missing.join(' ')}`] : []),
+      ...(manifest.type === 'module' ? [] : ['npm pkg set type=module']),
+      ...(needsScript ? ['npm pkg set scripts.test="node --test tests/*.test.ts"'] : []),
+    ],
+    run: needsScript || script.includes('node --test') ? 'npm test' : `node --test ${file}`,
+  };
+}
+
+/** `bitakit add test <plugin>`: tests/<plugin>.test.ts at the app root, mounting that plugin folder. */
+async function addTest(project, plugin) {
+  if (project.kind !== 'app')
+    throw new Error(
+      'Run "bitakit add test <plugin>" inside an app; a plugin package keeps its tests in tests/.',
+    );
+  if (!plugin) throw new Error('Name the plugin, for example "bitakit add test notes".');
+  if (plugin.includes('/'))
+    throw new Error(
+      `A test covers a whole plugin: run "bitakit add test ${plugin.slice(0, plugin.indexOf('/'))}" without a further name.`,
+    );
+  validateName(plugin, 'plugin name');
+  const directory = path.join(project.pluginsDirectory, plugin);
+  if (!(await exists(directory)))
+    throw new Error(
+      `${directory} does not exist. Create the plugin first, for example "bitakit add plugin ${plugin}". Nothing was changed.`,
+    );
+  const relativeDirectory = path.relative(project.root, directory).split(path.sep).join('/');
+  // The app's ID for the folder, so the test mounts the plugin as the app does.
+  const id =
+    (await describeBitaKit(project.root)).plugins.find(
+      (entry) => entry.directory === relativeDirectory,
+    )?.id ?? plugin;
+  const file = `tests/${plugin}.test.ts`;
+  const created = await writeNewFiles(project.root, {
+    [file]: testFile(plugin, {
+      directory: relativeDirectory,
+      // Under plugins/, mountPlugin reads the same ID from plugin.config.ts or the folder name.
+      id: path.basename(project.pluginsDirectory) === 'plugins' ? undefined : id,
+      shellSlots: await shellSlotsOf(directory),
+    }),
+  });
+  return { project, created, plugin, id, ...testSetup(project.manifest, file) };
 }

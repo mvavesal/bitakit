@@ -19,7 +19,7 @@ export default defineConfig({
 ```
 
 ```ts
-// src/plugins/todos/configs/actions/list.ts  →  config.action inside todos.list
+// src/plugins/todos/configs/actions/preview.ts  →  config.action inside todos.preview
 import { defineConfig } from '@bitakit/core';
 
 export default defineConfig({ defaults: { pageSize: 10 } });
@@ -30,19 +30,19 @@ The plugin folder supplies the module ID `todos`. A plain object export works to
 ## Read the correct scope
 
 ```ts
-// src/plugins/todos/actions/list.ts
+// src/plugins/todos/actions/preview.ts
 import { defineAction } from '@bitakit/core';
 
 export default defineAction({
-  title: 'List tasks',
+  title: 'Preview todos',
   execute({ services, config }) {
     const pageSize = config.action.get('pageSize', 10);
-    return services.todos.tasks.list().slice(0, pageSize);
+    return services.todos.list.state.get().todos.slice(0, pageSize);
   },
 });
 ```
 
-`config.plugin.get('limits.pageSize', 20)` reads the plugin's whole tree; `config.action.get('pageSize', 10)` reads `actions.list.pageSize` for this action. There is no implicit fallback between the two scopes. Service factories receive the same `config` object with the plugin scope.
+`config.plugin.get('limits.pageSize', 20)` reads the plugin's whole tree; `config.action.get('pageSize', 10)` reads `actions.preview.pageSize` for this action. There is no implicit fallback between the two scopes. Service factories receive the same `config` object with the plugin scope.
 
 A fallback supplies a value and TypeScript inference, not runtime validation. Dot paths address nested values; segment arrays address literal keys containing dots.
 
@@ -54,7 +54,7 @@ import { defineBitaKit } from '@bitakit/discovery';
 
 export default defineBitaKit({
   configOverrides: {
-    todos: { limits: { maxItems: 50 }, actions: { list: { pageSize: 50 } } },
+    todos: { limits: { maxItems: 50 }, actions: { preview: { pageSize: 50 } } },
   },
 });
 ```

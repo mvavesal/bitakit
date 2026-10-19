@@ -127,6 +127,14 @@ npx bitakit doctor
 The type check generates \`src/bitakit.gen.*\`; do not edit those files. Doctor reports wiring
 problems. Use \`npm run build\` when ready to check a production build.
 
+## Work with a coding agent
+
+\`AGENTS.md\` holds the BitaKit rules, and the \`bitakit-app-development\` skill in
+\`.agents/skills/\` and \`.claude/skills/\` holds the recipes. Open your agent in this folder and
+name the skill before your request: \`$bitakit-app-development\` in Codex,
+\`/bitakit-app-development\` in Claude Code. For example: "Add an About page that explains what this app
+is for." The agent builds it, checks it in the browser and explains what it did.
+
 ## Later: a fuller example
 
 \`\`\`sh

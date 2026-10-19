@@ -5,7 +5,7 @@ import {
   claudeFileFor,
   nextConfigFile,
   wrapNextConfig,
-  writeAppDevelopmentSkill,
+  writeAppDevelopmentSkills,
 } from '@bitakit/cli';
 import {
   agentRules,
@@ -156,6 +156,6 @@ export default function Page() {
       'CLAUDE.md': claudeFileFor(claude),
       'README.md': readme(plan, next),
     });
-    await writeAppDevelopmentSkill(plan.target);
+    await writeAppDevelopmentSkills(plan.target);
   },
 };

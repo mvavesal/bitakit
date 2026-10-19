@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/quick-search",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "BitaKit Quick Search: a Mod+K dialog that lists pages, Settings pages and plugins.",
   "type": "module",
   "sideEffects": [
@@ -30,8 +30,8 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.1",
-    "@bitakit/ui": "^0.2.1",
+    "@bitakit/core": "^0.2.2",
+    "@bitakit/ui": "^0.2.2",
     "cmdk": "^1.1.1",
     "reicon-react": "1.2.5"
   },

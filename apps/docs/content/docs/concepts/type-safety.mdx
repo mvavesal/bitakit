@@ -23,9 +23,9 @@ import { defineAction } from '@bitakit/core';
 import { z } from 'zod';
 
 export default defineAction({
-  title: 'Create task',
+  title: 'Create todo',
   input: z.object({ title: z.string().min(1) }),
-  execute: ({ services, input }) => services.todos.tasks.add(input.title), // input is { title: string }
+  execute: ({ services, input }) => services.todos.list.add(input.title), // input is { title: string }
 });
 ```
 
@@ -67,7 +67,7 @@ import '@bitakit/core';
 
 declare module '@bitakit/core' {
   interface ServiceMap {
-    'todos.tasks': { list(): Task[]; add(title: string): void };
+    'todos.list': { add(title: string): void; remove(id: number): void };
   }
   interface EventMap {
     'todos.changed': { kind: 'added' | 'removed'; id: number };
