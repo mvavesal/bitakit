@@ -1,4 +1,5 @@
 import type {
+  AuthService,
   EventService,
   BitaKitApp,
   BitaKitEvent,
@@ -57,3 +58,19 @@ export function mountPlugin(
     configOverrides?: Readonly<Record<string, Record<string, unknown>>>;
   },
 ): Promise<MountedPlugin>;
+
+/**
+ * Checks an `auth` provider against the AuthService contract, for the provider's own tests:
+ * a stable snapshot, working subscribe/unsubscribe, a string `user.id` after `signIn`, an
+ * awaited `signOut` that clears the user, and valid optional `paths` and `signIn`. Rejects with
+ * the first broken rule.
+ */
+export function assertAuthContract(
+  service: AuthService,
+  options: {
+    /** Signs a test user in through the provider's own login. Called twice. */
+    signIn(): Promise<unknown>;
+    /** Milliseconds to wait for a pending session or a sign-in to settle (default 2000). */
+    timeout?: number;
+  },
+): Promise<void>;

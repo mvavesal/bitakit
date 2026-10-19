@@ -13,6 +13,7 @@ import {
   discoverServices,
   discoverSlots,
   discoveredFile,
+  configureAuthPaths,
 } from '../dist/core.js';
 
 /** The plugin ID a package declares (`bitakit.id`), or one derived from its name. */
@@ -147,4 +148,73 @@ export async function mountPlugin(directory = 'src', options = {}) {
     stop: release,
     [Symbol.asyncDispose]: release,
   };
+}
+
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+/** Waits until `ready()` holds, failing with `message` after `timeout` milliseconds. */
+async function until(ready, message, timeout) {
+  const deadline = Date.now() + timeout;
+  while (!ready()) {
+    if (Date.now() > deadline) throw new Error(`auth contract: ${message}`);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
+/**
+ * Checks an `auth` provider against the AuthService contract, for the provider's own tests:
+ * a stable snapshot, working subscribe/unsubscribe, a string `user.id` after `signIn`, an
+ * awaited `signOut` that clears the user, and valid optional `paths`/`signIn`. `signIn` drives
+ * the provider's own login. Rejects with the first broken rule.
+ */
+export async function assertAuthContract(service, { signIn, timeout = 2000 }) {
+  const fail = (rule) => {
+    throw new Error(`auth contract: ${rule}`);
+  };
+  for (const method of ['getSnapshot', 'subscribe', 'signOut'])
+    if (typeof service?.[method] !== 'function') fail(`${method}() is missing.`);
+  if (service.signIn !== undefined && typeof service.signIn !== 'function')
+    fail('signIn must be a function when present.');
+  if (service.paths !== undefined) {
+    try {
+      configureAuthPaths(service.paths);
+    } catch (error) {
+      fail(`paths are invalid: ${error.message}`);
+    }
+  }
+  await until(() => !service.getSnapshot().pending, 'the snapshot stays pending.', timeout);
+  const initial = service.getSnapshot();
+  for (const key of ['user', 'pending', 'error'])
+    if (!(key in initial)) fail(`the snapshot has no "${key}".`);
+  if (service.getSnapshot() !== initial)
+    fail('getSnapshot() must return the same object until it changes.');
+  if (initial.user !== null && !initial.error) await service.signOut();
+
+  let notified = 0;
+  const unsubscribe = service.subscribe(() => notified++);
+  if (typeof unsubscribe !== 'function') fail('subscribe() must return an unsubscribe function.');
+  await signIn();
+  await until(() => service.getSnapshot().user !== null, 'no user after signIn.', timeout);
+  const signedIn = service.getSnapshot();
+  if (typeof signedIn.user.id !== 'string' || !signedIn.user.id)
+    fail('user.id must be a non-empty string.');
+  if (signedIn.pending) fail('pending must be false once the user is known.');
+  if (signedIn.error) fail('a signed-in snapshot must not carry an error.');
+  if (signedIn === initial) fail('the snapshot must be a new object after a change.');
+  if (service.getSnapshot() !== signedIn) fail('the signed-in snapshot must be stable.');
+  if (notified === 0) fail('subscribe() listeners must be called when the session changes.');
+
+  const result = service.signOut();
+  if (typeof result?.then !== 'function') fail('signOut() must return a promise.');
+  await result;
+  const signedOut = service.getSnapshot();
+  if (signedOut.user !== null) fail('signOut() must resolve after the user is cleared.');
+  if (signedOut.pending) fail('pending must be false after signOut().');
+
+  unsubscribe();
+  const after = notified;
+  await signIn();
+  await settle();
+  if (notified !== after) fail('listeners must not be called after unsubscribe.');
+  await service.signOut();
 }

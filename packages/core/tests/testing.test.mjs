@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mountPlugin } from '../testing/index.mjs';
+import { assertAuthContract, mountPlugin } from '../testing/index.mjs';
 import { definePlugin, defineService, defineSlot, isBitaKitStartupError } from '../dist/core.js';
 
 /** A project inside Core, so plugin files resolve @bitakit/core from the workspace. */
@@ -347,3 +347,52 @@ export default defineAction({ title: 'Notes', href: '/notes', groups: ['navigati
       }
     },
   ));
+
+/** A minimal AuthService over a mutable session, with switches that break single rules. */
+function fakeAuth(broken = {}) {
+  const listeners = new Set();
+  let snapshot = { user: null, pending: false, error: null };
+  const set = (user) => {
+    snapshot = { user, pending: false, error: null };
+    for (const listener of listeners) listener();
+  };
+  return {
+    service: {
+      paths: broken.paths,
+      getSnapshot: () => (broken.unstable ? { ...snapshot } : snapshot),
+      subscribe(listener) {
+        listeners.add(listener);
+        return broken.noUnsubscribe ? undefined : () => listeners.delete(listener);
+      },
+      async signOut() {
+        if (!broken.keepUser) set(null);
+      },
+    },
+    signIn: async () => set({ id: broken.numericId ? 7 : 'u7', name: 'Ada' }),
+  };
+}
+
+test('assertAuthContract accepts a provider that follows the auth contract', async () => {
+  const { service, signIn } = fakeAuth({
+    paths: { signIn: '/login', afterSignIn: '/', afterSignOut: '/bye' },
+  });
+  await assertAuthContract(service, { signIn });
+  assert.equal(service.getSnapshot().user, null);
+});
+
+test('assertAuthContract names the broken rule', async () => {
+  const cases = [
+    [{ unstable: true }, /same object until it changes/],
+    [{ noUnsubscribe: true }, /unsubscribe function/],
+    [{ numericId: true }, /user\.id must be a non-empty string/],
+    [{ keepUser: true }, /signOut\(\) must resolve after the user is cleared/],
+    [
+      { paths: { signIn: '//evil.test', afterSignIn: '/', afterSignOut: '/' } },
+      /paths are invalid/,
+    ],
+  ];
+  for (const [broken, message] of cases) {
+    const { service, signIn } = fakeAuth(broken);
+    await assert.rejects(assertAuthContract(service, { signIn, timeout: 50 }), message);
+  }
+});
