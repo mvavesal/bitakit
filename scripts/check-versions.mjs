@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Published @bitakit packages share one release line (0.2.x). Only changed packages get a patch
 // release, so patch versions may differ. Internal dependencies use caret ranges the workspace
-// satisfies, and create-app is never newer than another package: generated apps depend on
-// `^<create-app version>` for every @bitakit package.
+// satisfies. Generated apps depend on the release line (`^0.2.0`), so create-app may be newer
+// than other packages.
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -49,12 +49,6 @@ for (const { file, manifest } of manifests)
           `${file}: ${field}.${name} is "${range}"; expected a caret range that ${name}@${current} satisfies.`,
         );
     }
-const generator = versionOf.get('@bitakit/create-app');
-for (const [name, version] of versionOf)
-  if (generator && compare(generator, version) > 0)
-    problems.push(
-      `@bitakit/create-app@${generator} is newer than ${name}@${version}; generated apps would depend on an unreleased version.`,
-    );
 if (problems.length) {
   console.error(problems.join('\n'));
   process.exit(1);

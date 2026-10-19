@@ -137,3 +137,63 @@ adapter is required. `npx bitakit doctor` checks the wiring.
 For the full check, run `npm run verify:generated`. It packs the packages itself, generates every
 supported project shape, and type-checks, builds and smoke-tests each one in a browser. It needs
 internet access and Playwright's Chromium.
+
+## Release
+
+Releases run in GitHub Actions from `main`; nobody publishes from a laptop. Every `@bitakit/*`
+package stays on one release line (0.2.x), and only packages whose shipped content changed get a
+new version, so patch versions may differ within a line. Generated apps depend on the line
+(`^0.2.0`), never on one exact version.
+
+### 1. Add a changeset to your pull request
+
+A change to a published package needs a changeset: a short Markdown file in `.changeset/` that
+names the packages and the bump.
+
+```sh
+npm run changeset
+```
+
+The command asks which packages changed and whether each is a `patch` or `minor` bump, then
+writes a file like this:
+
+```md
+---
+'@bitakit/cli': patch
+---
+
+Document how to update BitaKit in the CLI README.
+```
+
+The summary becomes the package's `CHANGELOG.md` entry. Changes that ship nothing (docs site,
+tests, workflows) need no changeset. Commit the file with the change.
+
+A `minor` bump starts the next release line (0.2 to 0.3). Changesets moves only the packages a
+changeset names, so a new line needs one changeset that lists every published package as `minor`;
+CI's version check fails while packages sit on two lines.
+
+### 2. Merge into main
+
+`.github/workflows/release.yml` runs on every push to `main`. It first runs CI (every package test,
+the version check, the docs build), then:
+
+| On `main`                                      | The workflow                                                                           |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Unreleased changesets                          | Opens or updates the "Version packages" pull request: bumped versions and changelogs   |
+| A version on `main` that npm does not have yet | Builds, packs and publishes those packages, then pushes a git tag and a GitHub release |
+| Neither                                        | Nothing                                                                                |
+
+### 3. Merge the "Version packages" pull request
+
+Review the bumped versions and changelogs, then merge. The next run publishes them. A dependent
+package only gets a new version when its own changeset says so or when a dependency leaves its
+caret range.
+
+### How the workflow authenticates
+
+npm accepts the publish through [trusted publishing](https://docs.npmjs.com/trusted-publishers):
+each `@bitakit/*` package on npmjs.com trusts the repository `mvavesal/bitakit`, the workflow
+file `release.yml` and the environment `npm`. No npm token is stored in GitHub, and only the
+publish job may request the identity token. A new package must first be published once by hand
+and then given the same trusted publisher. The repository is private, so npm records no
+provenance attestation.

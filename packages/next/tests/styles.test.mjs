@@ -7,7 +7,8 @@ import { generateBitaKit, watchBitaKit } from '@bitakit/discovery';
 
 async function fixture(t, css, extra = {}) {
   const root = await mkdtemp(path.join(tmpdir(), 'bitakit-style-contract-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
+  // A watcher may still be writing generated files; rm retries instead of failing with ENOTEMPTY.
+  t.after(() => rm(root, { recursive: true, force: true, maxRetries: 5 }));
   const put = async (name, value) => {
     const file = path.join(root, name);
     await mkdir(path.dirname(file), { recursive: true });
@@ -94,7 +95,16 @@ test('development rejects invalid installed CSS updates and recovers after corre
   await f.generate();
   const errors = [];
   const stop = watchBitaKit(f.root, (error) => errors.push(error));
-  t.after(stop);
+  // Stop inside the test: the fixture's cleanup removes the folder, and on Linux a running
+  // recursive watcher regenerates files into it, so stopping later can leave the process alive.
+  try {
+    await expectInvalidThenRecovered(f, errors);
+  } finally {
+    stop();
+  }
+});
+
+async function expectInvalidThenRecovered(f, errors) {
   const cssFile = path.join(f.root, 'src/bitakit.gen.css');
   const until = async (condition) => {
     for (let attempt = 0; attempt < 100; attempt++) {
@@ -106,7 +116,11 @@ test('development rejects invalid installed CSS updates and recovers after corre
   // Let the initial discovery attach the installed package directory watcher.
   await new Promise((resolve) => setTimeout(resolve, 200));
   await f.put('node_modules/test-plugin/styles.css', '@layer components;');
-  await until(async () => (await readFile(cssFile, 'utf8')).includes('bitakit-invalid-plugin-css'));
+  // The watcher writes the invalid stylesheet before it reports the error.
+  await until(
+    async () =>
+      errors.length > 0 && (await readFile(cssFile, 'utf8')).includes('bitakit-invalid-plugin-css'),
+  );
   assert.match(errors[0].message, /test-plugin.*layer order/s);
   await f.put(
     'node_modules/test-plugin/styles.css',
@@ -116,7 +130,7 @@ test('development rejects invalid installed CSS updates and recovers after corre
     async () => !(await readFile(cssFile, 'utf8')).includes('bitakit-invalid-plugin-css'),
   );
   assert.match(await readFile(cssFile, 'utf8'), /@layer theme, base, components, utilities;/);
-});
+}
 
 for (const [name, entry, extra, message] of [
   [

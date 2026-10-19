@@ -4,9 +4,18 @@ import { stylePrelude } from '@bitakit/discovery';
 import { agentRules as sharedAgentRules, bitakitIdentity, gitignoreBlock } from '@bitakit/cli';
 
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-/** Every @bitakit package is released together; generated projects install this one release. */
-export const bitakitVersion = manifest.version;
-export const bitakitRange = `^${bitakitVersion}`;
+/**
+ * Generated projects depend on the release line of this generator (`^0.2.0` for 0.2.x), not on
+ * its exact version: only changed packages get a patch release, so other @bitakit packages may
+ * be behind the generator within one line. npm still installs the newest patch of each.
+ */
+export const bitakitRange = releaseLineRange(manifest.version);
+
+/** `^0.<minor>.0` before 1.0, `^<major>.0.0` after: the versions a caret range treats as one line. */
+export function releaseLineRange(version) {
+  const [major, minor] = version.split('.');
+  return major === '0' ? `^0.${minor}.0` : `^${major}.0.0`;
+}
 
 /** Write a generated project file; only called after the empty destination was created. */
 export async function writeProjectFile(root, file, content) {
