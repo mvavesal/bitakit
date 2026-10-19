@@ -34,6 +34,11 @@ for installer options.
 In Codex, invoke `$bitakit-app-development`. In Claude Code, use `/bitakit-app-development`.
 For example:
 
+> Create a new BitaKit app for tracking books. Choose the framework and layout to fit the
+> requirements; add a sidebar only if it helps.
+
+For a feature in an existing app:
+
 > Add a Counter page under `src/plugins/counter/` that starts at 0 and increments from a button.
 > Check the selected layout before adding navigation, then typecheck and verify `/counter`.
 
@@ -41,5 +46,6 @@ The skill starts with a page under `ui/`, then adds `services.ts` or `actions.ts
 feature needs them. Keep React in `ui/` and place navigation only where the selected layout has a
 real rendered outlet.
 
-The skill assumes the app already has the BitaKit packages needed for its workflow. Installing
-the skill does not install the BitaKit CLI or app dependencies.
+An existing app must have the BitaKit packages needed for the requested work. For a new app, the
+skill uses the separate BitaKit `create-app` generator. Installing this skill installs its
+instructions only; it does not install app dependencies.
