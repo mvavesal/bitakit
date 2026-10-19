@@ -65,10 +65,12 @@ export default {
 
 When the file grows, move each entry to `actions/add.ts` and `actions/clear.ts`; no ID changes. The same works for `services.ts`, `interceptors.ts`, `configs.ts` and `slots.ts`. Pages, slot components and providers stay under `ui/`, the only place that imports React. Root app contributions live in the same folders directly under `src`; their IDs carry no prefix (events and configuration use the app module ID: `app.<name>`).
 
+A folder and a dot mean the same in a file path, so a flat layout works as well: `actions.add.ts` is `actions/add.ts`, Action `todos.add`. Folders are the default that `bitakit add` writes; flat files suit small plugins. Both may be mixed, but one ID needs exactly one file.
+
 <Callout title="Legacy spellings">
-  `actions.add.ts` and `add.action.ts` from 0.1, and the old `pages/`, `views/` and `providers/`
-  folders, are still read with a warning. `npx bitakit migrate` rewrites them to the folder
-  convention; `--dry-run` lists the changes first.
+  The `add.action.ts` suffix from 0.1 and the old `pages/`, `views/` and `providers/` folders are
+  still read with a warning. `npx bitakit migrate` upgrades a 0.1 project: it rewrites them and
+  moves dotted files into folders; `--dry-run` lists the changes first.
 </Callout>
 
 ## What is discovered

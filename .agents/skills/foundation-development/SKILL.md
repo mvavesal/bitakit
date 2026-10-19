@@ -50,37 +50,44 @@ page (`packages/create-app/src/project-files.mjs`) is too complicated.
 ## Plugin folder
 
 Most plugins are two or three files. Docs, templates and generated samples start with the
-fewest files that work (a page, or a service and an action) and add a folder only when a
-feature needs it; never scaffold every kind. The complete layout, every entry optional:
+fewest files that work (a page, or a service and an action) and add more only when a
+feature needs it; never scaffold every kind. Every entry is optional.
 
-```text
-src/plugins/<id>/
-├── services/<file>.ts     defineService   → services.<id>.<file>
-├── actions/<file>.ts      defineAction    → <id>.<file>
-├── events.ts              defineEvents    → <id>.<name>
-├── settings.ts            defineSettings  → settings.<id>.<name>
-├── configs/<file>.ts      defineConfig    → app.config.<id>.<file>
-├── slots/<file>.ts        defineSlot      → <id>.<file> (owned contract)
-├── interceptors/<file>.ts defineInterceptor
-├── setup.ts               optional; `({ scope, services }) => cleanup?`
-├── plugin.config.ts       optional; dependencies, metadata, id, entries
-├── locales/<lang>.json    { "<id>": { ... } }
-└── ui/                    React only
-    ├── pages/<path>.tsx   /<id>/<path>; [param] segments; `export const layout`
-    ├── slots/<slot>.tsx   component in slot "<slot>"; `export const order`
-    ├── dialogs/<name>.tsx components an action opens with `dialog`
-    ├── settings/page.tsx  replaces the generated settings page of the plugin
-    └── providers/<name>.tsx React provider; `export const requires`
-src/layouts/<name>.tsx     app layouts; pages opt in with `export const layout = '<name>'`
-```
+Kinds that hold many entries are a folder, dotted flat files or one record file; all three
+spellings declare the same IDs. The other kinds are always one file per plugin.
 
-- The folder name is the plugin ID. A small plugin may keep one record file per kind
-  instead of a folder: `actions.ts` exporting `{ add, remove }` declares `<plugin>.add` and
-  `<plugin>.remove`, exactly as `actions/add.ts` and `actions/remove.ts` would; split it into
-  the folder later without changing an ID. This works for `actions`, `services`,
-  `interceptors`, `configs` and `slots`; pages, slot components and providers stay under
-  `ui/` (the React boundary). `actions.x.ts` and `x.action.ts` are legacy spellings that
-  `bitakit migrate` rewrites; do not add them to templates, docs or apps.
+| Kind                | Per plugin | Spellings                                                    | ID                         |
+| ------------------- | ---------- | ------------------------------------------------------------ | -------------------------- |
+| `defineAction`      | many       | `actions/add.ts`, `actions.add.ts`, `actions.ts` `{ add }`   | `<id>.add`                 |
+| `defineService`     | many       | `services/list.ts`, `services.list.ts`, `services.ts`        | `services.<id>.list`       |
+| `defineConfig`      | many       | `configs/limits.ts`, `configs.limits.ts`, `configs.ts`       | `app.config.<id>.limits`   |
+| `defineSlot`        | many       | `slots/toolbar.ts`, `slots.toolbar.ts`, `slots.ts`           | `<id>.toolbar` (owned)     |
+| `defineInterceptor` | many       | `interceptors/audit.ts`, `interceptors.audit.ts`, record     | plugin-local by default    |
+| `defineEvents`      | one        | `events.ts`                                                  | `<id>.<name>`              |
+| `defineSettings`    | one        | `settings.ts`                                                | `settings.<id>.<name>`     |
+| setup               | one        | `setup.ts`, `({ scope, services }) => cleanup?`              |                            |
+| manifest            | one        | `plugin.config.ts`: dependencies, metadata, id, entries      |                            |
+| translations        | per locale | `locales/<lang>.json` with `{ "<id>": { ... } }`             |                            |
+
+React files stay under `ui/` (the only place that imports React), with the same rule inside:
+`ui/pages/<path>.tsx` (`/<id>/<path>`, `[param]` segments, `export const layout`),
+`ui/slots/<slot>.tsx` (`export const order`), `ui/dialogs/<name>.tsx`, `ui/settings/page.tsx`
+(replaces the generated settings page) and `ui/providers/<name>.tsx` (`export const requires`).
+App layouts live in `src/layouts/<name>.tsx`; pages opt in with `export const layout = '<name>'`.
+
+- The folder name is the plugin ID. In a contribution path a folder and a dot mean the same
+  (`contributionSegments` in `entries.mjs`): `actions/team/refresh.ts`, `actions/team.refresh.ts`
+  and `actions.team.refresh.ts` are all `<id>.team.refresh`. A record file (`actions.ts`
+  exporting `{ add, remove }`) declares one entry per key.
+- Two layouts are supported and may be mixed per kind: **folders** (the default; `bitakit add`,
+  templates and docs write them) and **flat files** (`actions.add.ts` or one record file per
+  kind). Folders group a growing kind and keep diffs per file; flat files keep a small plugin
+  visible at a glance. Switching never changes an ID; two spellings of one ID fail generation as
+  a duplicate. Follow the layout a plugin already uses; examples show the folder form and
+  mention the flat equivalent once.
+- The `x.action.ts`-style suffixes and the old root `pages/`, `views/` and `providers/` folders
+  are legacy. `bitakit migrate` (the 0.1 upgrade) rewrites them and also moves dotted files into
+  folders; do not run it to tidy a plugin that is flat on purpose.
 - A nested folder with its own `plugin.config.ts` is a child plugin; discovery sets
   `parent` to the nearest plugin folder around it (`modules.mjs` `parentDirectory`; the manifest
   may name another). Core adds the parent to `dependencies`. Structural changes treat
