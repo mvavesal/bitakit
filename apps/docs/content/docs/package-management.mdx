@@ -19,13 +19,13 @@ A trusted catalog is an explicit allowlist of code reviewed and included by the 
 Each entry defines a name, an exact version and a loader. The user chooses entries; the user
 does not supply loader code or a URL. Trusted plugins execute with the host's JavaScript access.
 
-| Part | Who supplies it? | Notes example |
-| --- | --- | --- |
-| Catalog name | Operator/build | `notes-example` |
-| Allowed version | Operator/build | `1.0.0` |
-| Loader | Operator/build | A literal import of the Notes module |
-| Active selection | Host, after authorization | Name and version from that catalog |
-| Scope | Host | A generation key for the current preview or authorized context |
+| Part             | Who supplies it?          | Notes example                                                  |
+| ---------------- | ------------------------- | -------------------------------------------------------------- |
+| Catalog name     | Operator/build            | `notes-example`                                                |
+| Allowed version  | Operator/build            | `1.0.0`                                                        |
+| Loader           | Operator/build            | A literal import of the Notes module                           |
+| Active selection | Host, after authorization | Name and version from that catalog                             |
+| Scope            | Host                      | A generation key for the current preview or authorized context |
 
 **There is no `trustedHosts` or `trustedSources` URL option today.** Trust is configured by
 choosing catalog entries, not by allowing every script from a domain. There is no runtime
@@ -164,13 +164,13 @@ incremental install command. Keeping a name in the list keeps its healthy plugin
 removing it from the list requests cleanup. An empty list releases everything owned by this
 adapter. Unrelated host plugins stay mounted.
 
-| Requested selection | Result, after success |
-| --- | --- |
-| Notes | Notes is active. |
-| Notes again, same scope/version | The healthy existing Notes instances are retained. |
+| Requested selection                | Result, after success                                   |
+| ---------------------------------- | ------------------------------------------------------- |
+| Notes                              | Notes is active.                                        |
+| Notes again, same scope/version    | The healthy existing Notes instances are retained.      |
 | Notes plus another catalog package | Both packages are active; both must be trusted entries. |
-| Only the other package | Notes is released. |
-| Empty list | All packages owned by this adapter are released. |
+| Only the other package             | Notes is released.                                      |
+| Empty list                         | All packages owned by this adapter are released.        |
 
 Every package must supply disjoint plugin IDs. Shared dependencies belong in the host or in
 one separately selected package. Removing a package refuses enabled external dependents;
@@ -240,11 +240,11 @@ plugin shapes that require composition replacement.
 
 ## What unloading releases
 
-| Released by cleanup | Retained or outside this manager |
-| --- | --- |
+| Released by cleanup                             | Retained or outside this manager                    |
+| ----------------------------------------------- | --------------------------------------------------- |
 | Owned service instances and lifecycle resources | Evaluated JavaScript in the platform's module cache |
-| Owned Actions, listeners and slot attachments | Shared eager CSS and catalog type maps |
-| Plugin declarations, after successful removal | Persisted setting records and external data |
+| Owned Actions, listeners and slot attachments   | Shared eager CSS and catalog type maps              |
+| Plugin declarations, after successful removal   | Persisted setting records and external data         |
 
 There is one allowed version per catalog name in a host build. Runtime package upgrades,
 remote downloads, domain allowlists, signature checks, untrusted-code isolation and a

@@ -15,14 +15,23 @@ import {
 
 test('scope lifecycle observes retained state and revokes subscriptions at owner close', async () => {
   let scope;
-  const runtime = createRuntime({ plugins: [definePlugin({
-    id: 'projection', setup: ({ scope: app }) => { scope = app; },
-  })] });
-  const stop = runtime.mount(); await runtime.ready;
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'projection',
+        setup: ({ scope: app }) => {
+          scope = app;
+        },
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  await runtime.ready;
   const lifecycle = scopeLifecycle(scope);
-  const watched = [], subscribed = [];
-  const unwatch = lifecycle.watch(state => watched.push(state.phase));
-  const unsubscribe = lifecycle.subscribe(state => subscribed.push(state.phase));
+  const watched = [],
+    subscribed = [];
+  const unwatch = lifecycle.watch((state) => watched.push(state.phase));
+  const unsubscribe = lifecycle.subscribe((state) => subscribed.push(state.phase));
   assert.deepEqual(watched, ['ready']);
   assert.deepEqual(subscribed, []);
   assert.equal(lifecycle.get(), runtime.lifecycle.get());
@@ -31,18 +40,32 @@ test('scope lifecycle observes retained state and revokes subscriptions at owner
   assert.deepEqual(watched, ['ready']);
   assert.deepEqual(subscribed, []);
   assert.throws(() => lifecycle.subscribe(() => {}), /no longer active/);
-  unwatch(); unsubscribe();
+  unwatch();
+  unsubscribe();
 });
 
 test('a lifecycle watcher can close its scope during immediate delivery without leaking', async () => {
   let scope;
-  const runtime = createRuntime({ plugins: [definePlugin({
-    id: 'projection', setup: ({ scope: app }) => { scope = app; },
-  })] });
-  const stop = runtime.mount(); await runtime.ready;
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'projection',
+        setup: ({ scope: app }) => {
+          scope = app;
+        },
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  await runtime.ready;
   let calls = 0;
-  const off = scopeLifecycle(scope).watch(() => { calls++; scope.close(); });
-  await stop(); off(); off();
+  const off = scopeLifecycle(scope).watch(() => {
+    calls++;
+    scope.close();
+  });
+  await stop();
+  off();
+  off();
   assert.equal(calls, 1);
 });
 
@@ -104,7 +127,9 @@ test('onStart hooks run in dependency order and gate runtime.ready; onStop runs 
   const ready = runtime.lifecycle.get();
   assert.equal(ready.operation, null);
   assert.equal(ready.services.find((entry) => entry.id === 'db.connection').phase, 'ready');
-  assert.ok(ready.services.find((entry) => entry.id === 'db.connection').since >= startingService.since);
+  assert.ok(
+    ready.services.find((entry) => entry.id === 'db.connection').since >= startingService.since,
+  );
   assert.equal((await runtime.actions.execute('db.ping')).value, true);
   await stop();
   assert.deepEqual(log, ['connect', 'connected', 'warm', 'cool', 'disconnect']);
@@ -258,7 +283,11 @@ test('dependent async cleanup completes before its provider stops, with truthful
   await turn();
   assert.deepEqual(log, []);
   const stillPending = runtime.lifecycle.get();
-  assert.equal(stillPending.cleanup, 'pending', 'the cleanup barrier remains active until every disposer settles');
+  assert.equal(
+    stillPending.cleanup,
+    'pending',
+    'the cleanup barrier remains active until every disposer settles',
+  );
   assert.equal(stillPending.operation.kind, 'stop');
   assert.equal(stillPending.operation.startedAt, pending.operation.startedAt);
   assert.equal(stillPending.plugins.find((entry) => entry.id === 'db').since, stoppingSince);
@@ -268,7 +297,9 @@ test('dependent async cleanup completes before its provider stops, with truthful
   assert.equal(runtime.lifecycle.get().cleanup, 'complete');
   assert.equal(runtime.lifecycle.get().phase, 'stopped');
   assert.equal(runtime.lifecycle.get().operation, null);
-  assert.ok(runtime.lifecycle.get().plugins.find((entry) => entry.id === 'db').since >= stoppingSince);
+  assert.ok(
+    runtime.lifecycle.get().plugins.find((entry) => entry.id === 'db').since >= stoppingSince,
+  );
   const stopAgain = runtime.mount();
   await stop();
   assert.equal(runtime.isReady(), true, 'an old stop handle cannot stop a new mount');

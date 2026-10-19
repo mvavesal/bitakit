@@ -139,7 +139,9 @@ const namedContract = serviceKey<Notifications, 'notifications'>('notifications'
 type _LiteralName = Check<Same<typeof namedContract, ContractKey<Notifications, 'notifications'>>>;
 // The documented form writes the name once and keeps it literal.
 const definedContract = defineContract('notifications').of<Notifications>();
-type _DefinedName = Check<Same<typeof definedContract, ContractKey<Notifications, 'notifications'>>>;
+type _DefinedName = Check<
+  Same<typeof definedContract, ContractKey<Notifications, 'notifications'>>
+>;
 // @ts-expect-error A type argument no longer goes on defineContract itself.
 defineContract<Notifications>('notifications');
 const shell = definePlugin({

@@ -242,7 +242,6 @@ Organization member menus read the typed `organizations.member.menu` Action slot
 
 The optional standalone Organizations entry uses `organizationUIPlugin({ slots: ['host.navigation'] })`; default placement joins Shell when present, and `slots: []` omits it. This does not affect the owned member-menu slot.
 
-
 Settings declarations include page boundaries shared with slot extensions. Account pages keep
 pending/sign-in behavior (and the optional local profile fallback); organization management
 checks `canManage`; invitation loading/provider verification failures retain their existing

@@ -24,6 +24,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run format:check
       # pretest builds the packages; test runs the version check and every package suite.
       - run: npm test
       - run: npm run build:docs

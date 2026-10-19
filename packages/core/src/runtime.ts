@@ -99,14 +99,10 @@ export type NormalizedPlugin = Omit<Plugin, 'services' | 'actions' | 'slots'> & 
 function attributed(error: unknown, plugin: string, what: string, appId: string) {
   if (isBitaKitStartupError(error)) return error;
   const message = error instanceof Error ? error.message : String(error);
-  return new BitaKitStartupError(
-    `${what} in ${moduleLabel(plugin, appId)}: ${message}`,
-    plugin,
-    {
-      cause: error,
-      app: plugin === appId,
-    },
-  );
+  return new BitaKitStartupError(`${what} in ${moduleLabel(plugin, appId)}: ${message}`, plugin, {
+    cause: error,
+    app: plugin === appId,
+  });
 }
 
 function normalize(module: Plugin, appId: string): NormalizedPlugin {
@@ -1023,8 +1019,7 @@ export class BitaKitRuntime implements ContributionHost {
       message: error instanceof Error ? error.message : String(error),
       ...(isBitaKitStartupError(error) ? { plugin: error.plugin, source: error.source } : {}),
     };
-    if (isBitaKitStartupError(error))
-      this.lifecycleState.plugin(error.plugin, 'failed', failure);
+    if (isBitaKitStartupError(error)) this.lifecycleState.plugin(error.plugin, 'failed', failure);
     this.lifecycleState.update({ phase: 'failed' });
     this.readyDeferred.reject(error);
   }
@@ -1067,7 +1062,9 @@ export class BitaKitRuntime implements ContributionHost {
       });
   }
   private connectTranslation() {
-    const i18n = this.hasService('i18n') ? getService(this.services, translationService) : undefined;
+    const i18n = this.hasService('i18n')
+      ? getService(this.services, translationService)
+      : undefined;
     if (!i18n) return;
     this.setTranslations(i18n.translate);
     this.extensionCleanups.push(i18n.subscribe(() => this.setTranslations(i18n.translate)));

@@ -18,7 +18,6 @@ const suffixes = {
 };
 const legacyFolders = { pages: 'ui/pages', views: 'ui/slots', providers: 'ui/providers' };
 
-
 /** 0.2 renames of the public Foundation* names; word-bounded, so longer names are not touched. */
 export const renamed = {
   FoundationApp: 'BitaKitApp',
@@ -354,7 +353,8 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
         changes.push({
           kind: 'skip',
           from: `${relative(file)}:${line}`,
-          detail: 'slots.attach(name, contribution) needs the 0.2 form attach({ slot: name, ... }); rewrite it by hand',
+          detail:
+            'slots.attach(name, contribution) needs the 0.2 form attach({ slot: name, ... }); rewrite it by hand',
         });
     }
     if (rewritten !== source)

@@ -30,10 +30,7 @@ const stale = Symbol('superseded package request');
  * Feed an already-authorized active package selection from outside plugin hooks/Actions.
  * Callers must finish a scope switch before revealing that scope's UI. No records are persisted.
  */
-export function createPackageHost(options: {
-  runtime: BitaKitRuntime;
-  catalog: PackageCatalog;
-}) {
+export function createPackageHost(options: { runtime: BitaKitRuntime; catalog: PackageCatalog }) {
   const { runtime } = options;
   const catalog = Object.fromEntries(
     Object.entries(options.catalog).map(([name, entry]) => [name, Object.freeze({ ...entry })]),

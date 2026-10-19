@@ -304,7 +304,11 @@ test('the Next provider needs a configuration and says where it comes from', asy
     await assert.rejects(async () => {
       await act(async () =>
         root.render(
-          h(AppRouterContext.Provider, { value: router }, h(BitaKitRuntimeProvider, null, 'content')),
+          h(
+            AppRouterContext.Provider,
+            { value: router },
+            h(BitaKitRuntimeProvider, null, 'content'),
+          ),
         ),
       );
     }, /BitaKitRuntimeProvider needs a configuration\. Use <BitaKitProvider> from '\.\/bitakit\.gen', or pass config=\{createBitaKitConfig\(\)\}/);

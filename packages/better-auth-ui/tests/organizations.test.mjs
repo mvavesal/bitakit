@@ -39,10 +39,13 @@ test('organization settings separate profile, members and personal invitations w
   assert.equal(plugin.settings.section.path, 'organization');
   assert.equal(plugin.settings.section.icon, BuildingIcon);
   assert.equal(typeof plugin.ui.settings.component, 'function');
-  assert.deepEqual(plugin.ui.settings.pages.map(({ id, path, category }) => ({ id, path, category })), [
-    { id: 'members', path: 'organization/members', category: 'organization' },
-    { id: 'invitations', path: 'account/invitations', category: 'account' },
-  ]);
+  assert.deepEqual(
+    plugin.ui.settings.pages.map(({ id, path, category }) => ({ id, path, category })),
+    [
+      { id: 'members', path: 'organization/members', category: 'organization' },
+      { id: 'invitations', path: 'account/invitations', category: 'account' },
+    ],
+  );
   assert.deepEqual(
     plugin.ui.pages.map((page) => page.path),
     ['/organizations'],

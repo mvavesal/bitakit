@@ -149,7 +149,8 @@ test('single and keyed conflicts include pending reservations; dispose releases 
       { availability: 'wait' },
     );
     assert.throws(
-      () => x.slots.attach({ slot: 'surface', component: 2, key: 'main' }, { availability: 'wait' }),
+      () =>
+        x.slots.attach({ slot: 'surface', component: 2, key: 'main' }, { availability: 'wait' }),
       (e) => e instanceof SlotError && e.code === 'conflict',
     );
     first.dispose();
@@ -258,7 +259,10 @@ test('declarative and programmatic contributions share ordering, ownership and r
         setup: ({ scope: app }) => {
           scope = app;
           handles.push(
-            app.slots.attach({ slot: 'header', component: 'manual', order: 0 }, { availability: 'wait' }),
+            app.slots.attach(
+              { slot: 'header', component: 'manual', order: 0 },
+              { availability: 'wait' },
+            ),
           );
         },
       },
@@ -317,7 +321,10 @@ test('startup failure revokes pending attachments; cleanup pending is never read
       }),
     },
     setup: ({ scope }) => {
-      handle = scope.slots.attach({ slot: 'header', component: 'widget' }, { availability: 'wait' });
+      handle = scope.slots.attach(
+        { slot: 'header', component: 'widget' },
+        { availability: 'wait' },
+      );
     },
   });
   runtime.mount();

@@ -109,14 +109,14 @@ If this outlet needs different recovery copy, add only an `errorFallback`:
 messages/stacks. Existing `BitaKitRuntimeProvider` `actionOptions.onError` receives the attributed
 error for local reporting; it is not added to Core inventory or settings.
 
-| Situation | Behavior |
-| --- | --- |
-| Click retry | Retry this occurrence once; a repeated failure shows the fallback again. |
-| Replace the contributing plugin definition or component | Reset the failed occurrence. |
-| Rerender with an equivalent stabilized payload or update another plugin | Keep the existing error; no automatic retry loop. |
-| Hide/remove the contribution, revalidate changed context or unmount the outlet | Remove its boundary; Core attachment ownership is unchanged. |
-| Invalid payload / failing `when` / Action input mapper | Existing `useSlot().error` behavior; not a widget render failure. |
-| Pending Suspense / event handler / later async work / server render | Use the corresponding loading, execution or framework error mechanism. |
+| Situation                                                                      | Behavior                                                                 |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| Click retry                                                                    | Retry this occurrence once; a repeated failure shows the fallback again. |
+| Replace the contributing plugin definition or component                        | Reset the failed occurrence.                                             |
+| Rerender with an equivalent stabilized payload or update another plugin        | Keep the existing error; no automatic retry loop.                        |
+| Hide/remove the contribution, revalidate changed context or unmount the outlet | Remove its boundary; Core attachment ownership is unchanged.             |
+| Invalid payload / failing `when` / Action input mapper                         | Existing `useSlot().error` behavior; not a widget render failure.        |
+| Pending Suspense / event handler / later async work / server render            | Use the corresponding loading, execution or framework error mechanism.   |
 
 Advanced custom renderers using `useSlot` can put `SlotErrorBoundary` around one contribution.
 Do this **inside** any access boundary, using the entry's stable key and owning plugin:

@@ -111,8 +111,9 @@ import type counterEvents from '../plugins/counter/events.ts';
 import type documentEvents from '../plugins/documents/events.ts';
 
 declare module '@bitakit/core' {
-  interface EventMap extends EventsOf<typeof counterEvents, 'counter'>,
-    EventsOf<typeof documentEvents, 'documents'> {}
+  interface EventMap
+    extends EventsOf<typeof counterEvents, 'counter'>,
+      EventsOf<typeof documentEvents, 'documents'> {}
   interface CancelableEventMap extends CancelableOf<typeof documentEvents, 'documents'> {}
 }
 ```

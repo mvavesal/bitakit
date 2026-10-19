@@ -61,10 +61,10 @@ export default defineConfig({
 });
 ```
 
-| Option    | Default          | Meaning                                                                      |
-| --------- | ---------------- | ---------------------------------------------------------------------------- |
-| `navigationSlot` | `'shell.navigation'` | Explicit Action slot rendered by the frame                      |
-| `presets` | none             | Theme presets offered next to `default`; see [Theme presets](#theme-presets) |
+| Option           | Default              | Meaning                                                                      |
+| ---------------- | -------------------- | ---------------------------------------------------------------------------- |
+| `navigationSlot` | `'shell.navigation'` | Explicit Action slot rendered by the frame                                   |
+| `presets`        | none                 | Theme presets offered next to `default`; see [Theme presets](#theme-presets) |
 
 `shellOptions` is the zod schema of these options (`defineConfig({ schema: shellOptions })`
 works too). The factory validates its input and throws an error that names the invalid key;
@@ -82,13 +82,13 @@ options that no longer exist fail the same way.
 Both layouts keep the page at the same position in the tree, so switching does not remount it
 or lose unsaved input. The top bar renders the `app-bar.end` slot in both layouts.
 
-| Prop         | Meaning                                                                      |
-| ------------ | ---------------------------------------------------------------------------- |
-| `navigationSlot` | Action slot; defaults to the `navigationSlot` option                    |
-| `brand`      | Sidebar header (sidebar layout) or start of the top bar (navbar layout)      |
-| `account`    | Sidebar footer (sidebar layout) or end of the top bar (navbar layout)        |
-| `header`     | Next to the sidebar trigger (sidebar layout), for example the page title     |
-| `components` | `{ Sidebar?, TopBar?, Content?, NavigationItem? }` replacing parts wholesale |
+| Prop             | Meaning                                                                      |
+| ---------------- | ---------------------------------------------------------------------------- |
+| `navigationSlot` | Action slot; defaults to the `navigationSlot` option                         |
+| `brand`          | Sidebar header (sidebar layout) or start of the top bar (navbar layout)      |
+| `account`        | Sidebar footer (sidebar layout) or end of the top bar (navbar layout)        |
+| `header`         | Next to the sidebar trigger (sidebar layout), for example the page title     |
+| `components`     | `{ Sidebar?, TopBar?, Content?, NavigationItem? }` replacing parts wholesale |
 
 Navigation entries are bound actions from `useNavigation(slotName)`: actions with an `href`
 render as links (the framework link for internal paths), the others as buttons. The entry
@@ -117,12 +117,12 @@ renders the children as given instead of the default parts:
 </AppShell>
 ```
 
-| Part                      | Props                                                                 |
-| ------------------------- | --------------------------------------------------------------------- |
+| Part                      | Props                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------- |
 | `AppShell.Sidebar`        | `navigationSlot?`, `header?` (before the slot), `footer?` (after the slot)    |
 | `AppShell.TopBar`         | `navigationSlot?`, `brand?`, `header?`, `end?` (after the `app-bar.end` slot) |
-| `AppShell.Content`        | `topBar?` (above the page inside the content area), `children`        |
-| `AppShell.NavigationItem` | `item` (bound action), `active`, `layout` (`'sidebar'` or `'navbar'`) |
+| `AppShell.Content`        | `topBar?` (above the page inside the content area), `children`                |
+| `AppShell.NavigationItem` | `item` (bound action), `active`, `layout` (`'sidebar'` or `'navbar'`)         |
 
 Each part reads its data from the hooks, so it also works in a hand-written frame inside the
 standard `SidebarProvider`. Parts and `components` overrides are client components; a layout
@@ -144,14 +144,14 @@ export default function MinimalLayout({ children }: { children: ReactNode }) {
     <div data-layout={layout}>
       <nav aria-label="Main navigation">
         {items.map((item) => (
-            <Action key={item.key} id={item}>
-              {item.href === undefined ? (
-                <button type="button" />
-              ) : (
-                <a aria-current={isActive(item.href) ? 'page' : undefined} />
-              )}
-            </Action>
-          ))}
+          <Action key={item.key} id={item}>
+            {item.href === undefined ? (
+              <button type="button" />
+            ) : (
+              <a aria-current={isActive(item.href) ? 'page' : undefined} />
+            )}
+          </Action>
+        ))}
       </nav>
       <main>{children}</main>
       {footer.items.map(({ key, component: Contribution }) => (
@@ -166,13 +166,13 @@ export default function MinimalLayout({ children }: { children: ReactNode }) {
 
 ## Slots
 
-| Slot             | Rendered by                                  |
-| ---------------- | -------------------------------------------- |
-| `shell.navigation` | Sidebar/navbar Action items (`slots: ['shell.navigation']`) |
-| `shell.toolbar` | Standard Action buttons/links before `shell.header.end`, in both layouts |
-| `app-bar.end`    | The top bar in both layouts (`AppBar`)       |
-| `sidebar.header` | `AppShell.Sidebar`, after the `header` prop  |
-| `sidebar.footer` | `AppShell.Sidebar`, before the `footer` prop |
+| Slot               | Rendered by                                                              |
+| ------------------ | ------------------------------------------------------------------------ |
+| `shell.navigation` | Sidebar/navbar Action items (`slots: ['shell.navigation']`)              |
+| `shell.toolbar`    | Standard Action buttons/links before `shell.header.end`, in both layouts |
+| `app-bar.end`      | The top bar in both layouts (`AppBar`)                                   |
+| `sidebar.header`   | `AppShell.Sidebar`, after the `header` prop                              |
+| `sidebar.footer`   | `AppShell.Sidebar`, before the `footer` prop                             |
 
 For a toolbar Action, set `slots: ['shell.toolbar']` on its `defineAction` declaration. Shell
 uses the existing Action binding for its title, icon, visibility, disabled and pending state;
@@ -288,7 +288,6 @@ The composable shadcn `Empty`, `EmptyHeader`, `EmptyMedia`, `EmptyTitle`,
 Compose titles, icons, descriptions and optional actions through children and normal props;
 no ShellProvider is required. They inherit the shared theme.
 
-
 ### Theme library foundation
 
 Developer handbook: [Themes and appearance](../../apps/docs/content/docs/concepts/theming.mdx)
@@ -342,7 +341,6 @@ The theme preview has its own Light/Dark controls. They change draft preview tok
 the sample dialog only, without writing `shell.mode` or applying the draft to the app.
 
 Sidebar component slots receive `{ payload: { collapsed: boolean } }`. `app-bar.end` has no payload. Use `slots` on Actions for placement; changing `groups` does not change Shell navigation.
-
 
 ## Shared layouts and extension regions
 

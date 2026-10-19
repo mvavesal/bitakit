@@ -1,8 +1,4 @@
-export {
-  generateBitaKit,
-  detectFramework,
-  loadDiscoveryConfig,
-} from './generate.mjs';
+export { generateBitaKit, detectFramework, loadDiscoveryConfig } from './generate.mjs';
 export { watchBitaKit } from './watch.mjs';
 /** Typed identity for `bitakit.config.ts`. */
 export const defineBitaKit = (config) => config;

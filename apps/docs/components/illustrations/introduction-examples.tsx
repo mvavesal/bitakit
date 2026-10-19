@@ -35,10 +35,9 @@ export const introductionExamples = [
       <>
         {' '}
         This optional <code>plugin.config.ts</code> explicitly names the feature. Discovery collects
-        the Actions, pages and settings you add beside it. In-app:{' '}
-        <code>src/plugins/notes/</code>. Standalone package: its own{' '}
-        <code>src/</code>, with the CLI providing package/build setup. Without this config file, the
-        app folder already supplies the plugin ID.{' '}
+        the Actions, pages and settings you add beside it. In-app: <code>src/plugins/notes/</code>.
+        Standalone package: its own <code>src/</code>, with the CLI providing package/build setup.
+        Without this config file, the app folder already supplies the plugin ID.{' '}
       </>
     ),
     file: 'src/plugins/notes/plugin.config.ts',

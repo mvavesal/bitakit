@@ -120,7 +120,11 @@ test('the settings catalog labels the Appearance section from the Shell locales'
     return null;
   }
   const render = (messages) =>
-    h(BitaKitRuntimeProvider, { config, services, translate: catalogTranslator(messages) }, h(Catalog));
+    h(
+      BitaKitRuntimeProvider,
+      { config, services, translate: catalogTranslator(messages) },
+      h(Catalog),
+    );
   const view = await mount(render(en));
   try {
     await settle();

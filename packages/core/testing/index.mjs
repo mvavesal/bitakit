@@ -104,9 +104,7 @@ export async function mountPlugin(directory = 'src', options = {}) {
   const plugin = await loadPlugin(directory, options.id);
   const { id } = plugin;
   const others = await Promise.all(
-    (options.plugins ?? []).map((other) =>
-      typeof other === 'string' ? loadPlugin(other) : other,
-    ),
+    (options.plugins ?? []).map((other) => (typeof other === 'string' ? loadPlugin(other) : other)),
   );
   const runtime = createRuntime(
     { plugins: [plugin, ...others], configOverrides: options.configOverrides },
@@ -129,7 +127,9 @@ export async function mountPlugin(directory = 'src', options = {}) {
     runtime.mount();
     await runtime.ready;
   } catch (error) {
-    try { await release(); } catch (cleanupError) {
+    try {
+      await release();
+    } catch (cleanupError) {
       throw new AggregateError([error, cleanupError], 'Plugin startup and cleanup failed.');
     }
     throw error;

@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act, memo } from 'react';
 import { installDom, mount, click, deferred, testUI } from './support.mjs';
-import { ActionProvider, useAction, Action, ActionButton, ActionLink } from '../dist/actions/index.js';
+import {
+  ActionProvider,
+  useAction,
+  Action,
+  ActionButton,
+  ActionLink,
+} from '../dist/actions/index.js';
 import { createActionList } from '@bitakit/core';
 import { BitaKitRuntimeProvider } from '../dist/index.js';
 import { defineAction, definePlugin } from '@bitakit/core';
@@ -240,10 +246,15 @@ test('linkProps navigate client-side for internal hrefs, leave external and modi
     const contextual = controls.docs.linkProps({ href: '/docs?q=labels' });
     assert.equal(contextual.href, '/docs?q=labels');
     contextual.onClick(fakeClick());
-    assert.equal(visits.pop(), '/docs?q=labels', 'native contextual URL and client navigation agree');
+    assert.equal(
+      visits.pop(),
+      '/docs?q=labels',
+      'native contextual URL and client navigation agree',
+    );
     const unsafe = controls.docs.linkProps({ href: 'javascript:alert(1)' });
     assert.equal(unsafe.href, undefined);
-    const unsafeEvent = fakeClick(); unsafe.onClick(unsafeEvent);
+    const unsafeEvent = fakeClick();
+    unsafe.onClick(unsafeEvent);
     assert.equal(unsafeEvent.defaultPrevented, true);
 
     assert.equal(docs.href, '/docs');

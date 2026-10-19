@@ -15,10 +15,16 @@ async function post(path, data) {
   return response.json();
 }
 try {
-  await post('/api/auth/sign-in/email', { email: 'alice@example.test', password: env.TODO_PREVIEW_PASSWORD });
+  await post('/api/auth/sign-in/email', {
+    email: 'alice@example.test',
+    password: env.TODO_PREVIEW_PASSWORD,
+  });
   for (const letter of ['A', 'B']) {
     const name = `Clear check ${letter} ${Date.now()}`;
-    const organization = await post('/api/auth/organization/create', { name, slug: name.toLowerCase().replaceAll(' ', '-') });
+    const organization = await post('/api/auth/organization/create', {
+      name,
+      slug: name.toLowerCase().replaceAll(' ', '-'),
+    });
     organizations.push(organization.id);
     await post('/api/auth/organization/set-active', { organizationId: organization.id });
     await post('/api/tasks', { operation: 'add', title: `Disposable task ${letter}` });
@@ -27,7 +33,9 @@ try {
   await page.goto(origin + '/todos');
   await page.getByText('Disposable task B', { exact: true }).waitFor();
   const pageClear = page.getByRole('main').getByRole('button', { name: 'Clear all', exact: true });
-  const sidebarClear = page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name: 'Clear all', exact: true });
+  const sidebarClear = page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('button', { name: 'Clear all', exact: true });
   assert.equal(await pageClear.isEnabled(), true);
   assert.equal(await sidebarClear.isEnabled(), true);
   await sidebarClear.click();
@@ -52,12 +60,19 @@ try {
   await sidebarClear.click();
   // Another tab can change the server session while the confirmation is open.
   await post('/api/auth/organization/set-active', { organizationId: organizations[1] });
-  const refreshed = page.waitForResponse((response) => response.url().endsWith('/api/auth/get-session'));
+  const refreshed = page.waitForResponse((response) =>
+    response.url().endsWith('/api/auth/get-session'),
+  );
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await refreshed;
   await page.getByText('Preserve B during confirmation', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Confirm', exact: true }).click();
-  await page.getByRole('region', { name: 'notification.' }).getByText('The account or organization changed. Confirm again to clear its tasks.', { exact: true }).waitFor();
+  await page
+    .getByRole('region', { name: 'notification.' })
+    .getByText('The account or organization changed. Confirm again to clear its tasks.', {
+      exact: true,
+    })
+    .waitFor();
   const preserved = await request.get(origin + '/api/tasks').then((response) => response.json());
   assert.equal(preserved.items.length, 1);
   await post('/api/auth/organization/set-active', { organizationId: organizations[0] });
@@ -66,12 +81,23 @@ try {
   });
   assert.equal(stale.status(), 409);
   const anonymous = await browser.newContext();
-  assert.equal((await anonymous.request.post(origin + '/api/tasks', {
-    data: { operation: 'clear', organizationId: organizations[0] },
-  })).status(), 401);
+  assert.equal(
+    (
+      await anonymous.request.post(origin + '/api/tasks', {
+        data: { operation: 'clear', organizationId: organizations[0] },
+      })
+    ).status(),
+    401,
+  );
   await anonymous.close();
-  console.log('Clear passed in page and sidebar: enabled with tasks, disabled when empty, cancel preserves, confirm clears and reload stays empty, other organization preserved, switching organization during confirmation blocked, stale scope and anonymous calls rejected.');
+  console.log(
+    'Clear passed in page and sidebar: enabled with tasks, disabled when empty, cancel preserves, confirm clears and reload stays empty, other organization preserved, switching organization during confirmation blocked, stale scope and anonymous calls rejected.',
+  );
 } finally {
-  for (const organizationId of organizations) await request.post(origin + '/api/auth/organization/delete', { headers: { origin }, data: { organizationId } });
+  for (const organizationId of organizations)
+    await request.post(origin + '/api/auth/organization/delete', {
+      headers: { origin },
+      data: { organizationId },
+    });
   await browser.close();
 }

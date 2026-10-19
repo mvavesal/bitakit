@@ -34,7 +34,8 @@ export function translatedNotifications(
   assertActive: () => void = () => {},
 ): NotificationService {
   const text = (value: string, values: NotificationOptions['values']) => {
-    const translate = 'i18n' in services ? getService(services, translationService).translate : undefined;
+    const translate =
+      'i18n' in services ? getService(services, translationService).translate : undefined;
     return translate ? resolveText(translate, value, value, values) : value;
   };
   return {

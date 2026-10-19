@@ -17,7 +17,10 @@ async function fixture(run) {
       exports[file] = file;
       await writeFile(path.join(directory, file), '/* fixture */');
     }
-    await writeFile(path.join(directory, 'package.json'), JSON.stringify({ name, exports, ...manifest }));
+    await writeFile(
+      path.join(directory, 'package.json'),
+      JSON.stringify({ name, exports, ...manifest }),
+    );
   };
   const imports = async () =>
     (await readFile(path.join(root, 'src/bitakit.gen.css'), 'utf8'))

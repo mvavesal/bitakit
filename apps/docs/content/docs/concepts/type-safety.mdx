@@ -7,14 +7,14 @@ description: Carry contracts from definitions to consumers.
 
 BitaKit is designed around type-safe feature composition. Define the contract at its source, then let service access, action execution, events and bindings carry the types to callers.
 
-| Boundary                     | What TypeScript knows                                           |
-| ---------------------------- | --------------------------------------------------------------- |
+| Boundary                         | What TypeScript knows                                           |
+| -------------------------------- | --------------------------------------------------------------- |
 | `defineContract('auth').of<T>()` | The shared provider and consumer contract                       |
-| Discovered service factory   | Method arguments and return types of `services.<plugin>.<file>` |
-| Discovered action definition | Action ID, input and completed result                           |
-| `events.ts`                  | Event names, payloads and which events are cancelable           |
-| `configs/`                   | The resolved config tree of each plugin through `ConfigMap`     |
-| Declared slots               | Slot names through `SlotMap`                                    |
+| Discovered service factory       | Method arguments and return types of `services.<plugin>.<file>` |
+| Discovered action definition     | Action ID, input and completed result                           |
+| `events.ts`                      | Event names, payloads and which events are cancelable           |
+| `configs/`                       | The resolved config tree of each plugin through `ConfigMap`     |
+| Declared slots                   | Slot names through `SlotMap`                                    |
 
 ## Typed action inputs
 
@@ -37,13 +37,13 @@ In a discovered contribution, the effective ID maps to that input and result in 
 
 Generated apps reject unknown names at compile time: discovery augments `ActionMapOptions` with `{ strict: true }`, and that one switch covers every generated name.
 
-| Name | Checked where |
-| --- | --- |
-| Action IDs and inputs | `<Action id>`, `ActionButton`, `ActionLink`, `useAction`, Action `slots` |
-| Event names | `events.emit`, `events.on`, `useEvent`; `on` also accepts `<plugin>.*` patterns of declared events and `*` |
-| Slot names | `PluginSlot`, `useSlot` |
-| Setting keys | `useSetting`; `settings.<plugin>.<name>` in services and Actions |
-| Service names | `useService`, `useServiceState`; `services.<plugin>.<name>` in services and Actions |
+| Name                  | Checked where                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Action IDs and inputs | `<Action id>`, `ActionButton`, `ActionLink`, `useAction`, Action `slots`                                   |
+| Event names           | `events.emit`, `events.on`, `useEvent`; `on` also accepts `<plugin>.*` patterns of declared events and `*` |
+| Slot names            | `PluginSlot`, `useSlot`                                                                                    |
+| Setting keys          | `useSetting`; `settings.<plugin>.<name>` in services and Actions                                           |
+| Service names         | `useService`, `useServiceState`; `services.<plugin>.<name>` in services and Actions                        |
 
 Installed package plugins add their record-form Actions and their events to the same maps. Set `strict: false` in `bitakit.config.ts` to allow dynamic names, or augment the option yourself in a manual composition:
 

@@ -86,7 +86,11 @@ test('an Action placed in an undeclared slot fails startup naming the slot and t
         actions: discoverActions(
           [
             {
-              value: defineAction({ title: 'Projects', href: '/projects', slots: ['shell.navigation'] }),
+              value: defineAction({
+                title: 'Projects',
+                href: '/projects',
+                slots: ['shell.navigation'],
+              }),
               path: 'open',
               source: 'src/plugins/projects/actions/open.ts',
             },

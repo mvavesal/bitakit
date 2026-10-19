@@ -1,7 +1,12 @@
 import { defineContract, type SettingHandle, type SaveResult } from '@bitakit/core';
 import {
-  defaultTheme, themeCatalog, themeKey, themeSchema,
-  type ShellThemeInput, type ThemeEntry, type ThemeLibrary,
+  defaultTheme,
+  themeCatalog,
+  themeKey,
+  themeSchema,
+  type ShellThemeInput,
+  type ThemeEntry,
+  type ThemeLibrary,
 } from '../themes.js';
 
 export interface ThemeService {
@@ -35,8 +40,10 @@ export function createThemeService(
     list,
     active: () => {
       const entries = list();
-      return entries.find((entry) => entry.key === library.get().selected)
-        ?? entries.find((entry) => entry.key === 'shell:default')!;
+      return (
+        entries.find((entry) => entry.key === library.get().selected) ??
+        entries.find((entry) => entry.key === 'shell:default')!
+      );
     },
     canWrite,
     select(key) {
@@ -47,21 +54,30 @@ export function createThemeService(
     remove(id) {
       requireWritable();
       const current = library.get();
-      if (!current.custom.some((entry) => entry.id === id)) throw new Error('Only personal themes can be deleted.');
-      return library.set({ selected: current.selected === themeKey('user', id) ? 'shell:default' : current.selected, custom: current.custom.filter((entry) => entry.id !== id) });
+      if (!current.custom.some((entry) => entry.id === id))
+        throw new Error('Only personal themes can be deleted.');
+      return library.set({
+        selected: current.selected === themeKey('user', id) ? 'shell:default' : current.selected,
+        custom: current.custom.filter((entry) => entry.id !== id),
+      });
     },
     update(input) {
       requireWritable();
       const theme = themeSchema.parse(input);
       const current = library.get();
-      if (!current.custom.some((entry) => entry.id === theme.id)) throw new Error('Only personal themes can be updated.');
-      return library.set({ ...current, custom: current.custom.map((entry) => entry.id === theme.id ? theme : entry) });
+      if (!current.custom.some((entry) => entry.id === theme.id))
+        throw new Error('Only personal themes can be updated.');
+      return library.set({
+        ...current,
+        custom: current.custom.map((entry) => (entry.id === theme.id ? theme : entry)),
+      });
     },
     saveCopy(input) {
       requireWritable();
       const theme = themeSchema.parse(input);
       const key = themeKey('user', theme.id);
-      if (list().some((entry) => entry.key === key)) throw new Error(`Duplicate theme identity: ${key}`);
+      if (list().some((entry) => entry.key === key))
+        throw new Error(`Duplicate theme identity: ${key}`);
       return library.set({ selected: key, custom: [...library.get().custom, theme] });
     },
     subscribe: (listener) => library.subscribe(listener),

@@ -52,12 +52,12 @@ source files needs regeneration and a build; selecting an available theme happen
 In Appearance, choose **Light**, **Dark** or **System** under **Color scheme**.
 Shell selects the corresponding map from the same theme; System follows the device preference.
 
-| Part | Example | Meaning |
-| --- | --- | --- |
-| Theme | Ocean | The chosen palette and finish. |
-| Color scheme | Dark | Which variant to use. |
-| Navigation | Sidebar | The app layout, independent of the palette. |
-| Density / corners | Compact / Square | Separate appearance preferences. |
+| Part              | Example          | Meaning                                     |
+| ----------------- | ---------------- | ------------------------------------------- |
+| Theme             | Ocean            | The chosen palette and finish.              |
+| Color scheme      | Dark             | Which variant to use.                       |
+| Navigation        | Sidebar          | The app layout, independent of the palette. |
+| Density / corners | Compact / Square | Separate appearance preferences.            |
 
 For values shared by both variants, add an optional `shared` map to the **same JSON file**:
 
@@ -93,12 +93,12 @@ active personal theme selects BitaKit Default.
 
 ## 4. Know what is saved
 
-| Data | Owner | Lifetime |
-| --- | --- | --- |
-| `src/themes/ocean.json` | App source | Ships with the application; unchanged by the editor. |
-| Selected theme and personal copies | `shell.themeLibrary` | One hidden user-scoped Core setting. |
-| Light / Dark / System choice | `shell.mode` | A device-scoped Core setting. |
-| Unsaved edits and preview mode | Appearance editor | Local draft; not applied to the app until saved. |
+| Data                               | Owner                | Lifetime                                             |
+| ---------------------------------- | -------------------- | ---------------------------------------------------- |
+| `src/themes/ocean.json`            | App source           | Ships with the application; unchanged by the editor. |
+| Selected theme and personal copies | `shell.themeLibrary` | One hidden user-scoped Core setting.                 |
+| Light / Dark / System choice       | `shell.mode`         | A device-scoped Core setting.                        |
+| Unsaved edits and preview mode     | Appearance editor    | Local draft; not applied to the app until saved.     |
 
 Core uses the existing `settings.storage` contract. The default is browser storage; cross-device
 synchronization requires the host's server-backed storage and identity integration. There is
@@ -106,9 +106,9 @@ no separate theme persistence layer and no browser write back to source files.
 
 ## Next: customize the integration
 
-| You want to… | Read |
-| --- | --- |
-| Register themes directly with TypeScript | [Programmatic themes](/docs/reference/theming#programmatic-themes) |
-| Add your own theme-selection control | [Actions and service](/docs/reference/theming#actions-and-service) |
+| You want to…                                   | Read                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------------ |
+| Register themes directly with TypeScript       | [Programmatic themes](/docs/reference/theming#programmatic-themes)       |
+| Add your own theme-selection control           | [Actions and service](/docs/reference/theming#actions-and-service)       |
 | Change the default CSS for every visual plugin | [Central CSS and tokens](/docs/reference/theming#central-css-and-tokens) |
-| Understand identities, persistence and startup | [Theme reference](/docs/reference/theming) |
+| Understand identities, persistence and startup | [Theme reference](/docs/reference/theming)                               |

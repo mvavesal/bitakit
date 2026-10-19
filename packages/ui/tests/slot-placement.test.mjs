@@ -171,19 +171,45 @@ test('non-container payloads retain identity changes instead of comparing empty 
 
 test('keyed body selection and per-outlet predicates never alter shared attachment membership', async () => {
   let runtime;
-  const config = { slots: { body: defineSlot({ accepts: 'component', policy: 'keyed', payload: { parse: value => value } }) },
-    ui: { slots: ['a', 'b'].map(key => ({ slot: 'body', key,
-      when: ({ payload }) => payload.allowed,
-      component: ({ payload }) => h('p', null, `${key}:${payload.page}`),
-    })) } };
-  function Probe() { runtime = useBitaKit().runtime; return null; }
-  const view = await mount(h(BitaKitRuntimeProvider, { config }, h(Probe),
-    h(PluginSlot, { name: 'body', entryKey: 'a', payload: { page: 'first', allowed: true } }),
-    h(PluginSlot, { name: 'body', entryKey: 'b', payload: { page: 'second', allowed: false } }),
-    h(PluginSlot, { name: 'body', entryKey: 'b', payload: { page: 'third', allowed: true } })));
+  const config = {
+    slots: {
+      body: defineSlot({
+        accepts: 'component',
+        policy: 'keyed',
+        payload: { parse: (value) => value },
+      }),
+    },
+    ui: {
+      slots: ['a', 'b'].map((key) => ({
+        slot: 'body',
+        key,
+        when: ({ payload }) => payload.allowed,
+        component: ({ payload }) => h('p', null, `${key}:${payload.page}`),
+      })),
+    },
+  };
+  function Probe() {
+    runtime = useBitaKit().runtime;
+    return null;
+  }
+  const view = await mount(
+    h(
+      BitaKitRuntimeProvider,
+      { config },
+      h(Probe),
+      h(PluginSlot, { name: 'body', entryKey: 'a', payload: { page: 'first', allowed: true } }),
+      h(PluginSlot, { name: 'body', entryKey: 'b', payload: { page: 'second', allowed: false } }),
+      h(PluginSlot, { name: 'body', entryKey: 'b', payload: { page: 'third', allowed: true } }),
+    ),
+  );
   try {
     await act(tick);
-    assert.deepEqual([...view.container.querySelectorAll('p')].map(x => x.textContent), ['a:first', 'b:third']);
+    assert.deepEqual(
+      [...view.container.querySelectorAll('p')].map((x) => x.textContent),
+      ['a:first', 'b:third'],
+    );
     assert.equal(runtime.slots.get('body').items.length, 2);
-  } finally { await view.unmount(); }
+  } finally {
+    await view.unmount();
+  }
 });

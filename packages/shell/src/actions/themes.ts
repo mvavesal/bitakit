@@ -30,10 +30,18 @@ export const deleteTheme = defineAction({
   title: 'Delete theme',
   input: z.object({ id: z.string() }),
   concurrency: 'exclusive',
-  enabled: ({ services, input }) => getService(services, themeService).canWrite() && getService(services, themeService).list().some((theme) => theme.source === 'user' && theme.id === input?.id),
+  enabled: ({ services, input }) =>
+    getService(services, themeService).canWrite() &&
+    getService(services, themeService)
+      .list()
+      .some((theme) => theme.source === 'user' && theme.id === input?.id),
   confirm: ({ services, input }) => ({
     title: 'Delete theme?',
-    description: `Delete “${getService(services, themeService).list().find((theme) => theme.source === 'user' && theme.id === input?.id)?.name ?? ''}”? This personal theme will be removed. If it is active, BitaKit Default will be selected.`,
+    description: `Delete “${
+      getService(services, themeService)
+        .list()
+        .find((theme) => theme.source === 'user' && theme.id === input?.id)?.name ?? ''
+    }”? This personal theme will be removed. If it is active, BitaKit Default will be selected.`,
     destructive: true,
   }),
   execute: ({ services, input }) => getService(services, themeService).remove(input.id),

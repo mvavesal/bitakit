@@ -194,10 +194,7 @@ test('package metadata is validated: exports stay inside the package', async () 
       /Invalid BitaKit export in package "@acme\/bad"/,
     );
     await install('@acme/bad', { bitakit: { plugin: 'plugin' } });
-    await assert.rejects(
-      describeBitaKit(root),
-      /Invalid BitaKit export in package "@acme\/bad"/,
-    );
+    await assert.rejects(describeBitaKit(root), /Invalid BitaKit export in package "@acme\/bad"/);
   }));
 
 test('manifest dependencies join the dependencies of the generated package plugin', async () =>

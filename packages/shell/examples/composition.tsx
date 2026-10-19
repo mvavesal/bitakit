@@ -23,8 +23,9 @@ export function FocusLayout({ children }: { children: ReactNode }) {
 }
 
 const contributions = (view: SlotView) =>
-  view.items.map(entry => entry.kind === 'component'
-    ? <entry.component key={entry.key} payload={view.payload} /> : null);
+  view.items.map((entry) =>
+    entry.kind === 'component' ? <entry.component key={entry.key} payload={view.payload} /> : null,
+  );
 
 /** Hooks only: every navigation action and slot contribution in the app's own arrangement. */
 export function MinimalLayout({ children }: { children: ReactNode }) {
@@ -44,15 +45,15 @@ export function MinimalLayout({ children }: { children: ReactNode }) {
         center={
           <nav aria-label="Main navigation">
             {items.map((item) => (
-                // An empty child receives the action's icon and title.
-                <Action key={item.key} id={item}>
-                  {item.href === undefined ? (
-                    <button type="button" />
-                  ) : (
-                    <a aria-current={isActive(item.href) ? 'page' : undefined} />
-                  )}
-                </Action>
-              ))}
+              // An empty child receives the action's icon and title.
+              <Action key={item.key} id={item}>
+                {item.href === undefined ? (
+                  <button type="button" />
+                ) : (
+                  <a aria-current={isActive(item.href) ? 'page' : undefined} />
+                )}
+              </Action>
+            ))}
           </nav>
         }
         right={contributions(footer)}

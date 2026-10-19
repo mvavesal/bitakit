@@ -26,7 +26,6 @@ is not fabricated. Config values/defaults are omitted. Interactive Action execut
 stores and event inspection keep their existing live APIs and can display application data;
 do not treat the entire interactive inspector as a redacted export.
 
-
 ## Runtime diagnostics
 
 `runtime.lifecycle.get()` reports an active `operation` (`start`, `stop`, or `update`)
@@ -34,12 +33,12 @@ and its `startedAt` time. Plugin/service entries have `since` timestamps for the
 phase. Compute elapsed time at the observer; Core does not run a diagnostic timer.
 `inspectRuntime()` includes those times and cleanup status, without raw errors or values.
 
-| Read | Meaning | Not evidence of |
-| --- | --- | --- |
-| `inventory.live.slots[].count` | Attached contributions | Mounted or visible UI |
-| `mountedOutlets`, `visibleCount`, `renderFailures` | `null`: not observed by Core | Zero outlets or errors |
-| `useSlot(name).diagnostics` | This outlet's selected entries and exclusions | Successful render or on-screen visibility |
-| `SlotRenderError` / recovery UI | A render failure, attributed to contribution and owner | A failed plugin lifecycle |
+| Read                                               | Meaning                                                | Not evidence of                           |
+| -------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------- |
+| `inventory.live.slots[].count`                     | Attached contributions                                 | Mounted or visible UI                     |
+| `mountedOutlets`, `visibleCount`, `renderFailures` | `null`: not observed by Core                           | Zero outlets or errors                    |
+| `useSlot(name).diagnostics`                        | This outlet's selected entries and exclusions          | Successful render or on-screen visibility |
+| `SlotRenderError` / recovery UI                    | A render failure, attributed to contribution and owner | A failed plugin lifecycle                 |
 
 Outlet diagnostics name initialization, owner unavailability, update pending, payload
 validation/failure, key/condition filtering, hidden/missing Actions and binding errors.

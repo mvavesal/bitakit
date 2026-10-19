@@ -259,10 +259,10 @@ async function checkWiring(project) {
               fix: 'Run "npx bitakit migrate", or rename withFoundation to withBitaKit.',
             }
           : {
-            status: 'error',
-            title: 'next.config does not run BitaKit discovery',
-            fix: "import { withBitaKit } from '@bitakit/next/config';\nexport default withBitaKit({});",
-          },
+              status: 'error',
+              title: 'next.config does not run BitaKit discovery',
+              fix: "import { withBitaKit } from '@bitakit/next/config';\nexport default withBitaKit({});",
+            },
     );
     const scripts = JSON.stringify(project.manifest.scripts ?? {});
     if (scripts.includes('--webpack'))
@@ -290,10 +290,10 @@ async function checkWiring(project) {
               fix: 'Run "npx bitakit migrate", or import { bitakit } from \'@bitakit/tanstack/config\' and call bitakit().',
             }
           : {
-            status: 'error',
-            title: 'vite.config does not run BitaKit discovery',
-            fix: "import { bitakit } from '@bitakit/tanstack/config';\nplugins: [bitakit(), tanstackStart(), ...]",
-          },
+              status: 'error',
+              title: 'vite.config does not run BitaKit discovery',
+              fix: "import { bitakit } from '@bitakit/tanstack/config';\nplugins: [bitakit(), tanstackStart(), ...]",
+            },
     );
   }
   let provider = false;
@@ -357,7 +357,8 @@ async function mountsProvider(file, root, seen = new Set()) {
     // The generated file exports BitaKitProvider; the packages export BitaKitRuntimeProvider.
     if (
       (entry.name === 'BitaKitProvider' && /bitakit\.gen$/.test(entry.from)) ||
-      (entry.name === 'BitaKitRuntimeProvider' && /^@bitakit\/(?:ui|next|tanstack)$/.test(entry.from))
+      (entry.name === 'BitaKitRuntimeProvider' &&
+        /^@bitakit\/(?:ui|next|tanstack)$/.test(entry.from))
     )
       return true;
     const base = entry.from.startsWith('@/')
@@ -460,12 +461,12 @@ async function providedKeys(root, entries) {
       node.expression.name.text === 'of'
         ? nameOf(node.expression.expression)
         : ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      ['serviceKey', 'defineContract'].includes(node.expression.text) &&
-      node.arguments[0] &&
-      ts.isStringLiteralLike(node.arguments[0])
-        ? node.arguments[0].text
-        : undefined;
+            ts.isIdentifier(node.expression) &&
+            ['serviceKey', 'defineContract'].includes(node.expression.text) &&
+            node.arguments[0] &&
+            ts.isStringLiteralLike(node.arguments[0])
+          ? node.arguments[0].text
+          : undefined;
     const visit = (node) => {
       if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
         const name = nameOf(node.initializer);

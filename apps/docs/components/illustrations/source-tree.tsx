@@ -64,7 +64,11 @@ export function SourceTree({
   }
 
   return (
-    <div aria-label="Example file structure" role="group" className="flex h-64 min-h-0 min-w-0 flex-col gap-2 md:h-full">
+    <div
+      aria-label="Example file structure"
+      role="group"
+      className="flex h-64 min-h-0 min-w-0 flex-col gap-2 md:h-full"
+    >
       <p className="text-xs font-medium text-fd-muted-foreground">
         Files · choose one to view its code
       </p>

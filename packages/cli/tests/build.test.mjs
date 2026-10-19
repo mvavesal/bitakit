@@ -96,7 +96,10 @@ test('build writes the plugin types, the compiled sources and the dist/plugin en
     entry,
     /export default function plugin\(\) \{\n  return definePlugin\(\{\n    id: "notes",/,
   );
-  assert.match(entry, /metadata: \{"name":"@acme\/bitakit-notes","version":"0\.1\.0","coverImage":"\/notes\.png","tags":\["productivity"\]\},/);
+  assert.match(
+    entry,
+    /metadata: \{"name":"@acme\/bitakit-notes","version":"0\.1\.0","coverImage":"\/notes\.png","tags":\["productivity"\]\},/,
+  );
   assert.match(entry, /dependencies: \["shell"\],/);
   assert.match(
     entry,
@@ -164,47 +167,87 @@ test('build needs a plugin package and reports type errors with the file', async
 });
 
 test('packaged slot definitions retain runtime ownership, payload types and derived Doctor hints', async (t) => {
-  const root = await project({
-    'package.json': {
-      name: '@acme/bitakit-toolbar', version: '0.1.0', type: 'module',
-      exports: { './package.json': './package.json', './plugin': { types: './dist/plugin.d.ts', default: './dist/plugin.js' } },
-      bitakit: { plugin: './plugin', id: 'toolbar' }, peerDependencies: { '@bitakit/core': '^0.2.0' },
-    },
-    'tsconfig.json': tsconfig,
-    'src/slots/header/index.ts': `import { defineSlot } from '@bitakit/core';
+  const root = await project(
+    {
+      'package.json': {
+        name: '@acme/bitakit-toolbar',
+        version: '0.1.0',
+        type: 'module',
+        exports: {
+          './package.json': './package.json',
+          './plugin': { types: './dist/plugin.d.ts', default: './dist/plugin.js' },
+        },
+        bitakit: { plugin: './plugin', id: 'toolbar' },
+        peerDependencies: { '@bitakit/core': '^0.2.0' },
+      },
+      'tsconfig.json': tsconfig,
+      'src/slots/header/index.ts': `import { defineSlot } from '@bitakit/core';
       export default { end: defineSlot({ accepts: 'component', payload: { parse: (_value: unknown) => ({ collapsed: true as boolean }) } }) };`,
-    'src/ui/slots/toolbar.header.end.ts': `export const id = 'badge'; export const key = 'status'; export const order = 5; export const availability = 'wait'; export default () => null;`,
-    'src/check.ts': `import type { SlotPayload } from '@bitakit/core';
+      'src/ui/slots/toolbar.header.end.ts': `export const id = 'badge'; export const key = 'status'; export const order = 5; export const availability = 'wait'; export default () => null;`,
+      'src/check.ts': `import type { SlotPayload } from '@bitakit/core';
       const payload: SlotPayload<'toolbar.header.end'> = { collapsed: true };
       // @ts-expect-error Package author types come from its own slot declaration.
       const bad: SlotPayload<'toolbar.header.end'> = { collapsed: 'yes' }; void [payload, bad];`,
-  }, t);
+    },
+    t,
+  );
   await toolchain(root);
   await buildPlugin({ cwd: root });
   const { default: plugin } = await import(path.join(root, 'dist/plugin.js'));
   const { createRuntime } = await import('../../core/dist/core.js');
   const runtime = createRuntime({ plugins: [plugin()] });
   assert.equal(runtime.modules[1].slots[0].id, 'toolbar.header.end');
-  runtime.mount(); await runtime.ready;
+  runtime.mount();
+  await runtime.ready;
   const item = runtime.slots.get('toolbar.header.end').items[0];
-  assert.deepEqual([item.id, item.key, item.order, item.plugin], ['toolbar:badge', 'status', 5, 'toolbar']);
+  assert.deepEqual(
+    [item.id, item.key, item.order, item.plugin],
+    ['toolbar:badge', 'status', 5, 'toolbar'],
+  );
   assert.equal(typeof item.component, 'function');
-  assert.match(await readFile(path.join(root, 'dist/plugin.js'), 'utf8'), /ui\/slots\/toolbar\.header\.end\.ts/);
+  assert.match(
+    await readFile(path.join(root, 'dist/plugin.js'), 'utf8'),
+    /ui\/slots\/toolbar\.header\.end\.ts/,
+  );
   await runtime.stop();
   const info = JSON.parse(await readFile(path.join(root, 'dist/plugin.slots.json'), 'utf8'));
-  assert.deepEqual(info, { version: 1, definitions: [{ id: 'toolbar.header.end', file: 'slots/header/index.ts', accepts: 'component', plugin: 'toolbar', policy: 'list' }], unresolved: [] });
+  assert.deepEqual(info, {
+    version: 1,
+    definitions: [
+      {
+        id: 'toolbar.header.end',
+        file: 'slots/header/index.ts',
+        accepts: 'component',
+        plugin: 'toolbar',
+        policy: 'list',
+      },
+    ],
+    unresolved: [],
+  });
 
   const { mkdir, symlink } = await import('node:fs/promises');
-  const app = await project({
-    'package.json': { name: 'host', dependencies: { '@acme/bitakit-toolbar': '0.1.0' } },
-    'tsconfig.json': { ...tsconfig, compilerOptions: { ...tsconfig.compilerOptions, rootDir: '.', noEmit: true, jsx: 'preserve' }, include: ['src'] },
-    'src/ui/slots/toolbar.header.end.tsx': 'export default () => null;',
-    'src/check.ts': `import './bitakit.gen'; import type { SlotMap, SlotPayload } from '@bitakit/core';
+  const app = await project(
+    {
+      'package.json': { name: 'host', dependencies: { '@acme/bitakit-toolbar': '0.1.0' } },
+      'tsconfig.json': {
+        ...tsconfig,
+        compilerOptions: {
+          ...tsconfig.compilerOptions,
+          rootDir: '.',
+          noEmit: true,
+          jsx: 'preserve',
+        },
+        include: ['src'],
+      },
+      'src/ui/slots/toolbar.header.end.tsx': 'export default () => null;',
+      'src/check.ts': `import './bitakit.gen'; import type { SlotMap, SlotPayload } from '@bitakit/core';
       const payload: SlotPayload<'toolbar.header.end'> = { collapsed: false };
       const kind: SlotMap['toolbar.header.end']['accepts'] = 'component';
       // @ts-expect-error Installed package payload remains typed.
       const bad: SlotPayload<'toolbar.header.end'> = { collapsed: 1 }; void [payload, kind, bad];`,
-  }, t);
+    },
+    t,
+  );
   await toolchain(app);
   await mkdir(path.join(app, 'node_modules/@acme'), { recursive: true });
   await symlink(root, path.join(app, 'node_modules/@acme/bitakit-toolbar'), 'dir');
@@ -219,24 +262,41 @@ test('packaged slot definitions retain runtime ownership, payload types and deri
   execFileSync(process.execPath, [tsc, '-p', 'tsconfig.json'], { cwd: app, stdio: 'pipe' });
   const { doctor } = await import('../src/index.mjs');
   const result = await doctor({ cwd: app });
-  assert.equal(result.results.find((entry) => /Slot files target declared slots/.test(entry.title))?.status, 'ok');
+  assert.equal(
+    result.results.find((entry) => /Slot files target declared slots/.test(entry.title))?.status,
+    'ok',
+  );
 });
 
 test('packaged settings and custom pages retain their normalizers, access boundary and slot predicates', async (t) => {
-  const root = await project({
-    'package.json': { name: '@acme/bitakit-preferences', version: '0.1.0', type: 'module',
-      bitakit: { plugin: './plugin', id: 'preferences' }, peerDependencies: { '@bitakit/core': '^0.2.0' } },
-    'tsconfig.json': { ...tsconfig, compilerOptions: { ...tsconfig.compilerOptions, jsx: 'preserve' } },
-    'src/settings.ts': `import { defineSettings, setting } from '@bitakit/core';
+  const root = await project(
+    {
+      'package.json': {
+        name: '@acme/bitakit-preferences',
+        version: '0.1.0',
+        type: 'module',
+        bitakit: { plugin: './plugin', id: 'preferences' },
+        peerDependencies: { '@bitakit/core': '^0.2.0' },
+      },
+      'tsconfig.json': {
+        ...tsconfig,
+        compilerOptions: { ...tsconfig.compilerOptions, jsx: 'preserve' },
+      },
+      'src/settings.ts': `import { defineSettings, setting } from '@bitakit/core';
       export default defineSettings({ count: setting({ default: 2 }) }, { title: 'Preferences' });`,
-    'src/ui/settings/page.tsx': `export default { component: () => null, boundary: () => null,
+      'src/ui/settings/page.tsx': `export default { component: () => null, boundary: () => null,
       pages: [{ id: 'history', title: 'History', component: () => null }] };`,
-    'src/ui/slots/owner.after.ts': `export const when = ({ payload }: { payload: { pageId: string } }) => payload.pageId === 'preferences'; export default () => null;`,
-  }, t);
+      'src/ui/slots/owner.after.ts': `export const when = ({ payload }: { payload: { pageId: string } }) => payload.pageId === 'preferences'; export default () => null;`,
+    },
+    t,
+  );
   await toolchain(root);
   // The test uses no JSX; emit ordinary JS while keeping the conventional .tsx author filename.
   const { writeFile } = await import('node:fs/promises');
-  await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ ...tsconfig, compilerOptions: { ...tsconfig.compilerOptions, jsx: 'react' } }));
+  await writeFile(
+    path.join(root, 'tsconfig.json'),
+    JSON.stringify({ ...tsconfig, compilerOptions: { ...tsconfig.compilerOptions, jsx: 'react' } }),
+  );
   const result = await buildPlugin({ cwd: root });
   const plugin = (await import(path.join(result.dist, 'plugin.js'))).default();
   assert.equal(plugin.settings.settings.count.default, 2);

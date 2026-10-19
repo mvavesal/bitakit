@@ -60,9 +60,15 @@ void [shell, route, id, order];
 
 import { defineAction, type SlotPredicate } from '@bitakit/core';
 import { PluginSlot, useSlot } from '@bitakit/ui';
-const historyOnly: SlotPredicate<'app-preferences.page.after'> = ({ payload }) => payload.pageId === 'billing/history';
-const body = <PluginSlot name="app-preferences.page.body" entryKey="billing" payload={{ pageId: 'billing' }} />;
+const historyOnly: SlotPredicate<'app-preferences.page.after'> = ({ payload }) =>
+  payload.pageId === 'billing/history';
+const body = (
+  <PluginSlot name="app-preferences.page.body" entryKey="billing" payload={{ pageId: 'billing' }} />
+);
 // @ts-expect-error page body requires a typed page payload
 const noPage = <PluginSlot name="app-preferences.page.body" entryKey="billing" />;
-const exportPage = defineAction<string>({ slots: [{ slot: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }], execute: ({ input }) => input });
+const exportPage = defineAction<string>({
+  slots: [{ slot: 'app-preferences.page.toolbar', input: ({ payload }) => payload.pageId }],
+  execute: ({ input }) => input,
+});
 void [historyOnly, body, noPage, exportPage, useSlot];

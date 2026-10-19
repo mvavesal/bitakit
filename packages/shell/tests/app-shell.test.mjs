@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { mount, settle, setMedia, click, deferred } from './support.mjs';
 import { Component, createElement as h, act, useEffect } from 'react';
 import { createMemorySettingsStorage, defineAction, definePlugin } from '@bitakit/core';
-import { BitaKitRuntimeProvider, useBitaKit, useNavigation, useSetting, useSlot } from '@bitakit/ui';
+import {
+  BitaKitRuntimeProvider,
+  useBitaKit,
+  useNavigation,
+  useSetting,
+  useSlot,
+} from '@bitakit/ui';
 import { Sidebar, SidebarProvider, SidebarTrigger } from '@bitakit/ui/components';
 import { AppShell, shellPlugin, useShellLayout } from '../dist/index.js';
 

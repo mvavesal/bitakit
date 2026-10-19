@@ -401,18 +401,45 @@ test('discovery emits imports for integration kinds per module under contributio
   }));
 
 test('owned slot definitions reserve a built-in kind and respect module entry selection', async () => {
-  assert.throws(() => contributionKindSpecs([{ name: 'slotDefinitions', directory: 'slots', from: 'x', normalize: 'x' }]), /Invalid contribution kind name|built in/);
+  assert.throws(
+    () =>
+      contributionKindSpecs([
+        { name: 'slotDefinitions', directory: 'slots', from: 'x', normalize: 'x' },
+      ]),
+    /Invalid contribution kind name|built in/,
+  );
   await fixture(async (root, put) => {
-    await put('src/plugins/shell/plugin.config.ts', `export default { entries: { slotDefinitions: 'extension-points' } };`);
-    await put('src/plugins/shell/extension-points/logo.ts', `import { defineSlot } from '@bitakit/core'; export default defineSlot({ accepts: 'component', policy: 'single' });`);
-    await put('src/plugins/shell/slots/ignored.ts', `throw new Error('overridden folder must not load'); export default {};`);
+    await put(
+      'src/plugins/shell/plugin.config.ts',
+      `export default { entries: { slotDefinitions: 'extension-points' } };`,
+    );
+    await put(
+      'src/plugins/shell/extension-points/logo.ts',
+      `import { defineSlot } from '@bitakit/core'; export default defineSlot({ accepts: 'component', policy: 'single' });`,
+    );
+    await put(
+      'src/plugins/shell/slots/ignored.ts',
+      `throw new Error('overridden folder must not load'); export default {};`,
+    );
     const result = await generateBitaKit(root, { quiet: true });
-    const generated = await createJiti(import.meta.url, { moduleCache: false, alias: { '@bitakit/core': coreRuntime } }).import(result.generated);
+    const generated = await createJiti(import.meta.url, {
+      moduleCache: false,
+      alias: { '@bitakit/core': coreRuntime },
+    }).import(result.generated);
     const runtime = new BitaKitRuntime(createActionList(), generated.createBitaKitConfig());
-    assert.deepEqual(runtime.modules[1].slots.map((slot) => slot.id), ['shell.logo']);
+    assert.deepEqual(
+      runtime.modules[1].slots.map((slot) => slot.id),
+      ['shell.logo'],
+    );
     const description = await describeBitaKit(root);
-    assert.deepEqual(description.slotDeclarations.map((slot) => slot.id), ['shell.logo']);
-    await put('src/plugins/shell/plugin.config.ts', `export default { entries: { slotDefinitions: false } };`);
+    assert.deepEqual(
+      description.slotDeclarations.map((slot) => slot.id),
+      ['shell.logo'],
+    );
+    await put(
+      'src/plugins/shell/plugin.config.ts',
+      `export default { entries: { slotDefinitions: false } };`,
+    );
     assert.deepEqual((await describeBitaKit(root)).slotDeclarations, []);
   });
 });
