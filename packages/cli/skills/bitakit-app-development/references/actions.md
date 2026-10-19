@@ -30,8 +30,8 @@ export default defineAction<string>({
   title: 'Add',
   // Bound buttons stay disabled while the input is empty or the list is full.
   enabled: ({ input, services, settings }) =>
-    !!input?.trim() && services.todos.items.state.get().items.length < settings.todos.limit.get(),
-  execute: ({ services, input }) => services.todos.items.add(input),
+    !!input?.trim() && services.todos.list.state.get().todos.length < settings.todos.limit.get(),
+  execute: ({ services, input }) => services.todos.list.add(input),
 });
 ```
 
@@ -54,13 +54,13 @@ import { defineAction } from '@bitakit/core';
 
 export default defineAction({
   title: 'Clear all',
-  enabled: ({ services }) => services.todos.items.state.get().items.length > 0,
+  enabled: ({ services }) => services.todos.list.state.get().todos.length > 0,
   confirm: {
     title: 'Delete every todo?',
     description: 'This cannot be undone.',
     destructive: true,
   },
-  execute: ({ services }) => services.todos.items.clear(),
+  execute: ({ services }) => services.todos.list.clear(),
   success: 'All todos deleted',
 });
 ```
@@ -86,9 +86,9 @@ import { defineAction } from '@bitakit/core';
 export default defineAction({
   title: 'Print list',
   slots: ['todos.toolbar'],
-  // todos.items belongs to another plugin; listing it turns a missing service into a startup error.
-  requires: ['todos.items'],
-  enabled: ({ services }) => services.todos.items.state.get().items.length > 0,
+  // todos.list belongs to another plugin; listing it turns a missing service into a startup error.
+  requires: ['todos.list'],
+  enabled: ({ services }) => services.todos.list.state.get().todos.length > 0,
   execute: () => window.print(),
 });
 ```

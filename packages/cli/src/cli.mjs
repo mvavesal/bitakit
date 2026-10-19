@@ -7,9 +7,11 @@ import { describeBitaKit, generateBitaKit, migrateProject, watchBitaKit } from '
 import { addContribution, addPlugin, contributionKinds } from './add.mjs';
 import { inspectionFromDescription } from './inventory.mjs';
 import { buildPlugin } from './build.mjs';
+import { CheckPageSetupError, checkPage, formatPageReport } from './check-page.mjs';
 import { doctor } from './doctor.mjs';
 import { initProject } from './init.mjs';
 import { findProject, findProjectRoot } from './project.mjs';
+import { describeSlots, formatSlots } from './slots.mjs';
 
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 const relative = (file) => path.relative(process.cwd(), file) || '.';
@@ -43,7 +45,7 @@ add
     created(result.created);
     console.log(
       result.navigation
-        ? `\n"${result.title}" now appears in the navigation and opens ${result.path}.\nThe dev server picks it up automatically; no registration needed.\nNext: npx bitakit add service ${name}/items, then npx bitakit add action ${name}/<name>.\n`
+        ? `\n"${result.title}" now appears in the navigation and opens ${result.path}.\nThe dev server picks it up automatically; no registration needed.\nNext: shared state with npx bitakit add service ${name}/<name>, a button with npx bitakit add action ${name}/<name>.\n`
         : result.path
           ? `\n"${result.title}" opens ${result.path}.\nThe dev server picks it up automatically; no registration needed.\n`
           : `\nThe dev server picks it up automatically; no registration needed.\n`,
@@ -57,14 +59,18 @@ for (const kind of contributionKinds)
         ? '[plugin]'
         : kind === 'layout'
           ? '<name>'
-          : '<target>',
+          : kind === 'test'
+            ? '<plugin>'
+            : '<target>',
       kind === 'events' || kind === 'settings' || kind === 'settings-page'
         ? `the plugin that owns the ${kind}; omit it inside a plugin package`
         : kind === 'layout'
           ? 'the layout name; pages choose it with export const layout'
-          : kind === 'slot'
-            ? '"<plugin>/<slot path>": "activity/projects/sidebar" adds a component of plugin "activity" to slot "projects.sidebar"'
-            : `"<plugin>/<name>" in an app (nested names allowed), or "<name>" inside a plugin package`,
+          : kind === 'test'
+            ? 'an existing plugin of the app, for example "notes"'
+            : kind === 'slot'
+              ? '"<plugin>/<slot path>": "activity/todos.footer" adds a component of plugin "activity" to slot "todos.footer"'
+              : `"<plugin>/<name>" in an app (nested names allowed), or "<name>" inside a plugin package`,
     )
     .description(
       kind === 'events' || kind === 'settings'
@@ -73,7 +79,9 @@ for (const kind of contributionKinds)
           ? "Create ui/settings/page.tsx, which replaces the plugin's generated settings page."
           : kind === 'layout'
             ? 'Create src/layouts/<name>.tsx of the app.'
-            : `Create ${/^[aeiou]/.test(kind) ? 'an' : 'a'} ${kind} file. Its ID comes from the file path.`,
+            : kind === 'test'
+              ? 'Create tests/<plugin>.test.ts, a headless test that mounts the plugin, and list what running it still needs.'
+              : `Create ${/^[aeiou]/.test(kind) ? 'an' : 'a'} ${kind} file. Its ID comes from the file path.`,
     )
     .action(async (target) => {
       const result = await addContribution(kind, target);
@@ -81,9 +89,17 @@ for (const kind of contributionKinds)
       console.log(
         kind === 'slot'
           ? `\nCreated a component of plugin "${result.plugin}" for slot "${result.id}":`
-          : `\nCreated ${kind} ${kind === 'page' ? result.path : `"${result.id}"`}:`,
+          : kind === 'test'
+            ? `\nCreated a test for plugin "${result.plugin}":`
+            : `\nCreated ${kind} ${kind === 'page' ? result.path : `"${result.id}"`}:`,
       );
       created(result.created);
+      if (result.setup?.length)
+        console.log(
+          `\nBefore the first run:\n${result.setup.map((line) => `  ${line}`).join('\n')}`,
+        );
+      if (result.run)
+        console.log(`\nRun it from the app root with ${result.run} (Node.js 24 or newer).`);
       console.log('');
     });
 
@@ -92,12 +108,20 @@ program
   .description(
     'Wire an existing Next.js or TanStack Start app: bitakit.config.ts, the config wrapper or Vite plugin, the provider, the catch-all route, .gitignore, and the agent files (AGENTS.md, CLAUDE.md and the bitakit-app-development skill).',
   )
-  .action(async () => {
-    const { written, skipped, install, installDev } = await initProject();
+  .option(
+    '--update-agent-files',
+    'also refresh the BitaKit block in AGENTS.md and replace unedited skill copies with this version; edited copies are kept',
+  )
+  .action(async (options) => {
+    const { written, skipped, install, installDev } = await initProject({
+      updateAgentFiles: options.updateAgentFiles,
+    });
     if (written.length) {
       console.log('\nWritten:');
-      for (const { file, created } of written)
-        console.log(`  ${styleText('green', created ? '+' : '~')} ${relative(file)}`);
+      for (const { file, created, note } of written)
+        console.log(
+          `  ${styleText('green', created ? '+' : '~')} ${relative(file)}${note ? ` ${styleText('dim', `(${note})`)}` : ''}`,
+        );
     }
     if (skipped.length) {
       console.log('\nSkipped:');
@@ -218,6 +242,55 @@ program
   });
 
 program
+  .command('check-page')
+  .argument('<target>', 'a path such as /todos, or a full http:// URL')
+  .option('--base-url <url>', 'where a path is resolved', 'http://localhost:3000')
+  .option('--json', 'machine-readable output')
+  .option('--screenshot <file>', 'also save a full-page PNG')
+  .option('--timeout <ms>', 'time budget for loading the page and runtime startup', '30000')
+  .description(
+    'Open a page of the running app in headless Chromium and report what rendered and every error. Needs Playwright in the project.',
+  )
+  .action(async (target, options) => {
+    const timeout = Number(options.timeout);
+    if (!Number.isInteger(timeout) || timeout <= 0)
+      throw new Error(
+        `--timeout takes milliseconds, for example 30000 (got "${options.timeout}").`,
+      );
+    let report;
+    try {
+      report = await checkPage(target, {
+        baseUrl: options.baseUrl,
+        timeout,
+        screenshot: options.screenshot,
+      });
+    } catch (error) {
+      if (!(error instanceof CheckPageSetupError)) throw error;
+      // Exit code 2: the check could not run; nothing about the page is known.
+      process.exitCode = 2;
+      if (options.json)
+        console.log(
+          JSON.stringify(
+            {
+              version: 1,
+              ok: false,
+              setupError: { message: error.message, commands: error.commands },
+            },
+            null,
+            2,
+          ),
+        );
+      else
+        console.error(
+          `${styleText('red', error.message)}\nRun in the project, then check again:\n${error.commands.map((command) => `  ${command}`).join('\n')}`,
+        );
+      return;
+    }
+    console.log(options.json ? JSON.stringify(report, null, 2) : formatPageReport(report));
+    if (!report.ok) process.exitCode = 1;
+  });
+
+program
   .command('info')
   .option('--json', 'machine-readable output')
   .description('List the plugins, services, actions, events and pages discovery finds.')
@@ -254,6 +327,25 @@ program
       );
       for (const warning of description.warnings) console.log(`  ${warning}`);
     }
+    console.log('');
+  });
+
+program
+  .command('slots')
+  .option('--json', 'machine-readable output')
+  .description(
+    'List the slots you can fill: owner, what each accepts and what this app already puts there.',
+  )
+  .action(async (options) => {
+    const project = await findProject();
+    if (project.kind !== 'app') throw new Error('Run "bitakit slots" inside an app.');
+    const result = await describeSlots(await describeBitaKit(project.root));
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    for (const line of formatSlots(result, { dim: (text) => styleText('dim', text) }))
+      console.log(line);
     console.log('');
   });
 

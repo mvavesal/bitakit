@@ -47,8 +47,8 @@ import { defineAction } from '@bitakit/core';
 export default defineAction<string>({
   title: 'Add',
   enabled: ({ input, services, settings }) =>
-    !!input?.trim() && services.todos.items.state.get().items.length < settings.todos.limit.get(),
-  execute: ({ services, input }) => services.todos.items.add(input),
+    !!input?.trim() && services.todos.list.state.get().todos.length < settings.todos.limit.get(),
+  execute: ({ services, input }) => services.todos.list.add(input),
 });
 ```
 
@@ -62,7 +62,7 @@ export default defineAction<string>({
 
 ## Read in a service
 
-Services get the same `settings` in their factory. `src/plugins/todos/services/items.ts`:
+Services get the same `settings` in their factory. `src/plugins/todos/services/list.ts`:
 
 ```ts
 import { defineService } from '@bitakit/core';
@@ -70,25 +70,25 @@ import { defineService } from '@bitakit/core';
 export type Todo = { id: number; title: string };
 
 export default defineService(({ store, events, settings }) => {
-  const state = store<{ items: Todo[] }>({ items: [] });
+  const state = store<{ todos: Todo[] }>({ todos: [] });
   let next = 1;
   return {
     state,
     add(title: string) {
-      const item = { id: next++, title: title.trim() };
+      const todo = { id: next++, title: title.trim() };
       const newOnTop = settings.todos.newOnTop.get();
       state.set((current) => ({
-        items: newOnTop ? [item, ...current.items] : [...current.items, item],
+        todos: newOnTop ? [todo, ...current.todos] : [...current.todos, todo],
       }));
-      events.emit('todos.changed', { kind: 'added', title: item.title });
+      events.emit('todos.changed', { kind: 'added', title: todo.title });
     },
     remove(id: number) {
-      const item = state.get().items.find((entry) => entry.id === id);
-      state.set((current) => ({ items: current.items.filter((entry) => entry.id !== id) }));
-      if (item) events.emit('todos.changed', { kind: 'removed', title: item.title });
+      const removed = state.get().todos.find((todo) => todo.id === id);
+      state.set((current) => ({ todos: current.todos.filter((todo) => todo.id !== id) }));
+      if (removed) events.emit('todos.changed', { kind: 'removed', title: removed.title });
     },
     clear() {
-      state.set({ items: [] });
+      state.set({ todos: [] });
       events.emit('todos.changed', { kind: 'cleared' });
     },
   };
@@ -178,6 +178,6 @@ export default function SettingsPage({
 ## Explain it to the user
 
 Say which plugin owns the setting (`todos` declares `todos.newOnTop` in its `settings.ts`), who
-reads it (the `todos.items` service when adding; `useSetting` in the page) and where to change it:
+reads it (the `todos.list` service when adding; `useSetting` in the page) and where to change it:
 `/settings/todos`. To try it, turn on the switch there and add two todos on `/todos`: the newest is on top.
 Reload: the switch is still on in this browser, and the todos are gone (they live in memory).

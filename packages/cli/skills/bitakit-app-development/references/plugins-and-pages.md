@@ -12,8 +12,8 @@ npx bitakit add plugin about
 - Default: `ui/pages/index.tsx` (served at `/about`) and, only when `@bitakit/shell` is in
   `package.json`, `actions/open.ts`, which places the link in `shell.navigation`. Without Shell
   the page is reached by URL only.
-- `--example` writes a complete feature: `services/items.ts`, `events.ts`, the Actions `add`,
-  `remove`, `clear` and `open`, and a list page. `--minimal` writes only `services/items.ts`,
+- `--example` writes a complete feature: `services/list.ts`, `events.ts`, the Actions `add`,
+  `remove`, `clear` and `open`, and a list page. `--minimal` writes only `services/list.ts`,
   `events.ts` and `actions/add.ts`: no page and no link.
 - The templates are a starting point. Replace their bodies, placeholder subtitles ("Edit this
   page in ...") and tutorial comments with the real feature, and delete files it does not need.
@@ -32,7 +32,7 @@ file paths, so there is nothing to register.
 | File in `src/plugins/...`                     | Becomes                         |
 | --------------------------------------------- | ------------------------------- |
 | `about/actions/open.ts`                       | Action `about.open`             |
-| `todos/services/items.ts`                     | Service `todos.items`           |
+| `todos/services/list.ts`                      | Service `todos.list`            |
 | `about/ui/pages/index.tsx`                    | Page `/about`                   |
 | `about/ui/pages/team.tsx` or `team/index.tsx` | Page `/about/team`              |
 | `todos/ui/pages/[id].tsx`                     | Page `/todos/<id>`, `params.id` |
@@ -84,8 +84,8 @@ import { PageHeader } from '@bitakit/ui/components';
 
 // Served at /todos/<id>; URL parameters are always strings, so convert before comparing.
 export default function TodoPage({ params }: { params: { id: string } }) {
-  const todo = useServiceState('todos.items', (state) =>
-    state.items.find((item) => item.id === Number(params.id)),
+  const todo = useServiceState('todos.list', (state) =>
+    state.todos.find((candidate) => candidate.id === Number(params.id)),
   );
   return <PageHeader title={todo?.title ?? 'Todo not found'} subtitle={`Todo ${params.id}`} />;
 }

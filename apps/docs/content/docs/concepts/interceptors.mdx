@@ -10,7 +10,7 @@ keep the operation itself in its Action or service.
 
 ### 1. Choose what to log
 
-This independent example assumes a Todos plugin with `todos.add`, `todos.list` and
+This independent example assumes a Todos plugin with `todos.add`, `todos.clear` and
 `todos.remove`. Select one Action, all Todos Actions, or all Actions in the application.
 The highlighted operations are observed; the code below is the whole file to create.
 
@@ -47,8 +47,8 @@ are not awaited by execution, and their own failures are reported separately.
 
 ## Service interceptors
 
-Select one method, every method on a service, or all services. Here `todos.items` has
-`add` and `list` methods. The observer logs the service and method names without modifying
+Select one method, every method on a service, or all services. Here `todos.list` has
+`add` and `clear` methods. The observer logs the service and method names without modifying
 arguments or results.
 
 <InterceptorIllustration kind="services" />

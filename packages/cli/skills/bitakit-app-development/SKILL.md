@@ -43,9 +43,15 @@ npx @bitakit/create-app@latest <directory> --framework next --features <list|non
   `none`. Without it the app gets `shell,quick-search` (a sidebar frame, Settings and search).
   Choose it to match the app the user describes. Add `--sample` for the working Todo sample.
 - `--yes` skips the prompts, which would otherwise wait for input.
-- create-app needs a new directory. The app's `AGENTS.md` and this skill are written inside it,
-  so tell the user to open the agent in `<directory>`, or read `<directory>/AGENTS.md` before
-  continuing. Suggest `git init` and a first commit so later changes are easy to review.
+- When the session's folder is empty or holds only `.git` and agent files (`AGENTS.md`,
+  `CLAUDE.md`, `.agents/`, `.claude/`, ...), use `.` as `<directory>` so the app's rules and this
+  skill land in the session's folder; create-app keeps and merges those files. The running session
+  may not list a skill that did not exist at its start: read `AGENTS.md` and
+  `.agents/skills/bitakit-app-development/SKILL.md` directly, and suggest restarting the session.
+- Otherwise use a new directory, then tell the user to open the agent in `<directory>`, or read
+  `<directory>/AGENTS.md` before continuing.
+- Suggest `git init` (when there is no `.git`) and a first commit so later changes are easy to
+  review.
 - Scaffolding and installs need network access. If the sandbox blocks a command, ask for
   approval or ask the user to run it; never hand-write generated files instead.
 
@@ -58,9 +64,12 @@ Do this once per session, before the first change:
    say so and follow what is installed. Note the optional features: `@bitakit/shell` (the
    sidebar/navbar frame), `@bitakit/app-preferences` (Settings pages), `@bitakit/quick-search`.
 2. Run `npx bitakit info --json` for the IDs the app's own plugins declare (Actions, services,
-   pages, events, settings, slots). Installed packages show `declarations: null`; their slots are
-   in [references/slots.md](references/slots.md) and in the generated `SlotMap` types.
-3. Run `npx bitakit doctor` and fix existing errors before blaming a new change.
+   pages, events, settings, slots). Run `npx bitakit slots` for every slot you can fill, including
+   those of installed packages such as Shell: its owner, what it accepts and what the app already
+   puts there (`--json` adds contributors and the payload keys of the app's own slots).
+3. Run `npx bitakit doctor` and fix existing errors before blaming a new change. When it reports
+   agent files out of sync, such as an outdated skill, tell the user and suggest
+   `npx bitakit init --update-agent-files`.
 4. Read the owning plugin's files before changing them. Generated `src/bitakit.gen.*` files are
    evidence for types; never edit them.
 5. Before placing UI, inspect the app's selected composition: which layout frames the page (Shell
@@ -73,8 +82,8 @@ Do this once per session, before the first change:
 - One feature, one plugin. Create it with `npx bitakit add plugin <name>` and add files with
   `npx bitakit add <kind> <plugin>/<name>` (kinds: `action`, `service`, `page`, `interceptor`,
   `config`, `slot`, `slot-definition`, `dialog`, `provider`). `events`, `settings` and
-  `settings-page` take only `<plugin>`; `layout <name>` is app-level. Existing files are never
-  overwritten.
+  `settings-page` take only `<plugin>`; `layout <name>` is app-level; `test <plugin>` writes
+  `tests/<plugin>.test.ts`. Existing files are never overwritten.
 - Replace the generated template bodies and tutorial comments with the real implementation.
 - Extend a feature you do not own from your own plugin: listen to its events, fill its slots,
   call its services (declared with `requires`) and read its settings. Change the owner only when
@@ -96,10 +105,11 @@ already says.
 
 1. `npm run typecheck` (apps from create-app; otherwise `npx bitakit generate`, the framework's
    type generation and `tsc --noEmit`), then `npx bitakit doctor`.
-2. Open the page in the running app and use the feature the way the user will. Plugin pages and
-   slots render only in the browser, so an HTTP 200 or the server HTML proves nothing. See
-   [references/testing-and-preview.md](references/testing-and-preview.md) for each agent's preview
-   and for tests.
+2. Open the page in the running app and use the feature the way the user will; without a
+   browser tool, run `npx bitakit check-page /<page path>` while the dev server runs. Plugin
+   pages and slots render only in the browser, so an HTTP 200 or the server HTML proves
+   nothing. See [references/testing-and-preview.md](references/testing-and-preview.md) for each
+   agent's preview and for tests.
 3. When the change depends on the layout, check each layout you promise (sidebar and navbar).
 
 ## Explain and report
@@ -109,7 +119,7 @@ Tell the user, in plain words:
 - **What and where**: what you built and where it appears (URL, sidebar, header, below the
   list), and how to try it (the clicks and the expected result).
 - **How it connects**: which plugin owns it and which contract links it to the rest, for example
-  "the `summary` plugin reads the `todos.items` service and shows the count in Shell's header slot
+  "the `summary` plugin reads the `todos.list` service and shows the count in Shell's header slot
   `shell.header.end`; the todos feature is unchanged." Say why you chose that mechanism.
 - **Checks**: the files you changed, the checks you ran with their results, and anything you did
   not verify.

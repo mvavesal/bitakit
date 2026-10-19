@@ -4,11 +4,17 @@ export {
   agentRules,
   agentRulesBegin,
   agentRulesEnd,
-  appDevelopmentSkillPaths,
   bitakitIdentity,
   claudeFileFor,
-  writeAppDevelopmentSkills,
+  projectAgentRules,
+  refreshAgentRules,
 } from './agent-rules.mjs';
+export {
+  appDevelopmentSkillPaths,
+  bundledSkillFiles,
+  readSkillFiles,
+  writeAppDevelopmentSkills,
+} from './agent-skill.mjs';
 export { buildPlugin } from './build.mjs';
 export { doctor } from './doctor.mjs';
 export {
@@ -22,6 +28,7 @@ export {
 } from './init.mjs';
 export { findProject, findProjectRoot, packagePluginId } from './project.mjs';
 export { appRoutes, catchAllRoute } from './routes.mjs';
+export { describeSlots, formatSlots } from './slots.mjs';
 export {
   actionFile,
   configFile,

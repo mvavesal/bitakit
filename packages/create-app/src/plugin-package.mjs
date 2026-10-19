@@ -81,13 +81,13 @@ import assert from 'node:assert/strict';
 import { mountPlugin } from '@bitakit/core/testing';
 
 // Runs the plugin headlessly in Node: services, events and actions, without a browser.
-test('adding an item updates the store, emits an event and enables Clear all', async () => {
+test('adding an entry updates the store, emits an event and enables Clear all', async () => {
   const plugin = await mountPlugin('src');
   try {
     assert.equal(plugin.actions.get('${id}.clear')?.enabled, false);
-    await plugin.execute('add', 'First item');
-    const items = (plugin.services as any)[${JSON.stringify(id)}].items.state.get().items;
-    assert.deepEqual(items.map((item: { title: string }) => item.title), ['First item']);
+    await plugin.execute('add', 'First entry');
+    const entries = (plugin.services as any)[${JSON.stringify(id)}].list.state.get().entries;
+    assert.deepEqual(entries.map((entry: { title: string }) => entry.title), ['First entry']);
     assert.ok(plugin.events.recorded.some((event) => event.type === '${id}.changed'));
     assert.equal(plugin.actions.get('${id}.clear')?.enabled, true);
   } finally {

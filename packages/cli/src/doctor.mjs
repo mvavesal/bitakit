@@ -8,6 +8,7 @@ import {
   cssImports,
   navigationPlacement,
 } from '@bitakit/discovery';
+import { checkAgentFiles } from './doctor-agent-files.mjs';
 import { exists, findProject } from './project.mjs';
 import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
 
@@ -15,7 +16,7 @@ import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs'
  * Checks a project for the problems that most often break a BitaKit app: mixed package
  * versions, duplicate Core copies, missing wiring, unreachable plugin pages and links,
  * colliding service aliases, `requires` nobody satisfies, plugin dependency cycles, missing
- * styles and deprecated layouts.
+ * styles, deprecated layouts and agent files that are out of sync.
  * Each result: `{ status: 'ok' | 'warn' | 'error', title, details, fix }`.
  */
 export async function doctor({ cwd } = {}) {
@@ -114,6 +115,8 @@ export async function doctor({ cwd } = {}) {
         fix: 'Choose the intended owner slot. For the default Shell run bitakit migrate --navigation-slot shell.navigation --dry-run, review it, then apply. Logical groups alone do not place UI.',
       });
   }
+  const agentFiles = await checkAgentFiles(project);
+  if (agentFiles) results.push(agentFiles);
   return { project, results };
 }
 
@@ -884,7 +887,7 @@ function checkSlots(description) {
   if (!problems.length)
     return {
       status: 'ok',
-      // A clean run stays short; `bitakit info` lists the slots.
+      // A clean run stays short; `bitakit slots` lists the slots.
       title: declared.size
         ? `Slot files target declared slots (${plural(declared.size, 'slot')} available)`
         : 'No layout slots are declared',

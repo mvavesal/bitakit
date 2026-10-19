@@ -115,7 +115,7 @@ export type PublicSlotsOf<Plugins extends readonly Plugin[]> = [Plugins[number]]
 type AtPath<Path extends string, Value> = Path extends `${infer Head}.${infer Tail}`
   ? { readonly [K in Head]: AtPath<Tail, Value> }
   : { readonly [K in Path]: Value };
-/** Dotted names become nested namespaces: `todos.items` is `services.todos.items`. */
+/** Dotted names become nested namespaces: `todos.list` is `services.todos.list`. */
 export type Namespace<Entries extends object> = keyof Entries extends never
   ? {}
   : Intersection<{ [K in keyof Entries & string]: AtPath<K, Entries[K]> }[keyof Entries & string]>;

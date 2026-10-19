@@ -3,8 +3,14 @@ import ts from 'typescript';
 
 /** Static hints for tooling, never runtime registration. Unreadable expressions stay unresolved.
  * Uses TypeScript's parser for the same define* leaves and dotted/nested records Discovery emits.
+ * `inspect(fields, { unwrap, literal, ts })` lets a tool read non-literal fields (arrays, schemas)
+ * of each object-form definition with the same ID rules; its result is merged into the entry.
+ * Callers classify the nodes with the passed `ts`: SyntaxKind numbers differ between versions.
  */
-export async function describeDefinitions(entries, { helper, moduleId = '', properties = [] }) {
+export async function describeDefinitions(
+  entries,
+  { helper, moduleId = '', properties = [], inspect },
+) {
   const definitions = [];
   const unresolved = [];
   for (const entry of entries) {
@@ -102,6 +108,7 @@ export async function describeDefinitions(entries, { helper, moduleId = '', prop
           if (value === undefined) unknown();
           else info[property] = value;
         }
+        if (inspect) Object.assign(info, inspect(fields, { unwrap, literal, ts }));
         definitions.push(info);
         return;
       }

@@ -4,8 +4,8 @@ import { buttonVariants } from 'fumadocs-ui/components/ui/button';
 import { Frame, Explanation, targetStyle } from './shared';
 
 const operations = {
-  actions: ['todos.add', 'todos.list', 'todos.remove', 'counter.increment'],
-  services: ['todos.items.add()', 'todos.items.list()', 'counter.value.increment()'],
+  actions: ['todos.add', 'todos.clear', 'todos.remove', 'counter.increment'],
+  services: ['todos.list.add()', 'todos.list.clear()', 'counter.value.increment()'],
 };
 
 // Authored examples, not a second implementation of interceptor matching.
@@ -23,10 +23,10 @@ const examples = {
       key: 'plugin',
       label: 'Todos Actions',
       target: "action: 'todos.*'",
-      matched: ['todos.add', 'todos.list', 'todos.remove'],
+      matched: ['todos.add', 'todos.clear', 'todos.remove'],
       file: 'src/plugins/todos/interceptors/log.ts',
       explanation:
-        'The prefix selects todos.add, todos.list and other todos Actions. These are Action IDs, not Action groups.',
+        'The prefix selects todos.add, todos.clear and other todos Actions. These are Action IDs, not Action groups.',
     },
     {
       key: 'all',
@@ -42,17 +42,17 @@ const examples = {
     {
       key: 'one',
       label: 'One method',
-      target: "service: 'todos.items',\n  method: 'add'",
-      matched: ['todos.items.add()'],
+      target: "service: 'todos.list',\n  method: 'add'",
+      matched: ['todos.list.add()'],
       file: 'src/plugins/todos/interceptors/log-method.ts',
       explanation:
-        'Observe calls to add through the todos.items service. Other methods are unaffected by this observer.',
+        'Observe calls to add through the todos.list service. Other methods are unaffected by this observer.',
     },
     {
       key: 'service',
       label: 'Whole service',
-      target: "service: 'todos.items'",
-      matched: ['todos.items.add()', 'todos.items.list()'],
+      target: "service: 'todos.list'",
+      matched: ['todos.list.add()', 'todos.list.clear()'],
       file: 'src/plugins/todos/interceptors/log-service.ts',
       explanation:
         'Omit method to observe every public method called through this service. Internal self-calls bypass the wrapper.',

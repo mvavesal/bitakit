@@ -24,7 +24,18 @@ npx bitakit doctor --json
 ## Add a test runner (ask first)
 
 Generated apps have no test runner and no `test` script. Tell the user, and ask before adding
-test files or dependencies. When they agree, use the documented setup:
+test files or dependencies. When they agree, generate the first test:
+
+```sh
+npx bitakit add test <plugin>
+```
+
+- It writes `tests/<plugin>.test.ts` at the app root, which mounts the plugin, checks that it
+  starts, then stops it. A Shell stand-in is included when the plugin's Actions use `shell.*` slots.
+- It prints the setup the app still lacks as commands (dev dependencies, `type`, `test` script).
+  Run them, then `npm test`, and add the behavior to check, as in the activity test below.
+
+Manual setup, for a test written by hand:
 
 ```sh
 npm install --save-dev @bitakit/discovery jiti typescript @types/node
@@ -114,11 +125,25 @@ when missing:
 }
 ```
 
-- In Codex and other hosts, use the available browser tool. Without one, give the user the URL,
-  the clicks and the expected result, and report the UI as not verified.
+- In Codex and other hosts, use the available browser tool. Without one, check the page
+  headlessly while the dev server runs:
+
+  ```sh
+  npx bitakit check-page /todos --json
+  ```
+
+  It opens the page in headless Chromium and reports the headings, an excerpt of `<main>`, the
+  runtime state (`ready` when startup finished), `[bitakit]` errors, console and page errors
+  and failed requests. Exit code 1 means it saw an error. Add `--base-url http://localhost:<port>`
+  when the server uses another port. It needs Playwright in the project: when it exits with 2,
+  ask the user before running the install commands it prints. It does not click, so give the
+  user the clicks and the expected result and report interactions as not verified.
+
 - An HTTP 200 or the server HTML proves nothing. The catch-all route
   `src/app/(app)/[...path]/page.tsx` answers every path, and plugin pages and slots render only
   after the runtime starts in the browser.
+- An unknown path also answers 200 (with Shell it shows the heading "Page not found"), so confirm
+  that the rendered headings name your page.
 - Read the browser console. In development a plugin that fails to start is turned off and the
   rest keeps running: the console shows `[bitakit] <cause>` and a dialog says
   `Plugin "<id>" was turned off`. A page of that plugin may simply look empty.
@@ -134,7 +159,7 @@ when missing:
 
 ## Report the result
 
-- Files changed, and the IDs involved (`todos.add`, `todos.items`, `todos.footer`, `todos.limit`).
+- Files changed, and the IDs involved (`todos.add`, `todos.list`, `todos.footer`, `todos.limit`).
 - Where it appears: page path, slot, layout.
 - Each check you ran and its exit code: typecheck, doctor (`errors`/`warnings`), tests.
 - What you did not verify, such as the navbar layout or any UI without a browser.

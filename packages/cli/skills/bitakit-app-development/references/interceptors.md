@@ -22,9 +22,9 @@ export default defineInterceptor({
       .trim()
       .toLowerCase();
     // Returning false skips the run; any other value lets it continue.
-    return !services.todos.items.state
+    return !services.todos.list.state
       .get()
-      .items.some((todo) => todo.title.toLowerCase() === title);
+      .todos.some((todo) => todo.title.toLowerCase() === title);
   },
 });
 ```
@@ -73,7 +73,7 @@ export default defineInterceptor({
   promises of these hooks never change the outcome, and their own errors are only logged.
 - `order` (default `0`) sorts all Action interceptors, lowest first. The first `before` that
   returns `false` stops the remaining interceptors.
-- `requires: ['todos.items']` makes startup fail with a clear message when that service is
+- `requires: ['todos.list']` makes startup fail with a clear message when that service is
   missing. `npx bitakit doctor` checks these names.
 
 ## Add an app-wide interceptor
@@ -111,22 +111,22 @@ export default defineInterceptor({
 ## Observe a service method
 
 ```bash
-npx bitakit add interceptor todos/trace-items
+npx bitakit add interceptor todos/trace-list
 ```
 
-Replace the template in `src/plugins/todos/interceptors/trace-items.ts`:
+Replace the template in `src/plugins/todos/interceptors/trace-list.ts`:
 
 ```ts
 import { defineInterceptor } from '@bitakit/core';
 
 export default [
   defineInterceptor({
-    service: 'todos.items',
+    service: 'todos.list',
     method: 'add',
     after: ({ args }) => console.info('[todos] added', args[0]),
   }),
   defineInterceptor({
-    service: 'todos.items',
+    service: 'todos.list',
     method: 'clear',
     before: () => console.info('[todos] clearing'),
   }),
@@ -158,7 +158,7 @@ export default [
 - Say which plugin owns the interceptor (for example "todos, in
   `src/plugins/todos/interceptors/no-duplicates.ts`") and which Action ID or service it targets.
   If it uses `scope: 'global'`, say that it reaches Actions of other plugins.
-- Say what the user will notice. A blocked run does nothing visible: the item is not added and
+- Say what the user will notice. A blocked run does nothing visible: the todo is not added and
   no message appears. Observers only write to the browser console.
 - To try it, open `/todos`, add "Milk" twice and see that only one appears. For an observer, open
   the browser console and add or clear a todo.

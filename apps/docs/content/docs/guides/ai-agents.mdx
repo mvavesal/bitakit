@@ -33,7 +33,10 @@ connects. The skill is written to two folders, ready to commit:
 | `.agents/skills/bitakit-app-development/` | Codex, and also Cursor, GitHub Copilot, Gemini CLI, OpenCode |
 | `.claude/skills/bitakit-app-development/` | Claude Code                                                  |
 
-An existing skill folder is never overwritten, so a team can adapt its copy.
+A skill folder you edited is never overwritten, so a team can adapt its copy. After upgrading
+BitaKit, `npx bitakit init --update-agent-files` replaces unedited copies and the BitaKit block of
+`AGENTS.md`; `npx bitakit doctor` tells you when they are out of date
+([Keep agent files current](/docs/cli#keep-agent-files-current)).
 
 ### Use the skill
 
@@ -57,12 +60,14 @@ lists more requests that build on that sample, one building block at a time.
 | `npx bitakit add action notes/archive` | The file in the right place, with the ID `notes.archive`                            |
 | `npx bitakit add plugin notes`         | A new feature folder with a page, and its sidebar link when Shell is installed      |
 | `npx bitakit info --json`              | The IDs your plugins declare: Actions, services, page URLs, events, settings, slots |
+| `npx bitakit slots`                    | Every slot it can fill, including Shell's, with what each accepts                   |
 | `npm run typecheck`                    | An error for any unknown Action ID, service, event, setting key or slot name        |
 | `npx bitakit doctor`                   | Wiring problems, each with its fix; exit code 1 when something is wrong             |
 
 `info --json` reads plugin files without starting services or Actions, so it is safe to run at any
-time. Installed packages such as Shell show `declarations: null`; their slots are listed in their
-READMEs and in the generated types.
+time. Installed packages such as Shell show `declarations: null`; `npx bitakit slots` lists their
+slots too; `--json` adds the payload keys of the app's own slots and what the app already puts in
+each slot.
 
 ## Write a task brief
 

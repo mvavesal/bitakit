@@ -20,7 +20,7 @@ export type MountedPlugin = {
   app: BitaKitApp;
   /** The runtime's ActionList; IDs known from `ActionMap` type the input and result of `execute`. */
   actions: ActionList;
-  /** Services as the plugin's contributions see them: `services.notes.items`. */
+  /** Services as the plugin's contributions see them: `services.notes.list`. */
   services: Services;
   /** The runtime bus plus every event emitted while mounted. */
   events: EventService & { recorded: Pick<BitaKitEvent, 'type' | 'data'>[] };

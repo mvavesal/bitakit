@@ -18,6 +18,9 @@ Requires `@bitakit/create-app` or `@bitakit/cli` 0.2.2 or later.
 npx @bitakit/create-app@latest my-todos --sample --yes
 ```
 
+In a folder your agent already has open, with nothing but `.git` and agent files, use `.` as the
+directory so the skill lands there.
+
 **Existing Next.js or TanStack Start app.** Run this from the app folder; it wires BitaKit and
 adds the skill:
 
@@ -33,7 +36,7 @@ Both write the same files into the app, ready to commit so collaborators get the
 | `.claude/skills/bitakit-app-development/`   | Claude Code                                                  |
 | `AGENTS.md` (BitaKit block) and `CLAUDE.md` | Every agent: the one-screen rules, pointing to the skill     |
 
-An existing skill folder is never overwritten, so a team can adapt its copy.
+A skill folder you edited is never overwritten, so a team can adapt its copy.
 
 ## Use it
 
@@ -82,10 +85,25 @@ save a recipe with a title and ingredients" works the same way.
 | Add a user setting                                                       | [settings.md](references/settings.md)                       |
 | Test a plugin and check it in the browser                                | [testing-and-preview.md](references/testing-and-preview.md) |
 
-Before every change the agent reads the app's packages, runs `npx bitakit info --json` and
-`npx bitakit doctor`, and checks which layout renders the place it wants to use. After the
-change it runs the typecheck and doctor, opens the page in the browser, and tells you what it
-built, where it appears, how it connects and what it checked.
+Before every change the agent reads the app's packages, runs `npx bitakit info --json`,
+`npx bitakit slots` and `npx bitakit doctor`, and checks which layout renders the place it wants
+to use. After the change it runs the typecheck and doctor, opens the page in the browser, and
+tells you what it built, where it appears, how it connects and what it checked.
+
+## Keep the skill current
+
+Each installed `SKILL.md` records the BitaKit version it came from and a checksum of its files.
+`npx bitakit doctor` warns when a copy is missing or older than the app's `@bitakit/cli`, when the
+two copies differ, or when the BitaKit block in `AGENTS.md` no longer matches. After upgrading the
+BitaKit packages, run:
+
+```sh
+npx bitakit init --update-agent-files
+```
+
+It adds a missing copy, replaces an unedited older copy and refreshes the BitaKit block in
+`AGENTS.md`; keep your own rules outside that block. A copy you edited is kept: delete its folder
+and run the command again to take the new version, then reapply your changes.
 
 ## Before an app exists
 

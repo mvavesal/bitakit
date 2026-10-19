@@ -5,8 +5,8 @@ Use an event when the owning plugin must tell other plugins that something happe
 
 ## Add a service
 
-`npx bitakit add service todos/items` creates `src/plugins/todos/services/items.ts`. The path
-names the service `todos.items`; a nested `services/archive/items.ts` would be `todos.archive.items`.
+`npx bitakit add service todos/list` creates `src/plugins/todos/services/list.ts`. The path
+names the service `todos.list`; a nested `services/archive/list.ts` would be `todos.archive.list`.
 
 ```ts
 import { defineService } from '@bitakit/core';
@@ -15,22 +15,22 @@ export type Todo = { id: number; title: string };
 
 // The todo list. It lives in memory, so a reload starts empty; call your API here later.
 export default defineService(({ store, events }) => {
-  const state = store<{ items: Todo[] }>({ items: [] });
+  const state = store<{ todos: Todo[] }>({ todos: [] });
   let next = 1;
   return {
     state,
     add(title: string) {
-      const item = { id: next++, title: title.trim() };
-      state.set((current) => ({ items: [...current.items, item] }));
-      events.emit('todos.changed', { kind: 'added', title: item.title });
+      const todo = { id: next++, title: title.trim() };
+      state.set((current) => ({ todos: [...current.todos, todo] }));
+      events.emit('todos.changed', { kind: 'added', title: todo.title });
     },
     remove(id: number) {
-      const item = state.get().items.find((entry) => entry.id === id);
-      state.set((current) => ({ items: current.items.filter((entry) => entry.id !== id) }));
-      if (item) events.emit('todos.changed', { kind: 'removed', title: item.title });
+      const removed = state.get().todos.find((todo) => todo.id === id);
+      state.set((current) => ({ todos: current.todos.filter((todo) => todo.id !== id) }));
+      if (removed) events.emit('todos.changed', { kind: 'removed', title: removed.title });
     },
     clear() {
-      state.set({ items: [] });
+      state.set({ todos: [] });
       events.emit('todos.changed', { kind: 'cleared' });
     },
   };
@@ -60,7 +60,7 @@ import { useServiceState } from '@bitakit/ui';
 
 export default function TodoCount() {
   // 0 is shown until the todos plugin is ready.
-  const count = useServiceState('todos.items', (state) => state.items.length, 0);
+  const count = useServiceState('todos.list', (state) => state.todos.length, 0);
   return <span className="text-sm text-muted-foreground">{count} todos</span>;
 }
 ```
@@ -69,7 +69,7 @@ export default function TodoCount() {
   plugin are ready, then re-renders only when the selected value changes. Select the smallest
   value you need.
 - The name is checked against the generated service map, so a typo fails `npm run typecheck`.
-- `useService('todos.items')` returns the instance, or `undefined` until it is ready. To run an
+- `useService('todos.list')` returns the instance, or `undefined` until it is ready. To run an
   operation from a control, bind its Action (`<Action id="todos.add">`) so pending and disabled
   states come from the Action; see [actions.md](actions.md).
 - Hooks need no `requires`: they show the fallback while the owner is starting or missing.
@@ -87,9 +87,9 @@ import { defineAction } from '@bitakit/core';
 export default defineAction({
   title: 'Print list',
   slots: ['todos.toolbar'],
-  // Startup reports a missing todos.items service by name instead of failing on the first render.
-  requires: ['todos.items'],
-  enabled: ({ services }) => services.todos.items.state.get().items.length > 0,
+  // Startup reports a missing todos.list service by name instead of failing on the first render.
+  requires: ['todos.list'],
+  enabled: ({ services }) => services.todos.list.state.get().todos.length > 0,
   execute: () => window.print(),
 });
 ```
@@ -97,11 +97,11 @@ export default defineAction({
 - List every service of another plugin in `requires`. Startup and `npx bitakit doctor` then
   report a missing or misspelled name and suggest the right one.
 - A service whose factory reads another service lists it in `requires` in the second argument,
-  even inside its own plugin: `defineService(factory, { requires: ['todos.items'] })`. That also creates
-  `todos.items` first and reports cycles.
-- `enabled`, `visible` and `title` functions re-run when `todos.items` changes, so the button
+  even inside its own plugin: `defineService(factory, { requires: ['todos.list'] })`. That also creates
+  `todos.list` first and reports cycles.
+- `enabled`, `visible` and `title` functions re-run when `todos.list` changes, so the button
   follows the list.
-- For an optional dependency, leave out `requires` and check `app.has('todos.items')` before
+- For an optional dependency, leave out `requires` and check `app.has('todos.list')` before
   reading; every Action function receives `app`. Reading a missing service throws, and `?.`
   does not prevent that.
 - Shared contracts (`defineContract('auth').of<AuthService>()` plus
@@ -156,7 +156,7 @@ export default defineService(({ store, events }) => {
   `events.on` also returns an unsubscribe function.
 - The handler receives `{ type, data }` and `{ signal }`. `events.on` accepts one name, an array
   of names, a prefix such as `'todos.*'`, or `'*'`.
-- Events are not replayed. A plugin that starts later reads current data from `todos.items`.
+- Events are not replayed. A plugin that starts later reads current data from `todos.list`.
 - Delivery is synchronous and async handlers are not awaited, unless the event is declared with
   `event({ cancelable: true })`; then `emit` waits and resolves to `false` if a handler cancelled.
   A failing handler is logged and the other listeners still run.
@@ -166,7 +166,7 @@ export default defineService(({ store, events }) => {
 
 ## Explain it to the user
 
-Name the owner and the contract: "The todos plugin owns the list in its `todos.items` service and
+Name the owner and the contract: "The todos plugin owns the list in its `todos.list` service and
 announces changes as `todos.changed`; activity listens to that event, and summary reads the
 service, without changing the todos folder." Say where it appears (the todos page, the header
 count) and how to try it: add a todo and watch the feed and the count update. Mention that the

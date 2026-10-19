@@ -1,9 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { addContribution, addPlugin, findProject, packagePluginId } from '../src/index.mjs';
-import { nextApp, project } from './helpers.mjs';
+import { promisify } from 'node:util';
+import {
+  actionFile,
+  addContribution,
+  addPlugin,
+  findProject,
+  packagePluginId,
+  pluginFiles,
+  sampleFiles,
+} from '../src/index.mjs';
+import { exists } from '../src/project.mjs';
+import { link, nextApp, project } from './helpers.mjs';
 
 const read = (root, file) => readFile(path.join(root, file), 'utf8');
 const relative = (root, files) =>
@@ -20,7 +31,7 @@ test('add plugin starts with one page and its navigation link', async (t) => {
   ]);
   const page = await read(root, 'src/plugins/user-notes/ui/pages/index.tsx');
   assert.match(page, /export default function UserNotesPage\(\)/);
-  assert.match(page, /npx bitakit add service user-notes\/items/);
+  assert.match(page, /npx bitakit add service user-notes\/<name> \(starts as a counter store\)/);
   assert.match(
     await read(root, 'src/plugins/user-notes/actions/open.ts'),
     /href: '\/user-notes', groups: \['navigation'\], slots: \["shell\.navigation"\]/,
@@ -38,13 +49,14 @@ test('add plugin --example writes a service, its events, actions, a navigation l
     'src/plugins/user-notes/actions/open.ts',
     'src/plugins/user-notes/actions/remove.ts',
     'src/plugins/user-notes/events.ts',
-    'src/plugins/user-notes/services/items.ts',
+    'src/plugins/user-notes/services/list.ts',
     'src/plugins/user-notes/ui/pages/index.tsx',
   ]);
   const file = (name) => read(root, `src/plugins/user-notes/${name}`);
-  const service = await file('services/items.ts');
+  const service = await file('services/list.ts');
   assert.match(service, /export default defineService\(\(\{ store, events \}\) =>/);
-  assert.match(service, /store<\{ items: Item\[\] \}>\(\{ items: \[\] \}\)/);
+  assert.match(service, /export type Entry = \{ id: number; title: string \};/);
+  assert.match(service, /store<\{ entries: Entry\[\] \}>\(\{ entries: \[\] \}\)/);
   assert.match(service, /events\.emit\('user-notes\.changed', \{ kind: 'added' \}\)/);
   const events = await file('events.ts');
   assert.match(events, /import \{ defineEvents, event \} from '@bitakit\/core'/);
@@ -54,13 +66,14 @@ test('add plugin --example writes a service, its events, actions, a navigation l
   );
   const add = await file('actions/add.ts');
   assert.match(add, /export default defineAction<string>\(\{/);
-  assert.match(add, /services\["user-notes"\]\.items\.add\(input\)/);
+  assert.match(add, /title: 'Add entry'/);
+  assert.match(add, /services\["user-notes"\]\.list\.add\(input\)/);
   // A plugin's own service needs no requires entry.
   assert.doesNotMatch(add, /requires/);
   assert.match(await file('actions/remove.ts'), /concurrency: 'per-input'/);
   const clear = await file('actions/clear.ts');
-  assert.match(clear, /confirm: 'Remove all items\?'/);
-  assert.match(clear, /success: 'All items removed'/);
+  assert.match(clear, /confirm: 'Remove all entries\?'/);
+  assert.match(clear, /success: 'All entries removed'/);
   const open = await file('actions/open.ts');
   assert.match(
     open,
@@ -71,7 +84,8 @@ test('add plugin --example writes a service, its events, actions, a navigation l
   assert.match(page, /^'use client';/);
   assert.match(page, /import \{ Action, useServiceState \} from '@bitakit\/ui';/);
   assert.match(page, /export default function UserNotesPage\(\)/);
-  assert.match(page, /useServiceState\('user-notes\.items', \(state\) => state\.items/);
+  assert.match(page, /useServiceState\('user-notes\.list', \(state\) => state\.entries/);
+  assert.match(page, /aria-label="New entry"/);
   for (const id of ['add', 'remove', 'clear'])
     assert.match(page, new RegExp(`<Action id="user-notes\\.${id}"`));
   assert.doesNotMatch(page, /definePage/);
@@ -87,12 +101,37 @@ test('add plugin --minimal keeps the service, its events and one action', async 
   assert.deepEqual(relative(root, result.created), [
     'src/plugins/stats/actions/add.ts',
     'src/plugins/stats/events.ts',
-    'src/plugins/stats/services/items.ts',
+    'src/plugins/stats/services/list.ts',
   ]);
   assert.match(
     await read(root, 'src/plugins/stats/actions/add.ts'),
-    /services\.stats\.items\.add\(input\)/,
+    /services\.stats\.list\.add\(input\)/,
   );
+});
+
+test('the sample and the scaffolds name their data instead of using "items"', () => {
+  const sample = sampleFiles();
+  // Class names such as items-center are allowed; identifiers, paths and labels are not.
+  for (const [file, content] of Object.entries({ ...sample, ...pluginFiles('notes') }))
+    assert.doesNotMatch(`${file}\n${content}`, /(?<![\w-])items?(?![\w-])/i, file);
+  assert.match(
+    sample['todos/services/list.ts'],
+    /store<\{ todos: Todo\[\] \}>\(\{ todos: \[\] \}\)/,
+  );
+  assert.match(
+    sample['todos/actions/add.ts'],
+    /services\.todos\.list\.state\.get\(\)\.todos\.length/,
+  );
+  assert.match(
+    sample['todos/ui/pages/index.tsx'],
+    /useServiceState\('todos\.list', \(state\) => state\.todos, \[\]\)/,
+  );
+  // scripts/verify-generated.mjs drives the sample by these labels.
+  assert.match(sample['todos/ui/pages/index.tsx'], /aria-label="New todo"/);
+  assert.match(sample['todos/actions/clear.ts'], /title: 'Clear all'/);
+  assert.match(sample['activity/services/feed.ts'], /'Cleared the list'/);
+  // Without a known plugin the hint stays a placeholder instead of naming an example plugin.
+  assert.match(actionFile('archive'), /for example services\.<plugin>\.<name>\.<method>\(\)/);
 });
 
 test('add <kind> <plugin>/<name> derives files, IDs and page paths from nested names', async (t) => {
@@ -108,6 +147,11 @@ test('add <kind> <plugin>/<name> derives files, IDs and page paths from nested n
   assert.match(
     await read(root, action.files[0]),
     /export default defineAction\(\{\n  title: 'Invite',/,
+  );
+  // The hint names the plugin the action belongs to, not an example plugin.
+  assert.match(
+    await read(root, action.files[0]),
+    /for example services\.notes\.<name>\.<method>\(\)/,
   );
   const service = await created('service', 'notes/search');
   assert.equal(service.id, 'notes.search');
@@ -149,7 +193,7 @@ test('add <kind> <plugin>/<name> derives files, IDs and page paths from nested n
 test('add events writes events.ts once per plugin', async (t) => {
   const root = await project(
     nextApp({
-      'src/plugins/bare/services/items.ts': 'export default defineService(() => ({}));\n',
+      'src/plugins/bare/services/list.ts': 'export default defineService(() => ({}));\n',
     }),
     t,
   );
@@ -207,7 +251,7 @@ test('inside a plugin package, contributions go to src and take the package plug
         bitakit: { plugin: './plugin' },
         peerDependencies: { '@bitakit/core': '^0.2.0' },
       },
-      'src/services/items.ts': 'export default defineService(() => ({}));\n',
+      'src/services/list.ts': 'export default defineService(() => ({}));\n',
     },
     t,
   );
@@ -218,6 +262,7 @@ test('inside a plugin package, contributions go to src and take the package plug
   const action = await addContribution('action', 'archive', { cwd: root });
   assert.equal(action.id, 'notes.archive');
   assert.deepEqual(relative(root, action.created), ['src/actions/archive.ts']);
+  assert.match(await read(root, 'src/actions/archive.ts'), /for example services\.notes\.<name>/);
   const page = await addContribution('page', 'team/index', { cwd: root });
   assert.equal(page.path, '/notes/team');
   assert.deepEqual(relative(root, page.created), ['src/ui/pages/team/index.tsx']);
@@ -297,4 +342,161 @@ test('custom settings page scaffold retains canonical fields without duplicate r
     addContribution('settings-page', 'notes/nested', { cwd: root }),
     /once per plugin/,
   );
+});
+
+test('add test writes a headless test with a Shell stand-in that runs as generated', async (t) => {
+  const manifest = nextApp()['package.json'];
+  const root = await project(
+    nextApp({
+      'package.json': {
+        ...manifest,
+        type: 'module',
+        scripts: { ...manifest.scripts, test: 'node --test tests/*.test.ts' },
+        devDependencies: {
+          '@bitakit/discovery': '*',
+          jiti: '*',
+          typescript: '*',
+          '@types/node': '*',
+        },
+      },
+    }),
+    t,
+  );
+  await addPlugin('notes', { cwd: root, example: true });
+  const before = await read(root, 'package.json');
+  const result = await addContribution('test', 'notes', { cwd: root });
+  assert.equal(result.plugin, 'notes');
+  assert.deepEqual(relative(root, result.created), ['tests/notes.test.ts']);
+  assert.deepEqual(result.setup, []);
+  assert.equal(result.run, 'npm test');
+  assert.equal(await read(root, 'package.json'), before);
+  const source = await read(root, 'tests/notes.test.ts');
+  assert.match(source, /import \{ definePlugin, defineSlot \} from '@bitakit\/core';/);
+  assert.match(source, /slots: \{ navigation: defineSlot\(\{ accepts: 'actions' \}\) \},/);
+  assert.match(source, /await mountPlugin\('src\/plugins\/notes', \{ plugins: \[shell\] \}\);/);
+  assert.match(source, /assert\.equal\(plugin\.runtime\.isReady\(plugin\.id\), true\);/);
+  assert.match(source, /finally \{\n    await plugin\.stop\(\);/);
+  assert.doesNotMatch(source, /TODO/);
+
+  // The generated file runs unchanged against the real packages, not the stubbed manifest.
+  await rm(path.join(root, 'node_modules/@bitakit/core'), { recursive: true });
+  await link(root, '@bitakit/core', 'packages/core');
+  await link(root, '@bitakit/discovery', 'packages/discovery');
+  const env = { ...process.env };
+  // Without this, the nested runner reports to the outer one instead of printing its result.
+  delete env.NODE_TEST_CONTEXT;
+  const run = await promisify(execFile)(process.execPath, ['--test', 'tests/notes.test.ts'], {
+    cwd: root,
+    env,
+  }).catch((error) => error);
+  assert.equal(run.code ?? 0, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /pass 1/);
+
+  await assert.rejects(addContribution('test', 'notes', { cwd: root }), /already exists/);
+});
+
+test('add test lists the missing setup and mounts by ID outside a plugins directory', async (t) => {
+  const bare = await project(nextApp({ 'src/plugins/log/services/entries.ts': '' }), t);
+  const result = await addContribution('test', 'log', { cwd: bare });
+  assert.deepEqual(result.setup, [
+    'npm install --save-dev @bitakit/discovery jiti typescript @types/node',
+    'npm pkg set type=module',
+    'npm pkg set scripts.test="node --test tests/*.test.ts"',
+  ]);
+  assert.equal(result.run, 'npm test');
+  const source = await read(bare, 'tests/log.test.ts');
+  assert.match(source, /await mountPlugin\('src\/plugins\/log'\);/);
+  assert.doesNotMatch(source, /definePlugin|shell/);
+
+  const manifest = nextApp()['package.json'];
+  const features = await project(
+    nextApp({
+      'package.json': {
+        ...manifest,
+        type: 'module',
+        scripts: { ...manifest.scripts, test: 'vitest run' },
+        devDependencies: {
+          '@bitakit/discovery': '*',
+          jiti: '*',
+          typescript: '*',
+          '@types/node': '*',
+        },
+      },
+      'bitakit.config.ts': "export default { plugins: { directory: './src/features' } };\n",
+      'src/features/log/plugin.config.ts': "export default { id: 'journal' };\n",
+      'src/features/log/services/entries.ts': '',
+      'src/features/notes/services/entries.ts': '',
+    }),
+    t,
+  );
+  const configured = await addContribution('test', 'log', { cwd: features });
+  assert.equal(configured.id, 'journal');
+  assert.deepEqual(configured.setup, []);
+  // Another runner owns npm test, so the file is run directly.
+  assert.equal(configured.run, 'node --test tests/log.test.ts');
+  assert.match(
+    await read(features, 'tests/log.test.ts'),
+    /await mountPlugin\('src\/features\/log', \{ id: 'journal' \}\);/,
+  );
+  // Without plugin.config.ts the folder name is the ID; mountPlugin would use the package name.
+  await addContribution('test', 'notes', { cwd: features });
+  assert.match(
+    await read(features, 'tests/notes.test.ts'),
+    /await mountPlugin\('src\/features\/notes', \{ id: 'notes' \}\);/,
+  );
+
+  const npmInit = await project(
+    nextApp({
+      'package.json': {
+        ...manifest,
+        scripts: { test: 'echo "Error: no test specified" && exit 1' },
+      },
+      'src/plugins/log/services/entries.ts': '',
+    }),
+    t,
+  );
+  const fresh = await addContribution('test', 'log', { cwd: npmInit });
+  assert.ok(fresh.setup.includes('npm pkg set scripts.test="node --test tests/*.test.ts"'));
+});
+
+test('add test owns every Shell slot that Actions are placed in, and only those', async (t) => {
+  const root = await project(
+    nextApp({
+      'src/plugins/print/actions/open.ts':
+        "export default defineAction({ title: 'Print', href: '/print', slots: ['todos.toolbar'] });\n",
+      // A Shell slot listed after a placement that contains brackets is still found.
+      'src/plugins/print/actions/run.ts':
+        "export default defineAction({ title: 'Print now', requires: ['shell.appearance'], slots: [{ slot: 'shell.toolbar', input: () => ['a'] }, 'shell.navigation'] });\n",
+    }),
+    t,
+  );
+  await addContribution('test', 'print', { cwd: root });
+  const source = await read(root, 'tests/print.test.ts');
+  assert.match(
+    source,
+    /slots: \{\n    navigation: defineSlot\(\{ accepts: 'actions' \}\),\n    toolbar: defineSlot\(\{ accepts: 'actions' \}\),\n  \},/,
+  );
+  assert.doesNotMatch(source, /appearance|todos/);
+});
+
+test('add test rejects missing plugins, nested names and plugin packages without writing', async (t) => {
+  const root = await project(nextApp(), t);
+  await assert.rejects(
+    addContribution('test', 'notes', { cwd: root }),
+    /src[\\/]plugins[\\/]notes does not exist\. Create the plugin first, for example "bitakit add plugin notes"/,
+  );
+  assert.equal(await exists(path.join(root, 'tests')), false);
+  assert.equal(await exists(path.join(root, 'src/plugins/notes')), false);
+  await addPlugin('notes', { cwd: root, minimal: true });
+  await assert.rejects(
+    addContribution('test', 'notes/items', { cwd: root }),
+    /run "bitakit add test notes" without a further name/,
+  );
+  await assert.rejects(addContribution('test', undefined, { cwd: root }), /Name the plugin/);
+  await assert.rejects(addContribution('test', 'Bad', { cwd: root }), /Invalid plugin name/);
+  const pluginPackage = await project(
+    { 'package.json': { name: 'bitakit-notes', bitakit: { plugin: './plugin' } } },
+    t,
+  );
+  await assert.rejects(addContribution('test', 'notes', { cwd: pluginPackage }), /inside an app/);
 });

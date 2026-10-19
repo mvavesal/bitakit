@@ -15,6 +15,7 @@ The command groups below are independent examples; use a new plugin name when sc
 | Add one file to a feature              | `npx bitakit add action notes/archive` |
 | Write the generated files              | `npx bitakit generate`                 |
 | Find problems                          | `npx bitakit doctor`                   |
+| Check that a page renders              | `npx bitakit check-page /notes`        |
 
 ## Create a new app
 
@@ -22,7 +23,7 @@ The command groups below are independent examples; use a new plugin name when sc
 npx @bitakit/create-app my-app
 ```
 
-The generator asks which framework and extras you want, creates `my-app` and installs everything. It never overwrites an existing directory. Switches answer the questions up front:
+The generator asks which framework and extras you want, creates `my-app` and installs everything. It never overwrites an existing project or file. Switches answer the questions up front:
 
 | Switch               | What it does                                                                                                                |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -31,7 +32,7 @@ The generator asks which framework and extras you want, creates `my-app` and ins
 | `--sample`           | Adds the Todo sample: `todos` and an `activity` plugin that extends it; `--no-sample` leaves it out                         |
 | `--yes`              | Use the defaults for everything you did not set, without asking                                                             |
 | `--no-install`       | Write the files but do not run `npm install`                                                                                |
-| `--dry-run`          | Print what would be created and change nothing                                                                              |
+| `--dry-run`          | Print what would be created, and whether in an existing folder, and change nothing                                          |
 | `--plugin`           | Create a standalone plugin package with a playground app instead of an app                                                  |
 
 A minimal Next.js app, created without any questions:
@@ -52,6 +53,16 @@ A reusable plugin package with a playground app:
 npx @bitakit/create-app my-plugin --plugin
 ```
 
+### Create in the current folder
+
+A coding agent opens a folder before anything exists. Pass `.` so the app, its `AGENTS.md` and the agent skill land in that folder rather than in a subfolder the session does not see:
+
+```sh
+npx @bitakit/create-app . --yes
+```
+
+The folder may hold only version control, editor and agent files: `.git`, `.gitignore`, `.gitattributes`, `.editorconfig`, `.DS_Store`, `Thumbs.db`, `.idea`, `.vscode`, `.agents`, `.claude`, `.codex`, `.cursor`, `AGENTS.md`, `CLAUDE.md`, `LICENSE`, `skills-lock.json`. Anything else stops the command with a list of the unexpected entries. The package name comes from the folder name. Your files stay: `AGENTS.md` gains the framework and BitaKit rules once, `CLAUDE.md` gains the `@AGENTS.md` import, `.gitignore` gains the lines it lacks ahead of your own, so your patterns still win, agent folders are merged entry by entry and an existing skill folder is kept whole. Start a new agent session afterwards so it loads the new rules and skill. `--plugin` accepts `.` the same way.
+
 ## Add BitaKit to an existing app
 
 ```sh
@@ -71,7 +82,25 @@ Run it in the root of an existing Next.js or TanStack Start project. It wires th
 | `.agents/skills/bitakit-app-development/` | The app-development agent skill for Codex and most other agents |
 | `.claude/skills/bitakit-app-development/` | The same skill for Claude Code (`/bitakit-app-development`)     |
 
-`init` prints what it wrote (`+` new, `~` changed) and what it skipped. A skill folder that already exists in either place is preserved. A file that already has the wiring is left alone, so running it twice is safe. It does not install packages: it lists the missing ones (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui`, the adapter for your framework, and `@bitakit/cli` as a dev dependency for the `bitakit` command). Install them, then run `npx bitakit generate` and `npx bitakit doctor`.
+`init` prints what it wrote (`+` new, `~` changed) and what it skipped. A skill folder that already exists in either place is preserved unless you ask for an update ([below](#keep-agent-files-current)). A file that already has the wiring is left alone, so running it twice is safe. It does not install packages: it lists the missing ones (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui`, the adapter for your framework, and `@bitakit/cli` as a dev dependency for the `bitakit` command). Install them, then run `npx bitakit generate` and `npx bitakit doctor`.
+
+### Keep agent files current
+
+After upgrading the BitaKit packages, refresh the agent files:
+
+```sh
+npx bitakit init --update-agent-files
+```
+
+| Found                                  | What happens                                                    |
+| -------------------------------------- | --------------------------------------------------------------- |
+| A missing skill copy                   | Installed                                                       |
+| A copy equal to this version's skill   | Reported as up to date                                          |
+| An unedited copy from an older version | The whole folder is replaced; reported as `updated from <old>`  |
+| A copy you edited                      | Kept; delete its folder and run again to take the new version   |
+| The BitaKit block in `AGENTS.md`       | Replaced with the current rules; text outside the block is kept |
+
+The installed `SKILL.md` records the version and a checksum of its files in its frontmatter `metadata`, which is how `init` tells an unedited copy from an edited one. Keep your own rules above or below the BitaKit block in `AGENTS.md`; the block belongs to BitaKit. `npx bitakit doctor` warns when a copy is missing or older than the installed CLI, when the two copies differ, or when the block differs from the current rules.
 
 ## Add a feature or a file
 
@@ -81,7 +110,7 @@ A feature is a plugin. This creates `src/plugins/notes/` with a page at `/notes`
 npx bitakit add plugin notes
 ```
 
-`--example` writes a complete feature instead (a service, typed events, Actions and a page); `--minimal` writes only a service, its events and one Action. To grow the plugin, add one file at a time. A missing plugin folder is created by its first file. These two give it an `archive` action and a page at `/notes/archive`:
+`--example` writes a complete feature instead (the service `notes.list` in `services/list.ts`, typed events, Actions and a page); `--minimal` writes only that service, its events and one Action. To grow the plugin, add one file at a time. A missing plugin folder is created by its first file. These two give it an `archive` action and a page at `/notes/archive`:
 
 ```sh
 npx bitakit add action notes/archive
@@ -114,6 +143,15 @@ The `--example` and `--minimal` templates already declare events; do not add tha
 | `events`          | `<plugin>`        | `events.ts`               | Typed events `<plugin>.<event>`                        |
 | `settings`        | `<plugin>`        | `settings.ts`             | User settings and a generated settings page            |
 | `layout`          | `<name>`          | `src/layouts/<name>.tsx`  | An app layout; pages opt in with `export const layout` |
+| `test`            | `<plugin>`        | `tests/<plugin>.test.ts`  | A headless test at the app root that mounts the plugin |
+
+In an app, `add test` writes a headless test for an existing plugin at the app root:
+
+```sh
+npx bitakit add test notes
+```
+
+`tests/notes.test.ts` mounts `src/plugins/notes` with `mountPlugin`, checks that the plugin starts, then stops it. When the plugin places Actions in `shell.*` slots, the file includes a stand-in for Shell. The command then prints what the app still needs to run the test, as commands: the missing dev dependencies, `"type": "module"` and a `test` script. It never changes `package.json`. Extend the file with the behavior you want to keep, as [Testing plugins](/docs/reference/testing) shows.
 
 ## Generate, check and migrate
 
@@ -131,11 +169,52 @@ You rarely run `generate` yourself: the framework adapters run it during `dev` a
 | `npx bitakit generate` | Writes `src/bitakit.gen.*` from your plugin folders                                                                                                                                                                                             | `--watch` keeps regenerating       |
 | `npx bitakit doctor`   | Reports wiring problems with a fix for each; exit code 1 when something is wrong                                                                                                                                                                | `--json` for CI                    |
 | `npx bitakit info`     | Lists every plugin with the IDs you type: Actions, services, page URLs, events, settings and slots                                                                                                                                              | `--json`                           |
+| `npx bitakit slots`    | Lists every slot you can fill, including those of installed packages, with its owner, what it accepts and what your files already put there                                                                                                     | `--json`                           |
 | `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout and API spellings: setup `{ scope }`, placement `slot`, `attach({ slot })`, `Foundation*` → `BitaKit*` (also in root config files), and Core names imported from `@bitakit/ui` move to `@bitakit/core` | `--dry-run` only lists the changes |
 
 Moving from 0.1? [Upgrade from 0.1](/docs/upgrade) walks through `migrate` and the few steps it leaves to you.
 
-`doctor` checks package versions, provider wiring, ignored generated files, pages and links no route reaches, colliding service names, `requires` entries that name nothing, plugin dependency cycles, slot files that target no layout and missing package styles.
+`doctor` checks package versions, provider wiring, ignored generated files, pages and links no route reaches, colliding service names, `requires` entries that name nothing, plugin dependency cycles, slot files that target no layout, missing package styles and agent files that are out of sync.
+
+## Check a page without a browser
+
+Plugin pages and slots render only in the browser, so an HTTP 200 proves nothing. While the dev server runs, `check-page` opens a page in headless Chromium and reports what rendered and every error. It is meant for coding agents and CI jobs that have no browser:
+
+```sh
+npx bitakit check-page /notes
+```
+
+A path resolves against `--base-url` (default `http://localhost:3000`); a full `http://` URL works too. The command waits for the network to go idle and for the BitaKit runtime to finish starting, then reports:
+
+| Field                                 | What it tells you                                                                                                          |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Status, final URL, title              | The HTTP status of the page and where redirects ended                                                                      |
+| Headings, main text                   | The h1–h3 headings and a short excerpt of `<main>`, as rendered after startup                                              |
+| Runtime                               | `ready`, `failed`, `starting` (not ready before the timeout) or not found (no BitaKit provider)                            |
+| BitaKit errors                        | The `[bitakit]` console errors: startup failures, for example a plugin turned off in development, and other runtime errors |
+| Console errors, page errors, warnings | What the browser console and uncaught exceptions showed                                                                    |
+| Failed requests                       | Same-origin requests that answered 400 or above, or did not complete                                                       |
+
+| Switch                | What it does                                                    |
+| --------------------- | --------------------------------------------------------------- |
+| `--json`              | Prints the report as `{ "version": 1, ... }`                    |
+| `--screenshot <file>` | Also saves a full-page PNG                                      |
+| `--timeout <ms>`      | Time for loading and runtime startup together (default `30000`) |
+| `--base-url <url>`    | Where a path is resolved                                        |
+
+The exit code is 1 when any error was seen (warnings do not count) and 0 otherwise. An unknown path still answers 200 with the "Page not found" state of the catch-all route, so read the headings as well as the exit code.
+
+`check-page` uses the Playwright that your project installs (`playwright` or `@playwright/test`) and never installs anything itself. Without it, the command exits with 2 and prints the commands to run:
+
+```sh
+npm install --save-dev playwright
+npx playwright install chromium
+```
+
+On Linux (containers, CI) install Chromium with its system libraries:
+`npx playwright install --with-deps chromium`. A browser that cannot start also exits with 2.
+
+The runtime state comes from `<html data-bitakit-runtime>`, which `@bitakit/ui` sets after hydration (`starting`, then `ready` or `failed`); browser tests can wait for the same attribute.
 
 ## Build a plugin package
 
@@ -157,6 +236,23 @@ The version-1 snapshot has `static.plugins` and `live: null`: the CLI inspects s
 not a running application. Each declaration carries the ID it declares (`notes.add`, `/notes`,
 `notes.added`), read from the file without running it; a file it cannot read statically keeps
 `id: null` and `resolution: "file"`. See [runtime inspection](/docs/concepts/runtime-management#shared-inspection-schema).
+
+To find where something can go, list the slots:
+
+```sh
+npx bitakit slots
+```
+
+It groups every slot by owner (your plugins, then installed packages such as Shell and App
+Preferences) and prints one line per slot: its ID, what it `accepts` (`actions`, `component` or
+`data`) and how many contributions your files add. `npx bitakit slots --json` prints
+`{ version: 1, slots, unresolved, unknownTargets }`; each slot has `owner`, `plugin`, `accepts`,
+`policy`, `payload` and `payloadKeys`, the declaring `source` file of a local slot, and its
+`contributions`: `ui/slots` components and Actions whose `slots` list names it. `unknownTargets`
+lists contributions to a slot nobody declares, such as a misspelled name; they render nowhere.
+Like `info`, it reads files without running them. A value the files do not state literally is
+`null`, for example the payload of a package slot, and packages attach their own contributions at
+runtime.
 
 To migrate old navigation group placement, choose the target explicitly:
 

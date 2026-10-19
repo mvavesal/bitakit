@@ -2,11 +2,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
 import {
-  agentRules,
   agentRulesBegin,
   claudeFileFor,
-  writeAppDevelopmentSkills,
+  projectAgentRules,
+  refreshAgentRules,
 } from './agent-rules.mjs';
+import { cliVersion, writeAppDevelopmentSkills } from './agent-skill.mjs';
 import { exists, findProject } from './project.mjs';
 import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
 
@@ -126,11 +127,14 @@ function wrapLayout(source, fileName, specifier, framework) {
  * Vite plugin, the provider in the root layout, the catch-all route for plugin pages, the
  * `.gitignore` entry and the agent rules in `AGENTS.md` (the same block create-app writes), which
  * `CLAUDE.md` imports.
- * Files that already carry the wiring are never touched.
- * Returns `written` (absolute paths; `created` is false for an edited file), `skipped` with the
- * reason for each, and the BitaKit packages the app still has to install.
+ * Files that already carry the wiring are never touched. With `updateAgentFiles`, the BitaKit
+ * block of `AGENTS.md` is replaced with the current rules and unedited skill copies are updated
+ * (see `writeAppDevelopmentSkills`); edited copies are kept.
+ * Returns `written` (absolute paths; `created` is false for an edited file; `note` says what an
+ * update changed), `skipped` with the reason for each, and the BitaKit packages the app still has
+ * to install.
  */
-export async function initProject({ cwd } = {}) {
+export async function initProject({ cwd, updateAgentFiles = false } = {}) {
   const project = await findProject(cwd);
   if (project.kind !== 'app') throw new Error('Run "bitakit init" inside an app.');
   if (!project.framework)
@@ -144,10 +148,10 @@ export async function initProject({ cwd } = {}) {
   const first = async (files) => {
     for (const file of files) if (await exists(file)) return file;
   };
-  const put = async (file, content, created = false) => {
+  const put = async (file, content, created = false, note) => {
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, content);
-    written.push({ file, created });
+    written.push(note ? { file, created, note } : { file, created });
   };
   const skip = (file, reason) => skipped.push({ file, reason });
 
@@ -233,23 +237,26 @@ export async function initProject({ cwd } = {}) {
     );
 
   const dependencies = { ...project.manifest.dependencies, ...project.manifest.devDependencies };
-  const agents = await read(at('AGENTS.md'));
-  if (agents?.includes(agentRulesBegin)) skip(at('AGENTS.md'), 'already has the BitaKit rules');
-  else {
-    // The framework's own route folder: src/app or app for Next.js, src/routes for TanStack Start.
-    const routes =
-      project.framework === 'next'
-        ? (await exists(at('src/app')))
-          ? 'src/app'
-          : 'app'
-        : 'src/routes';
-    const rules = agentRules({ routes, shell: Boolean(dependencies['@bitakit/shell']) });
+  const agentsFile = at('AGENTS.md');
+  const agents = await read(agentsFile);
+  const rules = await projectAgentRules(project);
+  const refreshed = refreshAgentRules(agents, rules);
+  if (!agents?.includes(agentRulesBegin))
     await put(
-      at('AGENTS.md'),
+      agentsFile,
       agents === undefined ? rules : `${agents.trimEnd()}\n\n${rules}`,
       agents === undefined,
     );
-  }
+  else if (refreshed === agents)
+    skip(
+      agentsFile,
+      updateAgentFiles ? 'the BitaKit rules are up to date' : 'already has the BitaKit rules',
+    );
+  else if (refreshed === undefined)
+    skip(agentsFile, 'the BitaKit block has no end marker; restore it by hand');
+  else if (!updateAgentFiles)
+    skip(agentsFile, 'already has the BitaKit rules; --update-agent-files refreshes them');
+  else await put(agentsFile, refreshed, false, 'refreshed the BitaKit rules');
   // Claude Code loads CLAUDE.md, so it imports the rules; an existing file only gets the import line.
   const claudeFile = at('CLAUDE.md');
   const claude = await read(claudeFile);
@@ -257,9 +264,20 @@ export async function initProject({ cwd } = {}) {
   if (claudeNext === claude) skip(claudeFile, 'already imports AGENTS.md');
   else await put(claudeFile, claudeNext, claude === undefined);
 
-  for (const skill of await writeAppDevelopmentSkills(project.root)) {
-    if (skill.created) written.push({ file: skill.file, created: true });
-    else skip(skill.file, 'already exists; preserved');
+  for (const skill of await writeAppDevelopmentSkills(project.root, {
+    update: updateAgentFiles,
+  })) {
+    if (skill.change === 'installed') written.push({ file: skill.file, created: true });
+    else if (skill.change)
+      written.push({
+        file: skill.file,
+        created: false,
+        note:
+          skill.change === 'updated'
+            ? `updated from ${skill.version}`
+            : `up to date; stamped with ${cliVersion}`,
+      });
+    else skip(skill.file, skillReason(skill, updateAgentFiles));
   }
 
   const install = [
@@ -272,4 +290,16 @@ export async function initProject({ cwd } = {}) {
   // one-off `npx @bitakit/cli init` does not install it.
   const installDev = ['@bitakit/cli'].filter((name) => !dependencies[name]);
   return { project, written, skipped, install, installDev };
+}
+
+/** Why `init` left an existing skill copy alone. */
+function skillReason(skill, update) {
+  if (!update)
+    return skill.state === 'outdated'
+      ? `already exists; preserved; --update-agent-files updates it from ${skill.version} to ${cliVersion}`
+      : 'already exists; preserved';
+  if (skill.state === 'current') return 'up to date';
+  if (skill.state === 'newer')
+    return `from @bitakit/cli ${skill.version}, newer than this CLI; kept`;
+  return `edited locally; kept. Delete its folder and run again to get ${cliVersion}`;
 }

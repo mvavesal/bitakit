@@ -255,7 +255,7 @@ function ActionRow({ id, runtime }: { id: string; runtime: BitaKitRuntime }) {
 }
 
 function Services({ module, runtime }: { module: InventoryPlugin; runtime: BitaKitRuntime }) {
-  // Services form a tree: `todos.items` lives at services.todos.items.
+  // Services form a tree: `todos.list` lives at services.todos.list.
   const services = new Proxy({} as Record<string, unknown>, {
     get: (_target, id) =>
       typeof id === 'string'

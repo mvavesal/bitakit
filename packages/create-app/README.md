@@ -45,9 +45,19 @@ the minimal app above needs no additional options.
 | `--plugin`                   | Create a standalone plugin package with a playground app instead of an app.                                                   |
 | `-y, --yes`                  | Use the defaults without prompts.                                                                                             |
 | `--no-install`               | Write the files without installing dependencies.                                                                              |
-| `--dry-run`                  | Print the resolved plan without writing anything.                                                                             |
+| `--dry-run`                  | Print the resolved plan without writing anything, including whether it uses an existing folder.                               |
 
-Features bring their prerequisites: Shell adds App Preferences, and Quick Search adds Shell. The generator never overwrites an existing directory. If installing fails, the generated files stay for inspection and the command exits with an error.
+Features bring their prerequisites: Shell adds App Preferences, and Quick Search adds Shell. The generator never overwrites an existing project or file. If installing fails, the generated files stay for inspection and the command exits with an error.
+
+## Create in the folder you already have open
+
+```sh
+npx @bitakit/create-app . --yes
+```
+
+A coding agent such as Codex or Claude Code opens a folder first. Pass `.` (or any existing folder) to create the app there, so its `AGENTS.md` and skill land in the folder the session works in. The folder may hold only `.git`, `.gitignore`, `.gitattributes`, `.editorconfig`, `.DS_Store`, `Thumbs.db`, `.idea`, `.vscode`, `.agents`, `.claude`, `.codex`, `.cursor`, `AGENTS.md`, `CLAUDE.md`, `LICENSE` and `skills-lock.json`; anything else, such as a `package.json`, stops the command with a list of the unexpected entries. The package name comes from the folder name.
+
+The project is generated in a temporary folder (next to it, or inside it when the parent folder is not writable) and then moved in without replacing your files: `AGENTS.md` gains the framework and BitaKit rules (each block once), `CLAUDE.md` gains the `@AGENTS.md` import (when one links to the other, that single file gets the rules), `.gitignore` gains the lines it lacks ahead of your own, so your patterns such as `!.env.example` still win, and agent folders are merged entry by entry. An existing `bitakit-app-development` skill folder is kept whole. Any other generated file you already have is left as yours, and the command names it. A running agent session may not list the new skill; start a new session in the folder.
 
 ## What you get
 
@@ -65,7 +75,7 @@ The generator does not create a backend, authentication, a database or email; th
 npx @bitakit/create-app my-plugin --plugin
 ```
 
-This creates a package with the same folders as a plugin inside an app (`src/services`, `src/actions`, `src/events.ts`, `src/ui/pages`), a headless test with `mountPlugin`, and a `playground/` app that discovers the plugin source with hot reload and shows the Inspector. `npm run dev` starts the playground, `npm test` runs the tests, `npm run typecheck` checks the types, and `npm run build` runs `bitakit build` to produce `dist/plugin.js`, the entry apps discover through `bitakit.plugin` in `package.json`.
+This creates a package with the same folders as a plugin inside an app (`src/services`, `src/actions`, `src/events.ts`, `src/ui/pages`), a headless test with `mountPlugin`, and a `playground/` app that discovers the plugin source with hot reload and shows the Inspector. `npm run dev` starts the playground, `npm test` runs the tests, `npm run typecheck` checks the types, and `npm run build` runs `bitakit build` to produce `dist/plugin.js`, the entry apps discover through `bitakit.plugin` in `package.json`. `--plugin` accepts `.` under the same rules as an app.
 
 ## Contributing
 

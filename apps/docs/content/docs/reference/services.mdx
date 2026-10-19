@@ -49,12 +49,12 @@ Core creates one instance per runtime, in dependency order, makes it available t
 
 ```ts
 export default defineService(({ store, onStart, onStop }) => {
-  const state = store<{ items: Task[] }>({ items: [] });
+  const state = store<{ todos: Todo[] }>({ todos: [] });
   onStart(async ({ signal }) => {
-    const response = await fetch('/api/tasks', { signal });
-    state.set({ items: await response.json() });
+    const response = await fetch('/api/todos', { signal });
+    state.set({ todos: await response.json() });
   });
-  onStop(() => state.set({ items: [] }));
+  onStop(() => state.set({ todos: [] }));
   return { state };
 });
 ```

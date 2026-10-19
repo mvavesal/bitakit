@@ -32,7 +32,7 @@ This is the complete reference of what discovery reads. Every entry is optional;
 
 ```text
 src/plugins/todos/
-├── services/items.ts         defineService   → services.todos.items
+├── services/list.ts          defineService   → services.todos.list
 ├── actions/add.ts            defineAction    → todos.add
 ├── events.ts                 defineEvents    → todos.changed
 ├── settings.ts               defineSettings  → settings.todos.pageSize (generated settings page)
@@ -50,7 +50,7 @@ src/plugins/todos/
     └── providers/query.tsx   React provider wrapped around the app
 ```
 
-Every immediate folder under `src/plugins` is a plugin; its folder name is the plugin ID. The kind comes from the folder, the name from the file path, and nested folders add segments (`actions/tasks/clear.ts` → `todos.tasks.clear`).
+Every immediate folder under `src/plugins` is a plugin; its folder name is the plugin ID. The kind comes from the folder, the name from the file path, and nested folders add segments (`actions/bulk/archive.ts` → `todos.bulk.archive`).
 
 A small plugin can keep one file per kind instead of a folder. `actions.ts` exporting a record declares one Action per key, with the same IDs the folder would give:
 
@@ -78,13 +78,13 @@ A TypeScript or TSX file participates when it has a default export; discovery de
 | File                       | Meaning                                                                   |
 | -------------------------- | ------------------------------------------------------------------------- |
 | `actions/add.ts`           | Action `todos.add`                                                        |
-| `services/items.ts`        | Service `todos.items`, reached as `services.todos.items`                  |
+| `services/list.ts`         | Service `todos.list`, reached as `services.todos.list`                    |
 | `events.ts`                | The plugin's events, `todos.<name>`                                       |
 | `settings.ts`              | The plugin's settings, `todos.<name>`, shown on a generated settings page |
 | `ui/settings/page.tsx`     | Replaces the generated settings page of the plugin                        |
 | `configs/limits.ts`        | Config subtree `limits`; `configs/actions/add.ts` configures `todos.add`  |
 | `interceptors/audit.ts`    | Interceptor, plugin-local by default                                      |
-| `ui/pages/tasks/[id].tsx`  | Page `/todos/tasks/:id`, receives `params.id`                             |
+| `ui/pages/[id].tsx`        | Page `/todos/:id`, receives `params.id`                                   |
 | `ui/slots/app-bar.end.tsx` | Component in slot `app-bar.end`                                           |
 | `ui/providers/query.tsx`   | React provider `todos.query`                                              |
 

@@ -97,7 +97,7 @@ This is the Todo sample that `create-app --sample` writes:
 ```text
 src/plugins/
 ├── todos/                         the owner
-│   ├── services/items.ts          the list and its methods
+│   ├── services/list.ts           the list and its methods
 │   ├── actions/add.ts             what users can do: "todos.add"
 │   ├── events.ts                  "todos.changed" for other features
 │   ├── slots/footer.ts            "todos.footer", a place other features can extend

@@ -4,6 +4,23 @@ Use this when one plugin should show something inside another plugin's page or i
 Shell (header, sidebar, toolbar). The owner declares and renders a named slot; other plugins
 fill it from their own folder.
 
+## Find a slot
+
+Look for an existing slot before declaring one. `npx bitakit slots` lists every slot the app can
+fill, grouped by owner (the app's plugins, then installed packages such as Shell), with what it
+accepts and how many contributions the app's files already add. `npx bitakit slots --json` adds:
+
+- `payload` and `payloadKeys`: the context each outlet passes, for example `["todoId"]`.
+- `source`: the file that declares a local slot.
+- `contributions`: the `ui/slots` components and the Actions whose `slots` list name it.
+- `unknownTargets`: contributions whose slot nobody declares. They render nowhere; fix the name or
+  declare the slot.
+
+Match `accepts`: an Action for `actions`, a `ui/slots` component for `component`. `null` means
+the command cannot read it from the files, for example the payload of a package slot; the Shell
+table below and the package's README (`@bitakit/shell`, `@bitakit/app-preferences`) list those
+payloads. Packages add their own contributions at runtime.
+
 ## Declare a slot
 
 `npx bitakit add slot-definition todos/toolbar` creates `src/plugins/todos/slots/toolbar.ts`.
@@ -68,7 +85,7 @@ import { useServiceState } from '@bitakit/ui';
 
 export default function TodoCount() {
   // The fallback keeps the header stable while todos starts or when it is not installed.
-  const count = useServiceState('todos.items', (state) => state.items.length, 0);
+  const count = useServiceState('todos.list', (state) => state.todos.length, 0);
   return <span className="text-sm text-muted-foreground">{count} todos</span>;
 }
 ```
@@ -137,8 +154,8 @@ The Shell layout is the `shell.layout` setting (`sidebar` or `navbar`).
   `invalid-payload` or `binding-error`. `excluded` lists each skipped entry with its `id`,
   `plugin` and `reason` (`key`, `condition`, `action-hidden` or `action-unavailable`).
 - Run `npx bitakit doctor`: it warns when a `ui/slots` file targets a slot nobody declares.
-- Use only declared names: the Shell table above, `slots/` folders, or package slots. When no
-  outlet exists where the user wants content, the owning plugin declares a slot and renders it.
+- Use only declared names: `npx bitakit slots` lists them. When no outlet exists where the user
+  wants content, the owning plugin declares a slot and renders it.
 
 ## Explain it to the user
 
