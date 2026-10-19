@@ -60,8 +60,8 @@ npx @bitakit/create-app@latest <directory> --framework next --features <list|non
 Do this once per session, before the first change:
 
 1. Read `package.json`: the framework (`next` or `@tanstack/react-start`), the scripts and the
-   installed `@bitakit/*` versions. All BitaKit packages should share one version; if they do not,
-   say so and follow what is installed. Note the optional features: `@bitakit/shell` (the
+   installed `@bitakit/*` versions. All BitaKit packages should be on one release line (0.2.x;
+   patch versions may differ); if they are not, say so and follow what is installed. Note the optional features: `@bitakit/shell` (the
    sidebar/navbar frame), `@bitakit/app-preferences` (Settings pages), `@bitakit/quick-search`.
 2. Run `npx bitakit info --json` for the IDs the app's own plugins declare (Actions, services,
    pages, events, settings, slots). Run `npx bitakit slots` for every slot you can fill, including

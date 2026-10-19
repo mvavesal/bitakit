@@ -165,7 +165,7 @@ Every kind of change has exactly one place, so a person and a coding agent find 
 
 The lessons grow the same Counter. You have a working feature after step 4; the rest can wait.
 Working with a coding agent? [Work with AI coding agents](apps/docs/content/docs/guides/ai-agents.mdx).
-They describe the **0.2 API**; keep all BitaKit packages on the same version.
+They describe the **0.2 API**; keep all BitaKit packages on the same release line (0.2.x).
 Coming from 0.1? [Upgrade from 0.1](apps/docs/content/docs/upgrade.mdx) runs `npx bitakit migrate`.
 
 ## Read the documentation locally
