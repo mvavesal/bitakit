@@ -38,10 +38,41 @@ in new apps; `npx @bitakit/create-app .` creates the app in a folder that holds 
 agent files, so the skill lands where an open agent session works. See the [skill README](skills/bitakit-app-development/README.md) for how to use it
 and requests to try.
 
+## Update BitaKit
+
+Keep every `@bitakit/*` package on one release line (0.2.x, then 0.3.x). Only packages whose
+shipped content changed get a patch release, so patch versions may differ within a line; `doctor`
+accepts that and reports packages on different lines as an error.
+
+Within a line, `npm update` installs the newest patches the caret ranges allow. Name the
+`@bitakit/*` packages your `package.json` lists (plain `npm update` updates every dependency):
+
+```sh
+npm update @bitakit/core @bitakit/ui @bitakit/next @bitakit/cli @bitakit/discovery
+```
+
+`package.json` keeps its ranges; `package-lock.json` records the new versions.
+
+A new line is outside those ranges. Install all `@bitakit/*` packages at it in one command, here
+0.3; each keeps its place in `dependencies` or `devDependencies`:
+
+```sh
+npm install @bitakit/core@0.3 @bitakit/ui@0.3 @bitakit/next@0.3 @bitakit/cli@0.3 @bitakit/discovery@0.3
+```
+
+Do not move one package alone (for example `npm install --save-dev @bitakit/cli@latest`): once a
+new line is out, that splits the app across two lines. Follow the new line's upgrade guide when
+it has one, then refresh the agent files and check the project:
+
+```sh
+npx bitakit init --update-agent-files
+npx bitakit doctor
+```
+
 ### Keep agent files current
 
 The installed `SKILL.md` records the CLI version and a checksum of the files as shipped in its
-frontmatter `metadata`. After upgrading the BitaKit packages, run:
+frontmatter `metadata`. After updating the BitaKit packages, run:
 
 ```sh
 npx bitakit init --update-agent-files

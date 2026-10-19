@@ -33,10 +33,8 @@ connects. The skill is written to two folders, ready to commit:
 | `.agents/skills/bitakit-app-development/` | Codex, and also Cursor, GitHub Copilot, Gemini CLI, OpenCode |
 | `.claude/skills/bitakit-app-development/` | Claude Code                                                  |
 
-A skill folder you edited is never overwritten, so a team can adapt its copy. After upgrading
-BitaKit, `npx bitakit init --update-agent-files` replaces unedited copies and the BitaKit block of
-`AGENTS.md`; `npx bitakit doctor` tells you when they are out of date
-([Keep agent files current](/docs/cli#keep-agent-files-current)).
+A skill folder you edited is never overwritten, so a team can adapt its copy. The skill ships
+with `@bitakit/cli`, so it changes when you [update BitaKit](#update-bitakit).
 
 ### Use the skill
 
@@ -52,6 +50,33 @@ type `/` and pick the skill. Agents also load the skill on their own when a requ
 naming it is the reliable way. The request above works in an app created with `--sample`; the
 [skill's README](https://github.com/mvavesal/bitakit/blob/main/packages/cli/skills/bitakit-app-development/README.md)
 lists more requests that build on that sample, one building block at a time.
+
+### Update BitaKit
+
+A new skill version reaches the app in two steps: update the packages, then refresh the agent
+files. Keep every `@bitakit/*` package on one release line (0.2.x); patch versions may differ
+within it.
+
+Within the line, update the `@bitakit/*` packages your `package.json` lists:
+
+```sh
+npm update @bitakit/core @bitakit/ui @bitakit/next @bitakit/cli @bitakit/discovery
+```
+
+For a new line, install all of them at it in one command, for example
+`npm install @bitakit/core@0.3 @bitakit/ui@0.3 @bitakit/next@0.3 @bitakit/cli@0.3 @bitakit/discovery@0.3`,
+never the CLI alone. Then, in both cases:
+
+```sh
+npx bitakit init --update-agent-files
+npx bitakit doctor
+```
+
+The first command replaces unedited skill copies and the BitaKit block of `AGENTS.md`; doctor
+reports copies that are still out of date or packages on different lines. Start a new agent
+session afterwards so it loads the new rules and skill. [Update BitaKit](/docs/cli#update-bitakit)
+has the details, and [Keep agent files current](/docs/cli#keep-agent-files-current) what happens
+to each file.
 
 ## What the agent can run
 
