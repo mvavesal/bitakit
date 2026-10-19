@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/next-intl",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "bitakit": {
     "plugin": "./plugin"
@@ -32,7 +32,7 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.1"
+    "@bitakit/core": "^0.2.2"
   },
   "peerDependencies": {
     "react": "^18.3.0 || ^19.0.0",

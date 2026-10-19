@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/devtools",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Developer tools for BitaKit apps: a live inspector for plugins.",
   "type": "module",
   "sideEffects": [
@@ -28,8 +28,8 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.1",
-    "@bitakit/ui": "^0.2.1",
+    "@bitakit/core": "^0.2.2",
+    "@bitakit/ui": "^0.2.2",
     "cn": "^0.3.0"
   },
   "peerDependencies": {

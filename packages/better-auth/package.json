@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/better-auth",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "bitakit": {
     "plugin": "./plugin",
@@ -39,20 +39,20 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.1",
+    "@bitakit/core": "^0.2.2",
     "@better-auth/api-key": "^1.7.5"
   },
   "peerDependencies": {
     "better-auth": "^1.7.5",
     "react": "^19.0.0",
-    "@bitakit/organizations": "^0.2.1",
-    "@bitakit/email": "^0.2.1"
+    "@bitakit/organizations": "^0.2.2",
+    "@bitakit/email": "^0.2.2"
   },
   "devDependencies": {
     "typescript": "^5",
     "@types/react": "^19",
-    "@bitakit/organizations": "^0.2.1",
-    "@bitakit/email": "^0.2.1"
+    "@bitakit/organizations": "^0.2.2",
+    "@bitakit/email": "^0.2.2"
   },
   "peerDependenciesMeta": {
     "better-auth": {
