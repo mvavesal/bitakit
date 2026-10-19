@@ -40,7 +40,7 @@ in a package, not in the app.
 
 ## Component organization
 
-- Group feature components under `apps/web/src/components/<feature>`: organizations in `organizations`, authentication in `auth`, shared page shells in `layout`, navigation renderers in `navigation`, and reusable primitives in `ui`. Avoid adding feature components directly to the components root.
+- In an app, group feature components under `src/components/<feature>`: organizations in `organizations`, authentication in `auth`, shared page shells in `layout`, navigation renderers in `navigation`, and reusable primitives in `ui`. Avoid adding feature components directly to the components root.
 - Settings-specific content stays with its section under `src/settings/sections`; reusable settings shells stay under `components/settings/base`. Prefer direct imports and keep the folder structure shallow.
 
 ## Standardlösungen vor Eigenentwicklung
@@ -53,7 +53,7 @@ in a package, not in the app.
 
 - Verbindlich: Immer vorhandene zentrale UI-Komponenten und die zentralen Theme-Vorgaben verwenden. Karten, Rahmen, Radius, Abstände und Typografie dürfen keine lokalen/custom Stilabweichungen erhalten. Eigene visuelle Anpassungen nur auf ausdrücklichen Nutzerauftrag; autorisierte Anpassungen möglichst zentral umsetzen. Wenn die zentralen Komponenten nicht ausreichen, keine selbst erfundene visuelle Sonderlösung stillschweigend hinzufügen, sondern die konkrete Lücke benennen. Die Wiederverwendung vorhandener Komponenten erfordert keine erneute Bestätigung.
 
-- Use the official **Radix Vega** component sizes, spacing and typography as the base (`apps/web/components.json`: `radix-vega`). Prefer built-in `default`, `sm`, `lg`, `icon` variants over custom dimensions.
+- Use the official **Radix Vega** component sizes, spacing and typography as the base (shadcn style `radix-vega`). Prefer built-in `default`, `sm`, `lg`, `icon` variants over custom dimensions.
 - Preserve the intentional theme changes when updating registry components: central radius 0.875rem, XL Squircle surfaces and buttons, Medium round text inputs, XL round badges, functional circle exceptions, Reicon Outline and persistent light/dark theme.
 - Inspect registry changes with the shadcn CLI dry-run/diff and merge them; do not replace customized components blindly. README records the current base and deviations.
 
@@ -62,7 +62,6 @@ in a package, not in the app.
 - Settings are declared once per plugin in `settings.ts` with `defineSettings({ name: setting({ default, schema?, scope?, control?, options? }) }, { title, category, order, path, shortcut })`; keys are `<plugin>.<name>` (plain names for the app). Core's runtime store is the only owner of confirmed values; read and write through `settings.<plugin>.<name>` in services and actions and `useSetting(key)` in React. No second value store, section registry, renderer registry or forwarding action (`theme.set`, `locale.set`).
 - Persistence is the `settings.storage` contract (browser storage by default; one host service with `provides: settingsStorage` for a server). Server storage re-reads the trusted `settings.ts` files and applies its own access rules; client declarations grant no persistence access. Identity follows the `auth` contract.
 - `@bitakit/app-preferences` renders a generated page per plugin under `/settings` (`SettingsRoute`, `SettingsShell`, `SettingField`, controls) and projects pages into URL actions; `ui/settings/page.tsx` replaces a plugin's page. Shell owns appearance settings (`shell.mode`, `shell.layout`, `shell.preset`, `shell.density`, `shell.corners`, `shell.toasts`) and applies them to `<html>`; theme presets are CSS under `[data-theme-preset="<id>"]`.
-- The sample apps (`apps/web`, `apps/content-demo`) still carry their pre-Phase-4 settings catalog and are rebuilt later (tracked in the private plan); do not extend that catalog.
 
 ## Authentication and organizations
 
@@ -86,7 +85,7 @@ in a package, not in the app.
 
 ## Localization
 
-- UI translations live in `apps/web/locales/en.json` and `de.json`, organized by feature namespaces. Use next-intl for client/server translations and locale-aware formatting; keep matching keys in both catalogs. Plugins ship their own catalogs in `locales/<lang>.json` under their namespace; discovery merges them into `src/bitakit.gen.messages.json`.
+- App UI translations live in the app's `locales/<lang>.json`, organized by feature namespaces. Use next-intl for client/server translations and locale-aware formatting; keep matching keys in both catalogs. Plugins ship their own catalogs in `locales/<lang>.json` under their namespace; discovery merges them into `src/bitakit.gen.messages.json`.
 - Locale is a validated browser cookie, resolved by `src/i18n/request.ts`. Keep existing paths/intercepted Settings routes. Do not duplicate locale in a second store or add URL locale prefixes without a product requirement.
 - The interface language is a setting (`defineSettings`, for example `language.locale` from `@bitakit/next-intl/preferences`); the host's `settings.storage` service validates and saves it. Preserve mounted application state on language changes. User-authored content and historical sample content are not translated automatically.
 

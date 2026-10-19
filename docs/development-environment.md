@@ -3,66 +3,14 @@
 Use Node.js 24 and npm 10 or newer. Run `npm ci` from the repository root.
 The documentation app runs independently with `npm run dev:docs`.
 
-## Authenticated reference applications
-
-Run `node scripts/setup-env.mjs` to create `apps/web/.env.local` from the example.
-Existing files are preserved. Configure your own database connection, Better Auth
-secret and application origin before starting the authenticated reference app.
-The environment files are ignored by Git.
-
-The web app uses Better Auth with a server-only ZenStack/Postgres adapter. Its
-tracked migrations protect authentication tables with database RLS and revoked
-public-role grants. Do not expose those tables through generic CRUD endpoints.
-
-Database connections must verify TLS and hostname. Supply a trusted CA appropriate
-to your database and configure `sslmode=verify-full` and `sslrootcert` as needed.
-The existing public CA certificate is not a private key or a database credential.
-
-```sh
-npm run db:generate --workspace @bitakit/web
-npm run db:status --workspace @bitakit/web
-```
-
-Apply tracked migrations only against your intended development database:
-
-```sh
-npm run db:migrate --workspace @bitakit/web
-```
-
-Never reset a shared database. Use a disposable development/shadow database when
-creating migrations. OAuth and SMTP require explicit provider configuration;
-installing the packages alone does not configure an account or send email.
-
-The smaller Content Demo connects to the auth host through its configured proxy.
-Use `npm run dev:content-auth` for the auth host and `npm run dev:content` for the
-frontend. Consult each application's configuration for origins and ports.
-
-### Settings in the web app
-
-The web app stores settings in the database through its own server routes
-(`apps/web/src/settings/server`). User settings take their owner from the verified
-session. Organization settings need membership to read and owner or admin membership
-to write. Global settings can only be written by the user IDs listed in
-`APP_SETTINGS_ADMIN_IDS`. `APP_DEFAULT_THEME` and `APP_DEFAULT_LOCALE` set the defaults
-on the server; stored values win.
-
-Guests keep only the theme (browser storage) and the language (cookie). Other user
-settings are read-only for guests, and their writes are rejected instead of being
-reported as saved.
-
 ## Verification
 
 Run the relevant workspace's tests for a package change. The root `npm test` runs
-the broader package suite, while `npm run check` builds packages and checks web
-application types and lint. Neither command proves every external integration.
+the broader package suite and `npm run verify:generated` checks freshly generated
+apps. Neither command proves every external integration.
 
-Browser tests use Playwright. Review each app's `playwright.config.ts` for its
-server and port requirements. Tests that opt into real authentication/database
-operations must use an isolated test environment, never production data.
-
-The web app's plugin dashboard tests need a signed-in session: set
-`PLUGIN_TEST_STORAGE_STATE` to a local Playwright storage-state file. Without it they
-are skipped. Never commit session files.
+Tests that opt into real authentication/database operations must use an isolated
+test environment, never production data. Never commit session files.
 
 ## Repository hygiene
 

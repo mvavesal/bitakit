@@ -33,7 +33,7 @@ Use a base storage with reset support to remove the locale override on reset.
 Configured locales become standard Select options; labels may include flags. No separate
 language buttons, locale state store or custom control are needed.
 
-Content Demo persists through server actions and its validated HTTP-only locale cookie.
+A Next.js app can persist the locale through server actions and its validated HTTP-only locale cookie.
 Next updates the existing provider tree after cookie mutation. Adding a language means
 adding a configured option and an app catalog; missing plugin keys use the fallback catalog.
 
