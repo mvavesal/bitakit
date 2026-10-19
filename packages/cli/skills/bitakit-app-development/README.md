@@ -1,89 +1,79 @@
-# Try the BitaKit app development skill
+# BitaKit app development with Codex or Claude Code
 
-`SKILL.md` is the canonical app-authoring guide. This README is a short, human-facing quick start
-for trying it with Codex. For the full local package workflow and options, see the repository's
-[Use this checkout guide](../../../../apps/docs/content/docs/local-development.mdx).
+Use this skill to build a feature in the right place in a BitaKit app. It helps the agent inspect
+the app's installed packages and layout, choose the plugin that owns the feature, find a real
+rendered extension point, and verify the result. It favors a page first, then adds only the
+services, Actions, settings or slots the feature needs.
 
-## Before creating an app
+## Install in a project workspace
 
-Put the skill in the project workspace before asking Codex to create an app. From the BitaKit
-checkout:
+Run the command for your agent from the workspace where you want the skill available. These
+commands install a project copy, not a user-global skill. `--copy` keeps the skill files in the
+repository instead of creating a symlink.
 
-```sh
-mkdir -p .agents/skills/bitakit-app-development
-cp packages/cli/skills/bitakit-app-development/SKILL.md .agents/skills/bitakit-app-development/SKILL.md
-```
+This GitHub source URL pins the tested skill snapshot. The branch name contains a slash, which the
+Skills CLI currently parses as two URL path segments; use the commit URL rather than the branch
+URL. Replace the commit with a newer one when you want a later skill revision.
 
-If the CLI is already installed in that workspace, copy from
-`node_modules/@bitakit/cli/skills/bitakit-app-development/SKILL.md` instead. These commands use a
-project-local skill file; they do not change Codex's user-global settings.
-
-To try this **unreleased source branch** in a fresh consumer, run the following from the BitaKit
-checkout. This packs the changed local packages and runs the local app generator, so the result
-does not depend on the current npm release:
+### Codex
 
 ```sh
-npm ci
-npm run pack -- .tmp/app-skill-packages core discovery ui next cli
-node packages/create-app/src/cli.mjs ../my-app \
-  --framework next --features none --yes \
-  --packages-dir "$PWD/.tmp/app-skill-packages"
+npx skills add 'https://github.com/mvavesal/bitakit/tree/93cb760ec97e3a1f809ffecfc33646f76897a78e/packages/cli/skills/bitakit-app-development' \
+  --skill bitakit-app-development --agent codex --copy --yes
 ```
 
-The destination must not already exist. After generation, open `../my-app` as the app workspace;
-the generated project includes its own skill copy and `AGENTS.md` reference. The command uses the
-repository's existing pack-and-create workflow; it does not publish packages.
+This installs to `.agents/skills/bitakit-app-development/`. Ask Codex:
 
-If the feature has been released, the ordinary `npx @bitakit/create-app ...` workflow is enough.
-The current published npm packages do **not** contain this unreleased change yet.
+> Use the `bitakit-app-development` skill. Add a Counter feature under `src/plugins/counter/`
+> that displays 0 and increments when I click its button. Check the selected layout before adding
+> navigation. Then typecheck, run Doctor, and verify `/counter` in the browser.
 
-## Use it with an existing app
-
-In an existing supported Next.js or TanStack Start app, run the CLI source from this checkout so
-`init` uses the unreleased implementation. Install the checkout dependencies once, then replace
-the two paths below with the absolute checkout and app paths:
+### Claude Code
 
 ```sh
-npm ci
-(cd /absolute/path/to/my-app && \
-  node /absolute/path/to/bitakit/packages/cli/src/cli.mjs init)
+npx skills add 'https://github.com/mvavesal/bitakit/tree/93cb760ec97e3a1f809ffecfc33646f76897a78e/packages/cli/skills/bitakit-app-development' \
+  --skill bitakit-app-development --agent claude-code --copy --yes
 ```
 
-Then use the app's usual package manager to install any dependencies that `init` reports as
-missing, and run its generation and Doctor checks:
+This installs to `.claude/skills/bitakit-app-development/`. Use the native skill command:
 
-```sh
-cd /absolute/path/to/my-app
-npx bitakit generate
-npx bitakit info --json
-npx bitakit doctor --json
+```text
+/bitakit-app-development Add a Counter feature under src/plugins/counter/ that displays 0 and
+increments from a button. Check the selected layout before adding navigation, then typecheck, run
+Doctor, and verify /counter in the browser.
 ```
 
-This invokes the source branch directly; it does not install or publish a package. Once released,
-the normal `npx bitakit init` command from the app uses the published CLI. The current published
-npm packages do not contain this unreleased change yet.
+The command names and folders differ by host. BitaKit's generated `CLAUDE.md` imports `AGENTS.md`
+project instructions, but that alone does not install a native Claude Code skill or create its
+slash command. For Codex skill discovery guidance, see [Codex skills](https://learn.chatgpt.com/docs/build-skills);
+for Claude Code, see [skills](https://code.claude.com/docs/en/skills). The standard installer is
+[`npx skills`](https://github.com/vercel-labs/skills).
 
-## Give Codex a feature request
+## What success looks like
 
-For example:
+The Counter has a `/counter` page that shows a count and an Action-bound button that increments
+it. The agent checks the current framework and installed BitaKit versions, keeps feature files in
+`src/plugins/counter/`, inspects any layout outlet before placing navigation, and reports the
+focused typecheck, Doctor and browser results. A slot declaration by itself is not proof that a
+chosen layout renders that slot.
 
-> Add a counter feature under `src/plugins/counter/` with a count service, an increment Action,
-> and a page. Inspect the selected layout's actual navigation outlet before adding navigation.
-> Keep the implementation in the counter plugin, then typecheck, run Doctor, and verify the page
-> and increment in the browser.
+For a first page with no behavior, start with only `src/plugins/counter/ui/pages/index.tsx`. When
+the feature needs state and an operation, a small plugin can keep a record in `services.ts` and a
+record in `actions.ts`; split them into named files as the feature grows. React stays in `ui/`.
 
-The skill asks the agent to inspect installed versions and the selected layout before choosing an
-extension point. A slot declaration alone does not prove that the layout renders it. For Shell,
-the sidebar and navbar do not show the same outlets, so the agent should verify the chosen layout.
+## New and existing apps
 
-## Support and verification boundaries
+On this source branch, `create-app` and `bitakit init` copy the skill into the app's
+`.agents/skills/` directory and point generated `AGENTS.md` to it. This supplies project-local
+Codex guidance for later work. For Claude Code, run its install command above from the app root
+when you want the native `/bitakit-app-development` skill there too.
 
-The skill guides app-level changes in BitaKit consumer projects; it is not a substitute for the
-separate package-development guidance. Generated apps and `bitakit init` include the skill, but
-automatic skill discovery varies by host. Codex can read the project-local file directly; this
-does not verify discovery in a separate fresh session or another agent host.
+The change is not in the current published npm packages yet. To create or initialize an app from
+this source branch, use the [local checkout guide](../../../../apps/docs/content/docs/local-development.mdx).
+After release, the regular BitaKit create and init commands will deliver the project copy.
 
-The local acceptance exercised one packed Next.js consumer, `bitakit init`, typechecking, Doctor,
-and a browser-rendered counter in the built-in sidebar layout. It does not establish behavior for
-every framework layout, responsive state, host or published npm version. Run focused checks for
-the app and layout you are changing.
+The Skills CLI was verified to copy this skill into both host-specific folders in an isolated
+workspace. That verifies installation paths, not automatic activation in a fresh Codex, Claude
+Code or cloud session. The guide supports Next.js and TanStack Start consumer apps; it does not
+promise that every framework layout or responsive state has been exercised. GitHub access is
+required to fetch the source; for a private fork, use your existing Git or GitHub CLI credentials.
