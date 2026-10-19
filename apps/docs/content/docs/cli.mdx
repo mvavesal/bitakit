@@ -15,6 +15,7 @@ The command groups below are independent examples; use a new plugin name when sc
 | Add one file to a feature              | `npx bitakit add action notes/archive` |
 | Write the generated files              | `npx bitakit generate`                 |
 | Find problems                          | `npx bitakit doctor`                   |
+| Update BitaKit                         | [Update BitaKit](#update-bitakit)      |
 | Check that a page renders              | `npx bitakit check-page /notes`        |
 
 ## Create a new app
@@ -84,9 +85,44 @@ Run it in the root of an existing Next.js or TanStack Start project. It wires th
 
 `init` prints what it wrote (`+` new, `~` changed) and what it skipped. A skill folder that already exists in either place is preserved unless you ask for an update ([below](#keep-agent-files-current)). A file that already has the wiring is left alone, so running it twice is safe. It does not install packages: it lists the missing ones (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui`, the adapter for your framework, and `@bitakit/cli` as a dev dependency for the `bitakit` command). Install them, then run `npx bitakit generate` and `npx bitakit doctor`.
 
+## Update BitaKit
+
+Keep every `@bitakit/*` package on one release line: 0.2.x is one line, 0.3.x the next. Only packages whose shipped content changed get a patch release, so patch versions may differ within a line (for example `@bitakit/cli` 0.2.3 with `@bitakit/core` 0.2.2). Doctor accepts that and reports packages on different lines as an error.
+
+### Within a release line
+
+The generated `package.json` uses caret ranges (`^0.2.2`), so `npm update` installs the newest patches of the line. Name the `@bitakit/*` packages your `package.json` lists; plain `npm update` would update every other dependency too:
+
+```sh
+npm update @bitakit/core @bitakit/ui @bitakit/next @bitakit/app-preferences @bitakit/shell @bitakit/quick-search @bitakit/cli @bitakit/discovery
+```
+
+`package.json` keeps its ranges and `package-lock.json` records the new versions. `npm outdated` shows which packages have a newer version. Then refresh the agent files and check the project:
+
+```sh
+npx bitakit init --update-agent-files
+npx bitakit doctor
+```
+
+### To a new release line
+
+`npm update` never leaves the line its range allows. Install every `@bitakit/*` package at the new line in one command, here 0.3; packages you already have keep their place in `dependencies` or `devDependencies`:
+
+```sh
+npm install @bitakit/core@0.3 @bitakit/ui@0.3 @bitakit/next@0.3 @bitakit/app-preferences@0.3 @bitakit/shell@0.3 @bitakit/quick-search@0.3 @bitakit/cli@0.3 @bitakit/discovery@0.3
+```
+
+Do not move one package alone, for example with `npm install --save-dev @bitakit/cli@latest`: once a new line is published, that leaves the CLI on it and the rest behind, and doctor reports mixed versions with the command that installs one release for all of them. Follow the upgrade guide of the new line when it has one ([Upgrade from 0.1](/docs/upgrade) covers 0.1 to 0.2), then run:
+
+```sh
+npx bitakit init --update-agent-files
+npx bitakit doctor
+npm run typecheck
+```
+
 ### Keep agent files current
 
-After upgrading the BitaKit packages, refresh the agent files:
+After updating the BitaKit packages, refresh the agent files:
 
 ```sh
 npx bitakit init --update-agent-files
