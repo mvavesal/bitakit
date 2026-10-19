@@ -5,29 +5,44 @@ BitaKit app. It helps the agent find the feature's owner, inspect the selected l
 extension points, and verify the result. It is guidance for the coding agent, not a BitaKit
 runtime package.
 
-## Install the skill
+## Install in Codex
 
-The `skills` command installs a project-local copy for each agent. To use the skill from this
-branch before it is merged, run this from your app directory and replace `/path/to/bitakit` with
+Before this branch is merged, run this from your app directory, replacing `/path/to/bitakit` with
 the path to your existing BitaKit checkout:
 
 ```sh
 npx skills add "/path/to/bitakit/packages/cli/skills/bitakit-app-development" \
-  --agent codex --agent claude-code --copy
+  --agent codex --copy
 ```
 
-After this branch is merged into the default branch, you can install it directly from the
-repository:
+After the branch is merged into the default branch, install from the repository:
 
 ```sh
 npx skills add mvavesal/bitakit --full-depth --skill bitakit-app-development \
-  --agent codex --agent claude-code --copy
+  --agent codex --copy
 ```
 
-The installer copies the skill into `.agents/skills/` for Codex and `.claude/skills/` for Claude
-Code. The npm command above runs the Skills CLI; the BitaKit skill itself is a folder in the
-repository and does not need a separate npm release. See the [Skills CLI documentation](https://github.com/vercel-labs/skills#readme)
-for installer options.
+## Install in Claude Code
+
+Before this branch is merged, run this from your app directory, replacing `/path/to/bitakit` with
+the path to your existing BitaKit checkout:
+
+```sh
+npx skills add "/path/to/bitakit/packages/cli/skills/bitakit-app-development" \
+  --agent claude-code --copy
+```
+
+After the branch is merged into the default branch, install from the repository:
+
+```sh
+npx skills add mvavesal/bitakit --full-depth --skill bitakit-app-development \
+  --agent claude-code --copy
+```
+
+The Skills CLI installs a project-local copy in `.agents/skills/` for Codex and
+`.claude/skills/` for Claude Code. The `npx skills` command runs the installer; the BitaKit skill
+itself is a folder in the repository and needs no separate npm release. See the
+[Skills CLI documentation](https://github.com/vercel-labs/skills#readme) for installer options.
 
 ## Use the skill
 
