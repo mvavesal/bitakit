@@ -10,7 +10,7 @@ The command groups below are independent examples; use a new plugin name when sc
 | You want to                            | Run                                    |
 | -------------------------------------- | -------------------------------------- |
 | Start a new app                        | `npx @bitakit/create-app my-app`       |
-| Add BitaKit to an app you already have | `npx bitakit init`                     |
+| Add BitaKit to an app you already have | `npx @bitakit/cli init`                |
 | Add a feature to your app              | `npx bitakit add plugin notes`         |
 | Add one file to a feature              | `npx bitakit add action notes/archive` |
 | Write the generated files              | `npx bitakit generate`                 |
@@ -55,22 +55,23 @@ npx @bitakit/create-app my-plugin --plugin
 ## Add BitaKit to an existing app
 
 ```sh
-npx bitakit init
+npx @bitakit/cli init
 ```
 
 Run it in the root of an existing Next.js or TanStack Start project. It wires the app so plugins are discovered and mounted:
 
-| It writes or changes                              | Why                                                                  |
-| ------------------------------------------------- | -------------------------------------------------------------------- |
-| `bitakit.config.ts`                               | Discovery settings for your app                                      |
-| `next.config` or `vite.config`                    | Runs discovery with your build (`withBitaKit` or `bitakit()`)        |
-| The root layout                                   | Mounts `<BitaKitProvider>` around your pages                         |
-| A catch-all route                                 | Renders plugin pages with `<PluginPage />`                           |
-| `.gitignore`                                      | Ignores the generated `src/bitakit.gen.*` files                      |
-| `AGENTS.md`, `CLAUDE.md`                          | Tell coding assistants where each task goes (one screen)             |
-| `.agents/skills/bitakit-app-development/SKILL.md` | App authoring guide for project inspection, layouts and verification |
+| It writes or changes                      | Why                                                             |
+| ----------------------------------------- | --------------------------------------------------------------- |
+| `bitakit.config.ts`                       | Discovery settings for your app                                 |
+| `next.config` or `vite.config`            | Runs discovery with your build (`withBitaKit` or `bitakit()`)   |
+| The root layout                           | Mounts `<BitaKitProvider>` around your pages                    |
+| A catch-all route                         | Renders plugin pages with `<PluginPage />`                      |
+| `.gitignore`                              | Ignores the generated `src/bitakit.gen.*` files                 |
+| `AGENTS.md`, `CLAUDE.md`                  | Tell coding assistants where each task goes (one screen)        |
+| `.agents/skills/bitakit-app-development/` | The app-development agent skill for Codex and most other agents |
+| `.claude/skills/bitakit-app-development/` | The same skill for Claude Code (`/bitakit-app-development`)     |
 
-`init` prints what it wrote (`+` new, `~` changed) and what it skipped. A skill file that already exists at that path is preserved. A file that already has the wiring is left alone, so running it twice is safe. It does not install packages: it lists the missing ones (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the adapter for your framework). Install them, then run `npx bitakit generate` and `npx bitakit doctor`.
+`init` prints what it wrote (`+` new, `~` changed) and what it skipped. A skill folder that already exists in either place is preserved. A file that already has the wiring is left alone, so running it twice is safe. It does not install packages: it lists the missing ones (`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui`, the adapter for your framework, and `@bitakit/cli` as a dev dependency for the `bitakit` command). Install them, then run `npx bitakit generate` and `npx bitakit doctor`.
 
 ## Add a feature or a file
 

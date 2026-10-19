@@ -8,51 +8,61 @@ go?". This guide shows what an agent gets from a BitaKit app and how to brief it
 
 ## What the agent reads
 
-Apps created with `npx @bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that imports
-it, which Claude Code reads), plus the `bitakit-app-development` skill under `.agents/skills/`.
-`npx bitakit init` delivers the same project guidance to a supported existing app. The rules fit
-on one screen and point to the skill for the fuller workflow:
+Apps created with `npx @bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that
+imports it, which Claude Code reads) and the `bitakit-app-development` agent skill.
+`npx @bitakit/cli init` adds the same files to an existing Next.js or TanStack Start app. Both
+need version 0.2.2 or later.
+
+The `AGENTS.md` block fits on one screen:
 
 - a table that maps each task to its file, from a page to extending a feature you do not own;
 - the rules: start small, bind every control to its Action, React only under `ui/`, and do not
   rebuild what BitaKit provides;
-- the commands to create files and check the result.
+- the commands to create files and check the result, and a pointer to the skill.
 
 Keep the block as it is and add your own product rules above or below it.
 
-The skill guides an assistant through both new app creation and existing app changes. It checks
-installed package versions, the framework root/provider, the chosen visual layout and its actual
-slot renderers, then uses the existing CLI, test helpers and browser preview. The Codex project
-skill location is `.agents/skills/`. The `CLAUDE.md` import gives Claude Code the shared project
-instructions; it does not register a native Claude Code skill slash command. For host-specific
-installation and a ready-to-use request, see the [skill quick start](https://github.com/mvavesal/bitakit/blob/majid/bitakit-app-development-skill/packages/cli/skills/bitakit-app-development/README.md).
+The skill holds the fuller workflow. Before a change the agent reads the installed packages,
+runs `info` and `doctor`, and checks which layout renders the place it wants to use. It then
+follows a recipe for the task (pages, Actions, services and events, slots, interceptors,
+settings, tests), checks the result in the browser and tells you what it built and how it
+connects. The skill is written to two folders, ready to commit:
 
-### Start before an app exists
+| Folder                                    | Read by                                                      |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `.agents/skills/bitakit-app-development/` | Codex, and also Cursor, GitHub Copilot, Gemini CLI, OpenCode |
+| `.claude/skills/bitakit-app-development/` | Claude Code                                                  |
 
-To let Codex use the skill while creating a new app, place the bundled file in the workspace's
-standard project skill directory before scaffolding. In a BitaKit checkout:
+An existing skill folder is never overwritten, so a team can adapt its copy.
 
-```sh
-mkdir -p .agents/skills/bitakit-app-development
-cp packages/cli/skills/bitakit-app-development/SKILL.md .agents/skills/bitakit-app-development/SKILL.md
+### Use the skill
+
+Open the agent in the app folder; Codex looks for skills only from the current folder up. Then
+name the skill before your request:
+
+```text
+$bitakit-app-development Show the number of todos in the app header from a new summary plugin. Do not change the todos plugin.
 ```
 
-If `@bitakit/cli` is already installed in the workspace, its bundled source is at
-`node_modules/@bitakit/cli/skills/bitakit-app-development/SKILL.md`. This is a normal Agent Skills
-file placement, not a BitaKit installer. Do not change user-global host settings. Once the app is
-created, its own `.agents/skills/` copy and `AGENTS.md` reference provide the same guidance.
+That is the Codex form; in Claude Code write `/bitakit-app-development` instead, and in Cursor
+type `/` and pick the skill. Agents also load the skill on their own when a request matches it;
+naming it is the reliable way. The request above works in an app created with `--sample`; the
+[skill's README](https://github.com/mvavesal/bitakit/blob/main/packages/cli/skills/bitakit-app-development/README.md)
+lists more requests that build on that sample, one building block at a time.
 
 ## What the agent can run
 
-| Command                                | What it gives the agent                                                              |
-| -------------------------------------- | ------------------------------------------------------------------------------------ |
-| `npx bitakit add action notes/archive` | The file in the right place, with the ID `notes.archive`                             |
-| `npx bitakit add plugin notes`         | A new feature folder with a page and its menu entry                                  |
-| `npx bitakit info --json`              | Every ID the project declares: Actions, services, page URLs, events, settings, slots |
-| `npm run typecheck`                    | An error for any unknown Action ID, service, event, setting key or slot name         |
-| `npx bitakit doctor`                   | Wiring problems, each with its fix; exit code 1 when something is wrong              |
+| Command                                | What it gives the agent                                                             |
+| -------------------------------------- | ----------------------------------------------------------------------------------- |
+| `npx bitakit add action notes/archive` | The file in the right place, with the ID `notes.archive`                            |
+| `npx bitakit add plugin notes`         | A new feature folder with a page, and its sidebar link when Shell is installed      |
+| `npx bitakit info --json`              | The IDs your plugins declare: Actions, services, page URLs, events, settings, slots |
+| `npm run typecheck`                    | An error for any unknown Action ID, service, event, setting key or slot name        |
+| `npx bitakit doctor`                   | Wiring problems, each with its fix; exit code 1 when something is wrong             |
 
-`info --json` reads the source files without running them, so it is safe to run at any time.
+`info --json` reads plugin files without starting services or Actions, so it is safe to run at any
+time. Installed packages such as Shell show `declarations: null`; their slots are listed in their
+READMEs and in the generated types.
 
 ## Write a task brief
 
@@ -68,9 +78,9 @@ Add an "Archive" button to the notes page.
 For a change to a feature the agent does not own, say so, and point it to the owner's contracts:
 
 ```text
-Show the number of open tasks on the dashboard.
-- Do not edit src/plugins/tasks/.
-- Create src/plugins/dashboard-stats/: listen to tasks.changed and fill the dashboard.widgets slot.
+Show the latest todo changes below the todo list.
+- Do not edit src/plugins/todos/.
+- Create src/plugins/activity/: listen to todos.changed and fill the todos.footer slot that todos declares.
 ```
 
 [Extend from a second plugin](/docs/concepts/extend) is the worked example of that pattern.

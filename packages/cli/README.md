@@ -10,30 +10,32 @@ Apps created with `@bitakit/create-app` 0.2 already include it as a dev dependen
 npm install --save-dev @bitakit/cli
 ```
 
-Run it with `npx bitakit <command>` inside your app or plugin package.
+Run it with `npx bitakit <command>` when installed, or
+`npx @bitakit/cli@latest <command>` to use the latest published CLI directly.
 
 ## Wire an existing app
 
 ```sh
-npx bitakit init
+npx @bitakit/cli@latest init
 ```
 
 In an existing Next.js or TanStack Start app, `init` writes `bitakit.config.ts`, wraps
 `next.config` with `withBitaKit` (or adds `bitakit()` to the Vite plugins), mounts
 `<BitaKitProvider>` around `{children}` of the root layout, adds the catch-all route that renders
 `<PluginPage />`, ignores `src/bitakit.gen.*`, appends the agent rules to `AGENTS.md` and makes `CLAUDE.md` import it (an existing `CLAUDE.md` only gains the `@AGENTS.md` line). It also delivers the
-`bitakit-app-development` skill at `.agents/skills/bitakit-app-development/SKILL.md`; an existing
-skill at that path is preserved. It prints what it wrote (`+` new file, `~` changed file) and what
+`bitakit-app-development` skill in the native project folders for Codex and Claude Code; existing
+skills at either path are preserved. It prints what it wrote (`+` new file, `~` changed file) and what
 it skipped. Files that already carry the wiring are never touched, so it
 is safe to run again; a shape it cannot edit (for example a CommonJS `next.config.js`) is
 skipped with the line to add by hand. Packages are not installed: `init` lists the missing ones
-(`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the framework adapter). Then run `generate` and `doctor`.
+(`@bitakit/core`, `@bitakit/discovery`, `@bitakit/ui` and the framework adapter, plus `@bitakit/cli`
+as a dev dependency for the `bitakit` command). Then run `generate` and `doctor`.
 `create-bitakit-app` writes the same wiring for new apps from the same templates.
 
-For host-specific skill installation and a copyable app request, see the
-[app-development skill quick start](skills/bitakit-app-development/README.md). `init` writes the
-project skill location used by Codex; Claude Code's native skill command uses `.claude/skills/`
-and is installed separately.
+The skill (`SKILL.md` and its `references/` recipes) is copied to `.agents/skills/` for Codex and
+most other agents and to `.claude/skills/` for Claude Code. `create-app` 0.2.2 and later include it
+in new apps. See the [skill README](skills/bitakit-app-development/README.md) for how to use it
+and requests to try.
 
 ## Add a feature
 
