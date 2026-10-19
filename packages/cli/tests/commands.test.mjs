@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { access, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { bitakit, catchAll, link, nextApp, project, write } from './helpers.mjs';
 
@@ -265,6 +265,8 @@ test('init wires a bare Next app and a bare TanStack Start app, skips what is wi
   );
   assert.doesNotMatch(init.stdout, /Skipped:/);
   assert.match(init.stdout, /npm install @bitakit\/discovery @bitakit\/ui @bitakit\/next\n/);
+  // The rules tell agents to run `npx bitakit`, so a one-off `npx @bitakit/cli init` names the CLI.
+  assert.match(init.stdout, /npm install --save-dev @bitakit\/cli\n/);
   assert.equal(
     await read(next, 'bitakit.config.ts'),
     "import { defineBitaKit } from '@bitakit/discovery';\n\nexport default defineBitaKit({});\n",
@@ -291,12 +293,21 @@ test('init wires a bare Next app and a bare TanStack Start app, skips what is wi
   assert.doesNotMatch(agents, /shell\.navigation/, 'Shell guidance only when Shell is installed');
   // Claude Code loads CLAUDE.md, which imports the rules.
   assert.equal(await read(next, 'CLAUDE.md'), '@AGENTS.md\n');
-  const skill = await read(next, '.agents/skills/bitakit-app-development/SKILL.md');
-  assert.match(skill, /^---\nname: bitakit-app-development\n/);
-  assert.equal(await read(next, '.claude/skills/bitakit-app-development/SKILL.md'), skill);
-  assert.match(skill, /Create a new application/);
-  assert.match(skill, /Before placing UI, inspect the app's selected composition/);
-  assert.match(skill, /the CLI does not report every Action placement/);
+  // Both agent folders get the whole bundled skill (SKILL.md and references), not its README.
+  const bundled = new URL('../skills/bitakit-app-development/', import.meta.url);
+  const shipped = (await readdir(bundled, { recursive: true }))
+    .filter((file) => file !== 'README.md' && file.endsWith('.md'))
+    .sort();
+  assert.ok(shipped.includes('SKILL.md') && shipped.some((file) => file.startsWith('references')));
+  for (const folder of ['.agents', '.claude']) {
+    for (const file of shipped)
+      assert.equal(
+        await read(next, `${folder}/skills/bitakit-app-development/${file}`),
+        await readFile(new URL(file, bundled), 'utf8'),
+        `${folder} ${file}`,
+      );
+    await assert.rejects(read(next, `${folder}/skills/bitakit-app-development/README.md`));
+  }
 
   // A second run changes nothing: every step reports the wiring it found.
   await write(next, {

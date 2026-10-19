@@ -15,7 +15,7 @@ test('the README, the docs introduction and the agent rules state the same ident
     'apps/docs/content/docs/index.mdx',
   );
   assert.ok(prose(agentRules({ routes: 'src/app' })).includes(bitakitIdentity), 'agent rules');
-  assert.match(agentRules({ routes: 'src/app' }), /bitakit-app-development\/SKILL\.md/);
+  assert.match(agentRules({ routes: 'src/app' }), /project-local `bitakit-app-development` skill/);
   assert.ok(agentRules({ routes: 'src/app' }).length <= 3200, 'agent rules stay within budget');
 });
 

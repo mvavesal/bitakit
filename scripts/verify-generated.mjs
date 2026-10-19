@@ -168,15 +168,29 @@ async function verify(name, scenario) {
     const rules = await read('AGENTS.md');
     if (!rules.includes('BEGIN:bitakit-agent-rules'))
       throw new Error('AGENTS.md has no BitaKit rules block.');
-    if (!rules.includes('.agents/skills/bitakit-app-development/SKILL.md'))
-      throw new Error('AGENTS.md does not point to the app-authoring skill.');
     if (!/^@AGENTS\.md$/m.test(await read('CLAUDE.md')))
       throw new Error('CLAUDE.md does not import AGENTS.md.');
+    // Plugin packages get package rules; the app-authoring skill is for apps.
+    if (scenario.plugin) return;
+    if (!rules.includes('bitakit-app-development` skill'))
+      throw new Error('AGENTS.md does not name the app-authoring skill.');
     const skill = await read('.agents/skills/bitakit-app-development/SKILL.md');
     if (!/^name: bitakit-app-development$/m.test(skill))
       throw new Error('The project is missing the bitakit-app-development skill.');
-    if (!skill.includes('Create a new application') || !skill.includes('actual outlet'))
-      throw new Error('The app-authoring skill is incomplete.');
+    if ((await read('.claude/skills/bitakit-app-development/SKILL.md')) !== skill)
+      throw new Error('Codex and Claude Code do not have the same project skill.');
+    // The installed @bitakit/cli is the packed tarball, so this also proves the package ships the
+    // skill with its references.
+    const packed = 'node_modules/@bitakit/cli/skills/bitakit-app-development';
+    for (const file of ['SKILL.md', 'references/slots.md', 'references/actions.md'])
+      for (const folder of ['.agents', '.claude'])
+        if (
+          (await read(`${folder}/skills/bitakit-app-development/${file}`)) !==
+          (await read(`${packed}/${file}`))
+        )
+          throw new Error(
+            `${folder}/skills/bitakit-app-development/${file} differs from the package.`,
+          );
   });
   if (scenario.auth) {
     const archives = Object.fromEntries(

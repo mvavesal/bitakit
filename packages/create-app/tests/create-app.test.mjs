@@ -165,9 +165,10 @@ test('a bare app wraps next.config, mounts one provider, imports one generated s
     await read(plan.target, '.claude/skills/bitakit-app-development/SKILL.md'),
     await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
   );
-  assert.match(
-    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
-    /the CLI does not report every Action placement/,
+  // The references travel with SKILL.md, so its links resolve in both agent folders.
+  assert.equal(
+    await read(plan.target, '.claude/skills/bitakit-app-development/references/slots.md'),
+    await read(plan.target, '.agents/skills/bitakit-app-development/references/slots.md'),
   );
   // One screen: the block may change, but it must not grow back past this budget.
   const block = rules.slice(rules.indexOf('<!-- BEGIN:bitakit-agent-rules -->'));
@@ -355,10 +356,7 @@ test('TanStack apps get the same frame through native file routes and the Vite p
     await read(plan.target, '.claude/skills/bitakit-app-development/SKILL.md'),
     await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
   );
-  assert.match(
-    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
-    /Use `npx @bitakit\/create-app <directory>/,
-  );
+  await exists(plan.target, '.agents/skills/bitakit-app-development/references/slots.md');
   assert.match(
     await read(plan.target, 'AGENTS.md'),
     /App-owned routes stay native framework routes in `src\/routes`/,

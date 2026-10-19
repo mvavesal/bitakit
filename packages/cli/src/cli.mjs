@@ -3,12 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { styleText } from 'node:util';
 import { Command } from 'commander';
-import {
-  describeBitaKit,
-  generateBitaKit,
-  migrateProject,
-  watchBitaKit,
-} from '@bitakit/discovery';
+import { describeBitaKit, generateBitaKit, migrateProject, watchBitaKit } from '@bitakit/discovery';
 import { addContribution, addPlugin, contributionKinds } from './add.mjs';
 import { inspectionFromDescription } from './inventory.mjs';
 import { buildPlugin } from './build.mjs';
@@ -95,10 +90,10 @@ for (const kind of contributionKinds)
 program
   .command('init')
   .description(
-    'Wire an existing Next.js or TanStack Start app: bitakit.config.ts, the config wrapper or Vite plugin, the provider, the catch-all route and .gitignore.',
+    'Wire an existing Next.js or TanStack Start app: bitakit.config.ts, the config wrapper or Vite plugin, the provider, the catch-all route, .gitignore, and the agent files (AGENTS.md, CLAUDE.md and the bitakit-app-development skill).',
   )
   .action(async () => {
-    const { written, skipped, install } = await initProject();
+    const { written, skipped, install, installDev } = await initProject();
     if (written.length) {
       console.log('\nWritten:');
       for (const { file, created } of written)
@@ -114,6 +109,10 @@ program
     if (!written.length) console.log('\nNothing to write: the app is already wired.');
     if (install.length)
       console.log(`\nInstall the packages the wiring imports:\n  npm install ${install.join(' ')}`);
+    if (installDev.length)
+      console.log(
+        `\nInstall the bitakit command for this app:\n  npm install --save-dev ${installDev.join(' ')}`,
+      );
     console.log('\nThen run "npx bitakit generate" and "npx bitakit doctor".\n');
   });
 

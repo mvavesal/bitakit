@@ -538,7 +538,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   (`packages/cli/src/templates.mjs`, the single source for `--sample` (`sampleFiles`: `todos`
   plus an `activity` plugin that extends it through `todos.changed` and `todos.footer`),
   `bitakit add` and plugin packages), the agent rules (`packages/cli/src/agent-rules.mjs`, shared
-  by create-app and `bitakit init`, held to one screen by a test), this skill, the private target API
+  by create-app and `bitakit init`, held to one screen by a test), the app skill and its recipes
+  (`packages/cli/skills/bitakit-app-development/`, whose snippets must compile in a `--sample`
+  app), this skill, the private target API
   (`.private/bitakit-enhancement/target-api.md`) if the contract moved, the package READMEs, the docs site and the
   private TODO.
 
@@ -740,9 +742,11 @@ manually. Run Core reconciliation/inventory, UI reconciliation/slot and CLI comm
 changing these contracts. Never put private comparisons or test logs in public documentation.
 
 The consumer-facing `bitakit-app-development` skill is shipped from `packages/cli/skills/` and
-installed by create-app/init into both `.agents/skills/` (Codex) and `.claude/skills/` (Claude
-Code); generated `AGENTS.md` names it for app feature work. Preserve existing files in either
-location. Keep this repository skill focused on package and framework implementation, not
+installed by create-app/init into both `.agents/skills/` (Codex and most other agents) and
+`.claude/skills/` (Claude Code): `SKILL.md` plus `references/`, without the folder's human README.
+Generated `AGENTS.md` names it for app feature work. A folder that already has a SKILL.md is
+preserved whole. Its recipes extend the `--sample` Todo plugins (`todos`, `activity`) with
+`about`, `summary`, `print` and `todos.toolbar`; keep those names consistent. Keep this repository skill focused on package and framework implementation, not
 duplicate app-author instructions. When changing delivery behavior, verify both generated copies
 and existing-file preservation in create-app and CLI tests.
 

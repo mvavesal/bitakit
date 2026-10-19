@@ -4,10 +4,10 @@ export {
   agentRules,
   agentRulesBegin,
   agentRulesEnd,
-  appDevelopmentSkillPath,
+  appDevelopmentSkillPaths,
   bitakitIdentity,
   claudeFileFor,
-  writeAppDevelopmentSkill,
+  writeAppDevelopmentSkills,
 } from './agent-rules.mjs';
 export { buildPlugin } from './build.mjs';
 export { doctor } from './doctor.mjs';

@@ -268,5 +268,8 @@ export async function initProject({ cwd } = {}) {
     '@bitakit/ui',
     project.framework === 'next' ? '@bitakit/next' : '@bitakit/tanstack',
   ].filter((name) => !dependencies[name]);
-  return { project, written, skipped, install };
+  // The rules and the skill tell agents to run `npx bitakit ...`, which needs the local CLI; a
+  // one-off `npx @bitakit/cli init` does not install it.
+  const installDev = ['@bitakit/cli'].filter((name) => !dependencies[name]);
+  return { project, written, skipped, install, installDev };
 }
