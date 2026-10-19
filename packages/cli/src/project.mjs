@@ -52,7 +52,10 @@ async function describeProject(root, manifest) {
   let configError;
   try {
     // The CLI still reads the 0.1 file so doctor and migrate can report what it needs.
-    loaded = await loadDiscoveryConfig(root, undefined, ['bitakit.config.ts', 'foundation.config.ts']);
+    loaded = await loadDiscoveryConfig(root, undefined, [
+      'bitakit.config.ts',
+      'foundation.config.ts',
+    ]);
   } catch (error) {
     configError = error;
     const legacy =

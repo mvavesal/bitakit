@@ -48,7 +48,10 @@ for (const failOld of [false, true]) {
     failOld ? old.reject(new Error('old save failed')) : old.resolve();
     await settledA;
     // Assert dispatch before awaiting B: a stalled queue fails instead of hanging the test.
-    assert.deepEqual(calls, [{ value: 'dark', userId: 'A' }, { value: 'system', userId: 'B' }]);
+    assert.deepEqual(calls, [
+      { value: 'dark', userId: 'A' },
+      { value: 'system', userId: 'B' },
+    ]);
     assert.equal(await b, 'saved');
     assert.equal(store.get('mode'), 'system');
     assert.equal(store.state('mode').pending, false);

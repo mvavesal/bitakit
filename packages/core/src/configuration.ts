@@ -1,6 +1,9 @@
 import type { BitaKitRuntimeConfig, Plugin, ProviderDefinition } from './definitions.js';
 
-export type BitaKitOverrides = Pick<BitaKitRuntimeConfig, 'actions' | 'plugins' | 'interceptors'> & {
+export type BitaKitOverrides = Pick<
+  BitaKitRuntimeConfig,
+  'actions' | 'plugins' | 'interceptors'
+> & {
   /** Replaces the app's React providers (`ui.providers`); plugin providers are added unless this is set. */
   providers?: readonly ProviderDefinition[];
 };

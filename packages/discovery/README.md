@@ -108,13 +108,11 @@ Discovery's `ui/settings/page.tsx` default export may provide the same object. C
 components opaque; the shared UI catalog projects the declarations into settings routes and
 navigation. This adds no service registry, value store or host routing code.
 
-
 Plugin catalog metadata supports optional `tags: readonly string[]` and `coverImage`.
 Local plugin manifests use `metadata`; `bitakit build` copies these fields from package.json.
 Tags are catalog labels, not access rules. App Preferences derives filter choices from this
 metadata and stores the selected tags in the repeated `pluginTag` URL parameters. Missing covers fall
 back to the plugin icon.
-
 
 ## Owned slots
 
@@ -135,7 +133,6 @@ Declared `ui/slots` targets use runtime-owned attachment with wait by default. N
 `id`, `key`, `order` and `availability` are preserved, including through `bitakit build`; the
 generated `pluginSlot` call records the source file for attribution. Target definitions and
 component files remain separate. Unknown legacy targets are not promoted to declarations.
-
 
 ## Development refresh
 

@@ -10,24 +10,24 @@ built-in editor. The APIs here describe the current checkout; use matching packa
 
 `@bitakit/shell` exports `themeSchema`, `ShellThemeInput`, `ShellThemeDefinition` and `ThemeEntry`.
 
-| Field | Required | Meaning |
-| --- | --- | --- |
-| `schemaVersion` | Yes | `1`. |
-| `id` | Yes | Nonempty identity within its source; not inferred from the filename. |
-| `name` | Yes | Display name; need not be unique. |
-| `shared` | No | CSS variable values for both modes, default `{}`. |
-| `light` | No | Light-mode overrides, default `{}`. |
-| `dark` | No | Dark-mode overrides, default `{}`. |
+| Field           | Required | Meaning                                                              |
+| --------------- | -------- | -------------------------------------------------------------------- |
+| `schemaVersion` | Yes      | `1`.                                                                 |
+| `id`            | Yes      | Nonempty identity within its source; not inferred from the filename. |
+| `name`          | Yes      | Display name; need not be unique.                                    |
+| `shared`        | No       | CSS variable values for both modes, default `{}`.                    |
+| `light`         | No       | Light-mode overrides, default `{}`.                                  |
+| `dark`          | No       | Dark-mode overrides, default `{}`.                                   |
 
 Token maps contain string values and omit `--` from names. `themeSchema` checks the object
 shape; it does not prove CSS validity or accessible color contrast. Use foreground/background
 pairs and check your controls in both modes.
 
-| Source | Example key | Editable in Appearance? |
-| --- | --- | --- |
-| Bundled Shell theme | `shell:default` | Save a personal copy. |
-| App theme | `app:ocean` | Save a personal copy. |
-| Personal theme | `user:my-ocean` | Update or delete. |
+| Source              | Example key     | Editable in Appearance? |
+| ------------------- | --------------- | ----------------------- |
+| Bundled Shell theme | `shell:default` | Save a personal copy.   |
+| App theme           | `app:ocean`     | Save a personal copy.   |
+| Personal theme      | `user:my-ocean` | Update or delete.       |
 
 `themeKey(source, id)` builds a key. Duplicate IDs within a source are errors; equal display
 names or IDs across different sources remain distinct. If the saved selection is no longer
@@ -41,13 +41,15 @@ composed app, pass definitions to the **existing** Shell plugin:
 ```tsx
 // Inside your existing client composition
 shellPlugin({
-  themes: [{
-    schemaVersion: 1,
-    id: 'ocean',
-    name: 'Ocean',
-    light: { primary: '#075985', 'primary-foreground': '#ffffff' },
-    dark: { primary: '#7dd3fc', 'primary-foreground': '#082f49' },
-  }],
+  themes: [
+    {
+      schemaVersion: 1,
+      id: 'ocean',
+      name: 'Ocean',
+      light: { primary: '#075985', 'primary-foreground': '#ffffff' },
+      dark: { primary: '#7dd3fc', 'primary-foreground': '#082f49' },
+    },
+  ],
 });
 ```
 
@@ -94,22 +96,22 @@ export function ChooseOcean() {
 
 The Ocean theme must already exist. No new `theme.set` Action or separate state store is needed.
 
-| Action ID | Input | Result |
-| --- | --- | --- |
-| `shell.selectTheme` | `{ key: 'app:ocean' }` | Select a known theme. |
-| `shell.saveThemeCopy` | Full `ShellThemeInput` with a fresh personal `id` | Save and select the copy. |
-| `shell.updateTheme` | Full `ShellThemeInput` with an existing personal `id` | Replace that personal definition; keep the selection. |
-| `shell.deleteTheme` | `{ id: 'my-ocean' }` | Confirm, then delete a personal theme. |
+| Action ID             | Input                                                 | Result                                                |
+| --------------------- | ----------------------------------------------------- | ----------------------------------------------------- |
+| `shell.selectTheme`   | `{ key: 'app:ocean' }`                                | Select a known theme.                                 |
+| `shell.saveThemeCopy` | Full `ShellThemeInput` with a fresh personal `id`     | Save and select the copy.                             |
+| `shell.updateTheme`   | Full `ShellThemeInput` with an existing personal `id` | Replace that personal definition; keep the selection. |
+| `shell.deleteTheme`   | `{ id: 'my-ocean' }`                                  | Confirm, then delete a personal theme.                |
 
 For integration code, Shell provides the typed **`themeService`** contract (`themes`):
 
-| Method | Purpose |
-| --- | --- |
-| `list()` / `active()` | Read the catalog or current theme. |
-| `canWrite()` | Check readiness, storage writability and pending state. |
-| `select(key)` / `saveCopy(theme)` | Select a theme or create and select a personal copy. |
-| `update(theme)` / `remove(id)` | Change or delete a personal definition. |
-| `subscribe(listener)` | Observe library changes; returns cleanup. |
+| Method                            | Purpose                                                 |
+| --------------------------------- | ------------------------------------------------------- |
+| `list()` / `active()`             | Read the catalog or current theme.                      |
+| `canWrite()`                      | Check readiness, storage writability and pending state. |
+| `select(key)` / `saveCopy(theme)` | Select a theme or create and select a personal copy.    |
+| `update(theme)` / `remove(id)`    | Change or delete a personal definition.                 |
+| `subscribe(listener)`             | Observe library changes; returns cleanup.               |
 
 Use the existing `getService(services, themeService)` or React `useService(themeService)`
 after runtime readiness. Direct service calls do **not** run Action confirmation or execution
@@ -123,12 +125,12 @@ The central stylesheet supplies defaults; the active JSON theme overrides only i
 tokens on `<html>`. This also reaches portaled menus, dialogs and notifications. Switching
 themes or unmounting removes the previous runtime overrides.
 
-| Layer | Responsibility |
-| --- | --- |
-| Central host CSS | Base appearance shared across the app. |
-| Theme `shared` | Overrides used in either mode. |
-| Theme `light` or `dark` | Overrides `shared` for that mode. |
-| Appearance preferences | Separate layout, density and corner choices. |
+| Layer                   | Responsibility                               |
+| ----------------------- | -------------------------------------------- |
+| Central host CSS        | Base appearance shared across the app.       |
+| Theme `shared`          | Overrides used in either mode.               |
+| Theme `light` or `dark` | Overrides `shared` for that mode.            |
+| Appearance preferences  | Separate layout, density and corner choices. |
 
 For a host-owned baseline, keep the generated CSS entry and import your file **after it**:
 
@@ -142,21 +144,27 @@ For a host-owned baseline, keep the generated CSS entry and import your file **a
 
 ```css
 /* src/app/theme.css */
-:root { --primary: #075985; --primary-foreground: #ffffff; }
-:root.dark { --primary: #7dd3fc; --primary-foreground: #082f49; }
+:root {
+  --primary: #075985;
+  --primary-foreground: #ffffff;
+}
+:root.dark {
+  --primary: #7dd3fc;
+  --primary-foreground: #082f49;
+}
 ```
 
 Use this for app defaults; use a JSON definition for a theme users can select and copy.
 BitaKit Default adds no runtime token overrides, so the central CSS remains visible.
 
-| Customize | Representative tokens |
-| --- | --- |
-| Colors | `--background`, `--foreground`, `--primary`, `--primary-foreground`, `--card`, `--border`, `--ring` |
-| Sidebar | `--light--sidebar`, `--dark--sidebar` and their foreground/accent/border variants |
-| Typography | `--font-sans`, `--font-heading`; host supplies font assets |
-| Shape and strokes | `--radius`, `--corner-shape`, `--border-width`, `--focus-ring-width` |
-| Depth | `--theme-shadow-surface`, `--theme-shadow-overlay`, `--theme-shadow-control`, `--theme-shadow-field` |
-| Motion | `--theme-motion-duration`, `--theme-motion-ease` |
+| Customize         | Representative tokens                                                                                |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| Colors            | `--background`, `--foreground`, `--primary`, `--primary-foreground`, `--card`, `--border`, `--ring`  |
+| Sidebar           | `--light--sidebar`, `--dark--sidebar` and their foreground/accent/border variants                    |
+| Typography        | `--font-sans`, `--font-heading`; host supplies font assets                                           |
+| Shape and strokes | `--radius`, `--corner-shape`, `--border-width`, `--focus-ring-width`                                 |
+| Depth             | `--theme-shadow-surface`, `--theme-shadow-overlay`, `--theme-shadow-control`, `--theme-shadow-field` |
+| Motion            | `--theme-motion-duration`, `--theme-motion-ease`                                                     |
 
 JSON uses these names without `--`. A shadow value of `none` is projected as a transparent
 shadow to preserve composed border/focus rings. Explicit corner choices and functional round
@@ -197,11 +205,11 @@ and retain `suppressHydrationWarning` on `<html>`.
 
 ## If the theme does not appear
 
-| Symptom | Check |
-| --- | --- |
-| No Appearance page | Shell and App Preferences are installed, enabled and the Settings route is mounted. |
-| New JSON file is missing | It is under the configured app source's `themes/`; regenerate and rebuild. |
-| Duplicate identity error | The same `id` is not present twice in the app source/options. |
-| Some UI keeps its old colors | It uses central semantic tokens, not hardcoded colors or an unmapped external library. |
-| Preview changes but the app does not | Save and apply; previewing alone is deliberately local. |
-| Changes disappear on another device | Browser storage is local; shared persistence requires the host's storage integration. |
+| Symptom                              | Check                                                                                  |
+| ------------------------------------ | -------------------------------------------------------------------------------------- |
+| No Appearance page                   | Shell and App Preferences are installed, enabled and the Settings route is mounted.    |
+| New JSON file is missing             | It is under the configured app source's `themes/`; regenerate and rebuild.             |
+| Duplicate identity error             | The same `id` is not present twice in the app source/options.                          |
+| Some UI keeps its old colors         | It uses central semantic tokens, not hardcoded colors or an unmapped external library. |
+| Preview changes but the app does not | Save and apply; previewing alone is deliberately local.                                |
+| Changes disappear on another device  | Browser storage is local; shared persistence requires the host's storage integration.  |

@@ -16,13 +16,23 @@ try {
   await email.fill('alice@example.test');
   await email.press('Tab');
   await password.fill(env.TODO_PREVIEW_PASSWORD);
-  const sessionRefresh = page.waitForResponse((response) => response.url().endsWith('/api/auth/get-session'));
+  const sessionRefresh = page.waitForResponse((response) =>
+    response.url().endsWith('/api/auth/get-session'),
+  );
   // The native client revalidates the session when a browser tab becomes visible.
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await sessionRefresh;
   await page.waitForLoadState('networkidle');
-  assert.equal(await email.inputValue() === 'alice@example.test', true, 'Email must survive tab visibility refresh');
-  assert.equal(await password.inputValue() === env.TODO_PREVIEW_PASSWORD, true, 'Password must survive tab visibility refresh');
+  assert.equal(
+    (await email.inputValue()) === 'alice@example.test',
+    true,
+    'Email must survive tab visibility refresh',
+  );
+  assert.equal(
+    (await password.inputValue()) === env.TODO_PREVIEW_PASSWORD,
+    true,
+    'Password must survive tab visibility refresh',
+  );
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   await page.getByRole('heading', { name: 'Todos', exact: true }).waitFor();
   console.log('Sign-in succeeded; email and password survived Tab and native visibility refresh.');
@@ -39,7 +49,10 @@ try {
   await row.getByText('Completed', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Switch organization', exact: true }).click();
   await page.getByRole('menuitem', { name: /Alice private team/ }).click();
-  await page.getByRole('button', { name: 'Switch organization', exact: true }).filter({ hasText: 'Alice private team' }).waitFor();
+  await page
+    .getByRole('button', { name: 'Switch organization', exact: true })
+    .filter({ hasText: 'Alice private team' })
+    .waitFor();
   await row.waitFor({ state: 'detached' });
   await page.getByRole('button', { name: 'Switch organization', exact: true }).click();
   await page.getByRole('menuitem', { name: /Design Studio/ }).click();
@@ -68,7 +81,9 @@ try {
   await page.getByRole('menuitem', { name: /^Switch account$/i }).click();
   await page.getByRole('menuitem', { name: /Alice \(test\).*alice@example.test/ }).click();
   await aliceButton.waitFor();
-  console.log('Native Add account and switch back passed; Bob cannot see Alice’s private organization.');
+  console.log(
+    'Native Add account and switch back passed; Bob cannot see Alice’s private organization.',
+  );
 } finally {
   await browser.close();
 }

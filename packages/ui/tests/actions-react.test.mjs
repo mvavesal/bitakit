@@ -2,7 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act, StrictMode, useEffect } from 'react';
 import { installDom, mount, testUI } from './support.mjs';
-import { ActionProvider, useAction, useActionList, useActions, useActionGroups, ActionButton } from '../dist/actions/index.js';
+import {
+  ActionProvider,
+  useAction,
+  useActionList,
+  useActions,
+  useActionGroups,
+  ActionButton,
+} from '../dist/actions/index.js';
 import { createActionList, ActionGroup } from '@bitakit/core';
 import { BitaKitRuntimeProvider, useBitaKit } from '../dist/index.js';
 import { defineAction, definePlugin, defineService } from '@bitakit/core';

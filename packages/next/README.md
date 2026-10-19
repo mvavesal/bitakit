@@ -95,7 +95,6 @@ and `@bitakit/next/generated` were removed in 0.2; use `withBitaKit` and `./bita
 Run `npm test --workspace @bitakit/next` for discovery integration tests. A different router
 would have its own thin adapter and reuse Core.
 
-
 ## Development refresh
 
 Framework hosts generate a component-only `bitakit.gen.tsx` and a client-side

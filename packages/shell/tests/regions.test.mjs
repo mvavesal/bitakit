@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createElement as h } from 'react';
 import { mount, click, settle } from './support.mjs';
-import { createRuntime, inspectRuntime, defineAction, definePlugin, createMemorySettingsStorage } from '@bitakit/core';
+import {
+  createRuntime,
+  inspectRuntime,
+  defineAction,
+  definePlugin,
+  createMemorySettingsStorage,
+} from '@bitakit/core';
 import {
   AppShell,
   ErrorPage,
@@ -16,8 +22,10 @@ import {
 } from '../dist/index.js';
 import { BitaKitRuntimeProvider } from '@bitakit/ui';
 
-const widget = (name) => ({ payload }) =>
-  h('span', { 'data-region': name, 'data-context': JSON.stringify(payload ?? {}) }, name);
+const widget =
+  (name) =>
+  ({ payload }) =>
+    h('span', { 'data-region': name, 'data-context': JSON.stringify(payload ?? {}) }, name);
 
 function host(children, plugins = []) {
   return h(
@@ -65,9 +73,15 @@ test('new shell region contracts preserve legacy slot IDs and scope header rows 
     await settle();
     const primary = view.container.querySelector('[data-shell-row="primary"]');
     const secondary = view.container.querySelector('[data-shell-row="secondary"]');
-    assert.equal(primary.querySelector('[data-region="primary-start"]')?.textContent, 'primary-start');
+    assert.equal(
+      primary.querySelector('[data-region="primary-start"]')?.textContent,
+      'primary-start',
+    );
     assert.equal(primary.querySelector('[data-region="secondary-end"]'), null);
-    assert.equal(secondary.querySelector('[data-region="secondary-end"]')?.textContent, 'secondary-end');
+    assert.equal(
+      secondary.querySelector('[data-region="secondary-end"]')?.textContent,
+      'secondary-end',
+    );
     assert.equal(secondary.querySelector('[data-region="primary-start"]'), null);
   } finally {
     await view.unmount();
@@ -195,8 +209,16 @@ test('navigation group regions are filtered independently by groupId', async () 
       h(
         AppShell,
         null,
-        h(AppShell.NavigationGroup, { id: 'account', title: 'Account group', navigationSlot: 'shell.navigation' }),
-        h(AppShell.NavigationGroup, { id: 'reports', title: 'Reports group', navigationSlot: 'shell.navigation' }),
+        h(AppShell.NavigationGroup, {
+          id: 'account',
+          title: 'Account group',
+          navigationSlot: 'shell.navigation',
+        }),
+        h(AppShell.NavigationGroup, {
+          id: 'reports',
+          title: 'Reports group',
+          navigationSlot: 'shell.navigation',
+        }),
       ),
       [contributor],
     ),
@@ -239,7 +261,9 @@ test('ErrorPage catches a crashing state contribution and keeps host reset avail
   console.error = () => {};
   let view;
   try {
-    view = await mount(host(h(ErrorPage, { surfaceId: 'failure', reset: () => resets++ }), [broken]));
+    view = await mount(
+      host(h(ErrorPage, { surfaceId: 'failure', reset: () => resets++ }), [broken]),
+    );
     await settle();
     assert.match(view.container.textContent, /Something went wrong/);
     assert.doesNotMatch(view.container.textContent, /private slot crash/);

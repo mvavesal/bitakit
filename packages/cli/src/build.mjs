@@ -68,14 +68,28 @@ export async function buildPlugin({ cwd, check = false } = {}) {
   await writeFile(path.join(dist, 'plugin.js'), entry(id, module, manifest, metadata, local));
   // Derived tooling hints travel with the entry; the source declarations remain the authority.
   const slotInfo = await describeDefinitions(module.slotDefinitions, {
-    helper: 'defineSlot', moduleId: id, properties: ['accepts', 'policy'],
+    helper: 'defineSlot',
+    moduleId: id,
+    properties: ['accepts', 'policy'],
   });
   const source = (file) => path.relative(module.directory, file).split(path.sep).join('/');
-  await writeFile(path.join(dist, 'plugin.slots.json'), JSON.stringify({
-    version: 1,
-    definitions: slotInfo.definitions.map((item) => ({ ...item, file: source(item.file), plugin: id, policy: item.policy ?? 'list' })),
-    unresolved: slotInfo.unresolved.map(source),
-  }, null, 2) + '\n');
+  await writeFile(
+    path.join(dist, 'plugin.slots.json'),
+    JSON.stringify(
+      {
+        version: 1,
+        definitions: slotInfo.definitions.map((item) => ({
+          ...item,
+          file: source(item.file),
+          plugin: id,
+          policy: item.policy ?? 'list',
+        })),
+        unresolved: slotInfo.unresolved.map(source),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
   await writeFile(
     path.join(dist, 'plugin.d.ts'),
     `${declarations(id, module, (file) => local(file))}import type { Plugin } from '@bitakit/core';
@@ -89,15 +103,19 @@ export default plugin;
     for (const file of module.locales)
       await cp(file, path.join(dist, 'locales', path.basename(file)));
   }
-  const styles = (value) => (value === undefined ? [] : Array.isArray(value) ? value : [value])
-    .map((entry) => `${manifest.name}/${entry.replace(/^\.\//, '')}`);
-  await validatePackageStyles([{
-    name: manifest.name,
-    manifestFile: path.join(root, 'package.json'),
-    manifest,
-    styles: styles(metadata.styles),
-    theme: styles(metadata.theme),
-  }]);
+  const styles = (value) =>
+    (value === undefined ? [] : Array.isArray(value) ? value : [value]).map(
+      (entry) => `${manifest.name}/${entry.replace(/^\.\//, '')}`,
+    );
+  await validatePackageStyles([
+    {
+      name: manifest.name,
+      manifestFile: path.join(root, 'package.json'),
+      manifest,
+      styles: styles(metadata.styles),
+      theme: styles(metadata.theme),
+    },
+  ]);
   return { id, module, dist };
 }
 
@@ -157,11 +175,23 @@ function entry(id, module, manifest, metadata, local) {
       return `discoveredFile(${name}, ${quote(item.path)}, ${quote(path.relative(module.directory, item.file).split(path.sep).join('/'))})`;
     });
   const info = {};
-  for (const key of ['name', 'version', 'description', 'author', 'homepage', 'bugs', 'license', 'coverImage', 'tags'])
+  for (const key of [
+    'name',
+    'version',
+    'description',
+    'author',
+    'homepage',
+    'bugs',
+    'license',
+    'coverImage',
+    'tags',
+  ])
     if (manifest[key] !== undefined) info[key] = manifest[key];
   const services = discovered(module.services);
   const settings = discovered(module.settings);
-  const settingsPage = module.settingsPage ? `pluginSettingsPage(${load(module.settingsPage, true)})` : undefined;
+  const settingsPage = module.settingsPage
+    ? `pluginSettingsPage(${load(module.settingsPage, true)})`
+    : undefined;
   const slotDefinitions = discovered(module.slotDefinitions);
   const actions = discovered(module.actions);
   const configs = discovered(module.configs);
@@ -172,7 +202,8 @@ function entry(id, module, manifest, metadata, local) {
       `pluginPage(${load(item.file, true)}, ${quote(`/${id}${item.path ? `/${item.path.split('.').join('/')}` : ''}`)})`,
   );
   const slots = module.slots.map(
-    (item) => `pluginSlot(${load(item.file, true)}, ${quote(item.path)}, ${quote(path.relative(module.directory, item.file).split(path.sep).join('/'))})`,
+    (item) =>
+      `pluginSlot(${load(item.file, true)}, ${quote(item.path)}, ${quote(path.relative(module.directory, item.file).split(path.sep).join('/'))})`,
   );
   const providers = module.providers.map(
     (item) => `pluginProvider(${load(item.file, true)}, ${quote(`${id}.${item.path}`)})`,

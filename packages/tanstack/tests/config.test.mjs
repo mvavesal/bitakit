@@ -4,11 +4,7 @@ import { EventEmitter } from 'node:events';
 import { mkdtemp, mkdir, writeFile, readFile, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import {
-  bitakit,
-  defineBitaKit,
-  generateBitaKit,
-} from '../src/config.mjs';
+import { bitakit, defineBitaKit, generateBitaKit } from '../src/config.mjs';
 
 async function fixture(run) {
   const root = await mkdtemp(path.join(tmpdir(), 'bitakit-tanstack-'));

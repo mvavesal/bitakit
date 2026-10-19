@@ -4,5 +4,13 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": ["src", "tests/service-types.ts", "tests/config-types.ts", "tests/event-types.ts", "tests/settings-types.ts", "tests/testing-types.ts", "tests/slot-types.ts"]
+  "include": [
+    "src",
+    "tests/service-types.ts",
+    "tests/config-types.ts",
+    "tests/event-types.ts",
+    "tests/settings-types.ts",
+    "tests/testing-types.ts",
+    "tests/slot-types.ts"
+  ]
 }

@@ -79,4 +79,3 @@ test('defineContract writes the name once and returns the same key from of()', (
   assert.equal(contract.of(), serviceKey('notes'));
   assert.throws(() => defineContract('  '), /must not be empty/);
 });
-

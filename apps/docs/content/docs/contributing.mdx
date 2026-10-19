@@ -174,8 +174,8 @@ CI's version check fails while packages sit on two lines.
 
 ### 2. Merge into main
 
-`.github/workflows/release.yml` runs on every push to `main`. It first runs CI (every package test,
-the version check, the docs build), then:
+`.github/workflows/release.yml` runs on every push to `main`. It first runs CI (the format check,
+every package test, the version check, the docs build), then:
 
 | On `main`                                      | The workflow                                                                           |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------- |

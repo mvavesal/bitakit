@@ -6,7 +6,11 @@ const runtimeHelpers = new Set(['definePlugin', 'createRuntime', 'createRuntimeC
 const propertyName = (property, tree) =>
   property.name ? property.name.getText(tree).replace(/^['"]|['"]$/g, '') : undefined;
 const isFunction = (node) =>
-  !!node && (ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node));
+  !!node &&
+  (ts.isArrowFunction(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isFunctionDeclaration(node) ||
+    ts.isMethodDeclaration(node));
 
 /**
  * Rewrites the 0.2 API spellings in one TypeScript/TSX source on its syntax tree:
@@ -35,7 +39,11 @@ export function rewriteScopeAndSlots(source, { setupFile = false, tsx = true } =
     if (!parameter || !ts.isObjectBindingPattern(parameter)) return;
     for (const element of parameter.elements)
       if (!element.propertyName && ts.isIdentifier(element.name) && element.name.text === 'app')
-        edits.push({ start: element.name.getStart(tree), end: element.name.getEnd(), text: 'scope: app' });
+        edits.push({
+          start: element.name.getStart(tree),
+          end: element.name.getEnd(),
+          text: 'scope: app',
+        });
   };
   const setupOf = (object) => {
     for (const property of object.properties) {
@@ -51,8 +59,12 @@ export function rewriteScopeAndSlots(source, { setupFile = false, tsx = true } =
     if (ts.isObjectLiteralExpression(node)) {
       const parent = node.parent;
       const isRuntimeOptions =
-        ts.isCallExpression(parent) && runtimeHelpers.has(callee(parent)) && parent.arguments[0] === node;
-      const isPluginObject = node.properties.some((property) => propertyName(property, tree) === 'id');
+        ts.isCallExpression(parent) &&
+        runtimeHelpers.has(callee(parent)) &&
+        parent.arguments[0] === node;
+      const isPluginObject = node.properties.some(
+        (property) => propertyName(property, tree) === 'id',
+      );
       if (isRuntimeOptions || isPluginObject) setupOf(node);
     }
     if (
@@ -63,7 +75,12 @@ export function rewriteScopeAndSlots(source, { setupFile = false, tsx = true } =
       isFunction(node.initializer)
     )
       aliasApp(node.initializer);
-    if (setupFile && ts.isExportAssignment(node) && !node.isExportEquals && isFunction(node.expression))
+    if (
+      setupFile &&
+      ts.isExportAssignment(node) &&
+      !node.isExportEquals &&
+      isFunction(node.expression)
+    )
       aliasApp(node.expression);
     if (
       setupFile &&
@@ -82,13 +99,22 @@ export function rewriteScopeAndSlots(source, { setupFile = false, tsx = true } =
       if (slots && ts.isPropertyAssignment(slots) && ts.isArrayLiteralExpression(slots.initializer))
         for (const element of slots.initializer.elements) {
           if (!ts.isObjectLiteralExpression(element)) continue;
-          if (element.properties.some((property) => propertyName(property, tree) === 'slot')) continue;
+          if (element.properties.some((property) => propertyName(property, tree) === 'slot'))
+            continue;
           for (const property of element.properties)
             if (propertyName(property, tree) === 'name') {
               if (ts.isShorthandPropertyAssignment(property))
-                edits.push({ start: property.getStart(tree), end: property.getEnd(), text: 'slot: name' });
+                edits.push({
+                  start: property.getStart(tree),
+                  end: property.getEnd(),
+                  text: 'slot: name',
+                });
               else if (ts.isPropertyAssignment(property))
-                edits.push({ start: property.name.getStart(tree), end: property.name.getEnd(), text: 'slot' });
+                edits.push({
+                  start: property.name.getStart(tree),
+                  end: property.name.getEnd(),
+                  text: 'slot',
+                });
             }
         }
     }
@@ -105,7 +131,9 @@ export function rewriteScopeAndSlots(source, { setupFile = false, tsx = true } =
       const [target, contribution] = node.arguments;
       const isContribution =
         ts.isObjectLiteralExpression(contribution) &&
-        contribution.properties.some((property) => contributionKeys.has(propertyName(property, tree)));
+        contribution.properties.some((property) =>
+          contributionKeys.has(propertyName(property, tree)),
+        );
       if (isContribution) {
         const text = contribution.getText(tree);
         const inner = text.slice(1, -1);

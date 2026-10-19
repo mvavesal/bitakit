@@ -17,9 +17,14 @@ async function organizationFor(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) throw new Response('Sign in to access tasks.', { status: 401 });
   const organizationId = session.session.activeOrganizationId;
-  if (!organizationId) throw new Response('Select an organization to view its tasks.', { status: 409 });
+  if (!organizationId)
+    throw new Response('Select an organization to view its tasks.', { status: 409 });
   const member = await auth.api.getActiveMember({ headers: request.headers }).catch(() => null);
-  if (!member || member.organizationId !== organizationId || (member as { disabled?: boolean }).disabled)
+  if (
+    !member ||
+    member.organizationId !== organizationId ||
+    (member as { disabled?: boolean }).disabled
+  )
     throw new Response('Organization access denied.', { status: 403 });
   return organizationId;
 }
@@ -28,7 +33,10 @@ export async function GET(request: Request) {
   try {
     const organizationId = await organizationFor(request);
     return Response.json({ items: tasks.get(organizationId) ?? [] });
-  } catch (error) { if (error instanceof Response) return error; throw error; }
+  } catch (error) {
+    if (error instanceof Response) return error;
+    throw error;
+  }
 }
 
 export async function POST(request: Request) {
@@ -44,7 +52,8 @@ export async function POST(request: Request) {
       return Response.json({ items: [] });
     }
     const items = tasks.get(organizationId) ?? [];
-    if (change.operation === 'add') items.push({ id: randomUUID(), title: change.title, completed: false });
+    if (change.operation === 'add')
+      items.push({ id: randomUUID(), title: change.title, completed: false });
     else {
       const item = items.find((entry) => entry.id === change.id);
       if (!item) return new Response('Task not found in this organization.', { status: 404 });
@@ -54,5 +63,8 @@ export async function POST(request: Request) {
     }
     tasks.set(organizationId, items);
     return Response.json({ items });
-  } catch (error) { if (error instanceof Response) return error; throw error; }
+  } catch (error) {
+    if (error instanceof Response) return error;
+    throw error;
+  }
 }

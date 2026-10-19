@@ -2,8 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
 import { installDom, mount, tick, testUI } from './support.mjs';
-import { BitaKitRuntimeProvider, PluginSlot, useBitaKit, useNavigation, useSetting, useSettingsCatalog, useSlot } from '../dist/index.js';
-import { createMemorySettingsStorage, defineAction, definePlugin, defineSettings, setting, defineSlot } from '@bitakit/core';
+import {
+  BitaKitRuntimeProvider,
+  PluginSlot,
+  useBitaKit,
+  useNavigation,
+  useSetting,
+  useSettingsCatalog,
+  useSlot,
+} from '../dist/index.js';
+import {
+  createMemorySettingsStorage,
+  defineAction,
+  definePlugin,
+  defineSettings,
+  setting,
+  defineSlot,
+} from '@bitakit/core';
 
 installDom();
 
@@ -96,8 +111,19 @@ test('useSlot and useNavigation hand layouts the data PluginSlot and the menus r
       ],
     },
     actions: {
-      home: defineAction({ title: 'Home', href: '/', groups: ['navigation'], slots: ['shell.navigation'] }),
-      docs: defineAction({ title: 'Docs', href: '/docs', groups: ['navigation'], slots: ['shell.navigation'], order: 2 }),
+      home: defineAction({
+        title: 'Home',
+        href: '/',
+        groups: ['navigation'],
+        slots: ['shell.navigation'],
+      }),
+      docs: defineAction({
+        title: 'Docs',
+        href: '/docs',
+        groups: ['navigation'],
+        slots: ['shell.navigation'],
+        order: 2,
+      }),
     },
   });
   let slot;
@@ -110,7 +136,14 @@ test('useSlot and useNavigation hand layouts the data PluginSlot and the menus r
   const view = await mount(
     h(
       BitaKitRuntimeProvider,
-      { config: { slots: { 'shell.navigation': defineSlot({ accepts: 'actions' }) }, plugins: [tools] }, ui: testUI, actionOptions: { pathname: '/docs' } },
+      {
+        config: {
+          slots: { 'shell.navigation': defineSlot({ accepts: 'actions' }) },
+          plugins: [tools],
+        },
+        ui: testUI,
+        actionOptions: { pathname: '/docs' },
+      },
       h(Consumer),
     ),
   );
@@ -125,7 +158,7 @@ test('useSlot and useNavigation hand layouts the data PluginSlot and the menus r
     );
     assert.equal(view.container.querySelector('section').textContent, 'firstbadge');
     assert.deepEqual(
-      navigation.items.map(item => item.title),
+      navigation.items.map((item) => item.title),
       ['Home', 'Docs'],
     );
     assert.equal(navigation.pathname, '/docs');

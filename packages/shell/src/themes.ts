@@ -21,7 +21,9 @@ export function themeKey(source: ThemeSource, id: string): string {
 }
 
 /** Reject duplicate identities rather than silently replacing a theme. */
-export function themeCatalog(sources: Partial<Record<ThemeSource, readonly ShellThemeInput[]>>): ThemeEntry[] {
+export function themeCatalog(
+  sources: Partial<Record<ThemeSource, readonly ShellThemeInput[]>>,
+): ThemeEntry[] {
   const entries: ThemeEntry[] = [];
   const keys = new Set<string>();
   for (const source of ['shell', 'app', 'user'] as const) {
@@ -37,11 +39,19 @@ export function themeCatalog(sources: Partial<Record<ThemeSource, readonly Shell
 }
 
 /** Missing tokens inherit the central theme, including its existing control finish. */
-export function themeTokens(theme: ShellThemeDefinition, mode: 'light' | 'dark'): Record<string, string> {
+export function themeTokens(
+  theme: ShellThemeDefinition,
+  mode: 'light' | 'dark',
+): Record<string, string> {
   const tokens = { ...theme.shared, ...theme[mode] };
   // Tailwind composes surface shadows with border/focus rings in a shadow list.
   // CSS `none` is only valid on its own, so preserve rings with a transparent shadow.
-  for (const name of ['theme-shadow-surface', 'theme-shadow-overlay', 'theme-shadow-field', 'theme-shadow-control']) {
+  for (const name of [
+    'theme-shadow-surface',
+    'theme-shadow-overlay',
+    'theme-shadow-field',
+    'theme-shadow-control',
+  ]) {
     if (tokens[name]?.trim() === 'none') tokens[name] = '0 0 #0000';
   }
   return tokens;

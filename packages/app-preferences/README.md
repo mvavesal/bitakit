@@ -341,12 +341,10 @@ without a running instance are not synthesized into this runtime-only overview.
 `bitakit add settings-page <plugin>` scaffolds a custom page retaining `renderField`; generated
 navigation and body registration remain automatic.
 
-
 Settings bodies and extension widgets use the UI package's standard per-contribution render
 boundary. A failed custom/generated body identifies the page's plugin; siblings/navigation
 remain usable. The retry fallback stays inside the existing page access boundary and disappears
 when access is revoked. This does not change service startup policy or server authorization.
-
 
 ## Shared layouts and extension regions
 

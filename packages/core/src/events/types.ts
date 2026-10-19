@@ -8,7 +8,9 @@ export interface CancelableEventMap {}
 export type KnownEventName = Extract<keyof EventMap, string>;
 /** A declared event name; strict generated apps reject unknown names. */
 export type EventName = GeneratedName<KnownEventName>;
-type PatternOf<Name extends string> = Name extends `${infer Prefix}.${string}` ? `${Prefix}.*` : never;
+type PatternOf<Name extends string> = Name extends `${infer Prefix}.${string}`
+  ? `${Prefix}.*`
+  : never;
 /** What a listener selects: an event, a `<prefix>.*` pattern of declared events, or `*`. */
 export type EventSelector = EventName | PatternOf<KnownEventName> | '*';
 export type EventData<Name extends string> = Name extends keyof EventMap ? EventMap[Name] : unknown;

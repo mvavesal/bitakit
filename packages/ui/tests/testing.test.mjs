@@ -3,7 +3,14 @@ import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
 import { installDom, click, silenced, testUI } from './support.mjs';
 import { PluginPage, useService, useServiceState } from '../dist/index.js';
-import { defineAction, defineEvents, definePlugin, defineService, event, isBitaKitStartupError } from '@bitakit/core';
+import {
+  defineAction,
+  defineEvents,
+  definePlugin,
+  defineService,
+  event,
+  isBitaKitStartupError,
+} from '@bitakit/core';
 import { renderWithBitaKit } from '../dist/testing/index.js';
 
 installDom();
@@ -58,11 +65,14 @@ test('renderWithBitaKit mounts a plugin page, records events from startup on and
     await click(view.container.querySelector('button'));
     assert.equal(view.container.querySelector('output').textContent, 'Write tests');
     await act(async () => view.runtime.actions.execute('notes.add'));
-    assert.deepEqual(view.events.recorded.filter((event) => event.type !== 'runtime.lifecycle'), [
-      { type: 'notes.opened', data: undefined },
-      { type: 'notes.added', data: { title: 'Write tests' } },
-      { type: 'notes.added', data: { title: 'From the action' } },
-    ]);
+    assert.deepEqual(
+      view.events.recorded.filter((event) => event.type !== 'runtime.lifecycle'),
+      [
+        { type: 'notes.opened', data: undefined },
+        { type: 'notes.added', data: { title: 'Write tests' } },
+        { type: 'notes.added', data: { title: 'From the action' } },
+      ],
+    );
     await view.rerender(h('p', null, 'Elsewhere'));
     assert.equal(view.container.textContent, 'Elsewhere');
   } finally {

@@ -73,7 +73,10 @@ export function ShellTheme({ children }: { children: ReactNode }) {
   useRootAttribute('data-shell-corners', confirmed(useSetting('shell.corners')));
   return (
     <>
-      <ThemeProjection dark={mode === 'dark' || (mode === 'system' && systemDark)} modeReady={mode !== undefined} />
+      <ThemeProjection
+        dark={mode === 'dark' || (mode === 'system' && systemDark)}
+        modeReady={mode !== undefined}
+      />
       {runtime.settings.has('shell.preset') ? <PresetProjection /> : null}
       {children}
     </>
@@ -83,9 +86,13 @@ export function ShellTheme({ children }: { children: ReactNode }) {
 function ThemeProjection({ dark, modeReady }: { dark: boolean; modeReady: boolean }) {
   const library = useSetting('shell.themeLibrary');
   const service = useService(themeService) as ThemeService | undefined;
-  const tokens = useMemo(() => library.ready && modeReady && service
-    ? themeTokens(service.active(), dark ? 'dark' : 'light')
-    : undefined, [library.ready, library.value, service, dark, modeReady]);
+  const tokens = useMemo(
+    () =>
+      library.ready && modeReady && service
+        ? themeTokens(service.active(), dark ? 'dark' : 'light')
+        : undefined,
+    [library.ready, library.value, service, dark, modeReady],
+  );
   useEffect(() => {
     if (!tokens) return;
     const style = document.documentElement.style;

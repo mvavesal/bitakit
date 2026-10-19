@@ -87,7 +87,9 @@ export type PublicEventsOf<Plugins extends readonly Plugin[]> = [Plugins[number]
     >;
 
 /** `CancelableEventMap` entries of manually composed or installed package plugins. */
-export type PublicCancelableOf<Plugins extends readonly Plugin[]> = [Plugins[number]] extends [never]
+export type PublicCancelableOf<Plugins extends readonly Plugin[]> = [Plugins[number]] extends [
+  never,
+]
   ? {}
   : Intersection<
       Plugins[number] extends infer P

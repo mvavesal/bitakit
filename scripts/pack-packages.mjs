@@ -8,7 +8,9 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const build = !process.argv.includes('--skip-build');
-const [target = path.join(root, '.packs'), ...selected] = process.argv.slice(2).filter((value) => value !== '--skip-build');
+const [target = path.join(root, '.packs'), ...selected] = process.argv
+  .slice(2)
+  .filter((value) => value !== '--skip-build');
 const destination = path.resolve(target);
 // Dependency order: each package builds after the packages it imports.
 const order = [

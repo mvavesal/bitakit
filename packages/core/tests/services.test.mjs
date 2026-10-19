@@ -257,6 +257,7 @@ test('reading a declared service before it is created explains the missing requi
   assert.throws(
     () => runtime.mount(),
     (error) =>
-      /requires: \["demo\.source"\]/.test(error.message) && !/Plugin "undefined"/.test(error.message),
+      /requires: \["demo\.source"\]/.test(error.message) &&
+      !/Plugin "undefined"/.test(error.message),
   );
 });

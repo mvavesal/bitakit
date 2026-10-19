@@ -36,24 +36,24 @@ one owner and every feature one folder, so a new feature is mostly new files.
 
 ## What BitaKit is not
 
-| BitaKit is not… | Instead… |
-| --- | --- |
-| A framework or a router | Your framework keeps routes, rendering and deployment; one catch-all route renders plugin pages. |
-| A component library | Core has no UI. `@bitakit/ui/components` is an optional set of standard components. |
-| A sandbox | Plugins are trusted code in the same app. A failing plugin is reported at startup and a failing slot component is contained, but plugins are not isolated from each other. |
-| A backend | Plugins run in your client app. Server-side plugins are planned, not shipped. |
+| BitaKit is not…         | Instead…                                                                                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A framework or a router | Your framework keeps routes, rendering and deployment; one catch-all route renders plugin pages.                                                                           |
+| A component library     | Core has no UI. `@bitakit/ui/components` is an optional set of standard components.                                                                                        |
+| A sandbox               | Plugins are trusted code in the same app. A failing plugin is reported at startup and a failing slot component is contained, but plugins are not isolated from each other. |
+| A backend               | Plugins run in your client app. Server-side plugins are planned, not shipped.                                                                                              |
 
 ## Why BitaKit?
 
-| When your app needs… | BitaKit gives you… |
-| --- | --- |
-| Features that can grow independently | A plugin folder containing the feature's own files. |
-| Clear locations for developers and AI coding agents | Conventional paths and generated types that make each feature easier to find and extend. |
-| Several people or agents extending the app | Feature ownership and explicit contracts between plugins. |
-| The same operation in several places | One Action, bound to buttons, links or menus. |
-| New UI inside an existing feature | Named slots that other plugins can target. |
-| Preferences with a Settings page | One declaration for saved values; with App Preferences installed, its fields and navigation as well. |
-| Communication and shared observation | Events and interceptors with runtime-owned cleanup. |
+| When your app needs…                                | BitaKit gives you…                                                                                   |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Features that can grow independently                | A plugin folder containing the feature's own files.                                                  |
+| Clear locations for developers and AI coding agents | Conventional paths and generated types that make each feature easier to find and extend.             |
+| Several people or agents extending the app          | Feature ownership and explicit contracts between plugins.                                            |
+| The same operation in several places                | One Action, bound to buttons, links or menus.                                                        |
+| New UI inside an existing feature                   | Named slots that other plugins can target.                                                           |
+| Preferences with a Settings page                    | One declaration for saved values; with App Preferences installed, its fields and navigation as well. |
+| Communication and shared observation                | Events and interceptors with runtime-owned cleanup.                                                  |
 
 BitaKit is useful when several features need these shared conventions. A small page can stay
 small: you do not need every capability, an optional UI package or a full manifest to start.
@@ -76,16 +76,16 @@ These are optional additions, not a required scaffold. The same conventions give
 AI coding agents a shared map: Actions go in `actions/`, services in `services/`, and owned slot
 definitions in `slots/`.
 
-| How you prefer to work | How the same Action joins the Notes plugin |
-| --- | --- |
-| File conventions | Put a `defineAction` default export in `src/plugins/notes/actions/open.ts`. |
-| Programmatic API | Pass that Action definition as `open` in `definePlugin({ id: 'notes', actions: { open } })`, then include the plugin in your host composition. |
+| How you prefer to work | How the same Action joins the Notes plugin                                                                                                     |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| File conventions       | Put a `defineAction` default export in `src/plugins/notes/actions/open.ts`.                                                                    |
+| Programmatic API       | Pass that Action definition as `open` in `definePlugin({ id: 'notes', actions: { open } })`, then include the plugin in your host composition. |
 
 Discovery runs during development and builds. It registers definitions; a page, Action binding
 or mounted slot still determines where UI appears.
 
 [Read more: file conventions and automatic discovery →](/docs/concepts/discovery)
- · [Compose plugins through the API →](/docs/concepts/manual-composition)
+· [Compose plugins through the API →](/docs/concepts/manual-composition)
 
 ## How the pieces fit
 
@@ -111,7 +111,7 @@ Neither needs to rewrite the Notes page or Core. Keeping changes local reduces a
 coupling and the risk of breaking shared foundations; compatible contracts and tests still matter.
 
 [Read more: shared service contracts →](/docs/concepts/manual-composition#explicit-contracts-across-packages)
- · [Events →](/docs/concepts/events) · [Slots →](/docs/concepts/slots)
+· [Events →](/docs/concepts/events) · [Slots →](/docs/concepts/slots)
 
 ## Try adding a piece
 

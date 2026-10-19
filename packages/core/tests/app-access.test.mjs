@@ -19,10 +19,7 @@ test('Action references preserve guards, current state, ownership and internal e
   );
   const reference = runtime.app.actions.documents.create;
   assert.equal(resolveActionId(reference, list), 'documents.create');
-  assert.throws(
-    () => resolveActionId(reference, createActionList()),
-    /different BitaKit instance/,
-  );
+  assert.throws(() => resolveActionId(reference, createActionList()), /different BitaKit instance/);
   const stop = runtime.mount();
   try {
     assert.deepEqual(await reference.execute(), { status: 'skipped', reason: 'disabled' });

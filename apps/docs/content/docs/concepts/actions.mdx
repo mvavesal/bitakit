@@ -76,9 +76,22 @@ todo changes the service store; the Action's `enabled` function is re-evaluated 
 bound control reads the new state.
 
 <figure data-doc-action-loop="">
-  <img className="dark:hidden" src="/diagrams/action-loop-light.svg" width="880" alt="Five steps: UI executes an Action, the Action calls a service, the service updates its store, enabled is re-evaluated, and bound UI receives the new state." />
-  <img className="hidden dark:block" src="/diagrams/action-loop-dark.svg" width="880" alt="Five steps: UI executes an Action, the Action calls a service, the service updates its store, enabled is re-evaluated, and bound UI receives the new state." />
-  <figcaption>The numbered arrows show execution and the return path to the UI. Validation, guards and interceptors still apply; this diagram focuses on state updates.</figcaption>
+  <img
+    className="dark:hidden"
+    src="/diagrams/action-loop-light.svg"
+    width="880"
+    alt="Five steps: UI executes an Action, the Action calls a service, the service updates its store, enabled is re-evaluated, and bound UI receives the new state."
+  />
+  <img
+    className="hidden dark:block"
+    src="/diagrams/action-loop-dark.svg"
+    width="880"
+    alt="Five steps: UI executes an Action, the Action calls a service, the service updates its store, enabled is re-evaluated, and bound UI receives the new state."
+  />
+  <figcaption>
+    The numbered arrows show execution and the return path to the UI. Validation, guards and
+    interceptors still apply; this diagram focuses on state updates.
+  </figcaption>
 </figure>
 
 ## Choose where an Action appears

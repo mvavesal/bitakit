@@ -3,7 +3,14 @@ import assert from 'node:assert/strict';
 import { mount, settle } from './support.mjs';
 import { createElement as h, act } from 'react';
 import { toast } from '@heroui/react';
-import { BitaKitRuntime, createActionList, createMemorySettingsStorage, createTranslationPlugin, defineAction, definePlugin } from '@bitakit/core';
+import {
+  BitaKitRuntime,
+  createActionList,
+  createMemorySettingsStorage,
+  createTranslationPlugin,
+  defineAction,
+  definePlugin,
+} from '@bitakit/core';
 import { BitaKitRuntimeProvider, useBitaKit } from '@bitakit/ui';
 import { shellPlugin, notificationService, useNotifications } from '../dist/index.js';
 

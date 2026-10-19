@@ -229,7 +229,16 @@ function architecture(t) {
       anchor: 'end',
     }),
   );
-  const owned = ['services', 'actions', 'events', 'settings', 'slots', 'configs', 'overrides', 'interceptors'];
+  const owned = [
+    'services',
+    'actions',
+    'events',
+    'settings',
+    'slots',
+    'configs',
+    'overrides',
+    'interceptors',
+  ];
   const pillGap = 10;
   const pillW = (760 - pillGap * (owned.length - 1)) / owned.length;
   owned.forEach((label, i) => {
@@ -262,7 +271,11 @@ function architecture(t) {
   );
   parts.push(rect(40, adapterY, 800, 52, { rx: 10, fill: t.box, stroke: t.boxStroke }));
   parts.push(
-    text(60, adapterY + 22, 'BitaKit discovery + framework adapter', { size: 13, weight: 600, fill: t.text }),
+    text(60, adapterY + 22, 'BitaKit discovery + framework adapter', {
+      size: 13,
+      weight: 600,
+      fill: t.text,
+    }),
   );
   parts.push(
     text(60, adapterY + 40, 'imports + types at build time · no browser file scanning', {

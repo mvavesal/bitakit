@@ -63,7 +63,12 @@ export default defineAction({
         ))}
       </div>
       <div className="min-w-0 overflow-hidden rounded-xl border border-fd-border bg-fd-card">
-        <div role="region" aria-label="App header layout" tabIndex={0} className="overflow-x-auto border-b border-fd-border focus-visible:outline-2 focus-visible:outline-fd-ring">
+        <div
+          role="region"
+          aria-label="App header layout"
+          tabIndex={0}
+          className="overflow-x-auto border-b border-fd-border focus-visible:outline-2 focus-visible:outline-fd-ring"
+        >
           <div className="grid min-w-xl grid-cols-[1fr_1fr_2fr] items-stretch gap-2 p-3">
             {placement('headerStart')}
             {placement('headerCenter')}
@@ -89,12 +94,15 @@ export default defineAction({
         <div className="border-t border-fd-border p-3">{placement('footer')}</div>
       </div>
       <p className="text-sm text-fd-muted-foreground">
-        The built-in toolbar sits beside custom header-end content in the same row.
-        For a separate full-width row below the header, use{' '}
-        <Link href="/docs/reference/layouts#2-add-another-header-row" className="underline underline-offset-4">
+        The built-in toolbar sits beside custom header-end content in the same row. For a separate
+        full-width row below the header, use{' '}
+        <Link
+          href="/docs/reference/layouts#2-add-another-header-row"
+          className="underline underline-offset-4"
+        >
           <code>shell.header.rows</code>
-        </Link>.
-        On narrow screens, scroll the header illustration sideways to see all regions.
+        </Link>
+        . On narrow screens, scroll the header illustration sideways to see all regions.
       </p>
       <Explanation
         id={details}

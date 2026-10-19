@@ -168,10 +168,21 @@ test('the pre-paint script reads the value the runtime stores in browser storage
 test('JSON themes follow color scheme and remove overrides when returning to default', async () => {
   resetRoot();
   root.style.setProperty('--radius', '2rem');
-  const { view, runtime } = await mountShell(shellPlugin({ themes: [{
-    schemaVersion: 1, id: 'ocean', name: 'Ocean',
-    shared: { radius: '1rem' }, light: { primary: 'blue' }, dark: { primary: 'cyan' },
-  }] }), { 'settings.storage': createMemorySettingsStorage() });
+  const { view, runtime } = await mountShell(
+    shellPlugin({
+      themes: [
+        {
+          schemaVersion: 1,
+          id: 'ocean',
+          name: 'Ocean',
+          shared: { radius: '1rem' },
+          light: { primary: 'blue' },
+          dark: { primary: 'cyan' },
+        },
+      ],
+    }),
+    { 'settings.storage': createMemorySettingsStorage() },
+  );
   try {
     await settle();
     assert.equal(root.style.getPropertyValue('--radius'), '2rem');
@@ -185,7 +196,9 @@ test('JSON themes follow color scheme and remove overrides when returning to def
     assert.equal(root.style.getPropertyValue('--radius'), '2rem');
     assert.equal(root.style.getPropertyValue('--primary'), '');
     await act(() => runtime().services.themes.select('app:ocean'));
-  } finally { await view.unmount(); }
+  } finally {
+    await view.unmount();
+  }
   assert.equal(root.style.getPropertyValue('--radius'), '2rem');
   assert.equal(root.style.getPropertyValue('--primary'), '');
   resetRoot();

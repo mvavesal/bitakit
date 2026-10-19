@@ -12,8 +12,29 @@ import {
 import { installDom, mount, click, deferred, silenced, testUI } from './support.mjs';
 import { ActionProvider, ActionButton, useAction, useActionList } from '../dist/actions/index.js';
 import { createActionList } from '@bitakit/core';
-import { BitaKitRuntimeProvider, ActionBoundary, PluginSlot, PluginPage, useCurrentPage, useBitaKit, useBitaKitApp, useService, useServiceState, useEvent, useTranslation, useGroupTitle } from '../dist/index.js';
-import { defineAction, definePlugin, defineService, defineEvents, event, createTranslationPlugin, ActionGroup } from '@bitakit/core';
+import {
+  BitaKitRuntimeProvider,
+  ActionBoundary,
+  PluginSlot,
+  PluginPage,
+  useCurrentPage,
+  useBitaKit,
+  useBitaKitApp,
+  useService,
+  useServiceState,
+  useEvent,
+  useTranslation,
+  useGroupTitle,
+} from '../dist/index.js';
+import {
+  defineAction,
+  definePlugin,
+  defineService,
+  defineEvents,
+  event,
+  createTranslationPlugin,
+  ActionGroup,
+} from '@bitakit/core';
 import {
   StandardBitaKitRuntimeProvider,
   StandardActionMenu,
@@ -213,7 +234,11 @@ test('plugin and app providers nest outside-in, survive translation changes and 
     ],
   };
   const tree = (translate, providers) =>
-    h(BitaKitRuntimeProvider, { config, ui: testUI, translate, providers }, h('span', null, 'Content'));
+    h(
+      BitaKitRuntimeProvider,
+      { config, ui: testUI, translate, providers },
+      h('span', null, 'Content'),
+    );
   const view = await mount(tree((key) => `en:${key}`));
   try {
     assert.equal(
@@ -477,7 +502,9 @@ test('useServiceState preserves class receivers during subscription, updates and
       this.listeners.add(listener);
       return () => this.listeners.delete(listener);
     }
-    getSnapshot() { return this.value; }
+    getSnapshot() {
+      return this.value;
+    }
     increment() {
       this.value++;
       this.listeners.forEach((listener) => listener());
@@ -487,7 +514,9 @@ test('useServiceState preserves class receivers during subscription, updates and
   function Consumer() {
     return h('output', null, useServiceState('counter', undefined, -1));
   }
-  const view = await mount(h(BitaKitRuntimeProvider, { config: {}, ui: testUI, services: { counter } }, h(Consumer)));
+  const view = await mount(
+    h(BitaKitRuntimeProvider, { config: {}, ui: testUI, services: { counter } }, h(Consumer)),
+  );
   try {
     assert.equal(view.container.textContent, '0');
     await act(async () => counter.increment());
@@ -826,7 +855,9 @@ test('BitaKitRuntimeProvider defaults to the standard visuals and labels; partia
       invalid: 'Please check your input.',
       unavailable: 'Unavailable',
     });
-    await view.render(h(BitaKitRuntimeProvider, { config: {}, labels: { confirm: 'Yes' } }, h(Read)));
+    await view.render(
+      h(BitaKitRuntimeProvider, { config: {}, labels: { confirm: 'Yes' } }, h(Read)),
+    );
     assert.equal(seen.labels.confirm, 'Yes');
     assert.equal(seen.labels.cancel, 'Cancel');
     assert.equal(StandardBitaKitRuntimeProvider, BitaKitRuntimeProvider);
@@ -852,7 +883,9 @@ test('translation hook reacts to translation service updates, interpolates and p
       t('missing', undefined, 'Fallback'),
     );
   }
-  const view = await mount(h(BitaKitRuntimeProvider, { plugins: [plugin], ui: testUI }, h(Consumer)));
+  const view = await mount(
+    h(BitaKitRuntimeProvider, { plugins: [plugin], ui: testUI }, h(Consumer)),
+  );
   try {
     assert.equal(view.container.textContent, 'Hallo Ada / Fallback');
     await act(async () => plugin.update(makeTranslator('Hello')));

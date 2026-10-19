@@ -1,6 +1,11 @@
 'use client';
 import { useContext, useMemo, useSyncExternalStore } from 'react';
-import { getService, translationService, type Translator, type TranslationCatalog } from '@bitakit/core';
+import {
+  getService,
+  translationService,
+  type Translator,
+  type TranslationCatalog,
+} from '@bitakit/core';
 import { BitaKitContext } from '../providers/foundation-context.js';
 
 export type Translate = ((

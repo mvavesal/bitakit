@@ -40,7 +40,10 @@ test('Foundation plugin uses native paths, keeps full provider options and decla
   assert.equal(plugin.settings.section.path, 'account', 'the account page has its own path');
   assert.equal(plugin.settings.section.icon, UserIcon);
   assert.equal(typeof plugin.ui.settings.component, 'function');
-  assert.deepEqual(plugin.ui.settings.pages.map(({ id, path, category }) => ({ id, path, category })), [{ id: 'security', path: 'account/security', category: 'account' }]);
+  assert.deepEqual(
+    plugin.ui.settings.pages.map(({ id, path, category }) => ({ id, path, category })),
+    [{ id: 'security', path: 'account/security', category: 'account' }],
+  );
   for (const legacy of ['pages', 'providers', 'views', 'setup'])
     assert.equal(plugin[legacy], undefined, legacy);
   // The client is a service the host provides; the factory takes no host objects.

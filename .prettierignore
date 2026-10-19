@@ -18,3 +18,9 @@ apps/*/next-env.d.ts
 
 **/src/bitakit.gen.*
 .bitakit/
+
+# BitaKit-owned (bitakit init --update-agent-files) and next dev-owned blocks: rewritten verbatim.
+apps/*/AGENTS.md
+# Written by the Shell build (packages/shell/scripts/themes.mjs).
+packages/shell/src/bundled-themes.ts
+packages/shell/src/theme-defaults.ts

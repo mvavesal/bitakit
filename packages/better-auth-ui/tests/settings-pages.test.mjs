@@ -105,8 +105,26 @@ test('independent account profile and security pages preserve native cards and s
         config: { plugins: [auth.plugin, plugin] },
         services: { [betterAuthClient]: { client: authClient } },
       },
-      h('section', { 'data-test-profile': true }, h(plugin.ui.settings.boundary, null, h(plugin.ui.settings.component), h('span', { 'data-protected-extension': true }, 'Profile extension'))),
-      h('section', { 'data-test-security': true }, h(plugin.ui.settings.pages[0].boundary, null, h(plugin.ui.settings.pages[0].component), h('span', { 'data-protected-extension': true }, 'Security extension'))),
+      h(
+        'section',
+        { 'data-test-profile': true },
+        h(
+          plugin.ui.settings.boundary,
+          null,
+          h(plugin.ui.settings.component),
+          h('span', { 'data-protected-extension': true }, 'Profile extension'),
+        ),
+      ),
+      h(
+        'section',
+        { 'data-test-security': true },
+        h(
+          plugin.ui.settings.pages[0].boundary,
+          null,
+          h(plugin.ui.settings.pages[0].component),
+          h('span', { 'data-protected-extension': true }, 'Security extension'),
+        ),
+      ),
     ),
   );
   try {
@@ -174,7 +192,14 @@ test('separate organization pages preserve management guards and an independent 
         },
         h(Probe),
         h(organizations.ui.settings.boundary, null, h(organizations.ui.settings.component)),
-        ...organizations.ui.settings.pages.map((page) => h(page.boundary, { key: page.id }, h(page.component), h('span', { 'data-protected-page': page.id }, 'Extension'))),
+        ...organizations.ui.settings.pages.map((page) =>
+          h(
+            page.boundary,
+            { key: page.id },
+            h(page.component),
+            h('span', { 'data-protected-page': page.id }, 'Extension'),
+          ),
+        ),
       ),
     ),
   );
@@ -245,11 +270,20 @@ test('separate organization pages preserve management guards and an independent 
 test('organization settings leave loading for a signed-out session before mounting protected content', async () => {
   const { SettingsAccountAccess } = await import('../dist/settings/account.js');
   const auth = testAuth({ user: null, pending: true, error: null });
-  const plugin = betterAuthUIPlugin({ provider: { navigate() {}, plugins: [] }, toastProvider: false });
-  const view = await mount(h(BitaKitRuntimeProvider, {
-    config: { plugins: [auth.plugin, plugin] },
-    services: { [betterAuthClient]: { client: createAuthClient({ baseURL: origin }) } },
-  }, h(SettingsAccountAccess, null, h('p', null, 'Protected settings'))));
+  const plugin = betterAuthUIPlugin({
+    provider: { navigate() {}, plugins: [] },
+    toastProvider: false,
+  });
+  const view = await mount(
+    h(
+      BitaKitRuntimeProvider,
+      {
+        config: { plugins: [auth.plugin, plugin] },
+        services: { [betterAuthClient]: { client: createAuthClient({ baseURL: origin }) } },
+      },
+      h(SettingsAccountAccess, null, h('p', null, 'Protected settings')),
+    ),
+  );
   try {
     assert.match(view.container.textContent, /Checking sign-in/);
     await auth.set({ user: null, pending: false, error: null });
@@ -258,5 +292,7 @@ test('organization settings leave loading for a signed-out session before mounti
     assert.ok(!view.container.textContent.includes('Protected settings'));
     await auth.set({ user: { id: 'test' }, pending: false, error: null });
     assert.match(view.container.textContent, /Protected settings/);
-  } finally { await view.unmount(); }
+  } finally {
+    await view.unmount();
+  }
 });

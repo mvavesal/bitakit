@@ -9,12 +9,7 @@ import {
   useQueryStates,
 } from 'nuqs';
 import { safeHref } from '@bitakit/core';
-import {
-  useBitaKit,
-  useSettingsCatalog,
-  useTranslation,
-  useRuntimeInventory,
-} from '@bitakit/ui';
+import { useBitaKit, useSettingsCatalog, useTranslation, useRuntimeInventory } from '@bitakit/ui';
 import {
   Badge,
   Button,
