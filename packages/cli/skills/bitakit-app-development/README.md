@@ -1,66 +1,30 @@
-# Build BitaKit apps with an agent
+# BitaKit app development skill
 
-The `bitakit-app-development` skill guides Codex and Claude Code through adding features to a
-BitaKit app. It helps the agent find the feature's owner, inspect the selected layout and its real
-extension points, and verify the result. It is guidance for the coding agent, not a BitaKit
-runtime package.
+Create and extend BitaKit apps with Codex or Claude Code. This skill guides your agent through inspecting the app, building self-contained features, and checking the result.
 
-## Install in Codex
+Run the installation command for your coding assistant from your project folder.
 
-Before this branch is merged, run this from your app directory, replacing `/path/to/bitakit` with
-the path to your existing BitaKit checkout:
+## Codex
 
 ```sh
-npx skills add "/path/to/bitakit/packages/cli/skills/bitakit-app-development" \
-  --agent codex --copy
+npx skills add mvavesal/bitakit --full-depth --skill bitakit-app-development --agent codex --copy
 ```
 
-After the branch is merged into the default branch, install from the repository:
+Use `$bitakit-app-development` in Codex.
+
+## Claude Code
 
 ```sh
-npx skills add mvavesal/bitakit --full-depth --skill bitakit-app-development \
-  --agent codex --copy
+npx skills add mvavesal/bitakit --full-depth --skill bitakit-app-development --agent claude-code --copy
 ```
 
-## Install in Claude Code
+Use `/bitakit-app-development` in Claude Code.
 
-Before this branch is merged, run this from your app directory, replacing `/path/to/bitakit` with
-the path to your existing BitaKit checkout:
+## Try it
 
-```sh
-npx skills add "/path/to/bitakit/packages/cli/skills/bitakit-app-development" \
-  --agent claude-code --copy
-```
+- **New app:** “Create a BitaKit app for tracking books. Help me choose its framework and layout.”
+- **New feature:** “Add a Counter page under `src/plugins/counter/` with an increment button. Use the existing layout and verify the result.”
 
-After the branch is merged into the default branch, install from the repository:
+Features start with a page under `ui/`. Add flat `services.ts` and `actions.ts` files only when needed. The agent uses existing BitaKit services, Actions, settings and slot contracts, and checks the app's actual layout before placing UI.
 
-```sh
-npx skills add mvavesal/bitakit --full-depth --skill bitakit-app-development \
-  --agent claude-code --copy
-```
-
-The Skills CLI installs a project-local copy in `.agents/skills/` for Codex and
-`.claude/skills/` for Claude Code. The `npx skills` command runs the installer; the BitaKit skill
-itself is a folder in the repository and needs no separate npm release. See the
-[Skills CLI documentation](https://github.com/vercel-labs/skills#readme) for installer options.
-
-## Use the skill
-
-In Codex, invoke `$bitakit-app-development`. In Claude Code, use `/bitakit-app-development`.
-For example:
-
-> Create a new BitaKit app for tracking books. Choose the framework and layout to fit the
-> requirements; add a sidebar only if it helps.
-
-For a feature in an existing app:
-
-> Add a Counter page under `src/plugins/counter/` that starts at 0 and increments from a button.
-> Check the selected layout before adding navigation, then typecheck and verify `/counter`.
-
-The skill starts with a page under `ui/`, then adds `services.ts` or `actions.ts` only if the
-feature needs them. Keep React in `ui/` and place navigation only where the selected layout has a
-real rendered outlet.
-
-An existing app must have the BitaKit packages needed for the requested work. For a new app, the
-skill uses the separate BitaKit `create-app` generator. Installing this skill installs its
-instructions only; it does not install app dependencies.
+Installing the skill adds agent instructions, not app dependencies. New apps use the separate BitaKit app generator; existing apps need the BitaKit packages required by their features.
