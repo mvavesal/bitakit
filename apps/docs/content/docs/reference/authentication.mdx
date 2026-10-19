@@ -122,10 +122,25 @@ function. Preserve SDK failures, await sign-out, and release any adapter-owned
 resources through the ordinary service/plugin lifecycle. Keep React-only SDK providers
 inside the optional integration package using existing plugin providers.
 
-Auth.js and Clerk adapters are not implemented here. Their native session/login APIs
+Check an adapter in its own tests with `assertAuthContract` from `@bitakit/core/testing`. It
+drives the provider's login through `signIn` and rejects with the first broken rule: an
+unstable snapshot, a missing unsubscribe, a non-string `user.id`, a `signOut` that resolves
+before the user is cleared, or invalid `paths`.
+
+```ts
+import { assertAuthContract } from '@bitakit/core/testing';
+
+await assertAuthContract(runtime.services.auth, {
+  signIn: () => runtime.services.auth.signInWithPassword({ identifier: 'ada', password: 'test' }),
+});
+```
+
+Auth.js and Clerk adapters are not implemented yet. Their native session/login APIs
 must be mapped inside their optional packages; organizations, registration and password
-recovery are not standardized by this small contract. The `@bitakit/better-auth` package
-remains the working reference.
+recovery are not standardized by this small contract and stay on the provider's own service,
+which `services.auth` exposes with the provider's full type. `@bitakit/better-auth` and
+`@bitakit/strapi` (Users & Permissions, with registration, password reset and provider login)
+are working references.
 
 `organizationId` identifies the current settings scope when supplied by the provider; it
 is not proof of organization membership. Server access checks remain with the provider.

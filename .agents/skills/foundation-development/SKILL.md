@@ -416,8 +416,8 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   lifecycle, registry, provider bootstrap, session store or preference store. Contracts via
   `defineContract`/`provides`/`requires`; optional services are not declared as installed by
   global types alone.
-- Vendor integrations (`@bitakit/better-auth`, `@bitakit/better-auth-ui`, future CMS and auth
-  providers) live in https://github.com/mvavesal/bitakit-integrations and use only published
+- Vendor integrations (`@bitakit/better-auth`, `@bitakit/better-auth-ui`, `@bitakit/query`,
+  `@bitakit/strapi`, future CMS and auth providers) live in https://github.com/mvavesal/bitakit-integrations and use only published
   `@bitakit/*` APIs. A gap they hit is fixed and released here first; this repository's apps
   and fixtures install them from npm.
 - Settings: Core's `SettingsStore` is the only owner of confirmed values; sections derive
@@ -527,6 +527,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   actions, events, configs and `setup.ts` free of JSX and guarded against browser-only APIs.
   `bitakit add test <plugin>` writes an app's first such test (with the Shell stub when its
   Actions target `shell.*` slots) and prints the missing setup without editing `package.json`.
+- Auth providers check themselves with `assertAuthContract(service, { signIn })` from
+  `@bitakit/core/testing`; it fails with the broken contract rule (snapshot stability,
+  unsubscribe, string `user.id`, awaited `signOut`, valid `paths`).
 - Chain: `npm test` (every package), `npm run check` (web typecheck and lint),
   `npm run verify:generated` (packed packages, every generated shape, install, types, build,
   browser smoke), `bitakit doctor` in generated apps, `npm run build:docs` for the docs site.

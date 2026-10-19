@@ -115,7 +115,7 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
 
 - `@bitakit/core` owns the framework-independent runtime, the `define*` helpers and Actions. Core has no React dependency, React types, or UI renderer exports; React bindings belong to @bitakit/ui. Settings remains independently usable.
 - Provider-specific adapters belong to optional packages, never Core. Register them as ordinary plugins, not a parallel integration system. Packages opt into discovery with `bitakit: { plugin: './plugin' }` in `package.json`; `bitakit build` produces that entry.
-- Vendor integrations, including `@bitakit/better-auth` and `@bitakit/better-auth-ui`, are maintained and released in https://github.com/mvavesal/bitakit-integrations. Apps and fixtures here install them from npm. When an integration needs a Core, UI or discovery change, make and release it here first.
+- Vendor integrations, including `@bitakit/better-auth`, `@bitakit/better-auth-ui`, `@bitakit/query` and `@bitakit/strapi`, are maintained and released in https://github.com/mvavesal/bitakit-integrations. Apps and fixtures here install them from npm. When an integration needs a Core, UI or discovery change, make and release it here first.
 - Use shared typed contracts (`defineContract`, `provides`) for plugin services; declare required services with `requires` and preserve server/client separation.
 
 ## Releases
