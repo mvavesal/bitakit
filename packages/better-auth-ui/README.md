@@ -192,7 +192,7 @@ const authentication = createBetterAuthIntegration({
 // Compose authentication.plugins in the existing BitaKit provider.
 ```
 
-Content Demo now keeps only its locale, paths, social providers, layout, and demo profile fallback in src/auth.tsx. It does not create the client, QueryClient, standard extensions, or auth/UI bindings itself.
+An app keeps only its locale, paths, social providers, layout, and demo profile fallback in src/auth.tsx. It does not create the client, QueryClient, standard extensions, or auth/UI bindings itself.
 
 ## UI ownership
 

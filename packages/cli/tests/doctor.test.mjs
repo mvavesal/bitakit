@@ -139,6 +139,20 @@ test('doctor reports missing wiring with the lines to add', async (t) => {
   );
 });
 
+test('doctor accepts different patch versions on one release line', async (t) => {
+  const root = await project(
+    nextApp({
+      'node_modules/@bitakit/core/package.json': { name: '@bitakit/core', version: '0.2.2' },
+      'node_modules/@bitakit/cli/package.json': { name: '@bitakit/cli', version: '0.2.3' },
+      ...catchAll,
+    }),
+    t,
+  );
+  const { results } = await doctor({ cwd: root });
+  const versions = find(results, /@bitakit packages are on the 0\.2\.x release line/);
+  assert.equal(versions.status, 'ok');
+});
+
 test('doctor finds dead links, alias collisions, mixed versions, ignored files and deprecated layouts', async (t) => {
   const root = await project(
     nextApp({

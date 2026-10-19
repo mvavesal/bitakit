@@ -12,9 +12,8 @@ build/
 playwright-report/
 test-results/
 package-lock.json
-apps/web/zenstack/schema.ts
-apps/web/zenstack/models.ts
-apps/web/zenstack/input.ts
+apps/web/
+apps/content-demo/
 apps/*/next-env.d.ts
 
 **/src/bitakit.gen.*

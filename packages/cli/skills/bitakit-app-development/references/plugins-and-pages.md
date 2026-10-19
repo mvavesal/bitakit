@@ -42,6 +42,29 @@ file paths, so there is nothing to register.
   a file). Put shared components in `ui/components/`, which discovery treats as ordinary imports.
 - Renaming a file changes its ID or URL. Update the `href`s and `<Action id>`s that use it.
 
+## Folders or flat files
+
+Folders are the default, and `bitakit add` writes them. A flat layout is just as valid, because a
+dot means the same as a folder. These all declare the Action `todos.add`:
+
+| Layout               | File in `src/plugins/todos/`             |
+| -------------------- | ---------------------------------------- |
+| Folder (default)     | `actions/add.ts`                         |
+| Flat file            | `actions.add.ts`                         |
+| One file for several | `actions.ts` exporting `{ add, remove }` |
+
+- The same works for `services`, `configs`, `slots` and `interceptors`, and for pages inside
+  `ui/pages/`. React files always stay under `ui/`.
+- `events.ts`, `settings.ts`, `setup.ts` and `plugin.config.ts` are one file per plugin in
+  either layout. Every file and folder is optional: add only what the feature needs.
+- Follow the layout the app already uses. When the user prefers flat files, write them by hand
+  with the same content `bitakit add` would generate. Both layouts may be mixed; one ID needs
+  exactly one file, so two spellings of the same ID fail as a duplicate.
+- Folders keep a growing feature tidy and each change in its own file; flat files keep a small
+  plugin visible at a glance. Moving between them never changes an ID.
+- Do not run `bitakit migrate` on a flat app: it is the 0.1 upgrade and moves dotted files into
+  folders.
+
 ## Add a page
 
 ```sh

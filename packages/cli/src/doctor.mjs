@@ -163,12 +163,24 @@ async function checkVersions(project) {
   const versions = [...new Set(packages.map((item) => item.version))];
   if (versions.length === 1)
     return { status: 'ok', title: `All ${packages.length} @bitakit packages are ${versions[0]}` };
+  // Only changed packages get a patch release, so patch versions may differ within one line.
+  const lines = [...new Set(packages.map((item) => releaseLine(item.version)))];
+  if (lines.length === 1)
+    return {
+      status: 'ok',
+      title: `All ${packages.length} @bitakit packages are on the ${lines[0]}.x release line`,
+    };
   return {
     status: 'error',
     title: 'Mixed @bitakit versions',
     details: packages.map((item) => `${item.name}@${item.version}`),
     fix: `Install one release for all of them: npm install ${packages.map((item) => `${item.name}@latest`).join(' ')}`,
   };
+}
+/** The versions a caret range accepts together: `0.2` for 0.2.x, `1` for 1.x. */
+function releaseLine(version) {
+  const [major, minor] = version.split('.');
+  return major === '0' ? `0.${minor}` : major;
 }
 /** Linked plugins with their own node_modules load a second copy of Core. */
 async function checkCopies(project) {

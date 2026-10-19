@@ -18,11 +18,9 @@ build/
 playwright-report/
 test-results/
 
-# Generated ZenStack client; recreated before dev/build/typecheck
-apps/web/zenstack/schema.ts
-apps/web/zenstack/models.ts
-apps/web/zenstack/input.ts
-apps/web/zenstack/~schema*.prisma
+# Local test apps; not part of the repository
+/apps/web/
+/apps/content-demo/
 
 # Generated Foundation plugin imports and messages
 **/.foundation/
