@@ -14,14 +14,15 @@ npm under `@bitakit/`; this checkout is the 0.2 release line.
 | [shell](shell/README.md)                     | Application frame: compound AppShell, layouts, slots, notifications, appearance             |
 | [quick-search](quick-search/README.md)       | A Mod+K dialog listing pages, Settings pages and plugins, plus an App Bar button            |
 | [next-intl](next-intl/README.md)             | Translation integration and optional language preferences                                   |
-| [better-auth](better-auth/README.md)         | Authentication/organization integration and server mail hooks                               |
-| [better-auth-ui](better-auth-ui/README.md)   | Optional account and organization interfaces                                                |
 | [organizations](organizations/README.md)     | Shared organization service contracts and a local test adapter                              |
 | [email](email/README.md)                     | Provider-independent message and sending contract                                           |
 | [nodemailer](nodemailer/README.md)           | Server-side SMTP implementation of the email contract                                       |
 | [create-app](create-app/README.md)           | Native frontend scaffolding with installed BitaKit packages                                 |
 | [cli](cli/README.md)                         | `bitakit` CLI: add plugins and contributions, doctor, build plugin packages (0.2)           |
 | [devtools](devtools/README.md)               | Live Inspector for one plugin: pages, actions, services, events and config (0.2)            |
+
+Provider integrations such as `@bitakit/better-auth` and `@bitakit/better-auth-ui` are maintained
+and released in [bitakit-integrations](https://github.com/mvavesal/bitakit-integrations).
 
 ## Dependency boundaries
 
