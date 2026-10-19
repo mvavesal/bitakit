@@ -161,6 +161,10 @@ test('a bare app wraps next.config, mounts one provider, imports one generated s
     await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
     /^---\nname: bitakit-app-development\n/,
   );
+  assert.equal(
+    await read(plan.target, '.claude/skills/bitakit-app-development/SKILL.md'),
+    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
+  );
   assert.match(
     await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
     /the CLI does not report every Action placement/,
@@ -347,6 +351,10 @@ test('TanStack apps get the same frame through native file routes and the Vite p
   );
   await missing(plan.target, 'src/routes/index.tsx');
   assert.equal(await read(plan.target, 'CLAUDE.md'), '@AGENTS.md\n');
+  assert.equal(
+    await read(plan.target, '.claude/skills/bitakit-app-development/SKILL.md'),
+    await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
+  );
   assert.match(
     await read(plan.target, '.agents/skills/bitakit-app-development/SKILL.md'),
     /Use `npx @bitakit\/create-app <directory>/,

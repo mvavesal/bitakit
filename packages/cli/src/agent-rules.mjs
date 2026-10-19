@@ -10,27 +10,43 @@ export const bitakitIdentity = 'BitaKit is a composition layer for building apps
 /** Markers around the BitaKit block, so a later run can find and leave it alone. */
 export const agentRulesBegin = '<!-- BEGIN:bitakit-agent-rules -->';
 export const agentRulesEnd = '<!-- END:bitakit-agent-rules -->';
-export const appDevelopmentSkillPath = '.agents/skills/bitakit-app-development/SKILL.md';
+export const appDevelopmentSkillPaths = [
+  '.agents/skills/bitakit-app-development/SKILL.md',
+  '.claude/skills/bitakit-app-development/SKILL.md',
+];
+export const appDevelopmentSkillPath = appDevelopmentSkillPaths[0];
 
 /**
- * Install the app-authoring skill shipped with this CLI into the standard project skill folder.
- * Existing files are user-owned and left untouched; callers can report that outcome to the user.
+ * Install the bundled app-authoring skill for Codex and Claude Code. Existing files are user-owned
+ * and left untouched so callers can report those outcomes without replacing custom guidance.
  */
-export async function writeAppDevelopmentSkill(root) {
-  const file = path.join(root, appDevelopmentSkillPath);
-  try {
-    await access(file);
-    return { file, created: false };
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
+export async function writeAppDevelopmentSkills(root) {
+  const files = [];
+  let content;
+  for (const relative of appDevelopmentSkillPaths) {
+    const file = path.join(root, relative);
+    try {
+      await access(file);
+      files.push({ file, created: false });
+      continue;
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+    content ??= await readFile(
+      new URL('../skills/bitakit-app-development/SKILL.md', import.meta.url),
+      'utf8',
+    );
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, content);
+    files.push({ file, created: true });
   }
-  const content = await readFile(
-    new URL('../skills/bitakit-app-development/SKILL.md', import.meta.url),
-    'utf8',
-  );
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, content);
-  return { file, created: true };
+  return files;
+}
+
+/** Compatibility for create-app versions that import the original single-path helper. */
+export async function writeAppDevelopmentSkill(root) {
+  const [codexSkill] = await writeAppDevelopmentSkills(root);
+  return codexSkill;
 }
 
 /**
