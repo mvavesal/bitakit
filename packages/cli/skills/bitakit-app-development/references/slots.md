@@ -72,7 +72,9 @@ function TodosToolbar() {
   empty while the slot is pending.
 - For a slot with a payload, pass it at every outlet:
   `useSlot('todos.row.menu', { payload: { todoId: todo.id } })` or
-  `<PluginSlot name="sidebar.footer" payload={{ collapsed }} />`.
+  `<PluginSlot name="sidebar.footer" payload={{ collapsed }} />`. Memoize payload objects
+  (`useMemo`): a contribution renders again only when its payload changes, not with every render
+  of the page around it.
 
 ## Contribute a component
 

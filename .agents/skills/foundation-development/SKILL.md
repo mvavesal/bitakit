@@ -258,7 +258,12 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   results. Keep nested payload objects stable with React memoization. Action mappers run per
   outlet; absent mapping means undefined input. Bind `item.action` with `Action`, preserving
   contextual input, live presentation and existing guards. `PluginSlot` renders component
-  entries with the parsed payload. The initial readiness barrier remains; compatible updates
+  entries with the parsed payload, each memoized on component and payload. An outlet follows only
+  the snapshots of the Actions its entries reference (`useStore` with `useShallow`), never the
+  whole Action list: component and data slots do not rebuild on Action runs or presentation
+  refreshes. Action snapshots stay new on every refresh, because bound controls resolve
+  input-dependent presentation from that signal; do not reuse unchanged snapshots without
+  another invalidation path. The initial readiness barrier remains; compatible updates
   gate affected owners only. `phase` reports declared-owner status; failed/blocked is not pending.
 - `PluginSlot` isolates each component with `react-error-boundary`; custom `useSlot` renderers
   use `SlotErrorBoundary` inside access controls. Optional `errorFallback({ error, retry })`

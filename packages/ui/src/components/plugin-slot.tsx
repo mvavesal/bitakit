@@ -1,5 +1,5 @@
 'use client';
-import { createElement, useCallback, useSyncExternalStore } from 'react';
+import { createElement, memo, useCallback, useSyncExternalStore, type ComponentType } from 'react';
 import { useBitaKit } from '../providers/foundation-context.js';
 import { useSlot } from '../hooks/use-slot.js';
 import type { SlotName, SlotMap } from '@bitakit/core';
@@ -17,6 +17,20 @@ export function useBitaKitReady(plugin?: string) {
   );
   return useSyncExternalStore(subscribe, read, notReady);
 }
+/**
+ * One placed component. Memoized on its component and payload: when the outlet renders again
+ * with the same payload, the contribution does not (it still follows its own hooks).
+ */
+const Contribution = memo(function Contribution({
+  component,
+  payload,
+}: {
+  component: ComponentType<any>;
+  payload: unknown;
+}) {
+  return createElement(component, { payload });
+});
+
 /** Renders every component plugins placed in the slot; layouts use `useSlot` for custom markup. */
 export function PluginSlot<const Name extends SlotName>(
   props: { name: Name; errorFallback?: SlotErrorFallback } & SlotOptions<Name> &
@@ -38,7 +52,7 @@ export function PluginSlot<const Name extends SlotName>(
             contribution={entry.key}
             errorFallback={props.errorFallback}
           >
-            {createElement(entry.component, { payload: view.payload })}
+            <Contribution component={entry.component} payload={view.payload} />
           </SlotErrorBoundary>,
         ]
       : [],

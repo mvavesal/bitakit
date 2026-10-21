@@ -1,10 +1,12 @@
 'use client';
 import { useMemo, useCallback, useContext, useSyncExternalStore, type ComponentType } from 'react';
+import { useStore } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import type { SlotMap, SlotPayload, SlotData, SlotName, LifecyclePhase } from '@bitakit/core';
 import { useBitaKit } from '../providers/foundation-context.js';
 import { UIContext } from '../providers/action-context.js';
 import { useBitaKitReady } from '../components/plugin-slot.js';
-import { buildControl, useActionList, useActions, type ActionControl } from './use-action.js';
+import { buildControl, useActionList, type ActionControl } from './use-action.js';
 import { useSlotPayload } from './use-slot-payload.js';
 
 export type SlotProps<Name extends string> = { payload: SlotPayload<Name> };
@@ -93,8 +95,23 @@ export function useSlot<const Name extends SlotName>(
   );
   const snapshot = useSyncExternalStore(subscribe, read, read);
   const context = useSlotPayload(definition?.payload, options?.payload);
-  const actions = useActions();
   const list = useActionList();
+  // Only the snapshots of the Actions this outlet's entries reference. A component or data slot
+  // never rebuilds its view because an Action changed, and an action slot only when one of its
+  // own Actions did (a run elsewhere, or another Action's refresh, leaves it alone).
+  const actionIds = useMemo(
+    () =>
+      (snapshot?.items ?? []).flatMap((item) =>
+        'actionId' in item && item.actionId ? [item.actionId] : [],
+      ),
+    [snapshot],
+  );
+  const actions = useStore(
+    list,
+    useShallow((state) =>
+      actionIds.map((id) => (Object.hasOwn(state.actions, id) ? state.actions[id] : undefined)),
+    ),
+  );
   const ui = useContext(UIContext);
   return useMemo(() => {
     const view = {

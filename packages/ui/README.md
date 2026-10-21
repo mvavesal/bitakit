@@ -216,6 +216,11 @@ Slot outlets accept `entryKey` to select a keyed component and return only entri
 never detaches the shared entry. `PluginSlot` forwards the parsed payload. The existing catalog
 also carries each page's opaque `boundary`, including inheritance for additional pages.
 
+An outlet follows only the Actions its own entries reference. A component or data slot does not
+render again when an Action runs or presentation is refreshed after a service change; an Actions
+slot renders again when one of its own Actions changes. `PluginSlot` memoizes each contribution
+on its component and payload, so a memoized payload lets contributions skip their parent's renders.
+
 `ActionControl.linkProps({ href })` lets a renderer adapt a URL for its route base/query while
 retaining safe URL checks, disabled guards and consistent native/client navigation.
 

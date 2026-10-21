@@ -107,3 +107,8 @@ use a component slot and `PluginSlot` for contributed React content.
 
 Use `item.key` for rendering and `item.action` for binding. Hiding an outlet hides its content;
 it does not stop plugins or unregister their contributions. A stopped contributor releases its attachments.
+
+An outlet renders again only for what it shows: an Actions slot when one of its own Actions
+changes, a component slot when its contributions or payload change. Running an Action elsewhere,
+or a service change that refreshes other Actions, leaves it alone. Memoize payload objects
+(`useMemo`) so contributed components skip renders of the page around them.
