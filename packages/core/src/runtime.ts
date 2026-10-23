@@ -82,6 +82,11 @@ import {
   updateRestrictions,
   type PluginUpdateResult,
   type PluginDependentOptions,
+  type PluginChangeOptions,
+  type PluginToggleRequest,
+  type PluginChangePreview,
+  type PluginChangeReason,
+  type PlannedPluginChange,
 } from './lifecycle/reconcile.js';
 export type { DialogState } from './contributions/index.js';
 
@@ -301,9 +306,13 @@ export class BitaKitRuntime implements ContributionHost {
     add: (plugins: readonly Plugin[]) => this.changePlugins('add', [...plugins]),
     remove: (ids: readonly string[], options: PluginDependentOptions) =>
       this.changePlugins('remove', [...ids], options),
-    enable: (id: string) => this.changePlugins('enable', [id]),
+    enable: (id: string, options?: PluginChangeOptions) =>
+      this.changePlugins('enable', [id], options),
     disable: (id: string, options: PluginDependentOptions) =>
       this.changePlugins('disable', [id], options),
+    /** Preview uses the execution planner without stopping owners or changing retained intent. */
+    preview: (request: PluginToggleRequest): PluginChangePreview =>
+      this.planPluginChange(request.operation, [request.id], request).preview,
   });
   private revision = 0;
   getRevision = () => this.revision;
@@ -1155,6 +1164,56 @@ export class BitaKitRuntime implements ContributionHost {
       { cause: error, source, app: module === this.appId },
     );
   }
+  /**
+   * Bind a host-owned defineAction to the existing root scope and adapter. Call only from
+   * the host after ready, never from a plugin. The returned cleanup is idempotent; full
+   * runtime shutdown also releases it. Host Actions must not await this runtime's stop.
+   */
+  bindHostAction<Input, Output>(id: string, definition: ActionSpec<Input, Output>): () => void {
+    if (!this.isReady() || this.updating || this.stopCompletion)
+      throw new Error('Host Actions can only be bound to a ready, idle runtime.');
+    const scope = this.scopes.find((entry) => scopeModule(entry).id === this.appId)!;
+    const contribution = resolveContribution(definition, id);
+    if (this.actions.get(contribution.id))
+      throw new Error(`Action "${contribution.id}" is already registered.`);
+    const start = this.registrations.length;
+    this.install(scope, contribution, this.appId, this.pluginEvents.get(this.appId)!.events);
+    const owned = this.registrations.slice(start);
+    let disposed = false;
+    return () => {
+      if (disposed) return;
+      disposed = true;
+      for (const entry of owned) {
+        if (!this.registrations.includes(entry)) continue;
+        entry.handle.unregister();
+        this.actionConfigs.delete(entry.definition.id);
+      }
+      this.registrations = this.registrations.filter((entry) => !owned.includes(entry));
+    };
+  }
+
+  /** Include live host Action requirements in update planning without copying their state. */
+  private dependencyModules(): readonly NormalizedPlugin[] {
+    return this.modules.map((module) =>
+      module.id !== this.appId
+        ? module
+        : {
+            ...module,
+            actions: [
+              ...new Map([
+                ...module.actions.map((action) => [action.id, action] as const),
+                ...this.registrations
+                  .filter(
+                    ({ definition }) =>
+                      this.actionConfigs.get(definition.id)?.module === this.appId,
+                  )
+                  .map(({ definition }) => [definition.id, definition] as const),
+              ]).values(),
+            ],
+          },
+    );
+  }
+
   /** One path for every action: adapt, check dependencies, register, remember for re-translation. */
   private install(
     scope: PluginScope,
@@ -1234,26 +1293,50 @@ export class BitaKitRuntime implements ContributionHost {
     if (refresh && observed.size) this.actions.refresh();
   }
 
-  /** Plan structural changes before touching scopes; use the existing update exclusion and executor. */
+  /** Execute the same plan used by preview; there is no await between validation and exclusion. */
   private changePlugins(
     operation: 'add' | 'remove' | 'enable' | 'disable',
     values: readonly Plugin[] | readonly string[],
-    options?: PluginDependentOptions,
+    options?: PluginChangeOptions | PluginDependentOptions,
   ): Promise<PluginUpdateResult> {
+    const plan = this.planPluginChange(operation, values, options);
+    if (plan.apply) return plan.apply();
+    const { status, revision, changed, affected, reasons } = plan.preview;
+    return Promise.resolve({
+      status: status === 'ready' ? 'applied' : status,
+      revision,
+      changed,
+      affected,
+      reasons,
+    });
+  }
+
+  /** Validate without starting services, invoking hooks or mutating retained lifecycle intent. */
+  private planPluginChange(
+    operation: 'add' | 'remove' | 'enable' | 'disable',
+    values: readonly Plugin[] | readonly string[],
+    options?: PluginChangeOptions | PluginDependentOptions,
+  ): PlannedPluginChange {
+    let changed: string[] = [];
+    let affected: string[] = [];
+    let dependents: string[] = [];
     const result = (
-      status: PluginUpdateResult['status'],
+      status: PluginChangePreview['status'],
       reasons: string[],
-      changed: string[] = [],
-    ): Promise<PluginUpdateResult> =>
-      Promise.resolve(
-        Object.freeze({
-          status,
-          reasons: Object.freeze(reasons),
-          changed: Object.freeze(changed),
-          affected: Object.freeze([]),
-          revision: this.revision,
-        }),
-      );
+      reason: PluginChangeReason | null = status === 'ready' ? null : 'invalid',
+      blockers: readonly string[] = [],
+    ): PlannedPluginChange => ({
+      preview: Object.freeze({
+        status,
+        reason,
+        revision: this.revision,
+        changed: Object.freeze([...changed]),
+        affected: Object.freeze([...affected]),
+        dependents: Object.freeze([...dependents]),
+        blockers: Object.freeze([...blockers]),
+        reasons: Object.freeze(reasons),
+      }),
+    });
     if (
       this.updating ||
       this.mounting ||
@@ -1262,23 +1345,39 @@ export class BitaKitRuntime implements ContributionHost {
       !this.container ||
       this.startPending
     )
-      return result('blocked', ['A lifecycle operation is active or the runtime is not mounted.']);
+      return result(
+        'blocked',
+        ['A lifecycle operation is active or the runtime is not mounted.'],
+        'busy',
+      );
     if (this.lifecycle.get().cleanup === 'failed')
-      return result('blocked', ['Failed cleanup requires resource recovery and a new runtime.']);
+      return result(
+        'blocked',
+        ['Failed cleanup requires resource recovery and a new runtime.'],
+        'cleanup-failed',
+      );
+    if (options?.expectedRevision !== undefined && options.expectedRevision !== this.revision)
+      return result('blocked', ['The composition changed; review the operation again.'], 'stale');
     try {
+      const modules = this.dependencyModules();
       const installed = [...(this.config.plugins ?? [])];
       const disabled = new Set(this.disabledPlugins);
       const ids =
         operation === 'add'
           ? (values as Plugin[]).map((plugin) => plugin.id)
-          : (values as string[]);
+          : [...(values as string[])];
       if (new Set(ids).size !== ids.length)
         return result('blocked', ['Plugin IDs must be unique.']);
       if (ids.includes(this.appId))
-        return result('blocked', ['The app module cannot be changed through plugins.']);
+        return result(
+          'blocked',
+          ['The app module cannot be changed through plugins.'],
+          'protected',
+          [this.appId],
+        );
       if (
         (operation === 'remove' || operation === 'disable') &&
-        !['stop', 'refuse'].includes(options?.dependents ?? '')
+        !['stop', 'refuse'].includes((options as PluginDependentOptions)?.dependents ?? '')
       )
         return result('blocked', ['Choose dependents: stop or refuse.']);
       for (const id of ids) {
@@ -1302,22 +1401,32 @@ export class BitaKitRuntime implements ContributionHost {
         for (const id of [...ids]) {
           const parent = installed.find((plugin) => plugin.id === id)?.parent;
           if (parent && disabled.has(parent) && !ids.includes(parent))
-            return result('blocked', [
-              `Plugin "${id}" belongs to "${parent}", which is disabled. Enable "${parent}" first.`,
-            ]);
+            return result(
+              'blocked',
+              [
+                `Plugin "${id}" belongs to "${parent}", which is disabled. Enable "${parent}" first.`,
+              ],
+              'owner-disabled',
+              [parent],
+            );
           ids.push(...(cascaded.get(id) ?? []).filter((child) => !ids.includes(child)));
           cascaded.delete(id);
         }
       const activeIds = new Set(this.modules.map((module) => module.id));
-      let changed = [...ids];
+      changed = [...ids];
       if (operation === 'disable' || operation === 'remove') {
         const seeds = [...ids, ...owned].filter((id) => activeIds.has(id));
         if (operation === 'remove') seeds.push(...this.slotRuntime.contributorsTo(new Set(ids)));
-        const closure = updateClosure(this.modules, seeds);
-        const dependents = closure.filter((id) => !ids.includes(id) && !owned.includes(id));
-        if (dependents.length && options?.dependents === 'refuse')
-          return result('blocked', [`Enabled dependents: ${dependents.join(', ')}.`]);
+        const closure = updateClosure(modules, seeds);
+        dependents = closure.filter((id) => !ids.includes(id) && !owned.includes(id));
         changed = [...new Set([...ids, ...owned, ...dependents])];
+        if (dependents.length && (options as PluginDependentOptions)?.dependents === 'refuse')
+          return result(
+            'blocked',
+            [`Enabled dependents: ${dependents.join(', ')}.`],
+            'dependents',
+            dependents,
+          );
         if (operation === 'disable') {
           const switchedOff = owned.filter((id) => !disabled.has(id));
           for (const id of ids) cascaded.set(id, switchedOff);
@@ -1332,15 +1441,29 @@ export class BitaKitRuntime implements ContributionHost {
         operation === 'remove' ? installed.filter((plugin) => !ids.includes(plugin.id)) : installed;
       for (const id of ids) if (operation === 'remove') disabled.delete(id);
       if (operation === 'disable') changed = changed.filter((id) => !this.disabledPlugins.has(id));
+      const protectedOwners = changed.filter((id) => options?.preserve?.includes(id));
+      if ((operation === 'disable' || operation === 'remove') && protectedOwners.length)
+        return result(
+          'blocked',
+          ['The host requires these plugins to remain enabled.'],
+          'protected',
+          protectedOwners,
+        );
       if (!changed.length) {
-        // An explicit disable of a child its parent already switched off: remember the intent.
-        this.disabledWithParent = cascaded;
-        return result('applied', []);
+        const plan = result('ready', []);
+        return {
+          ...plan,
+          apply: async () => {
+            // Only execution records an explicit disable of an already-disabled owned child.
+            this.disabledWithParent = cascaded;
+            return { ...plan.preview, status: 'applied' };
+          },
+        };
       }
       const normalized = nextInstalled
         .filter((plugin) => !disabled.has(plugin.id))
         .map((plugin) => normalize(plugin, this.appId));
-      const app = this.modules.find((module) => module.id === this.appId)!;
+      const app = modules.find((module) => module.id === this.appId)!;
       const all = [app, ...normalized];
       const declarations = [app, ...nextInstalled.map((plugin) => normalize(plugin, this.appId))];
       orderPlugins(all, this.appId);
@@ -1369,7 +1492,7 @@ export class BitaKitRuntime implements ContributionHost {
             .map((entry) => entry.id),
         ]),
       ];
-      const before = updateClosure(this.modules, [
+      const before = updateClosure(modules, [
         ...changed.filter((id) => activeIds.has(id)),
         ...readers,
       ]);
@@ -1377,7 +1500,7 @@ export class BitaKitRuntime implements ContributionHost {
         all,
         [...changed, ...readers].filter((id) => all.some((module) => module.id === id)),
       );
-      const affected = [...new Set([...before, ...after])];
+      affected = [...new Set([...before, ...after])];
       const reasons: string[] = [];
       for (const module of [...this.modules, ...all].filter((module) =>
         affected.includes(module.id),
@@ -1404,7 +1527,8 @@ export class BitaKitRuntime implements ContributionHost {
             `${module.id}: host identity, translation or storage service requires composition replacement.`,
           );
       }
-      if (reasons.length) return result('restart-required', [...new Set(reasons)], changed);
+      if (reasons.length)
+        return result('restart-required', [...new Set(reasons)], 'composition', affected);
       const entries = this.serviceEntries(all);
       const names = new ServiceNames(entries, this.appId);
       for (const module of all)
@@ -1429,7 +1553,11 @@ export class BitaKitRuntime implements ContributionHost {
           !settings.some((next) => next.key === entry.key) &&
           this.settings.state(entry.key).pending
         )
-          return result('blocked', [`Setting "${entry.key}" has a pending write.`]);
+          return result(
+            'blocked',
+            [`Setting "${entry.key}" has a pending write.`],
+            'pending-settings',
+          );
       createSettingsAccess(new SettingsStore(settings, () => this.storage()));
       const overrides = Object.fromEntries(
         Object.entries(this.config.configOverrides ?? {}).filter(([id]) =>
@@ -1441,45 +1569,51 @@ export class BitaKitRuntime implements ContributionHost {
       eventCheck.reserve('runtime');
       for (const module of declarations)
         if (module.events) eventCheck.declare(module.id, module.events);
-      const controller = new AbortController();
-      this.updateController = controller;
-      this.updating = Promise.resolve().then(() =>
-        this.applyPluginUpdate(
-          nextInstalled,
-          normalized,
-          changed,
-          affected,
-          controller,
-          () => {
-            // Writes may begin while awaited Action/scope cleanup is in progress.
-            for (const entry of this.settings.entries())
-              if (
-                !settings.some((next) => next.key === entry.key) &&
-                this.settings.state(entry.key).pending
-              )
-                return `Setting "${entry.key}" began writing during cleanup; await it before retrying.`;
-            this.disabledPlugins = disabled;
-            this.disabledWithParent = cascaded;
-            this.names.replace(entries);
-            this.configuration.replace(configuration);
-            for (const plugin of this.config.plugins ?? []) this.events.undeclare(plugin.id);
-            this.events.undeclare(this.appId);
-            for (const module of declarations)
-              if (module.events) this.events.declare(module.id, module.events);
-            this.slotRuntime.replace(declarations.flatMap((module) => module.slots));
-            this.settings.replace(settings);
-          },
-          before,
-          after,
-        ),
-      );
-      void this.updating
-        .finally(() => {
-          this.updating = undefined;
-          this.updateController = undefined;
-        })
-        .catch(() => {});
-      return this.updating;
+      return {
+        ...result('ready', []),
+        apply: () => {
+          const controller = new AbortController();
+          this.updateController = controller;
+          this.updating = Promise.resolve().then(() =>
+            this.applyPluginUpdate(
+              nextInstalled,
+              normalized,
+              changed,
+              affected,
+              controller,
+              () => {
+                // Writes may begin while awaited Action/scope cleanup is in progress.
+                for (const entry of this.settings.entries())
+                  if (
+                    !settings.some((next) => next.key === entry.key) &&
+                    this.settings.state(entry.key).pending
+                  )
+                    return `Setting "${entry.key}" began writing during cleanup; await it before retrying.`;
+                this.disabledPlugins = disabled;
+                this.disabledWithParent = cascaded;
+                this.names.replace(entries);
+                this.configuration.replace(configuration);
+                for (const plugin of this.config.plugins ?? []) this.events.undeclare(plugin.id);
+                this.events.undeclare(this.appId);
+                for (const module of declarations)
+                  if (module.events) this.events.declare(module.id, module.events);
+                this.slotRuntime.replace(declarations.flatMap((module) => module.slots));
+                this.settings.replace(settings);
+              },
+              before,
+              after,
+            ),
+          );
+          void this.updating
+            .finally(() => {
+              this.updating = undefined;
+              this.updateController = undefined;
+              this.actions.refresh();
+            })
+            .catch(() => {});
+          return this.updating;
+        },
+      };
     } catch (error) {
       return result('blocked', [error instanceof Error ? error.message : String(error)]);
     }
@@ -1542,7 +1676,10 @@ export class BitaKitRuntime implements ContributionHost {
     if (!changed.length) return Promise.resolve(result('applied', []));
     try {
       normalized = next.map((plugin) => normalize(plugin, this.appId));
-      const all = [this.modules.find((plugin) => plugin.id === this.appId)!, ...normalized];
+      const all = [
+        this.dependencyModules().find((plugin) => plugin.id === this.appId)!,
+        ...normalized,
+      ];
       orderPlugins(all, this.appId);
       validateSlotDeclarations(all, this.appId);
       validatePluginPages(all, new Set(Object.keys(all[0].ui?.layouts ?? {})));
@@ -1599,6 +1736,7 @@ export class BitaKitRuntime implements ContributionHost {
       .finally(() => {
         this.updating = undefined;
         this.updateController = undefined;
+        this.actions.refresh();
       })
       .catch(() => {});
     return this.updating;

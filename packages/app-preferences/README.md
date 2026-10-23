@@ -273,7 +273,8 @@ The catalog resolves `<plugin>.settings.<name>.label|description`,
 ## Limitations
 
 - Explicit compatible `runtime.reconcilePlugins` updates restart the composition-reading
-  catalog projection; structural changes and provider config prop changes replace the runtime.
+  catalog projection; supported structural changes use the same awaited lifecycle. Provider
+  config prop changes still replace the runtime.
   `scopeModules`, `scopeTranslation` and scope-owned lifecycle observation reuse the catalog.
   Both service and provider translations update titles without replacing body attachments.
 - `SettingsShell` owns a `SidebarProvider`. Inside another sidebar layout the central provider
@@ -324,16 +325,24 @@ Declare metadata in `definePlugin({ metadata: { tags, coverImage } })`, local
 `bitakit build`. Discovery and package builds preserve both fields. Covers are optional;
 missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback).
 
-App Preferences uses the standard table and Radix ScrollArea in its owning visual package.
+App Preferences uses the shared standard Card and Item primitives from `@bitakit/ui/components`,
+Badges and Radix ScrollArea. Compact groups use `sm` rows with separators between entries only;
+there is no extra group gap. The viewport keeps a logical end gutter clear of the scrollbar.
 Search and page headings stay outside the scroll viewport. The same ScrollArea is exported
-for composition; table scrolling is owned by that viewport rather than a nested native
+for composition; list scrolling is owned by that viewport rather than a nested native
 scroll container. Preserve the theme focus token and Radix data-orientation selectors when
 updating registry components. No app CSS is needed.
 
-The plugin table includes pagination (5, 10, 20 or 50 rows; default 10), stored in
-`pluginPage` and `pluginPageSize`. Search/tag/page-size changes reset to page one;
-out-of-range page links are normalized. Pagination stays outside the scroll viewport.
-Unknown versions display a dash, with a descriptive screen-reader label.
+Each row places a declared version beside the plugin name, followed by the description,
+optional author and wrapping tags. Missing versions are omitted from the list; the detail
+page reports them as unspecified. Names, descriptions and long tags can wrap at narrow widths.
+The semantic list uses `.app-preferences-plugins`; each linked row uses
+`.app-preferences-plugin`. These hooks identify the owning surface and item; native link
+focus and shared component state remain authoritative.
+
+The scroll viewport shows every filtered plugin without pagination. Search and tag filters
+remain URL-backed. Legacy pagination query parameters no longer limit the list. Linked rows
+retain native keyboard focus and navigation but have no full-row hover background.
 
 The plugin overview consumes `useRuntimeInventory` for public metadata and declarations.
 React icons remain presentation values outside the serializable snapshot. Installed packages
@@ -371,3 +380,19 @@ page access boundary. Navigation-shell regions are not protected by an individua
 No second Settings catalog, store, route registry or layout engine is introduced.
 
 Progressive examples and the full region table: `apps/docs/content/docs/reference/layouts.mdx`.
+
+### Session plugin controls
+
+Each installed row binds the host-owned `runtime.plugins.change` Action through the standard
+Switch. Core previews the operation and checks it again after confirmation. Disable confirms
+all affected dependent/owned plugins; it never silently cascades or uninstalls code. Re-enable
+providers before their consumers. Disabled definitions and their settings remain available.
+These controls change only this runtime session; reloading restores host configuration and
+service-local memory may reset on reactivation.
+
+App Preferences and Shell are preserved. Core additionally blocks identity/storage/provider
+and other compositions that require restart. A disabled control exposes its translated reason
+through a keyboard-focusable tooltip. Pending work disables conflicting operations. Failed
+startup permits retry; failed cleanup requires resource recovery and a fresh runtime. The
+management page remains reachable inside its existing boundary if its catalog projection was
+stopped by an unsuccessful update; other settings pages keep normal owner availability rules.

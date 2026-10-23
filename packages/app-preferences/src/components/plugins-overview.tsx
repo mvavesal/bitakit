@@ -1,13 +1,6 @@
 'use client';
-import { Suspense, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
-import {
-  createSerializer,
-  parseAsNativeArrayOf,
-  parseAsInteger,
-  parseAsNumberLiteral,
-  parseAsString,
-  useQueryStates,
-} from 'nuqs';
+import { Fragment, Suspense, useId, useMemo, useState, type ReactNode } from 'react';
+import { createSerializer, parseAsNativeArrayOf, parseAsString, useQueryStates } from 'nuqs';
 import { safeHref } from '@bitakit/core';
 import { useBitaKit, useSettingsCatalog, useTranslation, useRuntimeInventory } from '@bitakit/ui';
 import {
@@ -20,8 +13,6 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from '@bitakit/ui/components';
 import ChevronRightIcon from 'reicon-react/icons/ChevronRight';
 import ChevronDownIcon from 'reicon-react/icons/ChevronDown';
@@ -36,20 +27,24 @@ import { SearchField } from './search-field.js';
 import { SettingsFields } from './settings-fields.js';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card.js';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from './ui/empty.js';
-import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from './ui/item.js';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemSeparator,
+  ItemTitle,
+} from './ui/item.js';
 import { ScrollArea } from './ui/scroll-area.js';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table.js';
 
 import { useMessages } from './use-messages.js';
+import { PluginToggle, PluginChangeFeedback } from './plugin-toggle.js';
 
 const parsers = {
   plugin: parseAsString.withDefault('').withOptions({ history: 'push' }),
   pluginSearch: parseAsString.withDefault('').withOptions({ history: 'replace' }),
   pluginTag: parseAsNativeArrayOf(parseAsString).withOptions({ history: 'replace' }),
-  pluginPage: parseAsInteger.withDefault(1).withOptions({ history: 'replace' }),
-  pluginPageSize: parseAsNumberLiteral([5, 10, 20, 50] as const)
-    .withDefault(10)
-    .withOptions({ history: 'replace' }),
   q: parseAsString.withDefault(''),
 };
 const serialize = createSerializer(parsers);
@@ -57,8 +52,6 @@ type View = {
   plugin: string;
   pluginSearch: string;
   pluginTag: string[];
-  pluginPage: number;
-  pluginPageSize: 5 | 10 | 20 | 50;
   q: string;
 };
 
@@ -99,8 +92,9 @@ function usePlugins(): readonly PluginEntry[] {
           support: safeHref(meta?.support),
           cover: safeHref(meta?.coverImage),
           icon:
-            iconOf(runtime.modules.find((source) => source.id === module.id)?.metadata?.icon) ??
-            PuzzleIcon,
+            iconOf(
+              runtime.config.plugins?.find((source) => source.id === module.id)?.metadata?.icon,
+            ) ?? PuzzleIcon,
         };
       });
   }, [runtime, t, inventory]);
@@ -232,82 +226,16 @@ function PluginDetail({ plugin, back }: { plugin: PluginEntry; back: ReactNode }
   );
 }
 
-function PluginPagination({
-  view,
-  total,
-  onPage,
-  onPageSize,
-}: {
-  view: View;
-  total: number;
-  onPage?: (page: number) => void;
-  onPageSize?: (size: View['pluginPageSize']) => void;
-}) {
-  const messages = useMessages();
-  const pages = Math.max(1, Math.ceil(total / view.pluginPageSize));
-  const page = Math.min(pages, Math.max(1, view.pluginPage));
-  useEffect(() => {
-    if (page !== view.pluginPage) onPage?.(page);
-  }, [page, view.pluginPage, onPage]);
-  return (
-    <nav
-      aria-label={messages('pagination')}
-      className="flex shrink-0 flex-wrap items-center justify-between gap-3"
-    >
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" aria-label={messages('perPage')}>
-            {messages('perPage')}: {view.pluginPageSize}
-            <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuRadioGroup
-            value={String(view.pluginPageSize)}
-            onValueChange={(value) => onPageSize?.(Number(value) as View['pluginPageSize'])}
-          >
-            {([5, 10, 20, 50] as const).map((size) => (
-              <DropdownMenuRadioItem key={size} value={String(size)}>
-                {size}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <span className="text-sm" aria-live="polite">
-        {messages('pageSummary', { total, page, pages })}
-      </span>
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPage?.(page - 1)}>
-          {messages('previousPage')}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={page >= pages}
-          onClick={() => onPage?.(page + 1)}
-        >
-          {messages('nextPage')}
-        </Button>
-      </div>
-    </nav>
-  );
-}
-
 function PluginsView({
   view,
   onSearch,
   onTag,
   onClearTags,
-  onPage,
-  onPageSize,
 }: {
   view: View;
   onSearch?: (value: string | null) => void;
   onTag?: (tag: string, checked: boolean) => void;
   onClearTags?: () => void;
-  onPage?: (page: number) => void;
-  onPageSize?: (size: View['pluginPageSize']) => void;
 }) {
   const messages = useMessages();
   const plugins = usePlugins();
@@ -354,11 +282,6 @@ function PluginsView({
         .includes(terms) &&
       (!view.pluginTag.length || view.pluginTag.some((tag) => plugin.tags.includes(tag))),
   );
-  const page = Math.min(
-    Math.max(1, Math.ceil(entries.length / view.pluginPageSize)),
-    Math.max(1, view.pluginPage),
-  );
-  const pageEntries = entries.slice((page - 1) * view.pluginPageSize, page * view.pluginPageSize);
   return (
     <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col gap-4">
       <PageHeader title={own?.title ?? messages('plugins')} subtitle={own?.description} />
@@ -400,61 +323,74 @@ function PluginsView({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <PluginChangeFeedback />
       <ScrollArea
-        key={`${view.pluginPage}:${view.pluginPageSize}:${view.pluginSearch}:${view.pluginTag.join()}`}
+        key={`${view.pluginSearch}:${view.pluginTag.join()}`}
         className="-mx-1 min-h-0 min-w-0 flex-initial"
       >
-        <div className="px-1 py-2">
-          <Table aria-label={messages('plugins')}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{messages('pluginName')}</TableHead>
-                <TableHead>{messages('version')}</TableHead>
-                <TableHead>{messages('tags')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pageEntries.map((plugin) => (
-                <TableRow key={plugin.id}>
-                  <TableCell className="min-w-64 whitespace-normal">
-                    <Link href={href(plugin.id)} className="flex items-center gap-3">
-                      <PluginMedia plugin={plugin} />
-                      <span className="flex min-w-0 flex-col gap-1 wrap-anywhere">
-                        <span className="font-medium">{plugin.name}</span>
-                        {plugin.description && (
-                          <span className="text-muted-foreground">{plugin.description}</span>
-                        )}
-                        {plugin.author && (
-                          <span className="text-muted-foreground">
-                            {messages('author', { author: plugin.author })}
-                          </span>
-                        )}
-                      </span>
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    {plugin.version ? (
-                      <Badge variant="secondary">{plugin.version}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">
-                        <span aria-hidden="true">—</span>
-                        <span className="sr-only">{messages('unspecified')}</span>
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="whitespace-normal">
-                    <div className="flex flex-wrap gap-1.5">
-                      {plugin.tags.map((tag) => (
-                        <Badge key={tag} variant="outline">
-                          {tag}
-                        </Badge>
-                      ))}
+        <div className="py-1 ps-1 pe-4">
+          {entries.length > 0 && (
+            <Card size="sm" className="py-0">
+              <ItemGroup
+                className="app-preferences-plugins gap-0 has-data-[size=sm]:gap-0"
+                aria-label={messages('plugins')}
+              >
+                {entries.map((plugin, index) => (
+                  <Fragment key={plugin.id}>
+                    <div role="listitem" className="flex min-w-0 items-center">
+                      <Item
+                        asChild
+                        size="sm"
+                        className="app-preferences-plugin min-w-0 flex-1 flex-nowrap [a]:hover:bg-transparent"
+                      >
+                        <Link href={href(plugin.id)}>
+                          <PluginMedia plugin={plugin} />
+                          <ItemContent className="min-w-0">
+                            <ItemTitle className="max-w-full flex-wrap overflow-visible">
+                              <span className="min-w-0 wrap-anywhere">{plugin.name}</span>
+                              {plugin.version && (
+                                <Badge
+                                  variant="secondary"
+                                  className="max-w-full whitespace-normal wrap-anywhere"
+                                >
+                                  {plugin.version}
+                                </Badge>
+                              )}
+                            </ItemTitle>
+                            {plugin.description && (
+                              <ItemDescription className="line-clamp-none wrap-anywhere">
+                                {plugin.description}
+                              </ItemDescription>
+                            )}
+                            {plugin.author && (
+                              <ItemDescription className="line-clamp-none wrap-anywhere">
+                                {messages('author', { author: plugin.author })}
+                              </ItemDescription>
+                            )}
+                            {plugin.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {plugin.tags.map((tag) => (
+                                  <Badge
+                                    key={tag}
+                                    variant="outline"
+                                    className="max-w-full whitespace-normal wrap-anywhere"
+                                  >
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </ItemContent>
+                        </Link>
+                      </Item>
+                      <PluginToggle id={plugin.id} name={plugin.name} />
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    {index < entries.length - 1 && <ItemSeparator className="my-0" />}
+                  </Fragment>
+                ))}
+              </ItemGroup>
+            </Card>
+          )}
           {!entries.length && (
             <Empty role="status">
               <EmptyHeader>
@@ -467,12 +403,6 @@ function PluginsView({
           )}
         </div>
       </ScrollArea>
-      <PluginPagination
-        view={view}
-        total={entries.length}
-        onPage={onPage}
-        onPageSize={onPageSize}
-      />
     </div>
   );
 }
@@ -481,18 +411,15 @@ function SearchablePlugins() {
   return (
     <PluginsView
       view={view}
-      onSearch={(value) => void setView({ pluginSearch: value, pluginPage: 1 })}
+      onSearch={(value) => void setView({ pluginSearch: value })}
       onTag={(tag, checked) =>
         void setView((current) => ({
-          pluginPage: 1,
           pluginTag: checked
             ? [...new Set([...current.pluginTag, tag])]
             : current.pluginTag.filter((value) => value !== tag),
         }))
       }
-      onClearTags={() => void setView({ pluginTag: [], pluginPage: 1 })}
-      onPage={(pluginPage) => void setView({ pluginPage })}
-      onPageSize={(pluginPageSize) => void setView({ pluginPageSize, pluginPage: 1 })}
+      onClearTags={() => void setView({ pluginTag: [] })}
     />
   );
 }
@@ -510,8 +437,6 @@ export function PluginsOverview() {
             plugin: '',
             pluginSearch: '',
             pluginTag: [],
-            pluginPage: 1,
-            pluginPageSize: 10,
             q: '',
           }}
         />

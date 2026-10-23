@@ -9,8 +9,45 @@ export type PluginUpdateResult = Readonly<{
   reasons: readonly string[];
 }>;
 
+/** Host constraints are checked again immediately before a structural update. */
+export type PluginChangeOptions = Readonly<{
+  expectedRevision?: number;
+  /** Owners that must remain enabled, for example the host's management surface. */
+  preserve?: readonly string[];
+}>;
 /** Explicit host policy when other enabled plugins require the selected owner. */
-export type PluginDependentOptions = Readonly<{ dependents: 'stop' | 'refuse' }>;
+export type PluginDependentOptions = PluginChangeOptions &
+  Readonly<{ dependents: 'stop' | 'refuse' }>;
+export type PluginToggleRequest = PluginChangeOptions &
+  (
+    | Readonly<{ operation: 'enable'; id: string }>
+    | Readonly<{ operation: 'disable'; id: string; dependents: 'stop' | 'refuse' }>
+  );
+export type PluginChangeReason =
+  | 'busy'
+  | 'cleanup-failed'
+  | 'stale'
+  | 'protected'
+  | 'dependents'
+  | 'owner-disabled'
+  | 'composition'
+  | 'invalid'
+  | 'pending-settings';
+/** Read-only planning result. It grants no authority to execute a stale operation. */
+export type PluginChangePreview = Readonly<{
+  status: 'ready' | 'blocked' | 'restart-required';
+  revision: number;
+  changed: readonly string[];
+  affected: readonly string[];
+  dependents: readonly string[];
+  reason: PluginChangeReason | null;
+  blockers: readonly string[];
+  reasons: readonly string[];
+}>;
+export type PlannedPluginChange = {
+  preview: PluginChangePreview;
+  apply?: () => Promise<PluginUpdateResult>;
+};
 export type PluginChangeResult = PluginUpdateResult;
 
 /** Lifecycle edges include required service aliases, not just explicit plugin dependencies. */

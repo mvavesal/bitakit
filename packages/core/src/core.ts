@@ -173,6 +173,10 @@ export type {
   PluginUpdateResult,
   PluginChangeResult,
   PluginDependentOptions,
+  PluginChangeOptions,
+  PluginToggleRequest,
+  PluginChangePreview,
+  PluginChangeReason,
 } from './lifecycle/reconcile.js';
 
 export {

@@ -32,6 +32,7 @@ import { ConfirmDialog } from '../components/confirm-dialog.js';
 import { StartupFailureDialog, type StartupFailure } from '../components/startup-failure-dialog.js';
 import { standardBitaKitUI } from '../components/standard-foundation-ui.js';
 import { defaultLabels } from '../components/foundation-labels.js';
+import { bindPluginManagement } from './plugin-management.js';
 
 const ignore = () => {};
 const noServices = {};
@@ -128,6 +129,27 @@ function FoundationRuntimeProvider({
     failure: StartupFailure;
   } | null>(null);
   const runtime = attempt.runtime;
+  useEffect(() => {
+    if (!runtime) return;
+    let active = true;
+    let release: (() => void) | undefined;
+    void runtime.ready
+      .then(
+        () => {
+          if (active) release = bindPluginManagement(runtime);
+        },
+        () => {
+          /* Startup failure and cancelled mounts are handled by the controller. */
+        },
+      )
+      .catch((error) => {
+        if (active) console.error('[bitakit] Host Actions could not start.', error);
+      });
+    return () => {
+      active = false;
+      release?.();
+    };
+  }, [runtime]);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const confirmations = useMemo(() => new ConfirmationController(setConfirmation), []);
   useEffect(() => {

@@ -553,3 +553,103 @@ test('an external dependent of a child follows the policy; removing a parent rem
     false,
   );
 });
+
+test('toggle preview is pure and shares dependency, protection and revision guards with execution', async (t) => {
+  const stops = [];
+  const runtime = await host(t, [
+    servicePlugin('source', [], { stop: () => stops.push('source') }),
+    servicePlugin('consumer', ['source.state']),
+  ]);
+  const request = { operation: 'disable', id: 'source', dependents: 'stop', expectedRevision: 0 };
+  const preview = runtime.plugins.preview(request);
+  assert.equal(preview.status, 'ready');
+  assert.deepEqual(preview.dependents, ['consumer']);
+  assert.deepEqual(stops, []);
+  assert.equal(runtime.isReady('source'), true);
+  assert.equal(runtime.getRevision(), 0);
+  assert.equal(runtime.plugins.preview({ ...request, dependents: 'refuse' }).reason, 'dependents');
+  assert.equal(runtime.plugins.preview({ ...request, preserve: ['consumer'] }).reason, 'protected');
+  assert.equal(
+    (await runtime.plugins.disable('source', { ...request, preserve: ['consumer'] })).status,
+    'blocked',
+  );
+  const result = await runtime.plugins.disable('source', request);
+  assert.deepEqual(result.changed, preview.changed);
+  assert.deepEqual(result.affected, preview.affected);
+  assert.deepEqual(stops, ['source']);
+  assert.equal(
+    runtime.plugins.preview({ operation: 'enable', id: 'source', expectedRevision: 0 }).reason,
+    'stale',
+  );
+  assert.equal((await runtime.plugins.enable('source', { expectedRevision: 0 })).status, 'blocked');
+  assert.equal((await runtime.plugins.enable('source')).status, 'applied');
+});
+
+test('previewing an already disabled owned child does not change parent restoration intent', async (t) => {
+  const runtime = await host(t, [
+    childPlugin('parent', undefined, []),
+    childPlugin('child', 'parent', []),
+  ]);
+  await runtime.plugins.disable('parent', { dependents: 'refuse' });
+  assert.equal(
+    runtime.plugins.preview({ operation: 'disable', id: 'child', dependents: 'stop' }).status,
+    'ready',
+  );
+  await runtime.plugins.enable('parent');
+  assert.equal(runtime.isReady('child'), true);
+});
+
+test(
+  'host Action can await a structural change that restarts composition readers',
+  { timeout: 2000 },
+  async (t) => {
+    const seen = [];
+    const runtime = await host(t, [
+      servicePlugin('notes'),
+      definePlugin({
+        id: 'projection',
+        setup: ({ scope }) => {
+          seen.push(scopeModules(scope).length);
+        },
+      }),
+    ]);
+    const release = runtime.bindHostAction(
+      'host.toggle',
+      defineAction({
+        internal: true,
+        execute: () => runtime.plugins.disable('notes', { dependents: 'stop' }),
+      }),
+    );
+    const result = await runtime.actions.execute('host.toggle');
+    assert.equal(result.status, 'completed');
+    assert.equal(result.value.status, 'applied');
+    assert.equal(runtime.isReady('projection'), true);
+    assert.deepEqual(seen, [3, 2]);
+    assert.equal(runtime.plugins.preview({ operation: 'enable', id: 'notes' }).status, 'ready');
+    release();
+    release();
+    assert.equal(runtime.actions.get('host.toggle'), undefined);
+    runtime.bindHostAction('host.toggle', defineAction({ execute: () => 1 }));
+    assert.equal((await runtime.actions.execute('host.toggle')).value, 1);
+  },
+);
+
+test('host Action requirements participate in structural planning until their binding is released', async (t) => {
+  const runtime = await host(t, [servicePlugin('notes')]);
+  const release = runtime.bindHostAction(
+    'host.read',
+    defineAction({
+      requires: ['notes.state'],
+      execute: ({ services }) => services.notes.state.get(),
+    }),
+  );
+  assert.equal(
+    runtime.plugins.preview({ operation: 'disable', id: 'notes', dependents: 'stop' }).status,
+    'restart-required',
+  );
+  release();
+  assert.equal(
+    runtime.plugins.preview({ operation: 'disable', id: 'notes', dependents: 'stop' }).status,
+    'ready',
+  );
+});

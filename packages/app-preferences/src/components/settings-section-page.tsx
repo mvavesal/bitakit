@@ -1,7 +1,15 @@
 'use client';
 import { Fragment } from 'react';
-import { Action, PluginSlot, useSlot, type SettingsCatalogSection } from '@bitakit/ui';
+import {
+  Action,
+  PluginSlot,
+  useSlot,
+  useRuntimeInventory,
+  type SettingsCatalogSection,
+} from '@bitakit/ui';
 import { Button, PageHeader } from '@bitakit/ui/components';
+import { PluginsOverview } from './plugins-overview.js';
+import { pluginId } from '../id.js';
 
 export type SettingsSectionPageProps = {
   section: SettingsCatalogSection;
@@ -13,7 +21,17 @@ export type SettingsSectionPageProps = {
 function Content({ section, showHeader }: SettingsSectionPageProps) {
   const payload = { pageId: section.id };
   const toolbar = useSlot('app-preferences.page.toolbar', { payload });
+  const inventory = useRuntimeInventory();
+  const owner = inventory.live?.plugins.find((entry) => entry.id === pluginId);
   if (toolbar.error) throw toolbar.error;
+  // A failed update can dispose the catalog projection. Keep its own management page
+  // reachable for the host Action's retry/recovery, inside the existing access boundary.
+  if (
+    section.id === pluginId &&
+    section.component === PluginsOverview &&
+    (owner?.phase === 'failed' || owner?.phase === 'blocked' || owner?.phase === 'stopped')
+  )
+    return <PluginsOverview />;
   return (
     <div
       data-settings-section={section.id}

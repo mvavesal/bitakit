@@ -16,6 +16,24 @@
     "slot": {
       "unavailable": "Dieses Widget konnte nicht angezeigt werden.",
       "retry": "Erneut versuchen"
+    },
+    "plugins": {
+      "enable": "Aktivieren",
+      "disable": "Deaktivieren",
+      "confirmTitle": "{name} deaktivieren?",
+      "confirmDescription": "Du kannst dieses Plugin hier wieder aktivieren. Die Änderung gilt bis zum Neuladen der Anwendung.",
+      "confirmDependents": "Dabei werden auch diese Plugins deaktiviert: {plugins}. Du kannst sie hier wieder aktivieren. Die Änderung gilt bis zum Neuladen der Anwendung.",
+      "failed": "{name} konnte nicht geändert werden. Prüfe den Plugin-Status und versuche es erneut; nach fehlgeschlagener Bereinigung ist ein Neuladen erforderlich.",
+      "unexpected": "Die Plugin-Änderung ist fehlgeschlagen. Prüfe vor einem neuen Versuch den Status.",
+      "busy": "Eine andere Änderung läuft. Versuche es danach erneut.",
+      "cleanup-failed": "Die Bereinigung ist fehlgeschlagen. Stelle die Ressourcen wieder her und lade die Anwendung vor einem neuen Versuch neu.",
+      "stale": "Die Plugins wurden geändert. Prüfe diesen Vorgang erneut.",
+      "protected": "Diese Verwaltungsseite benötigt das Plugin; es muss aktiviert bleiben.",
+      "dependents": "Andere aktive Plugins benötigen dieses Plugin.",
+      "owner-disabled": "Aktiviere zuerst das übergeordnete Plugin.",
+      "composition": "Diese Änderung erfordert einen Neustart der Anwendung mit einer neuen Konfiguration.",
+      "invalid": "Diese Änderung ist mit der aktuellen Plugin-Konfiguration nicht verfügbar. Prüfe die Abhängigkeiten.",
+      "pending-settings": "Warte, bis die Einstellungen gespeichert sind, bevor du das Plugin änderst."
     }
   }
 }

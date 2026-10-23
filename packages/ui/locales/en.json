@@ -16,6 +16,24 @@
     "slot": {
       "unavailable": "This widget could not be displayed.",
       "retry": "Try again"
+    },
+    "plugins": {
+      "enable": "Enable",
+      "disable": "Disable",
+      "confirmTitle": "Disable {name}?",
+      "confirmDescription": "You can enable this plugin again here. This change lasts until the application reloads.",
+      "confirmDependents": "This also disables: {plugins}. You can enable these plugins again here. This change lasts until the application reloads.",
+      "failed": "Could not change {name}. Check the plugin status and retry; failed cleanup requires a reload.",
+      "unexpected": "The plugin change failed. Review its status before retrying.",
+      "busy": "Another change is in progress. Try again when it finishes.",
+      "cleanup-failed": "Cleanup failed. Recover the resources and reload the application before retrying.",
+      "stale": "The plugins changed. Review this operation again.",
+      "protected": "Required by this management page; it must remain enabled.",
+      "dependents": "Other enabled plugins depend on this plugin.",
+      "owner-disabled": "Enable the parent plugin first.",
+      "composition": "Changing this plugin requires restarting the application with a new configuration.",
+      "invalid": "This change is unavailable in the current plugin configuration. Check its dependencies.",
+      "pending-settings": "Wait for settings to finish saving before changing this plugin."
     }
   }
 }

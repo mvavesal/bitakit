@@ -264,3 +264,16 @@ updates and equivalent stabilized payload objects do not. Context revalidation/h
 This client render boundary uses `react-error-boundary`; it does not handle slot payload/binding
 errors, server rendering, event handlers or later async failures. Suspense stays with the host.
 A failing custom fallback propagates normally. Core lifecycle and shared inventory are unchanged.
+
+### Host-owned plugin controls
+
+The runtime provider registers the internal `pluginManagementAction` (`runtime.plugins.change`)
+after startup on the existing root ActionList. Bind it with `Action`/`useAction` and
+`{ id, operation, expectedRevision, preserve }`. Disable uses the standard confirmation with
+the affected plugin names. Execution revalidates current state and reports safe translated
+feedback. `pluginChangeExplanation(runtime, preview)` translates typed planner reasons;
+raw causes remain diagnostic. This Action is absent from public action enumeration.
+
+The optional `@bitakit/ui/components` entry also exports the standard Card and Item primitives.
+Settings surfaces share those components and the central theme; the generic root stays free
+of visual primitives.

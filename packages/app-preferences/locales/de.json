@@ -51,12 +51,7 @@
       "pluginName": "Plugin",
       "tags": "Tags",
       "filterTags": "Nach Tag filtern",
-      "clearTags": "Tags zurücksetzen",
-      "pagination": "Plugin-Seitennavigation",
-      "perPage": "Pro Seite",
-      "pageSummary": "{total} Ergebnisse · Seite {page} von {pages}",
-      "previousPage": "Zurück",
-      "nextPage": "Weiter"
+      "clearTags": "Tags zurücksetzen"
     }
   },
   "settings": {

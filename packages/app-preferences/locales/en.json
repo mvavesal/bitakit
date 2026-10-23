@@ -51,12 +51,7 @@
       "pluginName": "Plugin",
       "tags": "Tags",
       "filterTags": "Filter by tag",
-      "clearTags": "Clear tags",
-      "pagination": "Plugin pagination",
-      "perPage": "Per page",
-      "pageSummary": "{total} results · Page {page} of {pages}",
-      "previousPage": "Back",
-      "nextPage": "Next"
+      "clearTags": "Clear tags"
     }
   },
   "settings": {

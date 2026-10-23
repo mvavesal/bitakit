@@ -27,3 +27,6 @@ export {
   StandardBitaKitRuntimeProvider,
   type StandardBitaKitRuntimeProviderProps,
 } from './components/standard-foundation-provider.js';
+
+export * from './components/primitives/item.js';
+export * from './components/primitives/card.js';

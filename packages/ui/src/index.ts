@@ -63,3 +63,8 @@ export {
 } from './settings/catalog.js';
 
 export { useRuntimeInventory } from './hooks/use-runtime-inventory.js';
+export {
+  pluginManagementAction,
+  pluginChangeExplanation,
+  type PluginChangeInput,
+} from './providers/plugin-management.js';

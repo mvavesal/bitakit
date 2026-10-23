@@ -44,8 +44,8 @@ const translate = Object.assign((key) => messages[key] ?? key, {
 const details = (info) =>
   [...info.querySelectorAll('dt')].map((term) => [text(term), text(term.nextElementSibling)]);
 const items = (container) =>
-  [...container.querySelectorAll('table[aria-label="Plugins"] a')].map((link) => [
-    text(link.querySelector('.font-medium')),
+  [...container.querySelectorAll('[role="list"][aria-label="Plugins"] a')].map((link) => [
+    text(link.querySelector('[data-slot="item-title"] > span')),
     link.getAttribute('href'),
   ]);
 
@@ -68,6 +68,17 @@ test('PluginsOverview lists the installed plugins with their metadata and search
     const card = container.querySelector('a[href*="plugin=todos"]');
     assert.match(text(card), /Task lists for teams\./);
     assert.match(text(card), /By Ada/);
+    assert.equal(text(card.querySelector('[data-slot="item-title"] [data-slot="badge"]')), '1.2.0');
+    assert.equal(
+      container.querySelector('a[href*="plugin=bare"] [data-slot="badge"]'),
+      null,
+      'plugins without a version or tags have no placeholder badges',
+    );
+    assert.deepEqual([...card.querySelectorAll('[data-slot="badge"]')].map(text), [
+      '1.2.0',
+      'productivity',
+      'team',
+    ]);
     assert.ok(card.querySelector('img'));
     await act(async () => card.querySelector('img').dispatchEvent(new window.Event('error')));
     assert.ok(
@@ -178,7 +189,7 @@ test('the Plugins page is App Preferences’ own settings page in the route', as
     const { container } = view;
     assert.deepEqual([...container.querySelectorAll('h1')].map(text), ['Plugins']);
     assert.match(text(container), /Installed plugins and their settings\./);
-    assert.ok(container.querySelector('table[aria-label="Plugins"]'));
+    assert.ok(container.querySelector('[role="list"][aria-label="Plugins"]'));
   } finally {
     await view.unmount();
   }
@@ -241,7 +252,10 @@ test('tag URL state combines with search and survives plugin details', async () 
       ['Todos'],
     );
     assert.match(items(view.container)[0][1], /pluginTag=team/);
-    assert.match(text(view.container.querySelector('tbody')), /productivity/);
+    assert.match(
+      text(view.container.querySelector('[role="list"][aria-label="Plugins"]')),
+      /productivity/,
+    );
     await type(view.container.querySelector('input[aria-label="Search plugins"]'), 'zzz');
     assert.equal(text(view.container.querySelector('[role=status]')), 'No plugins found.');
     assert.match(view.urls.at(-1), /pluginTag=team/);
@@ -299,7 +313,7 @@ test('multiple tags use union matching, remain checked and can be cleared togeth
   }
 });
 
-test('pagination slices results, normalizes invalid pages and resets after filtering', async () => {
+test('the grouped list shows every filtered result and ignores legacy pagination parameters', async () => {
   const many = Array.from({ length: 12 }, (_, i) =>
     definePlugin({ id: `sample-${i}`, metadata: { name: `Sample ${i}` } }),
   );
@@ -309,34 +323,12 @@ test('pagination slices results, normalizes invalid pages and resets after filte
     search: '?pluginPageSize=5&pluginPage=2',
   });
   try {
-    assert.deepEqual(
-      items(view.container).map(([name]) => name),
-      ['Sample 5', 'Sample 6', 'Sample 7', 'Sample 8', 'Sample 9'],
-    );
-    assert.match(items(view.container)[0][1], /pluginPage=2/);
-    await click([...view.container.querySelectorAll('button')].find((e) => text(e) === 'Next'));
-    assert.deepEqual(
-      items(view.container).map(([name]) => name),
-      ['Sample 10', 'Sample 11'],
-    );
-    assert.ok(
-      [...view.container.querySelectorAll('button')].find((e) => text(e) === 'Next').disabled,
-    );
+    assert.equal(items(view.container).length, 12);
+    assert.equal(view.container.querySelector('[aria-label="Plugin pagination"]'), null);
+    assert.equal(view.container.querySelectorAll('[data-slot=item-separator]').length, 11);
     await type(view.container.querySelector('input[aria-label="Search plugins"]'), 'Sample 1');
     assert.equal(items(view.container).length, 3);
-    assert.ok(!view.urls.at(-1).includes('pluginPage='));
   } finally {
     await view.unmount();
-  }
-  const invalid = await renderApp(h(PluginsOverview), {
-    config: { plugins: many },
-    pathname: '/settings/plugins',
-    search: '?pluginPage=999&pluginPageSize=5',
-  });
-  try {
-    assert.equal(items(invalid.container).length, 2);
-    assert.match(invalid.urls.at(-1), /pluginPage=3/);
-  } finally {
-    await invalid.unmount();
   }
 });

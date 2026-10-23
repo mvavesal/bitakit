@@ -117,6 +117,27 @@ The [Plugin manager guide](/docs/plugin-management#plugin-manager) covers `runti
 `disable`, `enable` and `remove`, with dependency policies, cleanup and recovery. These structural
 operations are separate from compatible implementation updates through `reconcilePlugins`.
 
+### Preview and host-owned Actions
+
+Use `runtime.plugins.preview({ operation: 'disable', id: 'notes', dependents: 'stop' })`
+to inspect the same dependency plan execution uses, without stopping anything. The result
+contains `status`, `revision`, `changed`, `affected`, `dependents`, typed `reason`, `blockers`
+and diagnostic `reasons`. For enable, omit `dependents`. Supply `preserve: ['management']`
+to prevent disabling an essential owner, including through dependency closure. Pass the
+preview's revision as `expectedRevision` to enable/disable after confirmation; a stale
+revision is blocked. A preview grants no authority to execute later without revalidation.
+
+`runtime.bindHostAction(id, defineAction(...))` binds a host-owned Action through the existing
+root scope and adapter after readiness. Its returned cleanup is idempotent, and full runtime
+shutdown also releases it. This permits an Action to await supported plugin changes without
+being owned by an affected plugin. Its service requirements participate in update planning.
+Never call it from plugin code or await the enclosing runtime's full stop from that Action.
+
+React's runtime provider supplies one internal `pluginManagementAction` for enable/disable.
+Use normal `Action` bindings with `{ id, operation, expectedRevision, preserve }`;
+the standard confirmation lists affected plugins and the Action reports pending/failure.
+It owns no additional runtime or persistence. Session changes do not alter host configuration.
+
 ### A build-included package catalog
 
 The [Package manager guide](/docs/package-management) shows how to generate a
