@@ -1,6 +1,12 @@
 'use client';
 import { Fragment, Suspense, useId, useMemo, useState, type ReactNode } from 'react';
-import { createSerializer, parseAsNativeArrayOf, parseAsString, useQueryStates } from 'nuqs';
+import {
+  createSerializer,
+  parseAsNativeArrayOf,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryStates,
+} from 'nuqs';
 import { safeHref } from '@bitakit/core';
 import { useBitaKit, useSettingsCatalog, useTranslation, useRuntimeInventory } from '@bitakit/ui';
 import {
@@ -11,12 +17,15 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@bitakit/ui/components';
 import ChevronRightIcon from 'reicon-react/icons/ChevronRight';
 import ChevronDownIcon from 'reicon-react/icons/ChevronDown';
 import PuzzleIcon from 'reicon-react/icons/Puzzle';
+import SearchIcon from 'reicon-react/icons/Search';
 import { visibleSections } from '../catalog.js';
 import { pluginId } from '../id.js';
 import { normalizePath, sectionHref } from '../paths.js';
@@ -41,10 +50,13 @@ import { ScrollArea } from './ui/scroll-area.js';
 import { useMessages } from './use-messages.js';
 import { PluginToggle, PluginChangeFeedback } from './plugin-toggle.js';
 
+const statuses = ['all', 'enabled', 'disabled'] as const;
+type PluginStatus = (typeof statuses)[number];
 const parsers = {
   plugin: parseAsString.withDefault('').withOptions({ history: 'push' }),
   pluginSearch: parseAsString.withDefault('').withOptions({ history: 'replace' }),
   pluginTag: parseAsNativeArrayOf(parseAsString).withOptions({ history: 'replace' }),
+  pluginStatus: parseAsStringLiteral(statuses).withDefault('all').withOptions({ history: 'replace' }),
   q: parseAsString.withDefault(''),
 };
 const serialize = createSerializer(parsers);
@@ -52,11 +64,13 @@ type View = {
   plugin: string;
   pluginSearch: string;
   pluginTag: string[];
+  pluginStatus: PluginStatus;
   q: string;
 };
 
 type PluginEntry = {
   id: string;
+  enabled: boolean;
   name: string;
   description?: string;
   version?: string;
@@ -81,6 +95,9 @@ function usePlugins(): readonly PluginEntry[] {
         const meta = module.metadata;
         return {
           id: module.id,
+          enabled:
+            module.enabled === true &&
+            inventory.live?.plugins.find((entry) => entry.id === module.id)?.phase !== 'failed',
           name: t(`plugins.${module.id}.name`, undefined, meta?.name ?? module.id),
           description:
             t(`plugins.${module.id}.description`, undefined, meta?.description ?? '') || undefined,
@@ -231,13 +248,20 @@ function PluginsView({
   onSearch,
   onTag,
   onClearTags,
+  onStatus,
 }: {
   view: View;
   onSearch?: (value: string | null) => void;
   onTag?: (tag: string, checked: boolean) => void;
   onClearTags?: () => void;
+  onStatus?: (value: PluginStatus) => void;
 }) {
   const messages = useMessages();
+  const statusLabels = {
+    all: messages('allPlugins'),
+    enabled: messages('enabledPlugins'),
+    disabled: messages('disabledPlugins'),
+  };
   const plugins = usePlugins();
   const location = useSettingsLocation({});
   const catalog = useSettingsCatalog();
@@ -280,7 +304,8 @@ function PluginsView({
       `${plugin.name} ${plugin.description ?? ''} ${plugin.tags.join(' ')}`
         .toLocaleLowerCase()
         .includes(terms) &&
-      (!view.pluginTag.length || view.pluginTag.some((tag) => plugin.tags.includes(tag))),
+      (!view.pluginTag.length || view.pluginTag.some((tag) => plugin.tags.includes(tag))) &&
+      (view.pluginStatus === 'all' || plugin.enabled === (view.pluginStatus === 'enabled')),
   );
   return (
     <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col gap-4">
@@ -322,10 +347,30 @@ function PluginsView({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" aria-label={messages('filterStatus')}>
+              {statusLabels[view.pluginStatus]}
+              <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuRadioGroup
+              value={view.pluginStatus}
+              onValueChange={(value) => onStatus?.(value as PluginStatus)}
+            >
+              {statuses.map((status) => (
+                <DropdownMenuRadioItem key={status} value={status}>
+                  {statusLabels[status]}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <PluginChangeFeedback />
       <ScrollArea
-        key={`${view.pluginSearch}:${view.pluginTag.join()}`}
+        key={`${view.pluginSearch}:${view.pluginTag.join()}:${view.pluginStatus}`}
         className="-mx-1 min-h-0 min-w-0 flex-initial"
       >
         <div className="py-1 ps-1 pe-4">
@@ -395,9 +440,10 @@ function PluginsView({
             <Empty role="status">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <PuzzleIcon aria-hidden="true" />
+                  <SearchIcon aria-hidden="true" />
                 </EmptyMedia>
                 <EmptyTitle>{messages('noPlugins')}</EmptyTitle>
+                <EmptyDescription>{messages('noPluginsHint')}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           )}
@@ -420,6 +466,7 @@ function SearchablePlugins() {
         }))
       }
       onClearTags={() => void setView({ pluginTag: [] })}
+      onStatus={(value) => void setView({ pluginStatus: value })}
     />
   );
 }
@@ -437,6 +484,7 @@ export function PluginsOverview() {
             plugin: '',
             pluginSearch: '',
             pluginTag: [],
+            pluginStatus: 'all',
             q: '',
           }}
         />

@@ -96,7 +96,11 @@ test('PluginsOverview lists the installed plugins with their metadata and search
     );
     assert.equal(view.urls.at(-1), '?q=todo&pluginSearch=task');
     await type(input, 'zzz');
-    assert.equal(text(container.querySelector('[role=status]')), 'No plugins found.');
+    assert.equal(text(container.querySelector('[data-slot=empty-title]')), 'No plugins found.');
+    assert.equal(
+      text(container.querySelector('[data-slot=empty-description]')),
+      'Try another search or change the filters.',
+    );
   } finally {
     await view.unmount();
   }
@@ -240,11 +244,11 @@ test('plugin details list all owned settings pages and include App Preferences i
   }
 });
 
-test('tag URL state combines with search and survives plugin details', async () => {
+test('tag and status URL state combine with search and survive plugin details', async () => {
   const view = await renderApp(h(PluginsOverview), {
     config,
     pathname: '/settings/plugins',
-    search: '?pluginTag=team&pluginSearch=task',
+    search: '?pluginTag=team&pluginSearch=task&pluginStatus=enabled',
   });
   try {
     assert.deepEqual(
@@ -252,28 +256,53 @@ test('tag URL state combines with search and survives plugin details', async () 
       ['Todos'],
     );
     assert.match(items(view.container)[0][1], /pluginTag=team/);
+    assert.match(items(view.container)[0][1], /pluginStatus=enabled/);
     assert.match(
       text(view.container.querySelector('[role="list"][aria-label="Plugins"]')),
       /productivity/,
     );
     await type(view.container.querySelector('input[aria-label="Search plugins"]'), 'zzz');
-    assert.equal(text(view.container.querySelector('[role=status]')), 'No plugins found.');
+    assert.equal(text(view.container.querySelector('[data-slot=empty-title]')), 'No plugins found.');
+    assert.equal(
+      text(view.container.querySelector('[data-slot=empty-description]')),
+      'Try another search or change the filters.',
+    );
     assert.match(view.urls.at(-1), /pluginTag=team/);
+    assert.match(view.urls.at(-1), /pluginStatus=enabled/);
   } finally {
     await view.unmount();
   }
   const detail = await renderApp(h(PluginsOverview), {
     config,
     pathname: '/settings/plugins',
-    search: '?plugin=todos&pluginTag=team&pluginSearch=task',
+    search: '?plugin=todos&pluginTag=team&pluginSearch=task&pluginStatus=enabled',
   });
   try {
     assert.equal(
       detail.container.querySelector('header a').getAttribute('href'),
-      '/settings/plugins?pluginSearch=task&pluginTag=team',
+      '/settings/plugins?pluginSearch=task&pluginTag=team&pluginStatus=enabled',
     );
   } finally {
     await detail.unmount();
+  }
+});
+
+test('status defaults to all plugins and invalid URL values use the same default', async () => {
+  for (const search of ['', '?pluginStatus=unknown']) {
+    const view = await renderApp(h(PluginsOverview), { config, search });
+    try {
+      assert.equal(items(view.container).length, 4);
+      const trigger = view.container.querySelector('button[aria-label="Filter by status"]');
+      assert.equal(text(trigger), 'All plugins');
+      await press(trigger, 'Enter');
+      const options = [...document.querySelectorAll('[role=menuitemradio]')];
+      assert.deepEqual(options.map(text), ['All plugins', 'Enabled', 'Disabled']);
+      assert.equal(options[0].getAttribute('aria-checked'), 'true');
+      await click(options[0]);
+      assert.ok(!view.urls.at(-1)?.includes('pluginStatus'));
+    } finally {
+      await view.unmount();
+    }
   }
 });
 

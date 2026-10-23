@@ -1,4 +1,4 @@
-import { renderApp, controlledStorage, click, text, tick, deferred } from './support.mjs';
+import { renderApp, controlledStorage, click, press, text, tick, deferred } from './support.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
@@ -7,7 +7,7 @@ import { useBitaKit, pluginManagementAction } from '@bitakit/ui';
 import { SettingsRoute } from '../dist/index.js';
 import { appPreferencesPlugin } from '../dist/foundation.js';
 
-async function fixture(plugins) {
+async function fixture(plugins, search = '') {
   let runtime;
   function Page() {
     runtime = useBitaKit().runtime;
@@ -17,6 +17,7 @@ async function fixture(plugins) {
     config: { plugins: [appPreferencesPlugin(), ...plugins] },
     storage: controlledStorage(),
     pathname: '/settings/plugins',
+    search,
   });
   return { ...view, runtime };
 }
@@ -30,7 +31,7 @@ const answer = (view, label) =>
 const source = (hooks = {}) =>
   definePlugin({
     id: 'source',
-    metadata: { name: 'Source' },
+    metadata: { name: 'Source', tags: ['data'] },
     services: {
       data: defineService(({ onStart, onStop }) => {
         if (hooks.start) onStart(hooks.start);
@@ -43,6 +44,43 @@ const consumer = definePlugin({
   id: 'consumer',
   metadata: { name: 'Consumer' },
   services: { data: defineService(() => ({}), { requires: ['source.data'] }) },
+});
+
+test('status filters compose with search and tags and update after confirmed plugin toggles', async () => {
+  const view = await fixture(
+    [source(), definePlugin({ id: 'other' })],
+    '?pluginSearch=source&pluginTag=data&pluginStatus=enabled',
+  );
+  const names = () =>
+    [...view.container.querySelectorAll('.app-preferences-plugin [data-slot=item-title]')].map(text);
+  const selectStatus = async (label) => {
+    await press(button(view, 'Filter by status'), 'Enter');
+    await click([...document.querySelectorAll('[role=menuitemradio]')].find((e) => text(e) === label));
+  };
+  try {
+    assert.deepEqual(names(), ['Source']);
+    await click(button(view, 'Disable Source'));
+    await answer(view, 'Confirm');
+    assert.deepEqual(names(), []);
+    assert.equal(text(view.container.querySelector('[data-slot=empty-title]')), 'No plugins found.');
+    assert.equal(
+      text(view.container.querySelector('[data-slot=empty-description]')),
+      'Try another search or change the filters.',
+    );
+    await selectStatus('Disabled');
+    assert.deepEqual(names(), ['Source']);
+    assert.match(view.urls.at(-1), /pluginStatus=disabled/);
+    assert.match(view.urls.at(-1), /pluginSearch=source/);
+    assert.match(view.urls.at(-1), /pluginTag=data/);
+    await click(button(view, 'Enable Source'));
+    assert.deepEqual(names(), []);
+    await selectStatus('All plugins');
+    assert.deepEqual(names(), ['Source']);
+    assert.ok(!view.urls.at(-1).includes('pluginStatus'));
+    assert.equal(view.runtime.isReady('source'), true);
+  } finally {
+    await view.unmount();
+  }
 });
 
 test('management confirms dependencies, cancels safely, retains disabled rows and re-enables them', async () => {

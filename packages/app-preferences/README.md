@@ -340,9 +340,16 @@ The semantic list uses `.app-preferences-plugins`; each linked row uses
 `.app-preferences-plugin`. These hooks identify the owning surface and item; native link
 focus and shared component state remain authoritative.
 
-The scroll viewport shows every filtered plugin without pagination. Search and tag filters
-remain URL-backed. Legacy pagination query parameters no longer limit the list. Linked rows
+The scroll viewport shows every filtered plugin without pagination. The status filter beside
+Tags offers All plugins (default), Enabled and Disabled. It combines with search and tags,
+uses the same inventory state as the switches, and updates when a plugin is toggled. Failed
+plugins appear under Disabled, matching their retry switch. `pluginStatus` uses a typed nuqs
+literal parser and survives detail/back navigation alongside search and tags. Legacy
+pagination query parameters no longer limit the list. Linked rows
 retain native keyboard focus and navigation but have no full-row hover background.
+When no plugins match, the existing standard Empty component shows a search icon, a concise
+title and localized guidance to adjust the search or filters. The existing filter controls
+remain available above it.
 
 The plugin overview consumes `useRuntimeInventory` for public metadata and declarations.
 React icons remain presentation values outside the serializable snapshot. Installed packages
