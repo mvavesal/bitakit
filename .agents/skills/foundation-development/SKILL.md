@@ -29,6 +29,9 @@ when removing historical research from the project.
   actual check. Skipped tests are not passed tests; name required credentials.
 - Write all documentation, guidance and code comments in English, whatever the conversation
   language. Product translation catalogs stay localized data.
+- Before extending an installed plugin, inspect its public contracts/types and package-local
+  documentation. Keep plugin-specific APIs, UI behavior and verification guidance with the
+  owning package, not in general development skills.
 
 ## Parity rules
 
@@ -153,7 +156,8 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `{ input, services, config, settings, app }`, evaluated per binding input and on store or
   setting changes. Presentation and `confirm` `input` is typed `Input | undefined`: unbound
   snapshots, group items and unmapped slot placements evaluate without input, and they see the
-  raw value before validation; only `execute` gets the parsed input. Call-site input stays
+  raw value before validation; only `execute` gets the parsed input. Input-dependent presentation
+  must also handle absent input during Action enumeration. Call-site input stays
   optional: toggle/choice bindings, forms and controls supply it at execution. `input` schemas (zod, valibot, Standard Schema) type, validate and
   disable while invalid. `execute({ input, services, config, settings, app, events, signal,
   id, get, update })` is sync or async; pending is set only when a promise is returned.
@@ -474,8 +478,7 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   classes, a class on every wrapper, a styling registry or an exhaustive parts API. The central
   theme remains the default. Plain external CSS can target the documented class directly;
   no Tailwind indirection is required. Document concrete classes and relevant states next to
-  their owning UI component or local guide, not in this generic skill. Apply this during work
-  on that component; do not retrofit unrelated Sidebar, AppBar, user-menu, search or portal UI.
+  their owning UI component or local guide, not in this generic skill.
   Portaled content needs its own stable entry point because trigger ancestry does not reach it.
 - Match state/orientation selectors to the actual primitive library: Radix uses
   `data-state` and `data-orientation`, while Base UI uses presence attributes in relevant
@@ -772,33 +775,6 @@ Better Auth UI re-exports its identical Button, Input, DropdownMenu, Field, Labe
 Separator and Tooltip from the existing UI components entry. Do not restore copied
 implementations for these controls; keep the owning package files as named export facades.
 
-Quick Search owns the typed `quick-search.sources` data slot. Contributors attach a `SearchSource`
-from their own setup with an explicit stable local ID and retain the cleanup handle. Text and
-category metadata belong to the contributing plugin. Optional source `icon` uses Core's opaque
-`PresentationType<'icon'>`, rendered only by the UI with a Reicon Search fallback. Persistent source
-choices belong in App Settings: icon beside title/description and the central Switch. The dialog
-shows only one compact category dropdown below its input, defaulting to All categories; it narrows
-enabled sources temporarily and resets on reopening. No source buttons or helper copy in the dialog.
-The existing Todo preview contributes real tasks through its authorized service read API.
-Quick Search declares its own `@source './dist'` for layout utilities in packed consumers;
-workspace CSS discovery must not conceal a missing package source declaration.
-Its AppBar trigger uses the central input surface on a native Button, with the verified Reicon
-Search icon, muted placeholder text and the existing keyboard-hint keycap for its platform-aware
-shortcut. Preserve button semantics and the standard control height.
-`search` and `resolve` receive an AbortSignal;
-resolve stored IDs against current access/data and never treat history as authorization.
-Built-in pages/settings/plugin destinations use the same mechanism and reference live Actions;
-App Preferences owns its URL projections. No command execution, second registry or copied Action state.
-`results.*` sets initial source defaults only; `quick-search.sources` stores user overrides, so
-a new source cannot reset old choices. Dialog/Settings share Core's confirmed settings. Category
-filters stay local to the dialog. History stores bounded user/organization-separated queries and IDs,
-never result payloads/URLs; use the existing storage/auth contracts and headless settings export.
-Cancel and invalidate work on request, preference, identity and lifecycle changes; source failures
-and recent resolution must not block healthy search results. A service-state publication also
-refreshes Actions: compare semantic search fields before rerunning so search cannot restart itself.
-Input-dependent action presentation must handle absent input during enumeration. Verify the shipped
-`examples/catalog` in the packed `next-search` generated-host scenario, plus focused race tests.
-
 ### Authoring and migration workflow
 
 For human or AI-assisted authoring: read the owning slot contracts with `bitakit slots --json`
@@ -850,8 +826,7 @@ generated README and AGENTS.md, create-app help) uses these words:
 - Do not claim: "any framework"; that one Action appears everywhere automatically; "extend
   without touching anything"; "isolated plugins" or a sandbox; server plugins; `npx …@0.2`
   before publication; that plugin pages are ordinary framework or server pages (they are client
-  components behind the adapter's catch-all route); that Quick Search finds commands (it searches
-  navigation and plugin-owned sources); that every app ships agent rules (create-app and
+  components behind the adapter's catch-all route); that every app ships agent rules (create-app and
   `bitakit init` write them); that `settings.ts` alone gives a Settings page (App Preferences
   renders it); that BitaKit makes agents safe or correct. Never cite probe or test-log numbers.
 - Package descriptions name BitaKit and never Foundation; a CLI test enforces it.

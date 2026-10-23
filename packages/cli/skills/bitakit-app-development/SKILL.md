@@ -25,7 +25,6 @@ minimal example and the rules that matter.
 | Shared state or logic, or reacting to another feature                              | [references/services-and-events.md](references/services-and-events.md) |
 | A place other features can extend, or UI in the header, sidebar or another feature | [references/slots.md](references/slots.md)                             |
 | A rule around Actions: block, check or observe them                                | [references/interceptors.md](references/interceptors.md)               |
-| Searchable plugin data or a Quick Search source | [references/search.md](references/search.md) |
 | A user preference                                                                  | [references/settings.md](references/settings.md)                       |
 | Tests, the browser preview, or what to report                                      | [references/testing-and-preview.md](references/testing-and-preview.md) |
 
@@ -72,7 +71,9 @@ Do this once per session, before the first change:
    agent files out of sync, such as an outdated skill, tell the user and suggest
    `npx bitakit init --update-agent-files`.
 4. Read the owning plugin's files before changing them. Generated `src/bitakit.gen.*` files are
-   evidence for types; never edit them.
+   evidence for types; never edit them. For installed plugins, inspect their public contracts/types
+   and package README/local documentation before extending them. Keep plugin-specific recipes
+   with their owning package.
 5. Before placing UI, inspect the app's selected composition: which layout frames the page (Shell
    `sidebar`, the default, or `navbar`; a page's `export const layout`; or `src/layouts/<name>.tsx`)
    and which component actually renders the slot you want. A declared slot shows nothing until an
@@ -101,7 +102,7 @@ Do this once per session, before the first change:
   redundant state classes or extra styling system. Use ordinary CSS directly; no Tailwind
   indirection is necessary. The central theme remains the default.
   Document actual class names/states with the owning component, including a direct entry point
-  for portaled content. Apply this to the UI being changed, without unrelated retrofits.
+  for portaled content.
 - Build on BitaKit's mechanisms: no own registries, event buses, settings stores or button
   state, and no edits to generated files or the framework's provider wiring.
 - Ask before adding a dependency. Install BitaKit packages at the version the app already uses,

@@ -14,6 +14,11 @@ The complete guide is in the repository's `apps/docs/content/docs/reference/quic
 
 ## Add a source
 
+Check the installed package's `./sources` declarations and `bitakit slots --json` before using
+the source contract; older versions only enumerate navigation Actions. The shipped
+[setup example](examples/catalog/setup.ts) includes the optional-integration availability guard
+and attachment cleanup.
+
 From your plugin's `setup.ts`, attach a `SearchSource` (type import from
 `@bitakit/quick-search/sources`) to `quick-search.sources`, using an explicit stable local `id`.
 The source supplies `title`, `description`, an optional component `icon`, `category: { id, title }`, `defaultEnabled`,
@@ -90,6 +95,17 @@ These selectors describe important parts, not a guaranteed class for every inter
 - `service.ts`: concurrent requests, cancellation and serialized history operations.
 - `settings.ts`: the single preference/history declaration.
 - `ui/`: dialog, native result links and Settings source controls.
+
+The renderer compares semantic navigation fields before rerunning a search: service result
+publications also refresh Actions, and a raw Action revision would restart the same request.
+The package's `styles.css` declares `@source './dist'` so installed consumers receive its layout
+utilities; workspace CSS discovery must not conceal a missing source declaration.
+
+When adding a source, typecheck the contributing plugin, run `bitakit doctor`, then check its
+Settings switches, temporary categories, slow/failed requests, history restoration, plugin
+removal and identity changes in the app. The local `examples/catalog` fixture needs no domain
+backend. The repository's `apps/todo-preview` demonstrates real tasks through the existing
+authorized Todo service; its own README documents that preview's setup and checks.
 
 Run `npm test --workspace @bitakit/quick-search`. The repository's
 `node scripts/verify-generated.mjs --only next-search --keep` checks the shipped example in a
