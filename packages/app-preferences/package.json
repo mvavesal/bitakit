@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/app-preferences",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "description": "The BitaKit settings UI: generated settings pages, field controls, navigation and the settings route.",
   "bitakit": {
