@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/shell",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Application frame for BitaKit apps: navigation layouts, slots, appearance settings and notifications.",
   "type": "module",
   "sideEffects": [
@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@bitakit/core": "^0.2.2",
-    "@bitakit/ui": "^0.2.2",
+    "@bitakit/ui": "^0.2.5",
     "@heroui/react": "^3.2.6",
     "@heroui/styles": "^3.2.6",
     "class-variance-authority": "^0.7.1",
