@@ -40,7 +40,9 @@
         "description": "Installierte Plugins und ihre Details."
       }
     },
-    "preferencesError": "Die Sucheinstellungen konnten nicht geladen werden."
+    "preferencesError": "Die Sucheinstellungen konnten nicht geladen werden.",
+    "preferences": "Einstellungen",
+    "clearHistoryDescription": "Gespeicherte Suchanfragen und zuletzt geöffnete Einträge entfernen."
   },
   "quick-search": {
     "open": {
@@ -48,10 +50,24 @@
     },
     "settings": {
       "title": "Schnellsuche",
+      "showSource": {
+        "label": "Quelle der Suchtreffer anzeigen",
+        "description": "Das zugehörige Plugin neben den Suchtreffern anzeigen."
+      },
       "historyEnabled": {
         "label": "Suchverlauf speichern",
         "description": "Letzte Suchanfragen und geöffnete Treffer für dein Konto speichern."
+      },
+      "showRecentResults": {
+        "label": "Zuletzt geöffnete Einträge anzeigen",
+        "description": "Zuletzt geöffnete Ergebnisse in der Schnellsuche anzeigen."
       }
+    }
+  },
+  "plugins": {
+    "quick-search": {
+      "name": "Schnellsuche",
+      "description": "Seiten, Einstellungen und Ergebnisse aus verbundenen Suchquellen finden."
     }
   }
 }

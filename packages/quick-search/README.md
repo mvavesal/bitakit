@@ -45,6 +45,9 @@ Permanent source choices live at `/settings/quick-search`: each row shows its ic
 description with a Switch on the right. They edit the runtime's user setting `quick-search.sources`.
 Saved overrides win; new sources use their own defaults.
 
+**Show result source** (`quick-search.showSource`) defaults to `false`. Enable it to show the
+existing muted source label beside results. Ownership, search matching and shortcuts are unchanged.
+
 Opening a result records its ID and query. Empty search shows recent queries and destinations
 freshly resolved through their source. `quick-search.historyEnabled` disables recording/display;
 **Clear history** removes stored queries/references. History retains up to 20 of each per user
@@ -110,3 +113,11 @@ authorized Todo service; its own README documents that preview's setup and check
 Run `npm test --workspace @bitakit/quick-search`. The repository's
 `node scripts/verify-generated.mjs --only next-search --keep` checks the shipped example in a
 packed Next.js host in development and production, including Settings, history and responsive UI.
+
+The settings page uses shared compact Card/Item groups: search sources form one group;
+result-source display and history preferences form another. Controls keep the existing
+runtime settings ownership and use the central theme, with separators only between rows.
+
+`quick-search.showRecentResults` defaults to `false` and controls only the Recently opened
+results section. It is independent of `historyEnabled`; collection, storage, recent queries
+and availability/access revalidation retain their existing behavior.

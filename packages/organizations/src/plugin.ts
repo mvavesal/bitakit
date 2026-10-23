@@ -16,6 +16,7 @@ export function organizationsPlugin() {
     id: 'organizations',
     metadata: {
       name: 'Organization service',
+      tags: ['security'],
       description: 'Shared access to organizations and memberships.',
     },
     // The contract key equals the plugin ID, so the service is an array entry.

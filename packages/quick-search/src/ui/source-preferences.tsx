@@ -1,5 +1,5 @@
 'use client';
-import { useId, useState } from 'react';
+import { Fragment, useId, useState } from 'react';
 import { useSetting, useTranslation } from '@bitakit/ui';
 import { SwitchControl } from '@bitakit/app-preferences';
 import SearchIcon from 'reicon-react/icons/Search';
@@ -7,9 +7,13 @@ import {
   Field,
   FieldContent,
   FieldLabel,
-  FieldDescription,
+  ItemDescription,
   FieldError,
-  FieldGroup,
+  Card,
+  Item,
+  ItemMedia,
+  ItemGroup,
+  ItemSeparator,
 } from '@bitakit/ui/components';
 import { sourceEnabled } from '../service.js';
 import { useSources, useSearchText } from './use-sources.js';
@@ -19,11 +23,18 @@ import type { RegisteredSource } from '../types.js';
 export function SourcePreferences() {
   const sources = useSources();
   return (
-    <FieldGroup className="quick-search-sources">
-      {sources.map((source) => (
-        <SourcePreference key={source.id} source={source} />
-      ))}
-    </FieldGroup>
+    <Card size="sm" className="py-0">
+      <ItemGroup className="quick-search-sources gap-0 has-data-[size=xs]:gap-0">
+        {sources.map((source, index) => (
+          <Fragment key={source.id}>
+            <Item size="xs" role="listitem">
+              <SourcePreference source={source} />
+            </Item>
+            {index < sources.length - 1 && <ItemSeparator className="my-0" />}
+          </Fragment>
+        ))}
+      </ItemGroup>
+    </Card>
   );
 }
 function SourcePreference({ source }: { source: RegisteredSource }) {
@@ -46,12 +57,14 @@ function SourcePreference({ source }: { source: RegisteredSource }) {
   );
   return (
     <Field orientation="horizontal">
-      <Icon className="size-4 shrink-0" aria-hidden="true" />
+      <ItemMedia variant="icon">
+        <Icon aria-hidden="true" />
+      </ItemMedia>
       <FieldContent>
         <FieldLabel htmlFor={id}>{label}</FieldLabel>
-        <FieldDescription id={`${id}-description`}>
+        <ItemDescription className="line-clamp-none wrap-anywhere" id={`${id}-description`}>
           {text(source.source.description)}
-        </FieldDescription>
+        </ItemDescription>
         {error}
       </FieldContent>
       <SwitchControl

@@ -218,6 +218,7 @@ async function openSearch({ plugins = [], list = createActionList(), results, co
 }
 
 test('results name their type and owning plugin, derived from existing registrations', async () => {
+  const { SearchSettingsPage } = await import('../dist/ui/settings/page.js');
   const { defineAction: defineURLAction, destinationMetadata } = await import('@bitakit/core');
   const list = createActionList();
   // What the settings catalog and a plugin overview project; developers never declare these.
@@ -247,10 +248,24 @@ test('results name their type and owning plugin, derived from existing registrat
     pages: [{ path: '/todos/tasks', component: () => null }],
     actions: [defineURLAction({ id: 'todos.tasks', title: 'Tasks', href: '/todos/tasks' })],
   };
-  const search = await openSearch({ plugins: [todos], list, results: { plugins: true } });
+  const search = await openSearch({
+    plugins: [todos],
+    list,
+    results: { plugins: true },
+    content: h(SearchSettingsPage),
+  });
   try {
     const kind = (href) =>
       document.querySelector(`a[href="${href}"] .quick-search-kind`)?.textContent;
+    const sourceSwitch = search.container.querySelector(
+      '[data-setting="quick-search.showSource"] [role="switch"]',
+    );
+    assert.ok(sourceSwitch);
+    assert.equal(sourceSwitch.getAttribute('aria-checked'), 'false');
+    assert.equal(document.querySelector('.quick-search-kind'), null);
+    assert.ok(document.querySelector('a[href="/settings/alerts"] .quick-search-shortcut'));
+    await act(async () => sourceSwitch.click());
+    assert.equal(search.runtime.settings.get('quick-search.showSource'), true);
     assert.equal(kind('/todos/tasks'), 'Page · Todos');
     // Duplicate destinations merge: the shortcut Action is shown, the settings type is kept.
     assert.equal(kind('/settings/alerts'), 'Settings · Todos');
@@ -275,6 +290,11 @@ test('results name their type and owning plugin, derived from existing registrat
         .sort(),
       ['/settings/alerts', '/settings/plugins?plugin=todos', '/todos/tasks'],
     );
+    await act(async () => sourceSwitch.click());
+    assert.equal(search.runtime.settings.get('quick-search.showSource'), false);
+    assert.equal(document.querySelector('.quick-search-kind'), null);
+    assert.equal(document.querySelectorAll('[cmdk-item] a').length, 3);
+    assert.ok(document.querySelector('a[href="/settings/alerts"] .quick-search-shortcut'));
   } finally {
     await search.close();
   }
@@ -495,6 +515,55 @@ test('an Action becoming disabled during the click is neither opened nor recorde
     assert.equal(allowed, false);
     assert.ok(document.querySelector('[role=dialog]'));
     assert.deepEqual(search.runtime.settings.get('quick-search.history').results, []);
+  } finally {
+    await search.close();
+  }
+});
+
+test('recently opened visibility defaults off and does not change saved history', async () => {
+  const { SearchSettingsPage } = await import('../dist/ui/settings/page.js');
+  const list = createActionList();
+  const registration = list.register({
+    id: 'recent-report',
+    title: 'Recent report',
+    href: '/recent-report',
+  });
+  const search = await openSearch({ list, content: h(SearchSettingsPage) });
+  try {
+    const service = search.runtime.services['quick-search'].search;
+    const state = service.state.get();
+    const entry = state.sources.find((source) =>
+      source.results.some((result) => result.id === 'recent-report'),
+    );
+    assert.ok(entry);
+    await act(async () =>
+      service.remember(
+        state.request,
+        entry.source.id,
+        entry.results.find((result) => result.id === 'recent-report'),
+      ),
+    );
+    const saved = search.runtime.settings.get('quick-search.history');
+    assert.equal(saved.results.length, 1, 'recording continues while the section is hidden');
+    assert.equal(search.runtime.settings.get('quick-search.showRecentResults'), false);
+    assert.doesNotMatch(document.querySelector('[role=dialog]').textContent, /Recently opened/);
+    const toggle = search.container.querySelector(
+      '[data-setting="quick-search.showRecentResults"] [role=switch]',
+    );
+    await act(async () => toggle.click());
+    assert.match(document.querySelector('[role=dialog]').textContent, /Recently opened/);
+    assert.deepEqual(search.runtime.settings.get('quick-search.history'), saved);
+    assert.equal(search.runtime.settings.get('quick-search.historyEnabled'), true);
+    await act(async () => toggle.click());
+    assert.doesNotMatch(document.querySelector('[role=dialog]').textContent, /Recently opened/);
+    assert.deepEqual(search.runtime.settings.get('quick-search.history'), saved);
+    await act(async () => toggle.click());
+    await act(async () => registration.unregister());
+    assert.equal(
+      document.querySelector('a[href="/recent-report"]'),
+      null,
+      'removed results remain unavailable even with recents enabled',
+    );
   } finally {
     await search.close();
   }

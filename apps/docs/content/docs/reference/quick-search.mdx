@@ -135,6 +135,10 @@ icon/title/description rows with a Switch on the right. These controls edit the 
 Absence means use that source's own `defaultEnabled`; adding a source never resets prior choices.
 A default of `true` does not force the source on. Failed saves retain the confirmed preference.
 
+**Show result source** edits the boolean `quick-search.showSource` setting, which defaults to
+`false`. Enable it to show the existing small, muted source label on the right of results.
+Ownership, search matching, source enablement and shortcuts are unchanged.
+
 Pages, Settings and plugins are ordinary sources with IDs `quick-search:pages`,
 `quick-search:settings` and `quick-search:plugins`. All default to enabled. The existing
 `QuickSearchOptions.results` switches continue to set their defaults:
@@ -162,13 +166,17 @@ recent query searches again. Up to 20 distinct queries and 20 opened references 
 per user, across that user's organizations; the current organization's entries alone are shown.
 History stores no cached title, URL, result payload or permission claim.
 
-`quick-search.historyEnabled` controls recording and display. Turning it off retains existing
+`quick-search.showRecentResults` defaults to `false` and independently controls whether the
+Recently opened results section is displayed. It changes visibility only; recording and stored
+history are unchanged. Unavailable or unauthorized results remain excluded.
+
+`quick-search.historyEnabled` controls recording and recent-query display. Turning it off retains existing
 history until **Clear history** removes it. Clearing removes that user's history across their
 organizations, including entries for sources no longer installed. Saves are serialized and
 queued operations cannot cross an identity change. Source overrides and history use Core's
 existing settings storage and auth identity; anonymous use has the standard anonymous scope.
 
-All three declarations are available from the headless `@bitakit/quick-search/settings` entry
+All declarations are available from the headless `@bitakit/quick-search/settings` entry
 as `quickSearchSettings`. A server settings adapter must explicitly trust these declarations
 and apply its own access policy. No additional localStorage/session or confirmed-value store is
 used. Source/backend authorization remains independent of preference persistence.

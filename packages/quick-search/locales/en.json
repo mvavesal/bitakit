@@ -40,7 +40,9 @@
         "description": "Installed plugins and their details."
       }
     },
-    "preferencesError": "Could not load search preferences."
+    "preferencesError": "Could not load search preferences.",
+    "preferences": "Preferences",
+    "clearHistoryDescription": "Remove your saved searches and recently opened items."
   },
   "quick-search": {
     "open": {
@@ -48,10 +50,24 @@
     },
     "settings": {
       "title": "Quick search",
+      "showSource": {
+        "label": "Show result source",
+        "description": "Show the owning plugin beside search results."
+      },
       "historyEnabled": {
         "label": "Remember search history",
         "description": "Keep recent searches and opened results for your account."
+      },
+      "showRecentResults": {
+        "label": "Show recently opened items",
+        "description": "Show recently opened results in Quick search."
       }
+    }
+  },
+  "plugins": {
+    "quick-search": {
+      "name": "Quick search",
+      "description": "Find pages, settings and results from connected search sources."
     }
   }
 }

@@ -2,7 +2,7 @@
 import { useRef, type MouseEvent } from 'react';
 import { Command } from 'cmdk';
 import { safeHref } from '@bitakit/core';
-import { useAction, useBitaKitNavigation } from '@bitakit/ui';
+import { useAction, useBitaKitNavigation, useSetting } from '@bitakit/ui';
 import { ActionLink, ActionShortcutLabel } from '@bitakit/ui/actions';
 import LinkIcon from 'reicon-react/icons/Link';
 import type { SearchResult } from '../types.js';
@@ -34,6 +34,7 @@ function ResultContent({
 }: ResultProps & { action?: ReturnType<typeof useAction> }) {
   const link = useRef<HTMLAnchorElement>(null);
   const { Link = 'a' } = useBitaKitNavigation();
+  const showSource = useSetting('quick-search.showSource');
   const result = row.result;
   const isAction = 'actionId' in result;
   if (isAction && (!action?.visible || !safeHref(action.href))) return null;
@@ -41,7 +42,7 @@ function ResultContent({
   if (!href) return null;
   const title = isAction ? action!.title : result.title;
   const description = isAction ? action?.description : result.description;
-  const detail = isAction ? result.detail : undefined;
+  const detail = showSource.value && isAction ? result.detail : undefined;
   const Icon = action?.icon ?? LinkIcon;
   const disabled = isAction && (!action?.enabled || action?.pending);
   const value = isAction ? result.actionId : JSON.stringify([row.sourceId, result.id]);

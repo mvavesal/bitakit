@@ -6,6 +6,16 @@ import { emptyHistory, historySchema } from './schemas.js';
 export const quickSearchSettings = defineSettings(
   {
     sources: setting({ default: {}, schema: z.record(z.string(), z.boolean()), hidden: true }),
+    showSource: setting({
+      default: false,
+      label: 'Show result source',
+      description: 'Show the owning plugin beside search results.',
+    }),
+    showRecentResults: setting({
+      default: false,
+      label: 'Show recently opened items',
+      description: 'Show recently opened results in Quick search.',
+    }),
     historyEnabled: setting({
       default: true,
       label: 'Remember search history',

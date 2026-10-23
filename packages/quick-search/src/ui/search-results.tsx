@@ -38,6 +38,8 @@ export function SearchResults({
   const preferences = useSetting('quick-search.sources');
   const history = useSetting('quick-search.history');
   const historyEnabled = useSetting('quick-search.historyEnabled');
+  const showRecentResults = useSetting('quick-search.showRecentResults');
+  const showRecent = showRecentResults.ready && showRecentResults.value;
   const service = useService('quick-search.search');
   const state = useServiceState('quick-search.search', undefined, emptySearch);
   const [query, setQuery] = useState('');
@@ -104,6 +106,7 @@ export function SearchResults({
   }, [category, sources, preferences.value]);
   // Event-time checks also cover removal/preferences changing before React commits a new view.
   const current = (row: ResultRow) => {
+    if (row.recent && !runtime.settings.get('quick-search.showRecentResults')) return false;
     const source = runtime.slots
       .get('quick-search.sources')
       .items.find((item) => item.id === row.sourceId);
@@ -129,7 +132,7 @@ export function SearchResults({
   const rows: ResultRow[] = [];
   const seen = new Set<string>();
   // Recent references are freshly resolved. Ready results remain visible while another source loads.
-  for (const recent of [true, false])
+  for (const recent of showRecent ? [true, false] : [false])
     for (const entry of found) {
       for (const candidate of recent ? entry.recent : entry.results) {
         const result = availableResult(candidate, request.environment);
@@ -188,7 +191,9 @@ export function SearchResults({
       : [];
   const loading =
     !preferences.ready ||
-    found.some((source) => source.status === 'loading' || source.recentStatus === 'loading');
+    found.some(
+      (source) => source.status === 'loading' || (showRecent && source.recentStatus === 'loading'),
+    );
   label = t(label, undefined, t('quickSearch.title', undefined, label));
   placeholder =
     placeholder === 'Search…'
@@ -271,13 +276,13 @@ export function SearchResults({
         ))}
         {found.map(
           (entry) =>
-            (entry.status !== 'ready' || entry.recentStatus !== 'ready') && (
+            (entry.status !== 'ready' || (showRecent && entry.recentStatus !== 'ready')) && (
               <div key={entry.source.id} role="status" className="quick-search-link">
                 {text(entry.source.source.title)}:{' '}
-                {entry.status === 'error' || entry.recentStatus === 'error'
+                {entry.status === 'error' || (showRecent && entry.recentStatus === 'error')
                   ? t('quickSearch.sourceError', undefined, 'Could not load results.')
                   : t('quickSearch.loading', undefined, 'Searching…')}
-                {(entry.status === 'error' || entry.recentStatus === 'error') && (
+                {(entry.status === 'error' || (showRecent && entry.recentStatus === 'error')) && (
                   <Button
                     size="sm"
                     variant="ghost"

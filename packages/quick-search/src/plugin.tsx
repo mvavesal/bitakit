@@ -29,6 +29,12 @@ export function quickSearchPlugin(options: QuickSearchOptions = {}) {
   const shortcut = options.shortcut ?? 'Mod+K';
   return definePlugin({
     id: 'quick-search',
+    metadata: {
+      name: 'Quick search',
+      description: 'Find pages, settings and results from connected search sources.',
+      tags: ['system'],
+      icon: SearchIcon,
+    },
     settings: quickSearchSettings,
     slots: { sources: searchSources },
     services: { search: searchService },
