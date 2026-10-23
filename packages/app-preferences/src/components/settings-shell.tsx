@@ -147,7 +147,7 @@ export function SettingsShell({
           search={current === undefined || !isBasePath(current, location.basePath)}
         />
         <SidebarInset className="min-h-0 min-w-0">
-          <header className="flex h-14 shrink-0 items-center gap-3 px-4">
+          <header className="flex h-14 shrink-0 items-center gap-3 bg-card/50 px-4">
             <SidebarTrigger className="md:hidden" aria-label={messages('toggleNavigation')} />
             <Breadcrumb aria-label={messages('breadcrumb')} className="min-w-0">
               <BreadcrumbList>
