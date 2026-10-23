@@ -1,0 +1,9 @@
+{
+  "catalog": {
+    "search": {
+      "title": "Learning catalog",
+      "description": "Find lessons in the local example catalog.",
+      "category": "Learning"
+    }
+  }
+}

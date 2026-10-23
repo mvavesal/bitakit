@@ -1,0 +1,9 @@
+{
+  "catalog": {
+    "search": {
+      "title": "Lernkatalog",
+      "description": "Lektionen im lokalen Beispielkatalog finden.",
+      "category": "Lernen"
+    }
+  }
+}

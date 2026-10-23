@@ -63,7 +63,7 @@ The same `configOverrides` field exists on a manual `BitaKitRuntimeConfig`. Obje
 
 ## Configure an installed package
 
-Some installed packages read their options from a config file of your app. Shell reads `src/configs/shell.ts`; Quick Search reads `src/configs/quick-search.ts`, for example to add plugin results:
+Some installed packages read their options from a config file of your app. Shell reads `src/configs/shell.ts`; Quick Search reads `src/configs/quick-search.ts`, for example to disable plugin results by default:
 
 ```ts
 // src/configs/quick-search.ts
@@ -71,9 +71,12 @@ import { defineConfig } from '@bitakit/core';
 import type { QuickSearchOptions } from '@bitakit/quick-search';
 
 export default defineConfig({
-  defaults: { results: { plugins: true } } satisfies QuickSearchOptions,
+  defaults: { results: { plugins: false } } satisfies QuickSearchOptions,
 });
 ```
+
+Quick Search source switches are initial defaults; saved user source preferences take precedence.
+See [Quick Search](/docs/reference/quick-search) for plugin-owned sources.
 
 Without the file, the package uses its defaults. A package names the file it reads with `bitakit.configuration` in its `package.json`, and discovery passes the resolved values to the package's plugin when the app starts. The package README lists its options.
 

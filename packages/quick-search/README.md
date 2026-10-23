@@ -1,61 +1,103 @@
 # Quick Search
 
-A search dialog for BitaKit apps: press Mod+K, or click the search button in the app bar, to jump to a page, a settings page or a plugin.
-
-## Install
+A BitaKit search dialog with plugin-owned sources, navigation results, source preferences and
+recent history. Open it with Mod+K or the AppBar search button.
 
 ```sh
 npm install @bitakit/quick-search
 ```
 
-That is all. BitaKit package discovery registers the search Action and the `app-bar.end` view automatically; the standard AppBar shows the search button in either Shell layout. You do not register results, add a provider or write a component. Discovery includes the package's declared stylesheet in the root generated CSS; it uses the host's theme tokens and has no JavaScript CSS side effects.
+Package discovery registers the plugin, typed `quick-search.sources` data slot, translations
+and theme-based stylesheet. Pages, Settings and plugin destinations are included by default.
+Plugin contributions can search their own data without editing Quick Search or host wiring.
+The complete guide is in the repository's `apps/docs/content/docs/reference/quick-search.mdx`.
 
-## What search finds
+## Add a source
 
-Search finds places to go, nothing else. Each result is a link and shows its type and, unless the app itself owns it, the plugin it belongs to: `Tasks — Page · Todos`, `Notifications — Settings · Todos`. Typing a plugin's name finds everything that plugin owns.
+From your plugin's `setup.ts`, attach a `SearchSource` (type import from
+`@bitakit/quick-search/sources`) to `quick-search.sources`, using an explicit stable local `id`.
+The source supplies `title`, `description`, `category: { id, title }`, `defaultEnabled`,
+`search({ query, signal })` and `resolve(id, context)`. Preserve the returned attachment's
+cleanup handle. Core qualifies the ID with the owner, for example `catalog:lessons`.
+The complete, typed local example is included in `examples/catalog`.
 
-| Type     | What it includes                                                      | Default |
-| -------- | --------------------------------------------------------------------- | ------- |
-| Pages    | Links to pages of the app, and other navigation links                 | on      |
-| Settings | Pages of the Settings catalog                                         | on      |
-| Plugins  | One result per plugin, opening its entry on the Plugins settings page | on      |
+Results are safe links (`{ id, title, href, description? }`) or live Action references
+(`{ id, actionId }`). Sources filter/rank their own arrays; local sources can use the supplied
+`score(title, keywords)` cmdk matcher. Source-owned text accepts literals/translation keys or
+`{ key, fallback }`. Existing Action titles and guards remain owned by ActionList.
 
-Commands, dialogs and forms (Actions without a URL) never appear, so search never runs an Action. Hidden Actions and internal helpers never appear either, and disabled or pending links cannot be selected.
+Enabled sources run concurrently and publish independently. Changes to the query, filters,
+preferences, identity or lifecycle abort and invalidate stale work. Removed/disabled sources
+are not searched. Source/backend authorization is required; a visible or remembered result
+never grants access. Commands and dialogs remain excluded.
 
-## Choose result types
+## Preferences and history
 
-Without configuration, search shows pages, settings and plugins. To change that, add `src/configs/quick-search.ts` to your app:
+**Search sources** in the dialog and `/settings/quick-search` in App Preferences share the
+runtime's user setting `quick-search.sources`. Saved overrides win; new sources use their own
+defaults. Category filters are temporary for the current dialog.
 
-```ts
-import { defineConfig } from '@bitakit/core';
-import type { QuickSearchOptions } from '@bitakit/quick-search';
+Opening a result records its ID and query. Empty search shows recent queries and destinations
+freshly resolved through their source. `quick-search.historyEnabled` disables recording/display;
+**Clear history** removes stored queries/references. History retains up to 20 of each per user
+and displays only the current organization's entries. It stores no cached titles or URLs.
+The existing `settings.storage` and auth contracts own persistence and identity. Trusted server
+adapters can import `quickSearchSettings` from `@bitakit/quick-search/settings`.
 
-export default defineConfig({
-  defaults: {
-    results: { plugins: false },
-  } satisfies QuickSearchOptions,
-});
+Existing `QuickSearchOptions` remain supported: `title`, `placeholder`, `empty`, `shortcut`
+and `results: { pages, settings, plugins }`. Result switches now provide initial source defaults;
+saved user choices take precedence. Pages, Settings and plugins default to enabled.
+Duplicate destinations collapse, shortcuts remain visible, and native modified clicks/Mod+Enter
+open new tabs. Hidden/internal/unsafe results are excluded and disabled Actions remain guarded.
+
+Without discovery, compose `quickSearchPlugin(options)`, the host's root stylesheet and, for
+Settings/plugin destinations, `appPreferencesPlugin()` and its Settings route. A custom header
+can render `QuickSearchTrigger` or the `app-bar.end` slot; installing a package cannot create a
+header in an arbitrary host. Compose `locales/en.json` and `locales/de.json` with the host catalogs.
+
+## External component CSS
+
+The central theme supplies the default appearance. For deliberate application-specific
+adjustments, import ordinary CSS after the generated root styles. These existing/public
+entry points belong to Quick Search:
+
+| Class                                             | Purpose and existing states                                                         |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `.quick-search-trigger`                           | AppBar button; native hover/focus and `aria-haspopup="dialog"`                      |
+| `.quick-search`                                   | Command content inside the host's portaled dialog                                   |
+| `.quick-search-controls`                          | Category and persistent-source controls; disclosure uses `aria-expanded`            |
+| `.quick-search-category-menu`                     | Portaled category popup; Radix `data-state`, items use `aria-checked`               |
+| `.quick-search-list`                              | Results or source-selection scroll area; the result list uses `aria-busy`           |
+| `.quick-search-item`, `.quick-search-link`        | Result row/native link; cmdk `data-selected` and `data-disabled`                    |
+| `.quick-search-sources`, `.quick-search-settings` | Shared source switches and Settings content; switches use `aria-checked`/`disabled` |
+
+For example, a developer may deliberately remove just the trigger's depth while retaining
+its button semantics, size and focus treatment:
+
+```css
+.quick-search-trigger {
+  box-shadow: none;
+}
+.quick-search-trigger:hover {
+  background: var(--muted);
+}
+.quick-search-category-menu[data-state='open'] {
+  font-style: normal;
+}
 ```
 
-Each switch only affects its own type: turning plugin results off never hides a plugin's pages or settings, and turning settings off keeps pages. The same file accepts `title`, `placeholder`, `empty` and `shortcut` (`false` disables Mod+K).
+The category menu is portaled: target its class directly, not as a descendant of the trigger.
+Reuse native focus/hover and the listed attributes instead of adding parallel state classes.
+These selectors describe important parts, not a guaranteed class for every internal wrapper.
 
-Plugin results need App Preferences, whose Plugins settings page publishes one link per plugin (`settings.plugins.<id>`, `/settings/plugins?plugin=<id>`). Without that package no plugin results exist.
+## Source map and verification
 
-## How results are built
+- `slots.ts`, `types.ts`, `schemas.ts`: headless source contract.
+- `destination-sources.ts`: existing navigation as ordinary sources.
+- `service.ts`: concurrent requests, cancellation and serialized history operations.
+- `settings.ts`: the single preference/history declaration.
+- `ui/`: dialog, native result links and shared source controls/settings content.
 
-Results are the current, visible URL Actions of the app's single ActionList; there is no second search registry and no stored search state. Each result is a real link (`ActionLink`), so modified clicks still open new tabs, Mod+Enter opens the selected result in a new tab, and unsafe URLs are never shown. When several Actions lead to the same place, search shows one result: it prefers the one with a keyboard shortcut and keeps the most specific type. Action groups supply the headings and extra keywords. Results appear and disappear with their plugins.
-
-Types and owners come from existing registrations through `runtime.destinationOf(action)`. A settings page belongs to the plugin that contributed its section. Another path of the app is a page of the plugin whose page path matches, otherwise of the plugin that contributed the link. External links have no type. Integrations that project their own registrations into the ActionList, such as App Preferences' settings pages and plugin entries, mark them with `destinationMetadata({ kind, plugin })`; developers never declare destinations.
-
-## Without package discovery
-
-In a host without BitaKit discovery, add the plugin yourself: `quickSearchPlugin({ title, placeholder, empty, shortcut, results })`. A custom header can render the `PluginSlot` named `app-bar.end`, or `QuickSearchTrigger` directly. Without any header, Mod+K still opens the dialog. Installing the package cannot add a header to an arbitrary React app.
-
-Such a host also owns its stylesheet entry: establish the canonical layer order, then import
-`@bitakit/quick-search/styles.css` there. Generated BitaKit apps do this automatically.
-
-## Translation catalogs
-
-Package-owned English and German messages live in `locales/` and are exported as `./locales/en.json` and `./locales/de.json`. Compose them in the host request configuration with `mergePluginMessages`; app catalogs override matching keys in the same locale.
-
-Run the focused check with `npm test --workspace @bitakit/quick-search`.
+Run `npm test --workspace @bitakit/quick-search`. The repository's
+`node scripts/verify-generated.mjs --only next-search --keep` checks the shipped example in a
+packed Next.js host in development and production, including Settings, history and responsive UI.

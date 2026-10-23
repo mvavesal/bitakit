@@ -25,6 +25,7 @@ minimal example and the rules that matter.
 | Shared state or logic, or reacting to another feature                              | [references/services-and-events.md](references/services-and-events.md) |
 | A place other features can extend, or UI in the header, sidebar or another feature | [references/slots.md](references/slots.md)                             |
 | A rule around Actions: block, check or observe them                                | [references/interceptors.md](references/interceptors.md)               |
+| Searchable plugin data or a Quick Search source | [references/search.md](references/search.md) |
 | A user preference                                                                  | [references/settings.md](references/settings.md)                       |
 | Tests, the browser preview, or what to report                                      | [references/testing-and-preview.md](references/testing-and-preview.md) |
 
@@ -94,7 +95,13 @@ Do this once per session, before the first change:
 - State lives in services, preferences in settings, operations in Actions bound to controls with
   `<Action>`. Pages and components live under `ui/` and start with `'use client'` in Next.js.
 - Use `@bitakit/ui/components` and the app's theme tokens. Keep styling to the existing
-  components and layout utilities.
+  components and layout utilities. Important public UI parts should keep a few stable,
+  namespaced classes for intentional external CSS overrides. Reuse existing classes,
+  state/ARIA attributes and native hover/focus selectors; no wrapper-by-wrapper class inventory,
+  redundant state classes or extra styling system. Use ordinary CSS directly; no Tailwind
+  indirection is necessary. The central theme remains the default.
+  Document actual class names/states with the owning component, including a direct entry point
+  for portaled content. Apply this to the UI being changed, without unrelated retrofits.
 - Build on BitaKit's mechanisms: no own registries, event buses, settings stores or button
   state, and no edits to generated files or the framework's provider wiring.
 - Ask before adding a dependency. Install BitaKit packages at the version the app already uses,

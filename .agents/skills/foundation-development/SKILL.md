@@ -468,6 +468,15 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   sizes, Reicon Outline). No local border/radius/shadow/color overrides, no quickly styled
   replacement buttons, dialogs, sidebars, badges or tables. Name a gap instead of inventing
   a visual special case; authorized changes go to the central component.
+- Important public UI components and parts expose a few stable, namespaced CSS classes as
+  practical entry points for deliberate developer overrides. Reuse existing classes, native
+  `:hover`/`:focus-visible` and existing state/ARIA attributes; do not add redundant state
+  classes, a class on every wrapper, a styling registry or an exhaustive parts API. The central
+  theme remains the default. Plain external CSS can target the documented class directly;
+  no Tailwind indirection is required. Document concrete classes and relevant states next to
+  their owning UI component or local guide, not in this generic skill. Apply this during work
+  on that component; do not retrofit unrelated Sidebar, AppBar, user-menu, search or portal UI.
+  Portaled content needs its own stable entry point because trigger ancestry does not reach it.
 - Match state/orientation selectors to the actual primitive library: Radix uses
   `data-state` and `data-orientation`, while Base UI uses presence attributes in relevant
   components. Do not copy Base UI selectors onto Radix or rewrite custom Sidebar active
@@ -763,9 +772,21 @@ Better Auth UI re-exports its identical Button, Input, DropdownMenu, Field, Labe
 Separator and Tooltip from the existing UI components entry. Do not restore copied
 implementations for these controls; keep the owning package files as named export facades.
 
-Quick Search includes plugin destinations by default alongside pages and settings;
-`results.plugins: false` opts out. App Preferences owns their URL action projection.
-Input-dependent action presentation must handle absent input during action enumeration.
+Quick Search owns the typed `quick-search.sources` data slot. Contributors attach a `SearchSource`
+from their own setup with an explicit stable local ID and retain the cleanup handle. Text and
+category metadata belong to the contributing plugin. `search` and `resolve` receive an AbortSignal;
+resolve stored IDs against current access/data and never treat history as authorization.
+Built-in pages/settings/plugin destinations use the same mechanism and reference live Actions;
+App Preferences owns its URL projections. No command execution, second registry or copied Action state.
+`results.*` sets initial source defaults only; `quick-search.sources` stores user overrides, so
+a new source cannot reset old choices. Dialog/Settings share Core's confirmed settings. Category
+filters stay local to the dialog. History stores bounded user/organization-separated queries and IDs,
+never result payloads/URLs; use the existing storage/auth contracts and headless settings export.
+Cancel and invalidate work on request, preference, identity and lifecycle changes; source failures
+and recent resolution must not block healthy search results. A service-state publication also
+refreshes Actions: compare semantic search fields before rerunning so search cannot restart itself.
+Input-dependent action presentation must handle absent input during enumeration. Verify the shipped
+`examples/catalog` in the packed `next-search` generated-host scenario, plus focused race tests.
 
 ### Authoring and migration workflow
 
@@ -818,8 +839,8 @@ generated README and AGENTS.md, create-app help) uses these words:
 - Do not claim: "any framework"; that one Action appears everywhere automatically; "extend
   without touching anything"; "isolated plugins" or a sandbox; server plugins; `npx …@0.2`
   before publication; that plugin pages are ordinary framework or server pages (they are client
-  components behind the adapter's catch-all route); that Quick Search finds commands (it lists
-  pages, Settings pages and plugins); that every app ships agent rules (create-app and
+  components behind the adapter's catch-all route); that Quick Search finds commands (it searches
+  navigation and plugin-owned sources); that every app ships agent rules (create-app and
   `bitakit init` write them); that `settings.ts` alone gives a Settings page (App Preferences
   renders it); that BitaKit makes agents safe or correct. Never cite probe or test-log numbers.
 - Package descriptions name BitaKit and never Foundation; a CLI test enforces it.

@@ -29,6 +29,7 @@ for (const key of [
   'HTMLTextAreaElement',
   'HTMLSelectElement',
   'HTMLButtonElement',
+  'HTMLFormElement',
   'SVGElement',
   'NodeFilter',
 ])
@@ -52,7 +53,7 @@ const { createRoot } = await import('react-dom/client');
 globalThis.KeyboardEvent = window.KeyboardEvent;
 globalThis.HTMLAnchorElement = window.HTMLAnchorElement;
 HTMLElement.prototype.scrollIntoView = function () {};
-const { BitaKitRuntimeProvider } = await import('@bitakit/ui');
+const { BitaKitRuntimeProvider, useBitaKit } = await import('@bitakit/ui');
 const { AppBar, standardBitaKitUI } = await import('@bitakit/ui/components');
 const { createActionList, ActionGroup } = await import('@bitakit/core');
 const { quickSearchPlugin } = await import('../dist/plugin.js');
@@ -169,7 +170,12 @@ const labels = {
   unavailable: 'Unavailable',
 };
 /** Renders an app with quick search, opens it and returns helpers to read and drive the results. */
-async function openSearch({ plugins = [], list = createActionList(), results } = {}) {
+function Capture({ report }) {
+  report(useBitaKit().runtime);
+  return null;
+}
+async function openSearch({ plugins = [], list = createActionList(), results, content } = {}) {
+  let runtime;
   const container = document.createElement('div');
   document.body.append(container);
   const root = createRoot(container);
@@ -184,12 +190,20 @@ async function openSearch({ plugins = [], list = createActionList(), results } =
           labels,
         },
         h(AppBar),
+        content,
+        h(Capture, {
+          report: (value) => {
+            runtime = value;
+          },
+        }),
       ),
     ),
   );
   await act(async () => container.querySelector('button').click());
   return {
     list,
+    runtime,
+    container,
     ids: () =>
       [...document.querySelectorAll('[cmdk-item]')]
         .map((item) => item.getAttribute('data-value'))
@@ -366,6 +380,127 @@ test('only navigation links are results: Actions without a URL never appear, eve
     assert.deepEqual(search.ids(), []);
     assert.match(document.body.textContent, /No results found/);
     assert.deepEqual(runs, []);
+  } finally {
+    await search.close();
+  }
+});
+
+test('source defaults, shared Settings switches, failed saves and immediate dialog updates', async () => {
+  const { SearchSettingsPage } = await import('../dist/ui/settings/page.js');
+  const { defineService, settingsStorage, createMemorySettingsStorage } = await import(
+    '@bitakit/core'
+  );
+  const memory = createMemorySettingsStorage();
+  let fail = false;
+  let calls = 0;
+  const catalog = {
+    id: 'catalog',
+    setup({ scope }) {
+      scope.slots.attach(
+        {
+          slot: 'quick-search.sources',
+          id: 'lessons',
+          data: {
+            title: 'Learning catalog',
+            description: 'Plugin supplied description',
+            category: { id: 'learning', title: 'Learning' },
+            defaultEnabled: false,
+            search() {
+              calls++;
+              return [{ id: 'intro', title: 'Introduction', href: '/intro' }];
+            },
+            resolve() {
+              return null;
+            },
+          },
+        },
+        { availability: 'wait' },
+      );
+    },
+  };
+  const storage = {
+    id: 'storage',
+    services: {
+      storage: defineService(
+        () => ({
+          ...memory,
+          save(key, value, context) {
+            if (fail) throw new Error('storage unavailable');
+            memory.save(key, value, context);
+          },
+        }),
+        { provides: settingsStorage },
+      ),
+    },
+  };
+  const search = await openSearch({ plugins: [catalog, storage], content: h(SearchSettingsPage) });
+  try {
+    assert.equal(calls, 0);
+    await act(async () => document.querySelector('[role=dialog] button[aria-label=Close]').click());
+    const settingSwitch = () =>
+      [...search.container.querySelectorAll('[role=switch]')].find((item) =>
+        item.parentElement.textContent.includes('Learning catalog'),
+      );
+    assert.equal(settingSwitch().getAttribute('aria-checked'), 'false');
+    await act(async () => settingSwitch().click());
+    assert.equal(settingSwitch().getAttribute('aria-checked'), 'true');
+    await act(async () => search.container.querySelector('button[aria-haspopup=dialog]').click());
+    assert.ok(document.querySelector('[role=dialog] a[href="/intro"]'));
+    const expand = [...document.querySelectorAll('[role=dialog] button')].find(
+      (item) => item.textContent === 'Search sources',
+    );
+    await act(async () => expand.click());
+    const dialogSwitch = () =>
+      [...document.querySelectorAll('[role=dialog] [role=switch]')].find((item) =>
+        item.parentElement.textContent.includes('Learning catalog'),
+      );
+    assert.equal(dialogSwitch().getAttribute('aria-checked'), 'true');
+    assert.equal(
+      dialogSwitch().closest('[role=listbox]'),
+      null,
+      'switches do not masquerade as listbox options',
+    );
+    fail = true;
+    await act(async () => dialogSwitch().click());
+    assert.equal(
+      dialogSwitch().getAttribute('aria-checked'),
+      'true',
+      'failed save retains confirmed choice',
+    );
+    assert.match(
+      document.querySelector('[role=dialog]').textContent,
+      /Could not save your preference/,
+    );
+    fail = false;
+    await act(async () => dialogSwitch().click());
+    assert.equal(dialogSwitch().getAttribute('aria-checked'), 'false');
+    assert.equal(settingSwitch().getAttribute('aria-checked'), 'false');
+    await act(async () => expand.click());
+    assert.equal(document.querySelector('[role=dialog] a[href="/intro"]'), null);
+  } finally {
+    await search.close();
+  }
+});
+
+test('an Action becoming disabled during the click is neither opened nor recorded', async () => {
+  const list = createActionList();
+  list.register({ id: 'race', title: 'Race', href: '/race' });
+  const search = await openSearch({ list });
+  try {
+    const link = document.querySelector('[role=dialog] a[href="/race"]');
+    link.addEventListener('click', () => list.update('race', { enabled: false }), {
+      capture: true,
+      once: true,
+    });
+    let allowed;
+    await act(async () => {
+      allowed = link.dispatchEvent(
+        new window.MouseEvent('click', { bubbles: true, cancelable: true }),
+      );
+    });
+    assert.equal(allowed, false);
+    assert.ok(document.querySelector('[role=dialog]'));
+    assert.deepEqual(search.runtime.settings.get('quick-search.history').results, []);
   } finally {
     await search.close();
   }

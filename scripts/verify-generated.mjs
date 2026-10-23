@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { configureAuthFixture, verifyAuthStyles } from './fixtures/generated-auth.mjs';
+import { configureSearchFixture, verifySearch } from './fixtures/generated-search.mjs';
 import { configureThemeFixture, verifyDeveloperTheme } from './fixtures/generated-theme.mjs';
 import {
   bundledSkillFiles,
@@ -72,6 +73,7 @@ const app = (framework, sample) => ({
 const scenarios = {
   'next-bare': app('next', false),
   'next-sample': app('next', true),
+  'next-search': { ...app('next', true), search: true },
   'next-auth': { ...app('next', true), auth: true },
   'tanstack-bare': app('tanstack', false),
   'tanstack-sample': app('tanstack', true),
@@ -202,6 +204,7 @@ async function verify(name, scenario) {
       )
         throw new Error(`${folder}/skills/bitakit-app-development differs from the package.`);
   });
+  if (scenario.search) await configureSearchFixture(target);
   if (scenario.auth) {
     const archives = Object.fromEntries(
       (await readdir(packs)).map((file) => [
@@ -238,17 +241,20 @@ async function verify(name, scenario) {
   }
   await step('type check', () => run('npm', ['run', 'typecheck'], target));
   await step('doctor', () => run('npx', ['bitakit', 'doctor'], target));
-  if (scenario.auth) {
+  if (scenario.auth || scenario.search) {
     const server = await step('start development', () =>
       serve(scenario.framework, target, { development: true, auth: true }),
     );
     const artifacts = path.join(target, 'verification-development');
     await mkdir(artifacts);
     try {
-      await step('development auth styles', () =>
+      await step(scenario.search ? 'development search' : 'development auth styles', () =>
         smoke(server.url, [], async (page) => {
-          await verifyAuthStyles(page, server.url, artifacts, target);
-          await verifyDeveloperTheme(page, server.url, artifacts);
+          if (scenario.search) await verifySearch(page, server.url, artifacts);
+          else {
+            await verifyAuthStyles(page, server.url, artifacts, target);
+            await verifyDeveloperTheme(page, server.url, artifacts);
+          }
         }),
       );
     } finally {
@@ -266,12 +272,14 @@ async function verify(name, scenario) {
       smoke(
         server.url,
         scenario.visits,
-        scenario.auth
-          ? async (page) => {
-              await verifyAuthStyles(page, server.url, artifacts);
-              await verifyDeveloperTheme(page, server.url, artifacts);
-            }
-          : undefined,
+        scenario.search
+          ? async (page) => verifySearch(page, server.url, artifacts)
+          : scenario.auth
+            ? async (page) => {
+                await verifyAuthStyles(page, server.url, artifacts);
+                await verifyDeveloperTheme(page, server.url, artifacts);
+              }
+            : undefined,
       ),
     );
   } finally {

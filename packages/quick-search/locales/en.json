@@ -1,7 +1,7 @@
 {
   "quickSearch": {
     "title": "Quick search",
-    "placeholder": "Search pages…",
+    "placeholder": "Search…",
     "empty": "No results found.",
     "close": "Close",
     "hints": {
@@ -13,11 +13,45 @@
       "plugin": "Plugin",
       "page": "Page",
       "settings": "Settings"
-    }
+    },
+    "sourceSettings": "Search sources",
+    "history": "History",
+    "clearHistory": "Clear history",
+    "recentResults": "Recently opened",
+    "recentQueries": "Recent searches",
+    "allCategories": "All categories",
+    "filter": "Filter by category",
+    "loading": "Searching…",
+    "sourceError": "Could not load results.",
+    "retry": "Retry",
+    "saveError": "Could not save your preference. Try again.",
+    "historyError": "Could not update search history. Try again.",
+    "sources": {
+      "pages": {
+        "title": "Pages",
+        "description": "Pages and navigation links in this app."
+      },
+      "settings": {
+        "title": "Settings",
+        "description": "Settings pages contributed by plugins."
+      },
+      "plugins": {
+        "title": "Plugins",
+        "description": "Installed plugins and their details."
+      }
+    },
+    "preferencesError": "Could not load search preferences."
   },
   "quick-search": {
     "open": {
       "title": "Quick search"
+    },
+    "settings": {
+      "title": "Quick search",
+      "historyEnabled": {
+        "label": "Remember search history",
+        "description": "Keep recent searches and opened results for your account."
+      }
     }
   }
 }

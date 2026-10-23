@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "paths": { "@bitakit/quick-search/sources": ["./src/sources.ts"] }
+  },
+  "include": ["src", "tests/types.ts", "examples"]
+}

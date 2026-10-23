@@ -1,7 +1,7 @@
 {
   "quickSearch": {
     "title": "Schnellsuche",
-    "placeholder": "Seiten suchen …",
+    "placeholder": "Suchen …",
     "empty": "Keine Ergebnisse gefunden.",
     "close": "Schließen",
     "hints": {
@@ -13,11 +13,45 @@
       "plugin": "Plugin",
       "page": "Seite",
       "settings": "Einstellungen"
-    }
+    },
+    "sourceSettings": "Suchquellen",
+    "history": "Verlauf",
+    "clearHistory": "Verlauf löschen",
+    "recentResults": "Zuletzt geöffnet",
+    "recentQueries": "Letzte Suchanfragen",
+    "allCategories": "Alle Kategorien",
+    "filter": "Nach Kategorie filtern",
+    "loading": "Suche läuft …",
+    "sourceError": "Ergebnisse konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "saveError": "Die Einstellung konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    "historyError": "Der Suchverlauf konnte nicht aktualisiert werden. Bitte erneut versuchen.",
+    "sources": {
+      "pages": {
+        "title": "Seiten",
+        "description": "Seiten und Navigationslinks dieser App."
+      },
+      "settings": {
+        "title": "Einstellungen",
+        "description": "Einstellungsseiten der Plugins."
+      },
+      "plugins": {
+        "title": "Plugins",
+        "description": "Installierte Plugins und ihre Details."
+      }
+    },
+    "preferencesError": "Die Sucheinstellungen konnten nicht geladen werden."
   },
   "quick-search": {
     "open": {
       "title": "Schnellsuche"
+    },
+    "settings": {
+      "title": "Schnellsuche",
+      "historyEnabled": {
+        "label": "Suchverlauf speichern",
+        "description": "Letzte Suchanfragen und geöffnete Treffer für dein Konto speichern."
+      }
     }
   }
 }
