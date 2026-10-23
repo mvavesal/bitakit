@@ -1,5 +1,7 @@
 /* Public class entry points and existing states are documented in this package's README.
  * Keep names stable; portaled category content has its own class rather than trigger ancestry. */
+/* Include layout utilities when installed outside the workspace. */
+@source './dist';
 /* Command palette parts (shadcn Command and Kbd) drawn with the application's theme tokens. */
 @layer components {
   .quick-search {

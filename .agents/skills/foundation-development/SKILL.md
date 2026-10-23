@@ -779,6 +779,8 @@ category metadata belong to the contributing plugin. Optional source `icon` uses
 On/Off buttons always visible above results; Settings uses the same confirmed values and icon
 beside title/description with the central Switch. Category narrowing is separately labeled temporary.
 The existing Todo preview contributes real tasks through its authorized service read API.
+Quick Search declares its own `@source './dist'` for layout utilities in packed consumers;
+workspace CSS discovery must not conceal a missing package source declaration.
 `search` and `resolve` receive an AbortSignal;
 resolve stored IDs against current access/data and never treat history as authorization.
 Built-in pages/settings/plugin destinations use the same mechanism and reference live Actions;

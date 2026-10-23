@@ -128,6 +128,10 @@ export async function verifySearch(page, url, artifacts) {
       assert.ok(dimensions.left >= 0 && dimensions.right <= dimensions.width + 1);
       assert.ok(dimensions.top >= 0 && dimensions.bottom <= dimensions.height + 1);
       assert.ok(dimensions.font);
+      const controlsPadding = await page
+        .locator('.quick-search-controls')
+        .evaluate((element) => parseFloat(getComputedStyle(element).paddingInlineStart));
+      assert.ok(controlsPadding > 0, 'Installed package layout utilities must be compiled.');
       await page.screenshot({
         animations: 'disabled',
         path: path.join(artifacts, `quick-search-${width}-${dark ? 'dark' : 'light'}.png`),
