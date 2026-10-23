@@ -8,7 +8,7 @@ function Task({ item }: { item: Item }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.title);
   return (
-    <li className="flex flex-wrap items-center gap-2">
+    <li id={`task-${item.id}`} className="flex flex-wrap items-center gap-2">
       {editing ? (
         <>
           <Input

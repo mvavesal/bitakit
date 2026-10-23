@@ -69,6 +69,13 @@ filter; use consistent titles for that shared ID.
 | `search(context)`         | Return an array of results, synchronously or asynchronously, in display order    |
 | `resolve(id, context)`    | Read current data/access for a stored result ID; return a fresh result or `null` |
 
+An optional `icon` supplies a component using Core's existing opaque `PresentationType<'icon'>`
+contract, the same as Actions. React hosts type this through `@bitakit/ui`; Core stays headless.
+Import a verified Reicon component directly, for example `ClipboardCheckIcon` from
+`reicon-react/icons/ClipboardCheck`, and set `icon: ClipboardCheckIcon`. Without an icon,
+Quick Search renders Reicon Search. There is no icon-name registry. Icons are decorative;
+the source title remains the accessible label.
+
 Both functions receive `query`, `signal`, `score`, `text`, `actions`, `runtime` and `groupTitle`.
 Most remote sources need only `query` and `signal`; use `fetch(url, { signal })` or the existing
 client's cancellation support. Local sources may use `score(title, keywords)` (cmdk's matcher)
@@ -118,6 +125,9 @@ check authorization again. A stored ID, active organization or visible result ne
 
 ## Source preferences and compatibility
 
+The dialog keeps every source visible as an icon/title/On-Off button above the results.
+These standard buttons expose `aria-pressed`; Settings uses icon/title/description rows with
+a Switch on the right. The separate **Category** filter is labeled as applying to this search only.
 The dialog's **Search sources** controls and Settings use the same user-scoped
 `quick-search.sources` setting. Its value is a record of explicit source ID → boolean overrides.
 Absence means use that source's own `defaultEnabled`; adding a source never resets prior choices.

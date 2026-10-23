@@ -12,7 +12,9 @@ plugin owner; that ID keys user preferences and history. Check `scope.slots.has(
 an optional integration. Do not add a host registry or provider.
 
 A source supplies `title`, `description`, `category: { id, title }`, `defaultEnabled`,
-`search(context)` and `resolve(id, context)`. Text is literal/a translation key or `{ key, fallback }`;
+`search(context)` and `resolve(id, context)`. Optional `icon` takes a component through the
+existing opaque presentation contract, just like Action icons. Import verified Reicon components
+directly; without one the UI uses Search. No string lookup registry. Text is literal/a translation key or `{ key, fallback }`;
 its catalogs belong to this plugin. Search receives `query` and `signal`; pass the signal to the
 existing authorized API client. It returns filtered/ranked safe links (`{ id, title, href }`) or
 existing navigation references (`{ id, actionId }`). Local data can use `score(title, keywords)`.

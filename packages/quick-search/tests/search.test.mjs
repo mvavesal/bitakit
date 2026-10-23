@@ -402,6 +402,7 @@ test('source defaults, shared Settings switches, failed saves and immediate dial
           id: 'lessons',
           data: {
             title: 'Learning catalog',
+            icon: (props) => h('svg', { ...props, 'data-source-icon': 'custom' }),
             description: 'Plugin supplied description',
             category: { id: 'learning', title: 'Learning' },
             defaultEnabled: false,
@@ -446,24 +447,25 @@ test('source defaults, shared Settings switches, failed saves and immediate dial
     assert.equal(settingSwitch().getAttribute('aria-checked'), 'true');
     await act(async () => search.container.querySelector('button[aria-haspopup=dialog]').click());
     assert.ok(document.querySelector('[role=dialog] a[href="/intro"]'));
-    const expand = [...document.querySelectorAll('[role=dialog] button')].find(
-      (item) => item.textContent === 'Search sources',
-    );
-    await act(async () => expand.click());
-    const dialogSwitch = () =>
-      [...document.querySelectorAll('[role=dialog] [role=switch]')].find((item) =>
-        item.parentElement.textContent.includes('Learning catalog'),
-      );
-    assert.equal(dialogSwitch().getAttribute('aria-checked'), 'true');
+    const dialogToggle = () =>
+      document.querySelector('[role=dialog] button[aria-label="Learning catalog"]');
+    assert.equal(dialogToggle().getAttribute('aria-pressed'), 'true');
     assert.equal(
-      dialogSwitch().closest('[role=listbox]'),
+      dialogToggle().closest('[role=listbox]'),
       null,
-      'switches do not masquerade as listbox options',
+      'source controls stay outside results',
     );
+    assert.ok(dialogToggle().querySelector('svg[data-source-icon=custom][aria-hidden=true]'));
+    assert.ok(settingSwitch().parentElement.querySelector('svg[data-source-icon=custom]'));
+    assert.ok(
+      document.querySelector('[role=dialog] button[aria-label=Pages] svg'),
+      'built-in source icon',
+    );
+    assert.match(dialogToggle().textContent, /On/);
     fail = true;
-    await act(async () => dialogSwitch().click());
+    await act(async () => dialogToggle().click());
     assert.equal(
-      dialogSwitch().getAttribute('aria-checked'),
+      dialogToggle().getAttribute('aria-pressed'),
       'true',
       'failed save retains confirmed choice',
     );
@@ -472,10 +474,9 @@ test('source defaults, shared Settings switches, failed saves and immediate dial
       /Could not save your preference/,
     );
     fail = false;
-    await act(async () => dialogSwitch().click());
-    assert.equal(dialogSwitch().getAttribute('aria-checked'), 'false');
+    await act(async () => dialogToggle().click());
+    assert.equal(dialogToggle().getAttribute('aria-pressed'), 'false');
     assert.equal(settingSwitch().getAttribute('aria-checked'), 'false');
-    await act(async () => expand.click());
     assert.equal(document.querySelector('[role=dialog] a[href="/intro"]'), null);
   } finally {
     await search.close();

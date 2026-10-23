@@ -9,3 +9,6 @@ navigation guards and existing result defaults. Ship a typed extension example a
 authoring guidance.
 
 Document minimal, component-owned CSS extension points in the existing agent guidance.
+
+Keep source On/Off controls visible above results, separate temporary category narrowing, and
+support optional source icons with a default Search icon in shared controls and Settings.

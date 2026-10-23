@@ -65,11 +65,12 @@ export async function verifySearch(page, url, artifacts) {
   await open();
   await expect(page.getByText('Recent searches', { exact: true })).toBeVisible();
   await expect(page.getByText('Recently opened', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Search sources', exact: true }).click();
-  const sourceSwitch = page.getByRole('switch', { name: 'Learning catalog', exact: true });
-  await expect(sourceSwitch).toBeChecked();
+  const sourceSwitch = page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Learning catalog', exact: true });
+  await expect(sourceSwitch).toHaveAttribute('aria-pressed', 'true');
   await sourceSwitch.click();
-  await expect(sourceSwitch).not.toBeChecked();
+  await expect(sourceSwitch).toHaveAttribute('aria-pressed', 'false');
   await page.keyboard.press('Escape');
   await page.goto(url + '/settings/quick-search');
   await expect(page.getByRole('heading', { name: 'Quick search', exact: true })).toBeVisible();
@@ -97,10 +98,10 @@ export async function verifySearch(page, url, artifacts) {
   await page.keyboard.press('Escape');
   await open();
   await expect(page.getByRole('button', { name: 'Filter by category' })).toHaveText(
-    'All categories',
+    'Category: All categories',
   );
   for (const width of [375, 768, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
+    await page.setViewportSize({ width, height: width === 375 ? 720 : 900 });
     for (const dark of [false, true]) {
       await page.evaluate((dark) => document.documentElement.classList.toggle('dark', dark), dark);
       await expect(input).toBeVisible();
@@ -133,8 +134,9 @@ export async function verifySearch(page, url, artifacts) {
       });
     }
   }
-  await page.getByRole('button', { name: 'Search sources', exact: true }).click();
-  await expect(page.getByRole('switch', { name: 'Learning catalog', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('dialog').getByRole('button', { name: 'Learning catalog', exact: true }),
+  ).toBeVisible();
   await page.screenshot({
     animations: 'disabled',
     path: path.join(artifacts, 'quick-search-source-preferences.png'),

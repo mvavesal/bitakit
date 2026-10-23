@@ -1,0 +1,9 @@
+{
+  "todos": {
+    "search": {
+      "title": "Aufgaben",
+      "description": "Aufgaben deiner ausgewählten Organisation.",
+      "category": "Aufgaben"
+    }
+  }
+}

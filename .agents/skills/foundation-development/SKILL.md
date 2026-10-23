@@ -774,7 +774,12 @@ implementations for these controls; keep the owning package files as named expor
 
 Quick Search owns the typed `quick-search.sources` data slot. Contributors attach a `SearchSource`
 from their own setup with an explicit stable local ID and retain the cleanup handle. Text and
-category metadata belong to the contributing plugin. `search` and `resolve` receive an AbortSignal;
+category metadata belong to the contributing plugin. Optional source `icon` uses Core's opaque
+`PresentationType<'icon'>`, rendered only by the UI with a Reicon Search fallback. Keep source
+On/Off buttons always visible above results; Settings uses the same confirmed values and icon
+beside title/description with the central Switch. Category narrowing is separately labeled temporary.
+The existing Todo preview contributes real tasks through its authorized service read API.
+`search` and `resolve` receive an AbortSignal;
 resolve stored IDs against current access/data and never treat history as authorization.
 Built-in pages/settings/plugin destinations use the same mechanism and reference live Actions;
 App Preferences owns its URL projections. No command execution, second registry or copied Action state.

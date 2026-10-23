@@ -16,10 +16,11 @@ The complete guide is in the repository's `apps/docs/content/docs/reference/quic
 
 From your plugin's `setup.ts`, attach a `SearchSource` (type import from
 `@bitakit/quick-search/sources`) to `quick-search.sources`, using an explicit stable local `id`.
-The source supplies `title`, `description`, `category: { id, title }`, `defaultEnabled`,
+The source supplies `title`, `description`, an optional component `icon`, `category: { id, title }`, `defaultEnabled`,
 `search({ query, signal })` and `resolve(id, context)`. Preserve the returned attachment's
 cleanup handle. Core qualifies the ID with the owner, for example `catalog:lessons`.
-The complete, typed local example is included in `examples/catalog`.
+The complete, typed local example is included in `examples/catalog`. Icons use Core’s existing
+opaque presentation type; React hosts supply a component, with Reicon Search as the default.
 
 Results are safe links (`{ id, title, href, description? }`) or live Action references
 (`{ id, actionId }`). Sources filter/rank their own arrays; local sources can use the supplied
@@ -33,9 +34,11 @@ never grants access. Commands and dialogs remain excluded.
 
 ## Preferences and history
 
-**Search sources** in the dialog and `/settings/quick-search` in App Preferences share the
+Always-visible **Search sources** buttons above the results show each source’s icon, title and
+On/Off state (`aria-pressed`). Settings rows show the same icon/title/description with a Switch
+on the right. The buttons and `/settings/quick-search` in App Preferences share the
 runtime's user setting `quick-search.sources`. Saved overrides win; new sources use their own
-defaults. Category filters are temporary for the current dialog.
+defaults. The separately labeled Category filter is temporary for the current dialog.
 
 Opening a result records its ID and query. Empty search shows recent queries and destinations
 freshly resolved through their source. `quick-search.historyEnabled` disables recording/display;
@@ -65,11 +68,11 @@ entry points belong to Quick Search:
 | ------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `.quick-search-trigger`                           | AppBar button; native hover/focus and `aria-haspopup="dialog"`                      |
 | `.quick-search`                                   | Command content inside the host's portaled dialog                                   |
-| `.quick-search-controls`                          | Category and persistent-source controls; disclosure uses `aria-expanded`            |
+| `.quick-search-controls`                          | Category and persistent-source controls; source buttons use `aria-pressed`          |
 | `.quick-search-category-menu`                     | Portaled category popup; Radix `data-state`, items use `aria-checked`               |
-| `.quick-search-list`                              | Results or source-selection scroll area; the result list uses `aria-busy`           |
+| `.quick-search-list`                              | Result scroll area; uses `aria-busy`                                                |
 | `.quick-search-item`, `.quick-search-link`        | Result row/native link; cmdk `data-selected` and `data-disabled`                    |
-| `.quick-search-sources`, `.quick-search-settings` | Shared source switches and Settings content; switches use `aria-checked`/`disabled` |
+| `.quick-search-sources`, `.quick-search-settings` | Source controls and Settings content; `aria-pressed`, `aria-checked` and `disabled` |
 
 For example, a developer may deliberately remove just the trigger's depth while retaining
 its button semantics, size and focus treatment:

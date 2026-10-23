@@ -16,7 +16,6 @@ import SearchIcon from 'reicon-react/icons/Search';
 import XIcon from 'reicon-react/icons/Xmark';
 import { emptySearch, sourceEnabled, availableResult, type SearchRequest } from '../service.js';
 import { useSources, useSearchText } from './use-sources.js';
-import { SourcePreferences } from './source-preferences.js';
 import { SearchControls } from './search-controls.js';
 import { ResultItem, type ResultRow } from './search-result.js';
 
@@ -41,7 +40,6 @@ export function SearchResults({
   const historyEnabled = useSetting('quick-search.historyEnabled');
   const service = useService('quick-search.search');
   const state = useServiceState('quick-search.search', undefined, emptySearch);
-  const [showSources, setShowSources] = useState(false);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [historyFailed, setHistoryFailed] = useState(false);
@@ -148,12 +146,7 @@ export function SearchResults({
     void service?.remember(request, row.sourceId, row.result).catch(() => setHistoryFailed(true));
   };
   const openInNewTab = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (
-      showSources ||
-      event.key !== 'Enter' ||
-      !(event.metaKey || event.ctrlKey) ||
-      event.nativeEvent.isComposing
-    )
+    if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey) || event.nativeEvent.isComposing)
       return;
     const link = event.currentTarget.querySelector<HTMLAnchorElement>(
       '[cmdk-item][data-selected="true"] a[href]',
@@ -234,105 +227,77 @@ export function SearchResults({
           <XIcon aria-hidden="true" />
         </Button>
       </div>
-      <SearchControls
-        sources={enabledSources}
-        category={category}
-        setCategory={setCategory}
-        expanded={showSources}
-        setExpanded={setShowSources}
-      />
-      {showSources && (
-        <div
-          className="quick-search-list p-2"
-          onKeyDown={(event) => {
-            if (event.key !== 'Escape') event.stopPropagation();
-          }}
-        >
-          <SourcePreferences />
-        </div>
-      )}
-      <Command.List
-        hidden={showSources}
-        className="quick-search-list"
-        aria-busy={!showSources && loading}
-      >
-        {!showSources && (
-          <>
-            {!preferences.ready && (
-              <p role="status" className="quick-search-status quick-search-link">
-                {preferences.error
-                  ? t(
-                      'quickSearch.preferencesError',
-                      undefined,
-                      'Could not load search preferences.',
-                    )
-                  : t('quickSearch.loading', undefined, 'Searching…')}
-              </p>
-            )}
-            {!loading && !rows.length && !recentQueries.length && (
-              <Command.Empty className="quick-search-empty">{empty}</Command.Empty>
-            )}
-            {!!recentQueries.length && (
-              <Command.Group
-                heading={t('quickSearch.recentQueries', undefined, 'Recent searches')}
-                className="quick-search-group"
+      <SearchControls sources={enabledSources} category={category} setCategory={setCategory} />
+      <Command.List className="quick-search-list" aria-busy={loading}>
+        {!preferences.ready && (
+          <p role="status" className="quick-search-status quick-search-link">
+            {preferences.error
+              ? t('quickSearch.preferencesError', undefined, 'Could not load search preferences.')
+              : t('quickSearch.loading', undefined, 'Searching…')}
+          </p>
+        )}
+        {!loading && !rows.length && !recentQueries.length && (
+          <Command.Empty className="quick-search-empty">{empty}</Command.Empty>
+        )}
+        {!!recentQueries.length && (
+          <Command.Group
+            heading={t('quickSearch.recentQueries', undefined, 'Recent searches')}
+            className="quick-search-group"
+          >
+            {recentQueries.map(({ query }) => (
+              <Command.Item
+                key={query}
+                value={`query:${query}`}
+                onSelect={() => setQuery(query)}
+                className="quick-search-item"
               >
-                {recentQueries.map(({ query }) => (
-                  <Command.Item
-                    key={query}
-                    value={`query:${query}`}
-                    onSelect={() => setQuery(query)}
-                    className="quick-search-item"
-                  >
-                    <span className="quick-search-link">{query}</span>
-                  </Command.Item>
-                ))}
-              </Command.Group>
-            )}
-            {[...groups].map(([key, group]) => (
-              <Command.Group key={key} heading={group.title} className="quick-search-group">
-                {group.rows.map((row) => (
-                  <ResultItem
-                    key={JSON.stringify([row.sourceId, row.result.id])}
-                    row={row}
-                    close={close}
-                    remember={remember}
-                    current={current}
-                  />
-                ))}
-              </Command.Group>
+                <span className="quick-search-link">{query}</span>
+              </Command.Item>
             ))}
-            {found.map(
-              (entry) =>
-                (entry.status !== 'ready' || entry.recentStatus !== 'ready') && (
-                  <div key={entry.source.id} role="status" className="quick-search-link">
-                    {text(entry.source.source.title)}:{' '}
-                    {entry.status === 'error' || entry.recentStatus === 'error'
-                      ? t('quickSearch.sourceError', undefined, 'Could not load results.')
-                      : t('quickSearch.loading', undefined, 'Searching…')}
-                    {(entry.status === 'error' || entry.recentStatus === 'error') && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => service?.search(request)}
-                        onKeyDown={(event) => event.stopPropagation()}
-                      >
-                        {t('quickSearch.retry', undefined, 'Retry')}
-                      </Button>
-                    )}
-                  </div>
-                ),
-            )}
-            {(historyFailed || history.error) && (
-              <p role="status" className="quick-search-link">
-                {t(
-                  'quickSearch.historyError',
-                  undefined,
-                  'Could not update search history. Try again.',
+          </Command.Group>
+        )}
+        {[...groups].map(([key, group]) => (
+          <Command.Group key={key} heading={group.title} className="quick-search-group">
+            {group.rows.map((row) => (
+              <ResultItem
+                key={JSON.stringify([row.sourceId, row.result.id])}
+                row={row}
+                close={close}
+                remember={remember}
+                current={current}
+              />
+            ))}
+          </Command.Group>
+        ))}
+        {found.map(
+          (entry) =>
+            (entry.status !== 'ready' || entry.recentStatus !== 'ready') && (
+              <div key={entry.source.id} role="status" className="quick-search-link">
+                {text(entry.source.source.title)}:{' '}
+                {entry.status === 'error' || entry.recentStatus === 'error'
+                  ? t('quickSearch.sourceError', undefined, 'Could not load results.')
+                  : t('quickSearch.loading', undefined, 'Searching…')}
+                {(entry.status === 'error' || entry.recentStatus === 'error') && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => service?.search(request)}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    {t('quickSearch.retry', undefined, 'Retry')}
+                  </Button>
                 )}
-              </p>
+              </div>
+            ),
+        )}
+        {(historyFailed || history.error) && (
+          <p role="status" className="quick-search-link">
+            {t(
+              'quickSearch.historyError',
+              undefined,
+              'Could not update search history. Try again.',
             )}
-          </>
+          </p>
         )}
       </Command.List>
       <div className="quick-search-footer">

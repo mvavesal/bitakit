@@ -6,6 +6,14 @@
     display: flex;
     min-width: 0;
     flex-direction: column;
+    /* The standard command frame starts one third down the viewport. */
+    max-height: calc(100dvh * 2 / 3 - 1rem);
+    overflow-y: auto;
+  }
+  .quick-search-input,
+  .quick-search-controls,
+  .quick-search-footer {
+    flex-shrink: 0;
   }
   /* Search row: a quiet field spanning the dialog, separated from the results. */
   .quick-search-input {
@@ -35,6 +43,7 @@
     color: var(--muted-foreground);
   }
   .quick-search-list {
+    min-height: 0;
     max-height: min(20rem, 45vh);
     padding: 0.25rem;
     overflow-x: hidden;

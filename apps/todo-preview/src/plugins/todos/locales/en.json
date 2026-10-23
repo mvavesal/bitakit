@@ -1,0 +1,9 @@
+{
+  "todos": {
+    "search": {
+      "title": "Todos",
+      "description": "Tasks in your selected organization.",
+      "category": "Tasks"
+    }
+  }
+}

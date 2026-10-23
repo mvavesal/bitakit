@@ -5,24 +5,30 @@ import {
   type DestinationKind,
 } from '@bitakit/core';
 import type { QuickSearchResults, SearchContext, SearchResult, SearchSource } from './types.js';
+import FileIcon from 'reicon-react/icons/File';
+import SettingsIcon from 'reicon-react/icons/Settings';
+import PuzzleIcon from 'reicon-react/icons/Puzzle';
 
 const definitions = [
   {
     id: 'pages',
     kind: 'page',
     title: 'Pages',
+    icon: FileIcon,
     description: 'Pages and navigation links in this app.',
   },
   {
     id: 'settings',
     kind: 'settings',
     title: 'Settings',
+    icon: SettingsIcon,
     description: 'Settings pages contributed by plugins.',
   },
   {
     id: 'plugins',
     kind: 'plugin',
     title: 'Plugins',
+    icon: PuzzleIcon,
     description: 'Installed plugins and their details.',
   },
 ] as const;
@@ -85,9 +91,10 @@ function result(
 export function destinationSources(
   options: QuickSearchResults = {},
 ): { id: string; source: SearchSource }[] {
-  return definitions.map(({ id, kind, title, description }) => ({
+  return definitions.map(({ id, kind, title, description, icon }) => ({
     id,
     source: {
+      icon,
       title: { key: `quickSearch.sources.${id}.title`, fallback: title },
       description: { key: `quickSearch.sources.${id}.description`, fallback: description },
       category: { id, title: { key: `quickSearch.sources.${id}.title`, fallback: title } },

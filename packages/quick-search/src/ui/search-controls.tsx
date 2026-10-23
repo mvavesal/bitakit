@@ -2,6 +2,7 @@
 import { useTranslation } from '@bitakit/ui';
 import {
   Button,
+  FieldDescription,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -9,6 +10,8 @@ import {
   DropdownMenuRadioItem,
 } from '@bitakit/ui/components';
 import { useSearchText } from './use-sources.js';
+import { SourcePreferences } from './source-preferences.js';
+import ChevronDownIcon from 'reicon-react/icons/ChevronDown';
 import type { RegisteredSource } from '../types.js';
 
 /** Category selection lasts for this dialog only; source switches are persisted preferences. */
@@ -16,11 +19,7 @@ export function SearchControls({
   sources,
   category,
   setCategory,
-  expanded,
-  setExpanded,
 }: {
-  expanded: boolean;
-  setExpanded(value: boolean): void;
   sources: readonly RegisteredSource[];
   category: string | null;
   setCategory(value: string | null): void;
@@ -32,8 +31,14 @@ export function SearchControls({
   ];
   const selected = categories.find((item) => item.id === category);
   return (
-    <div className="quick-search-controls" onKeyDown={(event) => event.stopPropagation()}>
-      <div className="flex flex-wrap items-center justify-between gap-2 p-2">
+    <div
+      className="quick-search-controls flex flex-col gap-3 p-3"
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') event.stopPropagation();
+      }}
+    >
+      <SourcePreferences presentation="buttons" />
+      <div className="flex flex-wrap items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -41,9 +46,11 @@ export function SearchControls({
               variant="ghost"
               aria-label={t('quickSearch.filter', undefined, 'Filter by category')}
             >
+              {t('quickSearch.category', undefined, 'Category')}:{' '}
               {selected
                 ? text(selected.title)
                 : t('quickSearch.allCategories', undefined, 'All categories')}
+              <ChevronDownIcon aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="quick-search-category-menu">
@@ -62,14 +69,9 @@ export function SearchControls({
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button
-          size="sm"
-          variant="ghost"
-          aria-expanded={expanded}
-          onClick={() => setExpanded(!expanded)}
-        >
-          {t('quickSearch.sourceSettings', undefined, 'Search sources')}
-        </Button>
+        <FieldDescription>
+          {t('quickSearch.categoryHint', undefined, 'This search only')}
+        </FieldDescription>
       </div>
     </div>
   );

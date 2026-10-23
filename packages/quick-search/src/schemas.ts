@@ -8,6 +8,7 @@ export const searchTextSchema = z.union([
 export const searchSourceSchema = z.object({
   title: searchTextSchema,
   description: searchTextSchema,
+  icon: z.custom<SearchSource['icon']>().optional(),
   category: z.object({ id: z.string(), title: searchTextSchema }),
   defaultEnabled: z.boolean(),
   search: z.custom<SearchSource['search']>((value) => typeof value === 'function'),

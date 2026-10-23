@@ -30,6 +30,11 @@ configured. Do not use real passwords or customer data.
 - `/todos`: create, edit, complete and delete tasks. Clear all uses one action in both the
   page and sidebar, asks for confirmation, and rejects a changed account/organization.
 - `/settings`: generated appearance and native account/organization settings.
+- Mod+K: search actual tasks through the Todo source. Its icon/title and persistent On/Off
+  control are visible above results; Category narrows only this dialog. `/settings/quick-search`
+  shares the source choice. Results link to the task's native hash anchor; recent results are
+  re-read through the existing authenticated API and scoped to the active organization.
+- `src/plugins/todos/setup.ts`: the owned optional search contribution; no host search registry.
 - `src/plugins/todos`: service-owned state and operations, with ordinary `defineAction`
   bindings. No copied action registry or separate client session store.
 - `src/app/api/tasks/route.ts`: app-owned server data, scoped by the verified native
@@ -46,6 +51,7 @@ With the preview server running, from this directory:
 ```sh
 npm run typecheck
 npm run test:preview
+npm run test:search
 ```
 
 The browser scripts cover form focus/revalidation, login, task CRUD, organization and
@@ -53,6 +59,9 @@ account switching, settings, and Clear all in the page/sidebar. They create thei
 tasks and disposable test organizations. Clear checks include cancellation, reload,
 cross-organization preservation, context changes during confirmation, stale scope and
 anonymous requests. They never send email or mutate a shared database.
+
+The search check adds a temporary task and verifies its search result, source icon,
+shared source preferences, native hash link, history and organization isolation.
 
 The platform's clean installation and development/production CSS acceptance live in
 `scripts/verify-generated.mjs` at the repository root; this sample is not a substitute

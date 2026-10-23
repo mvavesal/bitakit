@@ -1,4 +1,4 @@
-import type { ActionList, BitaKitRuntime } from '@bitakit/core';
+import type { ActionList, BitaKitRuntime, PresentationType } from '@bitakit/core';
 
 /** Literal text, or a translation key and fallback owned by the contributing plugin. */
 export type SearchText = string | { key: string; fallback: string };
@@ -21,6 +21,8 @@ export type SearchContext = {
 export type SearchSource = {
   title: SearchText;
   description: SearchText;
+  /** Opaque presentation value, typed by the host UI just like Action icons. */
+  icon?: PresentationType<'icon'>;
   category: SearchCategory;
   defaultEnabled: boolean;
   search(context: SearchContext): readonly SearchResult[] | Promise<readonly SearchResult[]>;

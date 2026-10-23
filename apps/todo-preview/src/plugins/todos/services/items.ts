@@ -13,6 +13,17 @@ export default defineService(
       const snapshot = auth.getSnapshot();
       return `${snapshot.user?.id ?? ''}:${snapshot.organizationId ?? ''}`;
     };
+    /** Read current organization tasks through the existing authorized endpoint. */
+    async function read(signal?: AbortSignal): Promise<Item[]> {
+      const snapshot = auth.getSnapshot();
+      if (!snapshot.user || !snapshot.organizationId) return [];
+      const started = current();
+      const response = await fetch('/api/tasks', { signal });
+      if (!response.ok) throw new Error(await response.text());
+      const data = (await response.json()) as { items: Item[] };
+      signal?.throwIfAborted();
+      return current() === started ? data.items : [];
+    }
     async function load() {
       const run = ++revision;
       const snapshot = auth.getSnapshot();
@@ -25,11 +36,8 @@ export default defineService(
       });
       if (!snapshot.user || !organizationId) return;
       try {
-        const response = await fetch('/api/tasks');
-        if (!response.ok) throw new Error(await response.text());
-        const data = (await response.json()) as { items: Item[] };
-        if (run === revision)
-          state.set((value) => ({ ...value, items: data.items, pending: false }));
+        const items = await read();
+        if (run === revision) state.set((value) => ({ ...value, items, pending: false }));
       } catch (error) {
         if (run === revision)
           state.set((value) => ({
@@ -68,6 +76,7 @@ export default defineService(
     }
     return {
       state,
+      read,
       add: (title: string) => change({ operation: 'add', title }),
       edit: (id: string, title: string) => change({ operation: 'edit', id, title }),
       complete: (id: string, completed: boolean) =>
