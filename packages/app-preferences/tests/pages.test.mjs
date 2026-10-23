@@ -65,7 +65,7 @@ test('SettingsRoute shows the first page at the base path and every page by cate
     assert.ok(container.querySelector('[data-setting="compact"]'));
     assert.deepEqual(
       [...container.querySelectorAll('nav[aria-label="Settings navigation"] h2')].map(text),
-      ['General', 'Account', 'Plugins', 'Content'],
+      ['General', 'Account', 'Integrations', 'Content'],
       'known categories in order, unknown ones after them',
     );
     assert.deepEqual(entries(container), [
