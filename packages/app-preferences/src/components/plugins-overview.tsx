@@ -56,7 +56,9 @@ const parsers = {
   plugin: parseAsString.withDefault('').withOptions({ history: 'push' }),
   pluginSearch: parseAsString.withDefault('').withOptions({ history: 'replace' }),
   pluginTag: parseAsNativeArrayOf(parseAsString).withOptions({ history: 'replace' }),
-  pluginStatus: parseAsStringLiteral(statuses).withDefault('all').withOptions({ history: 'replace' }),
+  pluginStatus: parseAsStringLiteral(statuses)
+    .withDefault('all')
+    .withOptions({ history: 'replace' }),
   q: parseAsString.withDefault(''),
 };
 const serialize = createSerializer(parsers);

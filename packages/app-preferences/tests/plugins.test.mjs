@@ -262,7 +262,10 @@ test('tag and status URL state combine with search and survive plugin details', 
       /productivity/,
     );
     await type(view.container.querySelector('input[aria-label="Search plugins"]'), 'zzz');
-    assert.equal(text(view.container.querySelector('[data-slot=empty-title]')), 'No plugins found.');
+    assert.equal(
+      text(view.container.querySelector('[data-slot=empty-title]')),
+      'No plugins found.',
+    );
     assert.equal(
       text(view.container.querySelector('[data-slot=empty-description]')),
       'Try another search or change the filters.',

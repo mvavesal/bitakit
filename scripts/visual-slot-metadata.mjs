@@ -6,7 +6,8 @@ import { describeDefinitions } from '../packages/discovery/src/definition-info.m
 // Hand-composed visual packages use the same derived sidecar as `bitakit build`.
 // Parse their headless declarations without importing a client entry in Node.
 const id = process.argv[2];
-if (!['shell', 'app-preferences', 'quick-search'].includes(id)) throw new Error('Expected a visual package ID');
+if (!['shell', 'app-preferences', 'quick-search'].includes(id))
+  throw new Error('Expected a visual package ID');
 const root = fileURLToPath(new URL(`../packages/${id}/`, import.meta.url));
 const info = await describeDefinitions([{ file: path.join(root, 'src/slots.ts'), path: '' }], {
   helper: 'defineSlot',

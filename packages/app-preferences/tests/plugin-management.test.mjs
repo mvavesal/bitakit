@@ -52,17 +52,24 @@ test('status filters compose with search and tags and update after confirmed plu
     '?pluginSearch=source&pluginTag=data&pluginStatus=enabled',
   );
   const names = () =>
-    [...view.container.querySelectorAll('.app-preferences-plugin [data-slot=item-title]')].map(text);
+    [...view.container.querySelectorAll('.app-preferences-plugin [data-slot=item-title]')].map(
+      text,
+    );
   const selectStatus = async (label) => {
     await press(button(view, 'Filter by status'), 'Enter');
-    await click([...document.querySelectorAll('[role=menuitemradio]')].find((e) => text(e) === label));
+    await click(
+      [...document.querySelectorAll('[role=menuitemradio]')].find((e) => text(e) === label),
+    );
   };
   try {
     assert.deepEqual(names(), ['Source']);
     await click(button(view, 'Disable Source'));
     await answer(view, 'Confirm');
     assert.deepEqual(names(), []);
-    assert.equal(text(view.container.querySelector('[data-slot=empty-title]')), 'No plugins found.');
+    assert.equal(
+      text(view.container.querySelector('[data-slot=empty-title]')),
+      'No plugins found.',
+    );
     assert.equal(
       text(view.container.querySelector('[data-slot=empty-description]')),
       'Try another search or change the filters.',

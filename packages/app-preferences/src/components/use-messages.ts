@@ -23,8 +23,5 @@ export function useMessages() {
 /** Category titles use the package's shared English fallback when untranslated. */
 export function useCategoryTitle() {
   const t = useTranslation();
-  return useCallback(
-    (id: string) => t(categoryTitleKey(id), undefined, categoryTitle(id)),
-    [t],
-  );
+  return useCallback((id: string) => t(categoryTitleKey(id), undefined, categoryTitle(id)), [t]);
 }
