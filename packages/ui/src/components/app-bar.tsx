@@ -18,7 +18,7 @@ export function AppBar({ left, center, right, bottom, className }: AppBarProps) 
   return (
     <header
       className={cn(
-        'shrink-0 wrap-anywhere border-b-(length:--border-width) border-foreground/15 bg-sidebar',
+        'shrink-0 wrap-anywhere border-b-(length:--border-width) border-foreground/15 bg-card',
         className,
       )}
     >
