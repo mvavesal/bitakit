@@ -91,8 +91,8 @@ export function message(
 export function categoryTitleKey(id: string): string {
   return `settings.categories.${id}.title`;
 }
-/** A category title through a translator; the ID in title case without a translation. */
+/** A translated category label; unknown categories fall back to their ID in title case. */
 export function categoryTitle(id: string, translate?: Translator): string {
-  const fallback = fallbackTitle({ id });
+  const fallback = id === 'plugins' ? 'Integrations' : fallbackTitle({ id });
   return translate ? resolveText(translate, categoryTitleKey(id), fallback) : fallback;
 }

@@ -1,8 +1,8 @@
 'use client';
 import { useCallback } from 'react';
-import { fallbackTitle } from '@bitakit/core';
 import { useTranslation } from '@bitakit/ui';
 import {
+  categoryTitle,
   categoryTitleKey,
   defaultMessage,
   messageKey,
@@ -20,11 +20,11 @@ export function useMessages() {
   );
 }
 
-/** Category titles: `settings.categories.<id>.title`, otherwise the ID in title case. */
+/** Category titles use the package's shared English fallback when untranslated. */
 export function useCategoryTitle() {
   const t = useTranslation();
   return useCallback(
-    (id: string) => t(categoryTitleKey(id), undefined, fallbackTitle({ id })),
+    (id: string) => t(categoryTitleKey(id), undefined, categoryTitle(id)),
     [t],
   );
 }
