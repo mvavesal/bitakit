@@ -10,5 +10,8 @@ authoring guidance.
 
 Document minimal, component-owned CSS extension points in the existing agent guidance.
 
-Keep source On/Off controls visible above results, separate temporary category narrowing, and
-support optional source icons with a default Search icon in shared controls and Settings.
+Keep the dialog compact with one temporary category dropdown below its input. Persistent
+source switches stay in Settings with optional source icons and a default Search icon.
+Give the AppBar trigger the central input surface and a Search icon while retaining its
+native button behavior and standard height. Use muted placeholder text and the existing
+keyboard-hint keycap for its platform-aware shortcut.

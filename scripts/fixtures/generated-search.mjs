@@ -65,18 +65,22 @@ export async function verifySearch(page, url, artifacts) {
   await open();
   await expect(page.getByText('Recent searches', { exact: true })).toBeVisible();
   await expect(page.getByText('Recently opened', { exact: true })).toBeVisible();
-  const sourceSwitch = page
-    .getByRole('dialog')
-    .getByRole('button', { name: 'Learning catalog', exact: true });
-  await expect(sourceSwitch).toHaveAttribute('aria-pressed', 'true');
-  await sourceSwitch.click();
-  await expect(sourceSwitch).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('dialog').locator('.quick-search-controls button')).toHaveCount(1);
   await page.keyboard.press('Escape');
   await page.goto(url + '/settings/quick-search');
   await expect(page.getByRole('heading', { name: 'Quick search', exact: true })).toBeVisible();
-  await expect(
-    page.getByRole('switch', { name: 'Learning catalog', exact: true }),
-  ).not.toBeChecked();
+  const sourceSwitch = page.getByRole('switch', { name: 'Learning catalog', exact: true });
+  await expect(sourceSwitch).toBeChecked();
+  await sourceSwitch.click();
+  await expect(sourceSwitch).not.toBeChecked();
+  await open();
+  await expect(page.getByRole('link', { name: /Composition basics/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Filter by category' }).click();
+  await expect(page.getByRole('menuitemradio', { name: 'Learning', exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.locator('.quick-search-category-menu').waitFor({ state: 'detached' });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
   await page.getByRole('switch', { name: 'Learning catalog', exact: true }).click();
   await expect(page.getByRole('switch', { name: 'Learning catalog', exact: true })).toBeChecked();
   await page.getByRole('button', { name: 'Clear history', exact: true }).click();
@@ -98,7 +102,7 @@ export async function verifySearch(page, url, artifacts) {
   await page.keyboard.press('Escape');
   await open();
   await expect(page.getByRole('button', { name: 'Filter by category' })).toHaveText(
-    'Category: All categories',
+    'All categories',
   );
   for (const width of [375, 768, 1440]) {
     await page.setViewportSize({ width, height: width === 375 ? 720 : 900 });
@@ -139,11 +143,11 @@ export async function verifySearch(page, url, artifacts) {
     }
   }
   await expect(
-    page.getByRole('dialog').getByRole('button', { name: 'Learning catalog', exact: true }),
+    page.getByRole('dialog').getByRole('button', { name: 'Filter by category' }),
   ).toBeVisible();
   await page.screenshot({
     animations: 'disabled',
-    path: path.join(artifacts, 'quick-search-source-preferences.png'),
+    path: path.join(artifacts, 'quick-search-category-filter.png'),
   });
   await page.keyboard.press('Escape');
 }

@@ -30,5 +30,5 @@ Quick Search owns preferences/history in Core's Settings store. `defaultEnabled`
 another settings store or modify persistent preferences for a temporary category filter.
 
 Use the package's shipped `examples/catalog` as a complete local example. Typecheck, run Doctor,
-open Mod+K, test source toggling in both Settings and the dialog, slow/error responses, history,
+open Mod+K, test persistent source switches in Settings, the temporary category dropdown, slow/error responses, history,
 plugin removal and identity changes. Do not add real domain models merely to demonstrate search.

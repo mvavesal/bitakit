@@ -40,12 +40,7 @@
         "description": "Installed plugins and their details."
       }
     },
-    "preferencesError": "Could not load search preferences.",
-    "sourcesHint": "Your source choices are saved.",
-    "on": "On",
-    "off": "Off",
-    "category": "Category",
-    "categoryHint": "This search only"
+    "preferencesError": "Could not load search preferences."
   },
   "quick-search": {
     "open": {

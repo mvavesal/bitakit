@@ -775,12 +775,16 @@ implementations for these controls; keep the owning package files as named expor
 Quick Search owns the typed `quick-search.sources` data slot. Contributors attach a `SearchSource`
 from their own setup with an explicit stable local ID and retain the cleanup handle. Text and
 category metadata belong to the contributing plugin. Optional source `icon` uses Core's opaque
-`PresentationType<'icon'>`, rendered only by the UI with a Reicon Search fallback. Keep source
-On/Off buttons always visible above results; Settings uses the same confirmed values and icon
-beside title/description with the central Switch. Category narrowing is separately labeled temporary.
+`PresentationType<'icon'>`, rendered only by the UI with a Reicon Search fallback. Persistent source
+choices belong in App Settings: icon beside title/description and the central Switch. The dialog
+shows only one compact category dropdown below its input, defaulting to All categories; it narrows
+enabled sources temporarily and resets on reopening. No source buttons or helper copy in the dialog.
 The existing Todo preview contributes real tasks through its authorized service read API.
 Quick Search declares its own `@source './dist'` for layout utilities in packed consumers;
 workspace CSS discovery must not conceal a missing package source declaration.
+Its AppBar trigger uses the central input surface on a native Button, with the verified Reicon
+Search icon, muted placeholder text and the existing keyboard-hint keycap for its platform-aware
+shortcut. Preserve button semantics and the standard control height.
 `search` and `resolve` receive an AbortSignal;
 resolve stored IDs against current access/data and never treat history as authorization.
 Built-in pages/settings/plugin destinations use the same mechanism and reference live Actions;

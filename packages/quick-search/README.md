@@ -34,11 +34,11 @@ never grants access. Commands and dialogs remain excluded.
 
 ## Preferences and history
 
-Always-visible **Search sources** buttons above the results show each source’s icon, title and
-On/Off state (`aria-pressed`). Settings rows show the same icon/title/description with a Switch
-on the right. The buttons and `/settings/quick-search` in App Preferences share the
-runtime's user setting `quick-search.sources`. Saved overrides win; new sources use their own
-defaults. The separately labeled Category filter is temporary for the current dialog.
+The dialog shows one compact **All categories** dropdown below the search input. Category
+selection narrows enabled sources for this dialog only and resets when the dialog reopens.
+Permanent source choices live at `/settings/quick-search`: each row shows its icon, title and
+description with a Switch on the right. They edit the runtime's user setting `quick-search.sources`.
+Saved overrides win; new sources use their own defaults.
 
 Opening a result records its ID and query. Empty search shows recent queries and destinations
 freshly resolved through their source. `quick-search.historyEnabled` disables recording/display;
@@ -64,30 +64,20 @@ The central theme supplies the default appearance. For deliberate application-sp
 adjustments, import ordinary CSS after the generated root styles. These existing/public
 entry points belong to Quick Search:
 
-| Class                                             | Purpose and existing states                                                         |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `.quick-search-trigger`                           | AppBar button; native hover/focus and `aria-haspopup="dialog"`                      |
-| `.quick-search`                                   | Command content inside the host's portaled dialog                                   |
-| `.quick-search-controls`                          | Category and persistent-source controls; source buttons use `aria-pressed`          |
-| `.quick-search-category-menu`                     | Portaled category popup; Radix `data-state`, items use `aria-checked`               |
-| `.quick-search-list`                              | Result scroll area; uses `aria-busy`                                                |
-| `.quick-search-item`, `.quick-search-link`        | Result row/native link; cmdk `data-selected` and `data-disabled`                    |
-| `.quick-search-sources`, `.quick-search-settings` | Source controls and Settings content; `aria-pressed`, `aria-checked` and `disabled` |
+| Class                                             | Purpose and existing states                                                                             |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `.quick-search-trigger`                           | AppBar button with the central input surface and Search icon; native focus and `aria-haspopup="dialog"` |
+| `.quick-search`                                   | Command content inside the host's portaled dialog                                                       |
+| `.quick-search-controls`                          | Compact category filter row; trigger uses `aria-expanded`                                               |
+| `.quick-search-category-menu`                     | Portaled category popup; Radix `data-state`, items use `aria-checked`                                   |
+| `.quick-search-list`                              | Result scroll area; uses `aria-busy`                                                                    |
+| `.quick-search-item`, `.quick-search-link`        | Result row/native link; cmdk `data-selected` and `data-disabled`                                        |
+| `.quick-search-sources`, `.quick-search-settings` | Settings source rows and content; switches use `aria-checked` and `disabled`                            |
 
-For example, a developer may deliberately remove just the trigger's depth while retaining
-its button semantics, size and focus treatment:
-
-```css
-.quick-search-trigger {
-  box-shadow: none;
-}
-.quick-search-trigger:hover {
-  background: var(--muted);
-}
-.quick-search-category-menu[data-state='open'] {
-  font-style: normal;
-}
-```
+The trigger composes the central Button's dimensions and keyboard behavior with the central
+input surface (`data-slot="input"`, medium round radius and input border). It keeps native
+button semantics, a muted placeholder-style label and the existing keyboard-hint keycap with
+its platform-aware shortcut; typing starts in the dialog after opening it.
 
 The category menu is portaled: target its class directly, not as a descendant of the trigger.
 Reuse native focus/hover and the listed attributes instead of adding parallel state classes.
@@ -99,7 +89,7 @@ These selectors describe important parts, not a guaranteed class for every inter
 - `destination-sources.ts`: existing navigation as ordinary sources.
 - `service.ts`: concurrent requests, cancellation and serialized history operations.
 - `settings.ts`: the single preference/history declaration.
-- `ui/`: dialog, native result links and shared source controls/settings content.
+- `ui/`: dialog, native result links and Settings source controls.
 
 Run `npm test --workspace @bitakit/quick-search`. The repository's
 `node scripts/verify-generated.mjs --only next-search --keep` checks the shipped example in a

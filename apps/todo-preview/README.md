@@ -30,10 +30,11 @@ configured. Do not use real passwords or customer data.
 - `/todos`: create, edit, complete and delete tasks. Clear all uses one action in both the
   page and sidebar, asks for confirmation, and rejects a changed account/organization.
 - `/settings`: generated appearance and native account/organization settings.
-- Mod+K: search actual tasks through the Todo source. Its icon/title and persistent On/Off
-  control are visible above results; Category narrows only this dialog. `/settings/quick-search`
-  shares the source choice. Results link to the task's native hash anchor; recent results are
-  re-read through the existing authenticated API and scoped to the active organization.
+- Mod+K: search actual tasks through the Todo source. The compact All categories dropdown
+  narrows only this dialog. `/settings/quick-search` owns the persistent source choice and shows
+  its icon/title/description beside a Switch. Results link to the task's native hash anchor;
+  recent results are re-read through the existing authenticated API and scoped to the active organization.
+  The AppBar trigger keeps its native button behavior with the central input appearance and Search icon.
 - `src/plugins/todos/setup.ts`: the owned optional search contribution; no host search registry.
 - `src/plugins/todos`: service-owned state and operations, with ordinary `defineAction`
   bindings. No copied action registry or separate client session store.
@@ -61,7 +62,9 @@ cross-organization preservation, context changes during confirmation, stale scop
 anonymous requests. They never send email or mutate a shared database.
 
 The search check adds a temporary task and verifies its search result, source icon,
-shared source preferences, native hash link, history and organization isolation.
+Settings source preferences, compact category filtering, native hash link, history and
+organization isolation. It checks the trigger's central field surface and dialog bounds in
+light/dark modes on desktop and mobile.
 
 The platform's clean installation and development/production CSS acceptance live in
 `scripts/verify-generated.mjs` at the repository root; this sample is not a substitute

@@ -103,6 +103,8 @@ test('automatic AppBar trigger, URL-only search, metadata, native links and live
     );
     const trigger = container.querySelector('button');
     assert.match(trigger.textContent, /Quick search/);
+    assert.equal(trigger.getAttribute('aria-haspopup'), 'dialog');
+    assert.ok(trigger.querySelector('svg[aria-hidden="true"]'));
     assert.equal(container.querySelector('input'), null);
     await act(async () => trigger.click());
     assert.ok(document.querySelector('[role=dialog]'));
@@ -385,7 +387,7 @@ test('only navigation links are results: Actions without a URL never appear, eve
   }
 });
 
-test('source defaults, shared Settings switches, failed saves and immediate dialog updates', async () => {
+test('Settings source choices update open search and retain confirmed values after failed saves', async () => {
   const { SearchSettingsPage } = await import('../dist/ui/settings/page.js');
   const { defineService, settingsStorage, createMemorySettingsStorage } = await import(
     '@bitakit/core'
@@ -447,35 +449,26 @@ test('source defaults, shared Settings switches, failed saves and immediate dial
     assert.equal(settingSwitch().getAttribute('aria-checked'), 'true');
     await act(async () => search.container.querySelector('button[aria-haspopup=dialog]').click());
     assert.ok(document.querySelector('[role=dialog] a[href="/intro"]'));
-    const dialogToggle = () =>
-      document.querySelector('[role=dialog] button[aria-label="Learning catalog"]');
-    assert.equal(dialogToggle().getAttribute('aria-pressed'), 'true');
+    const controls = document.querySelector('[role=dialog] .quick-search-controls');
     assert.equal(
-      dialogToggle().closest('[role=listbox]'),
-      null,
-      'source controls stay outside results',
+      controls.querySelectorAll('button').length,
+      1,
+      'only the category dropdown remains',
     );
-    assert.ok(dialogToggle().querySelector('svg[data-source-icon=custom][aria-hidden=true]'));
-    assert.ok(settingSwitch().parentElement.querySelector('svg[data-source-icon=custom]'));
+    assert.equal(document.querySelector('[role=dialog] [aria-pressed]'), null);
     assert.ok(
-      document.querySelector('[role=dialog] button[aria-label=Pages] svg'),
-      'built-in source icon',
+      settingSwitch().parentElement.querySelector('svg[data-source-icon=custom][aria-hidden=true]'),
     );
-    assert.match(dialogToggle().textContent, /On/);
     fail = true;
-    await act(async () => dialogToggle().click());
+    await act(async () => settingSwitch().click());
     assert.equal(
-      dialogToggle().getAttribute('aria-pressed'),
+      settingSwitch().getAttribute('aria-checked'),
       'true',
       'failed save retains confirmed choice',
     );
-    assert.match(
-      document.querySelector('[role=dialog]').textContent,
-      /Could not save your preference/,
-    );
+    assert.match(search.container.textContent, /Could not save your preference/);
     fail = false;
-    await act(async () => dialogToggle().click());
-    assert.equal(dialogToggle().getAttribute('aria-pressed'), 'false');
+    await act(async () => settingSwitch().click());
     assert.equal(settingSwitch().getAttribute('aria-checked'), 'false');
     assert.equal(document.querySelector('[role=dialog] a[href="/intro"]'), null);
   } finally {

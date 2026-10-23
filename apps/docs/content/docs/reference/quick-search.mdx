@@ -6,6 +6,8 @@ description: Add plugin-owned search sources, source preferences and recent hist
 Quick Search opens with Mod+K or the AppBar search button. It searches navigation destinations
 and contributions from installed plugins. A plugin can add courses, projects or categories
 from its own folder without changing the search package or the host provider.
+The AppBar trigger uses the central input appearance and a Search icon while remaining an
+accessible button with its keyboard shortcut. The editable search field lives in the dialog.
 
 Install `@bitakit/quick-search` in a host with BitaKit discovery. Discovery includes its plugin,
 translations, stylesheet and typed `quick-search.sources` data slot. App Preferences renders
@@ -125,10 +127,10 @@ check authorization again. A stored ID, active organization or visible result ne
 
 ## Source preferences and compatibility
 
-The dialog keeps every source visible as an icon/title/On-Off button above the results.
-These standard buttons expose `aria-pressed`; Settings uses icon/title/description rows with
-a Switch on the right. The separate **Category** filter is labeled as applying to this search only.
-The dialog's **Search sources** controls and Settings use the same user-scoped
+The dialog has one compact category dropdown below its input, defaulting to **All categories**.
+It lists categories from enabled sources, narrows only the current dialog and resets on reopening.
+Persistent source enablement is edited in App Preferences at `/settings/quick-search`, using
+icon/title/description rows with a Switch on the right. These controls edit the user-scoped
 `quick-search.sources` setting. Its value is a record of explicit source ID → boolean overrides.
 Absence means use that source's own `defaultEnabled`; adding a source never resets prior choices.
 A default of `true` does not force the source on. Failed saves retain the confirmed preference.

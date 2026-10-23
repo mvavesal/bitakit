@@ -40,12 +40,7 @@
         "description": "Installierte Plugins und ihre Details."
       }
     },
-    "preferencesError": "Die Sucheinstellungen konnten nicht geladen werden.",
-    "sourcesHint": "Deine Quellenauswahl wird gespeichert.",
-    "on": "An",
-    "off": "Aus",
-    "category": "Kategorie",
-    "categoryHint": "Nur für diese Suche"
+    "preferencesError": "Die Sucheinstellungen konnten nicht geladen werden."
   },
   "quick-search": {
     "open": {
