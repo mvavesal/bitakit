@@ -9,10 +9,11 @@ import {
   FieldLabel,
   FieldTitle,
   Input,
+  RadioGroup,
+  RadioGroupItem,
 } from '@bitakit/ui/components';
 import { sameValue } from '../same.js';
 import { iconOf } from './icon.js';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.js';
 import { Switch } from './ui/switch.js';
 import { Textarea } from './ui/textarea.js';

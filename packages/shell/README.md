@@ -4,7 +4,7 @@ The application frame for BitaKit apps: sidebar and navbar layouts that render n
 actions and plugin slots, page layouts, appearance settings projected onto the document, the
 pre-paint theme script, standalone page states and the shared notification surface.
 
-Shell declares its settings with `defineSettings` and supplies its Appearance page through
+Shell declares its settings with `defineSettings` and supplies its Themes and Layout pages through
 `ui.settings.component`; `@bitakit/app-preferences` supplies the surrounding settings shell. Navigation, slots and settings come from the
 `@bitakit/ui` hooks, and every visual part is built from the central components in
 `@bitakit/ui/components` with the host's theme tokens.
@@ -184,8 +184,10 @@ in `app-bar.end`. The plugin owns typed `defineSlot` contracts; manifest names a
 
 ## Appearance settings
 
-Shell declares one settings section, "Appearance" (category `appearance`). Labels come from
-`shell.settings.*` in the Shell locales.
+Shell declares its settings once and presents two pages in the `appearance` category:
+**Themes** at `/settings/shell` for color scheme, theme selection and personal copies, and
+**Layout** at `/settings/shell/layout` for navigation, density and notification position.
+The existing Appearance URL remains valid. Labels come from `shell.settings.*` in the Shell locales.
 
 | Key             | Scope  | Default       | Values                                                                | Applied as                       |
 | --------------- | ------ | ------------- | --------------------------------------------------------------------- | -------------------------------- |
@@ -295,6 +297,23 @@ starts with one JSON file; [Theme reference](../../apps/docs/content/docs/refere
 covers the manager, Actions, persistence and CSS integration.
 
 The ordinary `themes` service provides `list`, `active`, `select` and `saveCopy`.
+Shell includes eight optional themes alongside BitaKit Default, each with light and dark palettes:
+
+| Theme         | Character                                                                     |
+| ------------- | ----------------------------------------------------------------------------- |
+| Warm Sand     | Warm sand surfaces, terracotta actions and softly squared corners.            |
+| Soft Rose     | Muted rose surfaces, berry actions and rounded corners.                       |
+| Calm Sage     | Quiet green surfaces, rounded corners and flat controls.                      |
+| High Contrast | Strong blue accents, distinct borders, square corners and flat controls.      |
+| Slate Flat    | Cool slate colors, small corners and no raised surfaces or control gradients. |
+
+Ocean Blue, Golden Amber and Forest Green add blue, amber and green palettes while inheriting
+the rounded corners, gradients and control shadows of BitaKit Default.
+
+BitaKit Default remains the initial selection. Choose a bundled theme under Appearance → Themes,
+or customize it by saving a personal copy. The variants use the existing semantic CSS tokens;
+they add no providers, settings or component-specific styles.
+
 `shell.selectTheme` and `shell.saveThemeCopy` are framework actions. Selection and personal
 copies share the hidden user setting `shell.themeLibrary`, using Core settings persistence.
 Shell options accept an additive `themes` array. Each definition has `schemaVersion: 1`,
@@ -309,9 +328,16 @@ preserving the current CSS finish. Shell bundles JSON files from `themes/` durin
 regeneration/build; switching and saving personal copies happen at runtime. Duplicate IDs
 within a source are errors; equal names across sources remain separate.
 
-Appearance groups display/layout controls and theme selection, with an inline copy editor.
+The Themes page places color scheme in a full-width Display section. Below it, theme selection
+and an inline copy editor sit beside a live preview on wide screens and above it on narrow screens.
+It follows the selected theme or the unsaved draft, and its light/dark controls do not change
+the saved color scheme. The preview also includes an interactive Checkbox and RadioGroup,
+using the shared theme tokens. Theme menu items show small text, button and radio samples. Radius, shadow and button finish
+use the same standard selection cards as color scheme, with an isolated sample inside each.
+Font choices show text rendered in the corresponding system family.
+The Layout page reads the same settings catalog for navigation, density and notification controls.
 The editor composes existing standard cards, inputs and popovers with react-colorful and
-Culori color conversion. Colors, radius, surface shadow and font family can be edited;
+Culori color conversion. Colors, radius, surface shadow, font family and raised/flat button finish can be edited;
 unexposed tokens in a copied theme are retained. Empty values inherit central CSS. Personal
 copies use new IDs and cannot overwrite bundled/app definitions. The pre-paint script still
 only restores color scheme; user-scoped themes apply after settings identity resolution.
@@ -322,19 +348,21 @@ theme selector opens the editor. Personal themes update through `shell.updateThe
 bundled/app themes create personal copies. Draft previews scope tokens to sample standard
 controls and explicitly pass that scope into the portaled sample dialog, without saving.
 
-The theme editor uses a full-width name, adjacent radius/shadow choices and a font-family
-selector. Existing custom token values remain selectable; choosing a preset is explicit.
+The theme editor uses a full-width name, grouped visual choices and a font-family selector.
+Only the active light or dark palette is shown; switching it also switches the draft preview.
+Color fields use two columns where space permits and a single column on small screens. Existing custom token values remain selectable; choosing a preset is explicit.
 Color swatches and CSS values share the standard InputGroup, with a visible swatch border
 and copy feedback. Font choices use available system families and do not fetch remote fonts.
 
-Theme choice menus reuse the shared Button and DropdownMenu radio components. Saving keeps
+Theme choices reuse shared Field selection cards and RadioGroup primitives. Font menus reuse
+Button and DropdownMenu radio components. Saving keeps
 the editor open; subsequent saves update the personal copy. Disabled shadow tokens project
 as a transparent shadow so composed border and focus rings remain visible.
 
 Personal themes can be removed through `shell.deleteTheme` and the existing confirmation
 flow. The service rejects deletion of original themes and atomically selects BitaKit
 Default when removing the active personal theme. Theme options show source and light
-palette swatches; same-name entries from the same source also show a display ordinal.
+component samples; same-name entries from the same source also show a display ordinal.
 Color-picker pointer geometry is a functional circular exception in the central theme.
 
 The theme preview has its own Light/Dark controls. They change draft preview tokens and

@@ -1,8 +1,8 @@
 {
   "shell": {
     "settings": {
-      "title": "Darstellung",
-      "description": "Farbschema, Navigation, Dichte und Benachrichtigungen.",
+      "title": "Themes",
+      "description": "Farbschema und Themes für deine Oberfläche.",
       "mode": {
         "label": "Farbschema",
         "description": "Hell, dunkel oder passend zu deinem System. Gilt für dieses Gerät.",
@@ -89,6 +89,12 @@
             "label": "Unten am Ende"
           }
         }
+      },
+      "pages": {
+        "layout": {
+          "title": "Layout",
+          "description": "Navigation, Abstände und Position der Benachrichtigungen."
+        }
       }
     },
     "ui": {
@@ -97,7 +103,7 @@
       "navigationDescription": "Links zu den Bereichen dieser App.",
       "toggle": "Navigation umschalten",
       "themes": {
-        "display": "Anzeige und Layout",
+        "display": "Anzeige",
         "copy": "Kopie",
         "title": "Themes",
         "description": "Wähle ein Theme oder speichere eine persönliche Kopie. Originale bleiben unverändert.",
@@ -137,7 +143,7 @@
         "outlineButton": "Umrandet",
         "previewDialog": "Dialog-Vorschau",
         "sampleDialog": "Beispieldialog",
-        "dialogHint": "Dieser Dialog verwendet die ungespeicherten Farben, Radien und Schriften des Themes.",
+        "dialogHint": "Dieser Dialog verwendet die Farben, Ecken und Schrift der Vorschau.",
         "close": "Schließen",
         "copyColor": "Farbe kopieren",
         "copied": "Kopiert",
@@ -168,7 +174,17 @@
         "eyedropperFailed": "Bildschirmfarbe konnte nicht gewählt werden. Bitte erneut versuchen.",
         "copyNotice": "Du bearbeitest eine neue persönliche Kopie. Das ursprüngliche Theme bleibt unverändert.",
         "saveCopy": "Kopie speichern und anwenden",
-        "resetDefault": "Auf Standard-Theme zurücksetzen"
+        "resetDefault": "Auf Standard-Theme zurücksetzen",
+        "selectedPreviewHint": "Buttons, Felder und Flächen im ausgewählten Theme.",
+        "buttonFinish": "Button-Stil",
+        "raised": "Plastisch · BitaKit",
+        "flat": "Flach",
+        "colors": "Farben",
+        "editColorScheme": "Farbschema bearbeiten",
+        "sampleCheckbox": "Checkbox",
+        "sampleRadioGroup": "Radioauswahl",
+        "sampleRadioOne": "Option 1",
+        "sampleRadioTwo": "Option 2"
       }
     },
     "pages": {

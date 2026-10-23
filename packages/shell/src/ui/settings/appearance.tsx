@@ -1,6 +1,8 @@
 'use client';
 import { ThemeColorField } from './color-field.js';
 import { ThemeChoice } from './theme-choice.js';
+import { flatButtonTokens } from './button-finish.js';
+import { AppearanceField } from './appearance-field.js';
 import SunIcon from 'reicon-react/icons/Sun';
 import MoonIcon from 'reicon-react/icons/Moon';
 import SettingsIcon from 'reicon-react/icons/Settings';
@@ -37,45 +39,9 @@ import {
   CardContent,
 } from '../../components/ui/card.js';
 import { themeService, type ThemeService } from '../../services/themes.js';
-import { ThemePreview } from './theme-preview.js';
+import { ThemePreview, themePreviewStyle } from './theme-preview.js';
 import { themeDefaults } from '../../theme-defaults.js';
-import type { ShellThemeDefinition } from '../../themes.js';
-
-function AppearanceField({ field }: { field: SettingsCatalogField }) {
-  const setting = useSetting(field.key);
-  const [error, setError] = useState('');
-  const selected = (field.options ?? []).find((option) => option.value === setting.value);
-  return (
-    <Field>
-      <FieldLabel>{field.label}</FieldLabel>
-      {field.description && <FieldDescription>{field.description}</FieldDescription>}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="w-fit" variant="outline" disabled={setting.disabled}>
-            {selected?.label ?? String(setting.value)}
-            <ChevronDownIcon aria-hidden="true" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuGroup>
-            {(field.options ?? []).map((option) => (
-              <DropdownMenuItem
-                key={String(option.value)}
-                onSelect={() => {
-                  setError('');
-                  void setting.set(option.value).catch((reason) => setError(String(reason)));
-                }}
-              >
-                {option.label ?? String(option.value)}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      {error && <FieldDescription role="alert">{error}</FieldDescription>}
-    </Field>
-  );
-}
+import type { ShellThemeDefinition, ThemeSource } from '../../themes.js';
 
 /** Shell composition only; values and business operations stay in settings/services/actions. */
 export function AppearanceSettings({
@@ -87,7 +53,11 @@ export function AppearanceSettings({
 }) {
   const t = useTranslation();
   const text = (key: string, fallback: string) => t(`shell.ui.themes.${key}`, undefined, fallback);
+  const sourceLabel = (source: ThemeSource) =>
+    text(source, { shell: 'Included', app: 'App', user: 'Personal' }[source]);
   const library = useSetting('shell.themeLibrary');
+  const mode = useSetting('shell.mode');
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
   const service = useService(themeService) as ThemeService | undefined;
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [draft, setDraft] = useState<ShellThemeDefinition | null>(null);
@@ -95,6 +65,12 @@ export function AppearanceSettings({
   function customize() {
     if (!active) return;
     setEditingPersonal(active.source === 'user');
+    setColorMode(
+      mode.value === 'dark' ||
+        (mode.value === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+        ? 'dark'
+        : 'light',
+    );
     setDraft({
       schemaVersion: 1,
       id: active.source === 'user' ? active.id : crypto.randomUUID(),
@@ -104,12 +80,7 @@ export function AppearanceSettings({
       dark: { ...active.dark },
     });
   }
-  function token(
-    group: 'shared' | 'light' | 'dark',
-    name: string,
-    label: string,
-    placeholder: string,
-  ) {
+  function token(group: 'shared' | 'light' | 'dark', name: string, label: string) {
     if (!draft) return null;
     const update = (value: string) => {
       const values = { ...draft[group] };
@@ -138,148 +109,153 @@ export function AppearanceSettings({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="@container flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>{text('display', 'Display and layout')}</CardTitle>
+          <CardTitle>{text('display', 'Display')}</CardTitle>
         </CardHeader>
         <CardContent>
           <FieldGroup className="gap-6">
             {section.fields
-              .filter((field) => !['corners', 'preset'].includes(field.name))
-              .map((field) => (
-                <div key={field.key} className="flex items-end gap-2">
-                  <div className="min-w-0 flex-1">
-                    {renderField ? renderField(field) : <AppearanceField field={field} />}
-                  </div>
-                  {field.name === 'toasts' && (
-                    <Action
-                      id="shell.testNotification"
-                      input={{
-                        message: text('testNotificationMessage', 'This is a test notification.'),
-                      }}
-                    >
-                      <Button variant="outline">{text('testNotification', 'Test')}</Button>
-                    </Action>
-                  )}
-                </div>
-              ))}
+              .filter((field) => field.name === 'mode')
+              .map((field) =>
+                renderField ? (
+                  renderField(field)
+                ) : (
+                  <AppearanceField key={field.key} field={field} />
+                ),
+              )}
           </FieldGroup>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>{text('title', 'Themes')}</CardTitle>
-          <CardDescription>
-            {text(
-              'description',
-              'Choose a theme or save a personal copy. Original themes stay unchanged.',
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup>
-            <Field>
-              <FieldLabel>{text('selected', 'Selected theme')}</FieldLabel>
-              <div className="flex flex-wrap items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      className="w-full min-w-0 justify-between sm:w-80"
-                      variant="outline"
-                      disabled={!library.ready}
-                    >
-                      <span className="truncate">
-                        {active
-                          ? `${active.name} · ${text(active.source, active.source)}`
-                          : text('loading', 'Loading themes…')}
-                      </span>
-                      <ChevronDownIcon aria-hidden="true" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-80 max-w-[calc(100vw-2rem)]">
-                    <DropdownMenuGroup>
-                      {service?.list().map((theme) => (
-                        <Action
-                          key={theme.key}
-                          id="shell.selectTheme"
-                          input={{ key: theme.key }}
-                          kind="menuItem"
-                        >
-                          <DropdownMenuItem className="justify-between gap-4">
-                            <span className="min-w-0">
-                              <span className="block break-words">{theme.name}</span>
-                              <span className="block text-xs text-muted-foreground">
-                                {text(theme.source, theme.source)}
-                                {(service
-                                  ?.list()
-                                  .filter(
-                                    (entry) =>
-                                      entry.name === theme.name && entry.source === theme.source,
-                                  ).length ?? 0) > 1
-                                  ? ` · ${
-                                      (service
-                                        ?.list()
-                                        .filter(
-                                          (entry) =>
-                                            entry.name === theme.name &&
-                                            entry.source === theme.source,
-                                        )
-                                        .findIndex((entry) => entry.key === theme.key) ?? 0) + 1
-                                    }`
-                                  : ''}
-                              </span>
-                            </span>
-                            <span className="flex shrink-0 items-center gap-1" aria-hidden="true">
-                              {(['background', 'foreground', 'primary', 'secondary'] as const).map(
-                                (color) => (
-                                  <span
-                                    key={color}
-                                    className="size-4 rounded-full border border-border"
-                                    style={{
-                                      backgroundColor:
-                                        theme.light[color] ??
-                                        theme.shared[color] ??
-                                        themeDefaults.light[color],
-                                    }}
-                                  />
-                                ),
-                              )}
-                            </span>
-                          </DropdownMenuItem>
-                        </Action>
-                      ))}
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label={text('customize', 'Customize theme')}
-                  disabled={library.disabled}
-                  onClick={customize}
-                >
-                  <SettingsIcon aria-hidden="true" />
-                </Button>
-                <Action
-                  id="shell.selectTheme"
-                  input={{ key: 'shell:default' }}
-                  onExecuted={(result) => {
-                    if (result.status === 'completed' && result.value === 'saved') setDraft(null);
-                  }}
-                >
-                  <Button variant="outline">
-                    {text('resetDefault', 'Reset to default theme')}
-                  </Button>
-                </Action>
-              </div>
-            </Field>
-          </FieldGroup>
-        </CardContent>
-        {draft && (
+      <div className="grid items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
+        <Card>
+          <CardHeader>
+            <CardTitle>{text('title', 'Themes')}</CardTitle>
+            <CardDescription>
+              {text(
+                'description',
+                'Choose a theme or save a personal copy. Original themes stay unchanged.',
+              )}
+            </CardDescription>
+          </CardHeader>
           <CardContent>
-            {' '}
-            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
+            <FieldGroup>
+              <Field>
+                <FieldLabel>{text('selected', 'Selected theme')}</FieldLabel>
+                <div className="flex flex-wrap items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        className="w-full min-w-0 justify-between sm:w-80"
+                        variant="outline"
+                        disabled={!library.ready}
+                      >
+                        <span className="truncate">
+                          {active
+                            ? `${active.name} · ${sourceLabel(active.source)}`
+                            : text('loading', 'Loading themes…')}
+                        </span>
+                        <ChevronDownIcon aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-80 max-w-[calc(100vw-2rem)]">
+                      <DropdownMenuGroup>
+                        {service?.list().map((theme) => (
+                          <Action
+                            key={theme.key}
+                            id="shell.selectTheme"
+                            input={{ key: theme.key }}
+                            onExecuted={(result) => {
+                              if (result.status === 'completed' && result.value === 'saved')
+                                setDraft(null);
+                            }}
+                            kind="menuItem"
+                          >
+                            <DropdownMenuItem className="justify-between gap-4">
+                              <span className="min-w-0">
+                                <span className="block break-words">{theme.name}</span>
+                                <span className="block text-xs text-muted-foreground">
+                                  {sourceLabel(theme.source)}
+                                  {(service
+                                    ?.list()
+                                    .filter(
+                                      (entry) =>
+                                        entry.name === theme.name && entry.source === theme.source,
+                                    ).length ?? 0) > 1
+                                    ? ` · ${
+                                        (service
+                                          ?.list()
+                                          .filter(
+                                            (entry) =>
+                                              entry.name === theme.name &&
+                                              entry.source === theme.source,
+                                          )
+                                          .findIndex((entry) => entry.key === theme.key) ?? 0) + 1
+                                      }`
+                                    : ''}
+                                </span>
+                              </span>
+                              <span
+                                className="light pointer-events-none flex shrink-0 items-center gap-2"
+                                aria-hidden="true"
+                                style={themePreviewStyle(theme, 'light')}
+                              >
+                                <span
+                                  className="rounded-md border border-border bg-card px-2 py-1"
+                                  style={{ color: 'var(--card-foreground)' }}
+                                >
+                                  Aa
+                                </span>
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  style={{ color: 'var(--primary-foreground)' }}
+                                >
+                                  <span>Aa</span>
+                                </Button>
+                                <input
+                                  type="radio"
+                                  checked
+                                  readOnly
+                                  tabIndex={-1}
+                                  aria-hidden="true"
+                                  className="size-4"
+                                  style={{ accentColor: 'var(--primary)' }}
+                                />
+                              </span>
+                            </DropdownMenuItem>
+                          </Action>
+                        ))}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={text('customize', 'Customize theme')}
+                    disabled={library.disabled}
+                    onClick={customize}
+                  >
+                    <SettingsIcon aria-hidden="true" />
+                  </Button>
+                  <Action
+                    id="shell.selectTheme"
+                    input={{ key: 'shell:default' }}
+                    onExecuted={(result) => {
+                      if (result.status === 'completed' && result.value === 'saved') setDraft(null);
+                    }}
+                  >
+                    <Button variant="outline">
+                      {text('resetDefault', 'Reset to default theme')}
+                    </Button>
+                  </Action>
+                </div>
+              </Field>
+            </FieldGroup>
+          </CardContent>
+          {draft && (
+            <CardContent>
               <FieldSet className="min-w-0">
                 <FieldLegend>{text('editor', 'Customize theme')}</FieldLegend>
                 {!editingPersonal && (
@@ -305,8 +281,9 @@ export function AppearanceSettings({
                       onChange={(event) => setDraft({ ...draft, name: event.target.value })}
                     />
                   </Field>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-6">
                     <ThemeChoice
+                      preview="radius"
                       label={text('radius', 'Corner radius')}
                       value={draft.shared.radius ?? ''}
                       onChange={(value) => shared('radius', value)}
@@ -318,6 +295,7 @@ export function AppearanceSettings({
                       ]}
                     />
                     <ThemeChoice
+                      preview="shadow"
                       label={text('shadow', 'Surface shadow')}
                       value={draft.shared['theme-shadow-surface'] ?? ''}
                       onChange={(value) => shared('theme-shadow-surface', value)}
@@ -334,6 +312,7 @@ export function AppearanceSettings({
                     />
                   </div>
                   <ThemeChoice
+                    preview="font"
                     label={text('font', 'Font family')}
                     value={draft.shared['font-sans'] ?? ''}
                     onChange={(value) => shared('font-sans', value)}
@@ -346,38 +325,80 @@ export function AppearanceSettings({
                       { value: 'ui-monospace, monospace', label: text('monoFont', 'Monospace') },
                     ]}
                   />
-                  <div className="grid items-start gap-6 lg:grid-cols-2">
-                    {(['light', 'dark'] as const).map((mode) => (
-                      <FieldSet key={mode} className="min-w-0">
-                        <FieldLegend>
-                          <span className="flex items-center gap-2">
-                            {mode === 'light' ? (
-                              <SunIcon className="size-4" aria-hidden="true" />
-                            ) : (
-                              <MoonIcon className="size-4" aria-hidden="true" />
-                            )}
-                            {text(mode, mode === 'light' ? 'Light' : 'Dark')}
-                          </span>
-                        </FieldLegend>
-                        <FieldGroup className="gap-4">
-                          {(
-                            [
-                              'background',
-                              'foreground',
-                              'primary',
-                              'primary-foreground',
-                              'card',
-                              'card-foreground',
-                              'border',
-                              'ring',
-                            ] as const
-                          ).map((name) =>
-                            token(mode, name, text(name, name), text('inherited', 'Inherited')),
+                  <ThemeChoice
+                    preview="button"
+                    label={text('buttonFinish', 'Button style')}
+                    value={draft.shared['theme-control-gradient'] === 'none' ? 'flat' : 'raised'}
+                    onChange={(finish) => {
+                      const values = { ...draft.shared };
+                      for (const [key, value] of Object.entries(flatButtonTokens)) {
+                        if (finish === 'flat') values[key] = value;
+                        else delete values[key];
+                      }
+                      setDraft({ ...draft, shared: values });
+                    }}
+                    choices={[
+                      { value: 'raised', label: text('raised', 'Raised · BitaKit') },
+                      { value: 'flat', label: text('flat', 'Flat') },
+                    ]}
+                  />
+                  <FieldSet>
+                    <FieldLegend>{text('colors', 'Colors')}</FieldLegend>
+                    <div
+                      role="group"
+                      aria-label={text('editColorScheme', 'Edit color scheme')}
+                      className="flex gap-2"
+                    >
+                      {(['light', 'dark'] as const).map((variant) => (
+                        <Button
+                          key={variant}
+                          size="sm"
+                          variant={colorMode === variant ? 'secondary' : 'outline'}
+                          aria-pressed={colorMode === variant}
+                          onClick={() => setColorMode(variant)}
+                        >
+                          {variant === 'light' ? (
+                            <SunIcon aria-hidden="true" />
+                          ) : (
+                            <MoonIcon aria-hidden="true" />
                           )}
-                        </FieldGroup>
-                      </FieldSet>
-                    ))}
-                  </div>
+                          {text(variant, variant === 'light' ? 'Light' : 'Dark')}
+                        </Button>
+                      ))}
+                    </div>
+                    <FieldGroup className="grid gap-4 sm:grid-cols-2">
+                      {(
+                        [
+                          'background',
+                          'foreground',
+                          'primary',
+                          'primary-foreground',
+                          'card',
+                          'card-foreground',
+                          'border',
+                          'ring',
+                        ] as const
+                      ).map((name) =>
+                        token(
+                          colorMode,
+                          name,
+                          text(
+                            name,
+                            {
+                              background: 'Background',
+                              foreground: 'Text',
+                              primary: 'Primary',
+                              'primary-foreground': 'Primary text',
+                              card: 'Card',
+                              'card-foreground': 'Card text',
+                              border: 'Border',
+                              ring: 'Focus ring',
+                            }[name],
+                          ),
+                        ),
+                      )}
+                    </FieldGroup>
+                  </FieldSet>
                 </FieldGroup>
                 <div className="flex flex-wrap justify-end gap-2">
                   {editingPersonal && (
@@ -413,11 +434,18 @@ export function AppearanceSettings({
                   </Action>
                 </div>
               </FieldSet>
-              <ThemePreview theme={draft} />
-            </div>
-          </CardContent>
+            </CardContent>
+          )}
+        </Card>
+        {active && (
+          <ThemePreview
+            theme={draft ?? active}
+            editing={draft !== null}
+            editMode={draft ? colorMode : undefined}
+            onEditModeChange={setColorMode}
+          />
         )}
-      </Card>
+      </div>
     </div>
   );
 }

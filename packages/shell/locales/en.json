@@ -1,8 +1,8 @@
 {
   "shell": {
     "settings": {
-      "title": "Appearance",
-      "description": "Color scheme, navigation layout, density and notifications.",
+      "title": "Themes",
+      "description": "Color scheme and themes for your interface.",
       "mode": {
         "label": "Color scheme",
         "description": "Light, dark or matching your system. Applies to this device.",
@@ -89,6 +89,12 @@
             "label": "Bottom end"
           }
         }
+      },
+      "pages": {
+        "layout": {
+          "title": "Layout",
+          "description": "Navigation, spacing and notification position."
+        }
       }
     },
     "ui": {
@@ -97,7 +103,7 @@
       "navigationDescription": "Links to the areas of this app.",
       "toggle": "Toggle navigation",
       "themes": {
-        "display": "Display and layout",
+        "display": "Display",
         "copy": "copy",
         "title": "Themes",
         "description": "Choose a theme or save a personal copy. Original themes stay unchanged.",
@@ -137,7 +143,7 @@
         "outlineButton": "Outline",
         "previewDialog": "Preview dialog",
         "sampleDialog": "Sample dialog",
-        "dialogHint": "This dialog uses the unsaved theme colors, radius and typography.",
+        "dialogHint": "This dialog uses the colors, corners and typography shown in the preview.",
         "close": "Close",
         "copyColor": "Copy color",
         "copied": "Copied",
@@ -168,7 +174,17 @@
         "eyedropperFailed": "Could not pick a screen color. Try again.",
         "copyNotice": "You are editing a new personal copy. The original theme stays unchanged.",
         "saveCopy": "Save copy and apply",
-        "resetDefault": "Reset to default theme"
+        "resetDefault": "Reset to default theme",
+        "selectedPreviewHint": "Buttons, fields and surfaces in your selected theme.",
+        "buttonFinish": "Button style",
+        "raised": "Raised · BitaKit",
+        "flat": "Flat",
+        "colors": "Colors",
+        "editColorScheme": "Edit color scheme",
+        "sampleCheckbox": "Checkbox",
+        "sampleRadioGroup": "Radio buttons",
+        "sampleRadioOne": "Radio 1",
+        "sampleRadioTwo": "Radio 2"
       }
     },
     "pages": {

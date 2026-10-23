@@ -11,6 +11,7 @@ import { bundledThemes } from './bundled-themes.js';
 import { selectTheme, saveThemeCopy, updateTheme, deleteTheme } from './actions/themes.js';
 import { testNotification } from './actions/test-notification.js';
 import LayoutIcon from 'reicon-react/icons/Layout';
+import SidebarIcon from 'reicon-react/icons/Sidebar';
 import { shellSlots } from './slots.js';
 import { appearanceSettings } from './appearance.js';
 import { parseShellOptions, type ShellOptions } from './options.js';
@@ -18,6 +19,7 @@ import { notificationService, translatedNotifications } from './services/notific
 import { createNotificationService } from './ui/notification-queue.js';
 import { ShellNotifications } from './ui/providers/notifications.js';
 import { AppearanceSettings } from './ui/settings/appearance.js';
+import { LayoutSettings } from './ui/settings/layout.js';
 import { ShellTheme } from './ui/providers/theme.js';
 
 /** `app.services.notifications` on HeroUI's toast queue, translated through `i18n`. */
@@ -66,7 +68,19 @@ export function shellPlugin(options: ShellOptions = {}) {
     },
     actions: { testNotification, selectTheme, saveThemeCopy, updateTheme, deleteTheme },
     ui: {
-      settings: { component: AppearanceSettings },
+      settings: {
+        component: AppearanceSettings,
+        pages: [
+          {
+            id: 'layout',
+            title: 'Layout',
+            description: 'Navigation, spacing and notification position.',
+            icon: SidebarIcon,
+            order: -4,
+            component: LayoutSettings,
+          },
+        ],
+      },
       providers: [
         { id: 'shell.theme', component: ShellTheme },
         { id: 'shell.notifications', component: ShellNotifications },

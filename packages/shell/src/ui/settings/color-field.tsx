@@ -73,9 +73,9 @@ export function ThemeColorField({
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <InputGroup>
-        <InputGroupAddon>
-          <Popover>
+      <Popover>
+        <InputGroup>
+          <InputGroupAddon>
             <PopoverTrigger asChild>
               <InputGroupButton
                 size="icon-xs"
@@ -87,56 +87,50 @@ export function ThemeColorField({
                 />
               </InputGroupButton>
             </PopoverTrigger>
-            <PopoverContent
-              className="w-fit"
-              aria-label={`${label} ${text('picker', 'color picker')}`}
+          </InputGroupAddon>
+          <InputGroupInput
+            id={id}
+            value={value}
+            placeholder={formatHex8(inherited) ?? inherited}
+            onChange={(event) => onChange(event.target.value)}
+          />
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              size="icon-xs"
+              className="text-muted-foreground"
+              onClick={() => void copy()}
+              aria-label={copied ? text('copied', 'Copied') : text('copyColor', 'Copy color')}
             >
-              <HexAlphaColorPicker
-                color={formatHex8(effective) ?? '#000000ff'}
-                onChange={onChange}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!eyeDropperAvailable || picking}
-                onClick={() => void pickFromScreen()}
-              >
-                <PipetteIcon aria-hidden="true" />
-                {text('pickScreen', 'Pick from screen')}
-              </Button>
-              {!eyeDropperAvailable && (
-                <FieldDescription>
-                  {text(
-                    'eyedropperUnavailable',
-                    'Screen color picking is not supported in this browser.',
-                  )}
-                </FieldDescription>
-              )}
-              {pickError && (
-                <FieldDescription role="alert">
-                  {text('eyedropperFailed', 'Could not pick a screen color. Try again.')}
-                </FieldDescription>
-              )}
-            </PopoverContent>
-          </Popover>
-        </InputGroupAddon>
-        <InputGroupInput
-          id={id}
-          value={value}
-          placeholder={formatHex8(inherited) ?? inherited}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <InputGroupAddon align="inline-end">
-          <InputGroupButton
-            size="icon-xs"
-            className="text-muted-foreground"
-            onClick={() => void copy()}
-            aria-label={copied ? text('copied', 'Copied') : text('copyColor', 'Copy color')}
+              {copied ? <CheckIcon aria-hidden="true" /> : <CopyIcon aria-hidden="true" />}
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+        <PopoverContent className="w-fit" aria-label={`${label} ${text('picker', 'color picker')}`}>
+          <HexAlphaColorPicker color={formatHex8(effective) ?? '#000000ff'} onChange={onChange} />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!eyeDropperAvailable || picking}
+            onClick={() => void pickFromScreen()}
           >
-            {copied ? <CheckIcon aria-hidden="true" /> : <CopyIcon aria-hidden="true" />}
-          </InputGroupButton>
-        </InputGroupAddon>
-      </InputGroup>
+            <PipetteIcon aria-hidden="true" />
+            {text('pickScreen', 'Pick from screen')}
+          </Button>
+          {!eyeDropperAvailable && (
+            <FieldDescription>
+              {text(
+                'eyedropperUnavailable',
+                'Screen color picking is not supported in this browser.',
+              )}
+            </FieldDescription>
+          )}
+          {pickError && (
+            <FieldDescription role="alert">
+              {text('eyedropperFailed', 'Could not pick a screen color. Try again.')}
+            </FieldDescription>
+          )}
+        </PopoverContent>
+      </Popover>
       <span role="status" className="sr-only">
         {copied ? text('copied', 'Copied') : ''}
       </span>

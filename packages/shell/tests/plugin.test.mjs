@@ -66,7 +66,7 @@ test('appearance settings: keys, scopes and defaults; preset only with presets',
       settings[name].options.every((option) => option.icon),
       `${name} options carry icons for the cards`,
     );
-  assert.equal(section.title, 'Appearance');
+  assert.equal(section.title, 'Themes');
   assert.equal(section.category, 'appearance');
   assert.equal(section.order, -5);
 
@@ -111,7 +111,7 @@ test('appearance settings: keys, scopes and defaults; preset only with presets',
   );
 });
 
-test('the settings catalog labels the Appearance section from the Shell locales', async () => {
+test('the settings catalog labels the Themes and Layout pages from the Shell locales', async () => {
   const config = { plugins: [shellPlugin({ presets: [{ id: 'ocean', label: 'Ocean' }] })] };
   const services = { 'settings.storage': createMemorySettingsStorage() };
   let sections;
@@ -138,12 +138,25 @@ test('the settings catalog labels the Appearance section from the Shell locales'
         field.options.map((option) => option.label),
       ]),
     });
+    assert.deepEqual(
+      sections
+        .filter((section) => section.category === 'appearance')
+        .map(({ id, title, path }) => ({ id, title, path })),
+      [
+        { id: 'shell', title: 'Themes', path: 'shell' },
+        { id: 'shell/layout', title: 'Layout', path: 'shell/layout' },
+      ],
+    );
+    assert.equal(
+      sections.find((section) => section.id === 'shell/layout').description,
+      'Navigation, spacing and notification position.',
+    );
     assert.equal(shell().category, 'appearance');
     assert.equal(shell().order, -5);
     assert.ok(shell().icon, 'the section has an icon');
     assert.deepEqual(labels(), {
-      title: 'Appearance',
-      description: 'Color scheme, navigation layout, density and notifications.',
+      title: 'Themes',
+      description: 'Color scheme and themes for your interface.',
       fields: [
         ['shell.mode', 'Color scheme', ['Light', 'Dark', 'System']],
         ['shell.layout', 'Navigation', ['Sidebar', 'Navigation bar']],
@@ -163,7 +176,11 @@ test('the settings catalog labels the Appearance section from the Shell locales'
     );
     await view.render(render(de));
     await settle();
-    assert.equal(labels().title, 'Darstellung');
+    assert.equal(labels().title, 'Themes');
+    assert.equal(
+      sections.find((section) => section.id === 'shell/layout').description,
+      'Navigation, Abstände und Position der Benachrichtigungen.',
+    );
     assert.deepEqual(labels().fields[0], [
       'shell.mode',
       'Farbschema',

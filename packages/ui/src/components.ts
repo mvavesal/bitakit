@@ -17,6 +17,8 @@ export {
 } from './components/action-navigation.js';
 export { ConfirmDialog } from './components/confirm-dialog.js';
 export * from './components/primitives/field.js';
+export * from './components/primitives/radio-group.js';
+export * from './components/primitives/checkbox.js';
 export * from './components/primitives/label.js';
 export * from './components/primitives/badge.js';
 export * from './components/primitives/dialog.js';

@@ -12,13 +12,31 @@ const themes = await Promise.all(
 );
 await writeFile(
   new URL('../src/bundled-themes.ts', import.meta.url),
-  `// Generated from themes/*.json by the Shell build.\nimport type { ShellThemeInput } from './themes.js';\nexport const bundledThemes = ${JSON.stringify(themes, null, 2)} satisfies ShellThemeInput[];\n`,
+  `// Generated from themes/*.json by the Shell build.\nimport type { ShellThemeInput } from './themes.js';\nexport const bundledThemes: readonly ShellThemeInput[] = ${JSON.stringify(themes, null, 2)};\n`,
 );
 
 // Editor defaults come from the same CSS contract, not a second hand-maintained palette.
 const { default: postcss } = await import('postcss');
 const css = postcss.parse(await readFile(new URL('../../ui/theme.css', import.meta.url), 'utf8'));
 const defaults = { light: {}, dark: {} };
+const primitiveFolder = new URL('../../ui/src/components/primitives/', import.meta.url);
+const primitiveNames = (await readdir(primitiveFolder)).filter((name) => name.endsWith('.tsx'));
+const primitiveSources = await Promise.all(
+  primitiveNames.map((name) => readFile(new URL(name, primitiveFolder), 'utf8')),
+);
+// Optional token overrides must not leak from the active theme into another theme's preview.
+for (const match of [css.toString(), ...primitiveSources]
+  .join('\n')
+  .matchAll(/var\(\s*(--theme-[\w-]+)/g)) {
+  defaults.light[match[1].slice(2)] = 'initial';
+}
+css.walkAtRules('theme', (rule) => {
+  if (rule.params.includes('inline')) return;
+  rule.walkDecls((declaration) => {
+    if (declaration.prop.startsWith('--'))
+      defaults.light[declaration.prop.slice(2)] = declaration.value;
+  });
+});
 css.walkRules((rule) => {
   if (rule.selector !== ':root' && rule.selector !== '.dark') return;
   const target = rule.selector === ':root' ? defaults.light : defaults.dark;

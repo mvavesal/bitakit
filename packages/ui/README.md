@@ -149,7 +149,8 @@ width, shadows, focus and motion. Define tokens after the generated root CSS imp
 consumer apps do not patch individual plugin selectors.
 
 The optional `./components` entry exports `Button`, `Input`, `Field`, `Label`, `Badge`,
-`Dialog`, `DropdownMenu`, `Sidebar`, `NavigationMenu`, `Sheet`, `Skeleton`, `Tooltip`,
+`Checkbox`, `RadioGroup`, `RadioGroupItem`, `Dialog`, `DropdownMenu`, `Sidebar`,
+`NavigationMenu`, `Sheet`, `Skeleton`, `Tooltip`,
 `Separator`, `PageHeader`, `AppBar`, `StandardActionMenu`, `ActionSidebarNavigation`,
 `ActionNavigationMenu` and `standardBitaKitUI`. These compose the host theme tokens and
 contain no app, Settings or Shell behavior. `./theme.css` exports the shared theme tokens and

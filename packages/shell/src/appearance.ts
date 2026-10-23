@@ -24,7 +24,7 @@ export type NotificationPlacement =
   | 'bottom end';
 
 /**
- * The Appearance section: `shell.mode` and `shell.toasts` belong to the device, the others to
+ * Appearance settings, shared by the Themes and Layout pages: `shell.mode` and `shell.toasts` belong to the device, the others to
  * the user. Labels and descriptions resolve from `shell.settings.*` in the Shell locales; the
  * English labels here are fallbacks. `preset` exists only when presets are configured.
  */
@@ -103,6 +103,6 @@ export function appearanceSettings(presets: readonly ShellPreset[]) {
         ],
       }),
     },
-    { title: 'Appearance', icon: PaletteIcon, category: 'appearance', order: -5 },
+    { title: 'Themes', icon: PaletteIcon, category: 'appearance', order: -5 },
   );
 }

@@ -1,11 +1,15 @@
 'use client';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useState, type CSSProperties } from 'react';
 import { useSetting, useTranslation } from '@bitakit/ui';
 import {
   Button,
   Input,
   Field,
   FieldLabel,
+  FieldGroup,
+  Checkbox,
+  RadioGroup,
+  RadioGroupItem,
   Badge,
   Dialog,
   DialogTrigger,
@@ -29,8 +33,36 @@ import SunIcon from 'reicon-react/icons/Sun';
 import MoonIcon from 'reicon-react/icons/Moon';
 import { themeDefaults } from '../../theme-defaults.js';
 
-/** Draft-only token scope; neither previews nor their portaled dialog save settings. */
-export function ThemePreview({ theme }: { theme: ShellThemeDefinition }) {
+/** Shared token scope for selected themes, draft previews and menu samples. */
+export function themePreviewStyle(
+  theme: ShellThemeDefinition,
+  variant: 'light' | 'dark',
+): CSSProperties {
+  const tokens = {
+    ...themeDefaults.light,
+    ...(variant === 'dark' ? themeDefaults.dark : {}),
+    ...themeTokens(theme, variant),
+  };
+  return {
+    ...Object.fromEntries(Object.entries(tokens).map(([key, value]) => [`--${key}`, value])),
+    colorScheme: variant,
+    fontFamily: 'var(--font-sans)',
+  };
+}
+
+/** Local color-scheme controls never change the selected theme or save a draft. */
+export function ThemePreview({
+  theme,
+  editing = false,
+  editMode,
+  onEditModeChange,
+}: {
+  theme: ShellThemeDefinition;
+  editing?: boolean;
+  editMode?: 'light' | 'dark';
+  onEditModeChange?: (mode: 'light' | 'dark') => void;
+}) {
+  const inputId = useId();
   const mode = useSetting('shell.mode');
   const [systemDark, setSystemDark] = useState(false);
   useEffect(() => {
@@ -42,20 +74,13 @@ export function ThemePreview({ theme }: { theme: ShellThemeDefinition }) {
   }, []);
   const [previewMode, setPreviewMode] = useState<'light' | 'dark' | null>(null);
   const appDark = mode.value === 'dark' || (mode.value === 'system' && systemDark);
-  const variant = previewMode ?? (appDark ? 'dark' : 'light');
+  const variant = editMode ?? previewMode ?? (appDark ? 'dark' : 'light');
   const dark = variant === 'dark';
-  const tokens = {
-    ...themeDefaults.light,
-    ...(dark ? themeDefaults.dark : {}),
-    ...themeTokens(theme, variant),
-  };
-  const style = Object.fromEntries(
-    Object.entries(tokens).map(([key, value]) => [`--${key}`, value]),
-  ) as CSSProperties;
+  const style = themePreviewStyle(theme, variant);
   const t = useTranslation();
   const text = (key: string, fallback: string) => t(`shell.ui.themes.${key}`, undefined, fallback);
   return (
-    <aside className="min-w-0 xl:sticky xl:top-4" aria-label={text('preview', 'Live preview')}>
+    <aside className="min-w-0 @3xl:sticky @3xl:top-4" aria-label={text('preview', 'Live preview')}>
       <div
         className="mb-3 flex gap-2"
         role="group"
@@ -65,7 +90,7 @@ export function ThemePreview({ theme }: { theme: ShellThemeDefinition }) {
           variant={dark ? 'outline' : 'secondary'}
           size="sm"
           aria-pressed={!dark}
-          onClick={() => setPreviewMode('light')}
+          onClick={() => (editMode ? onEditModeChange?.('light') : setPreviewMode('light'))}
         >
           <SunIcon aria-hidden="true" />
           {text('light', 'Light')}
@@ -74,55 +99,73 @@ export function ThemePreview({ theme }: { theme: ShellThemeDefinition }) {
           variant={dark ? 'secondary' : 'outline'}
           size="sm"
           aria-pressed={dark}
-          onClick={() => setPreviewMode('dark')}
+          onClick={() => (editMode ? onEditModeChange?.('dark') : setPreviewMode('dark'))}
         >
           <MoonIcon aria-hidden="true" />
           {text('dark', 'Dark')}
         </Button>
       </div>
-      <div
-        className={dark ? 'dark' : 'light'}
-        style={{ ...style, colorScheme: variant, fontFamily: 'var(--font-sans)' }}
-      >
+      <div className={dark ? 'dark' : 'light'} style={style}>
         <Card>
           <CardHeader>
-            <CardTitle>{text('preview', 'Live preview')}</CardTitle>
+            <CardTitle>{theme.name}</CardTitle>
             <CardDescription>
-              {text('previewHint', 'Changes appear here before you save.')}
+              {editing
+                ? text('previewHint', 'Changes appear here before you save.')
+                : text(
+                    'selectedPreviewHint',
+                    'Buttons, fields and surfaces in your selected theme.',
+                  )}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Badge variant="secondary">{text('sample', 'Sample')}</Badge>
             <Field>
-              <FieldLabel htmlFor="theme-preview-input">
-                {text('sampleInput', 'Text input')}
-              </FieldLabel>
-              <Input
-                id="theme-preview-input"
-                placeholder={text('samplePlaceholder', 'Your workspace')}
-              />
+              <FieldLabel htmlFor={inputId}>{text('sampleInput', 'Text input')}</FieldLabel>
+              <Input id={inputId} placeholder={text('samplePlaceholder', 'Your workspace')} />
             </Field>
             <div className="flex flex-wrap gap-2">
               <Button>{text('primaryButton', 'Primary')}</Button>
               <Button variant="secondary">{text('secondaryButton', 'Secondary')}</Button>
               <Button variant="outline">{text('outlineButton', 'Outline')}</Button>
             </div>
+            <FieldGroup className="gap-3">
+              <Field orientation="horizontal">
+                <Checkbox id={`${inputId}-checkbox`} defaultChecked />
+                <FieldLabel htmlFor={`${inputId}-checkbox`}>
+                  {text('sampleCheckbox', 'Checkbox')}
+                </FieldLabel>
+              </Field>
+              <RadioGroup
+                defaultValue="one"
+                aria-label={text('sampleRadioGroup', 'Radio buttons')}
+                className="grid-cols-2"
+              >
+                {(['one', 'two'] as const).map((value) => (
+                  <Field key={value} orientation="horizontal">
+                    <RadioGroupItem id={`${inputId}-radio-${value}`} value={value} />
+                    <FieldLabel htmlFor={`${inputId}-radio-${value}`}>
+                      {value === 'one'
+                        ? text('sampleRadioOne', 'Radio 1')
+                        : text('sampleRadioTwo', 'Radio 2')}
+                    </FieldLabel>
+                  </Field>
+                ))}
+              </RadioGroup>
+            </FieldGroup>
           </CardContent>
           <CardFooter>
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline">{text('previewDialog', 'Preview dialog')}</Button>
               </DialogTrigger>
-              <DialogContent
-                className={dark ? 'dark' : 'light'}
-                style={{ ...style, colorScheme: variant, fontFamily: 'var(--font-sans)' }}
-              >
+              <DialogContent className={dark ? 'dark' : 'light'} style={style}>
                 <DialogHeader>
                   <DialogTitle>{text('sampleDialog', 'Sample dialog')}</DialogTitle>
                   <DialogDescription>
                     {text(
                       'dialogHint',
-                      'This dialog uses the unsaved theme colors, radius and typography.',
+                      'This dialog uses the colors, corners and typography shown in the preview.',
                     )}
                   </DialogDescription>
                 </DialogHeader>

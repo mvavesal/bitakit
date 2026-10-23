@@ -96,3 +96,6 @@ Native scroll containers inherit the central base-layer thin scrollbar rule. Opt
 `--scrollbar-thumb` and `--scrollbar-track` override the default border/transparent colors.
 Radix ScrollArea remains the standard custom scroll component for constrained tables;
 ordinary settings pages need no local scrollbar CSS. Native geometry remains browser-owned.
+
+The standard Checkbox uses `--radius-checkbox`, derived from `--radius` at 55%. It retains
+the shared corner shape, so the default squircle is softly rounded and square themes remain square.

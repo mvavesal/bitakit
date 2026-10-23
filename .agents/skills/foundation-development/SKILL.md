@@ -729,6 +729,15 @@ Shell now registers the `themes` service through `defineService`/`provides`, wit
 or confirmed state exists. Additional theme definitions can be passed in Shell options.
 Source-qualified keys distinguish Shell, app and personal themes; duplicate display names
 are allowed. JSON tokens now project onto the document root with light/dark selection and cleanup on switching or unmount. Discovery collects app `src/themes/**/*.json`; Shell builds its bundled `themes/*.json`. Appearance uses standard controls and react-colorful for palette editing. Source file collection is build-time; personal persistence and switching are runtime.
+The bundled array has an explicit `readonly ShellThemeInput[]` type: `satisfies` alone infers
+optional undefined token keys across heterogeneous palettes and breaks the service input type.
+Shell exposes Themes at `/settings/shell` and Layout at `/settings/shell/layout` in the same
+Appearance category; Layout reuses fields from the original Shell settings catalog.
+The live preview serves both selected themes and unsaved drafts. Its generated defaults reset
+optional effect tokens to CSS `initial`; scan multiline `var()` references as well, otherwise
+an active flat theme leaks its gradient/shadow overrides into a raised draft preview. Keep a color picker's
+portaled content outside InputGroupAddon in the React tree: the addon's click-to-focus
+handler otherwise receives slider clicks and closes the picker by focusing the text input.
 
 Native scrollbar appearance is owned by the central theme base layer, including settings
 page containers. Do not style individual pages to make their scrollbars thin. Radix
@@ -743,9 +752,11 @@ Standard settings sections retain their content minimum height inside the padded
 container; otherwise flex shrink lets descendants overflow past the bottom padding and clip
 the last card. Header-owning constrained views retain `min-h-0` for their internal scrolling.
 
-Theme choices reuse the existing shared Button and DropdownMenu radio primitives from
-`@bitakit/ui/components`; do not copy Select into Shell or give these controls local visual
-overrides. Color editing uses standard InputGroup composition. Preserve imported
+Theme choices reuse central FieldLabel/Field/FieldContent/FieldTitle selection cards and
+RadioGroup/RadioGroupItem from `@bitakit/ui/components`, matching App Preferences color scheme
+controls. Font menus use the shared Button and DropdownMenu radio primitives. Do not copy
+Select into Shell or give selection wrappers local radius, shadow, border or padding overrides.
+Only the inner illustrative sample may show the option being demonstrated. Color editing uses standard InputGroup composition. Preserve imported
 custom radius/shadow/font values until the user chooses a replacement. White/transparent
 swatches need a theme-token border; copy controls provide accessible success/failure feedback.
 

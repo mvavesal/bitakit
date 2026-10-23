@@ -54,7 +54,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-card: calc(var(--radius) * 2);
-  --radius-checkbox: calc(var(--radius) * 0.45);
+  --radius-checkbox: calc(var(--radius) * 0.55);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);

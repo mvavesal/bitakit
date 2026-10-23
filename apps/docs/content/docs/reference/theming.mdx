@@ -35,6 +35,26 @@ in the catalog, the active theme falls back to `shell:default`.
 
 ## Programmatic themes
 
+Under the Appearance category, **Themes** (`/settings/shell`) contains color scheme, theme
+selection and the copy editor. **Layout** (`/settings/shell/layout`) contains navigation,
+density and notification position.
+
+Themes includes **BitaKit Default**, **Warm Sand**, **Soft Rose**, **Calm Sage**,
+**High Contrast**, **Slate Flat**, **Ocean Blue**, **Golden Amber** and **Forest Green**
+without app configuration. Each bundled alternative
+provides light and dark colors through the existing semantic tokens. BitaKit Default remains
+the initial selection and adds no token overrides. Calm Sage uses rounded, flat controls;
+High Contrast uses square corners and stronger borders; Slate Flat removes gradients and
+raised surface/control shadows. Original definitions stay immutable; save a personal copy
+to customize them. Ocean Blue, Golden Amber and Forest Green retain the rounded, raised
+BitaKit finish with different palettes.
+
+Display spans the top of Themes. Theme selection and the copy editor sit beside a live preview
+on wide screens and stack on narrow screens. The preview follows selection and unsaved edits;
+its light/dark control never changes the saved app mode. Radius, surface shadow and button
+finish use standard selection cards with visual samples; font options show their typeface.
+Flat button finish removes control depth while retaining surface shadows and palette colors.
+
 File discovery and explicit composition feed the same Shell theme catalog. For a manually
 composed app, pass definitions to the **existing** Shell plugin:
 

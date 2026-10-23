@@ -11,6 +11,7 @@ const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', 
 const { window } = dom;
 for (const key of [
   'window',
+  'self',
   'document',
   'HTMLElement',
   'HTMLAnchorElement',
