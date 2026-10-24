@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/quick-search",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "BitaKit Quick Search: plugin-owned search sources, navigation, preferences and recent history.",
   "type": "module",
   "sideEffects": [
@@ -41,12 +41,12 @@
     "test": "npm run build && tsc -p tsconfig.test.json && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.5",
-    "@bitakit/ui": "^0.2.6",
+    "@bitakit/core": "^0.2.6",
+    "@bitakit/ui": "^0.2.7",
     "cmdk": "^1.1.1",
     "reicon-react": "1.2.5",
     "zod": "^4.6.5",
-    "@bitakit/app-preferences": "^0.2.6"
+    "@bitakit/app-preferences": "^0.2.7"
   },
   "peerDependencies": {
     "react": "^19",

@@ -1,5 +1,24 @@
 # @bitakit/cli
 
+## 0.2.7
+
+### Patch Changes
+
+- 4ccdd11: Ship a `CLAUDE.md` beside the package's `AGENTS.md`. It only imports `AGENTS.md`, so Claude Code
+  reads the same complete guide as other coding agents.
+- 4ccdd11: Create plugin-local AGENTS.md and CLAUDE.md files with `bitakit add plugin` in default,
+  example and minimal modes. The guide describes the plugin's actual starter files and contracts;
+  the bundled app development skill explains how to keep each plugin's guidance with its code.
+
+  Refine the skill's task scope, package-version guidance and verification workflow. Keep complete
+  examples in references, add app/package bootstrap and plugin-guide examples, and reuse existing
+  authorization and CLI tooling instead of prescribing redundant checks or confirmation steps.
+
+- Updated dependencies [4ccdd11]
+- Updated dependencies [8f99932]
+  - @bitakit/core@0.2.6
+  - @bitakit/discovery@0.2.4
+
 ## 0.2.6
 
 ### Patch Changes
