@@ -91,6 +91,19 @@ does not expose are retained in that copy.
 **Delete theme** is available for personal themes and asks for confirmation. Deleting the
 active personal theme selects App default.
 
+### Share a theme as a file
+
+**Download theme** beside the selector saves the theme shown in the preview (the open draft,
+otherwise the selected theme) as `<name>.theme.json`. **Import theme** opens such a file as an
+unsaved personal copy: check it in the preview, then choose **Save copy and apply**. Nothing is
+saved before that, and the copy gets a new ID, so it never replaces an existing theme.
+
+Imported files may set only known theme tokens, and values may not load resources: `url()`,
+image functions, CSS escapes, `;`, braces, `<`, `>` and `@` are rejected with the location of
+the problem. Downloaded files reference the published JSON Schema in `$schema`, so editors and
+coding agents can validate a theme they write. To ship a downloaded theme with the app, copy
+the file into `src/themes/`.
+
 ## 4. Know what is saved
 
 | Data                               | Owner                | Lifetime                                             |

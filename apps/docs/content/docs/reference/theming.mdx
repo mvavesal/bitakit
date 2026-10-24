@@ -33,6 +33,25 @@ pairs and check your controls in both modes.
 names or IDs across different sources remain distinct. If the saved selection is no longer
 in the catalog, the active theme falls back to `shell:default`.
 
+### Theme files
+
+Files from downloads, other apps or coding agents use a stricter schema than source themes,
+because their values are applied to the document root:
+
+| Export                      | Purpose                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `parseThemeFile(text)`      | Parse file text into a `ShellThemeDefinition`; throws an `Error` naming the first problem. |
+| `stringifyThemeFile(theme)` | The downloadable file: the definition plus `$schema`, without source or key.               |
+| `themeFileSchema`           | The Zod schema `parseThemeFile` applies; an optional `$schema` is accepted and dropped.    |
+| `themeFileSchemaUrl`        | The published JSON Schema URL written into `$schema`.                                      |
+
+Token names must be variables of the central theme contract. Values may not contain
+`url(`, `image(`, `image-set(`, `src(`, `element(` or `cross-fade(` in any letter case, or a
+backslash, `;`, `{`, `}`, `<`, `>` or `@`. The same rules ship as a JSON Schema in
+`@bitakit/shell/theme.schema.json`. Source themes in `src/themes/` and the `themes` option are
+trusted app code and keep `themeSchema`, which also accepts and drops `$schema`, so a downloaded
+file can be copied into `src/themes/` unchanged.
+
 ## Programmatic themes
 
 Under the Appearance category, **Themes** (`/settings/shell`) contains color scheme, theme

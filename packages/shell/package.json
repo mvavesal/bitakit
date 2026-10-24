@@ -27,12 +27,13 @@
       "types": "./dist/pages.d.ts",
       "default": "./dist/pages.js"
     },
+    "./theme.schema.json": "./dist/theme.schema.json",
     "./styles.css": "./styles.css",
     "./locales/*.json": "./locales/*.json",
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "node scripts/themes.mjs && tsc -p tsconfig.json && node ../../scripts/visual-slot-metadata.mjs shell",
+    "build": "node scripts/themes.mjs && tsc -p tsconfig.json && node scripts/theme-schema.mjs && node ../../scripts/visual-slot-metadata.mjs shell",
     "test": "npm run build && tsc -p tsconfig.test.json && node --test tests/*.test.mjs"
   },
   "dependencies": {

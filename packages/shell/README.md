@@ -223,6 +223,36 @@ each preset in the `presets` option; its `label` names it in the settings, and a
 }
 ```
 
+### Theme files
+
+A theme is one JSON file. To ship one with an app, write `src/themes/<id>.json`; discovery adds
+it as the app theme `app:<id>` after the next `npm run typecheck` or build, and users select it
+under Settings → Themes. Users exchange the same files with **Download theme** and **Import
+theme** on that page; an import opens as an unsaved personal copy.
+
+```json
+{
+  "$schema": "https://unpkg.com/@bitakit/shell/dist/theme.schema.json",
+  "schemaVersion": 1,
+  "id": "ocean",
+  "name": "Ocean",
+  "shared": { "radius": "0.875rem" },
+  "light": { "primary": "oklch(0.44 0.1 245)", "primary-foreground": "oklch(0.99 0 0)" },
+  "dark": { "primary": "oklch(0.8 0.1 245)", "primary-foreground": "oklch(0.16 0.015 245)" }
+}
+```
+
+- Token names are the central theme variables without `--` (`background`, `foreground`,
+  `primary`, `card`, `border`, `ring`, `radius`, `font-sans`, ...). `dist/theme.schema.json` in
+  this package lists every name; omitted tokens inherit the central theme.
+- Change colors in pairs (`primary` with `primary-foreground`, `card` with `card-foreground`) and
+  check both light and dark.
+- Values are CSS colors, lengths, keywords or `var(--<token>)`. Imported files may not use
+  `url()`, image functions, CSS escapes, `;`, braces, `<`, `>` or `@`; keep source themes to the
+  same rule so they can be shared.
+- Check a file with `parseThemeFile(text)` from `@bitakit/shell`: it throws with the location of
+  the first problem. The bundled `themes/*.json` of this package are complete examples.
+
 ## Pre-paint script
 
 `ShellThemeScript` renders an inline script for `<head>` that applies the stored color scheme
@@ -261,13 +291,14 @@ to set the HTTP status.
 
 ## Entries
 
-| Entry                           | Content                                                                                                                                        |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@bitakit/shell`                | `AppShell`, `useShellLayout`, `useNotifications`, `notificationService`, `ShellThemeScript`, `shellPlugin`, `shellOptions`, page states, types |
-| `@bitakit/shell/foundation`     | `shellPlugin` as the default export, for discovery                                                                                             |
-| `@bitakit/shell/pages`          | The page states                                                                                                                                |
-| `@bitakit/shell/styles.css`     | HeroUI styles, the theme's dark variant and the package sources                                                                                |
-| `@bitakit/shell/locales/*.json` | `shell.settings`, `shell.ui` and `shell.pages` catalogs                                                                                        |
+| Entry                              | Content                                                                                                                                        |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@bitakit/shell`                   | `AppShell`, `useShellLayout`, `useNotifications`, `notificationService`, `ShellThemeScript`, `shellPlugin`, `shellOptions`, page states, types |
+| `@bitakit/shell/foundation`        | `shellPlugin` as the default export, for discovery                                                                                             |
+| `@bitakit/shell/pages`             | The page states                                                                                                                                |
+| `@bitakit/shell/theme.schema.json` | JSON Schema of theme files (`$schema` of downloaded themes)                                                                                    |
+| `@bitakit/shell/styles.css`        | HeroUI styles, the theme's dark variant and the package sources                                                                                |
+| `@bitakit/shell/locales/*.json`    | `shell.settings`, `shell.ui` and `shell.pages` catalogs                                                                                        |
 
 ## Source responsibilities
 
@@ -360,6 +391,12 @@ Theme choices reuse shared Field selection cards and RadioGroup primitives. Font
 Button and DropdownMenu radio components. Saving keeps
 the editor open; subsequent saves update the personal copy. Disabled shadow tokens project
 as a transparent shadow so composed border and focus rings remain visible.
+
+Download and Import buttons beside the theme selector exchange themes as JSON files.
+`stringifyThemeFile` writes the shown theme (draft or selection) with `$schema`;
+`parseThemeFile` accepts only known tokens and values that load no resources, and the import opens
+as an unsaved personal draft with a fresh ID that `shell.saveThemeCopy` saves. The build writes
+the same rules to `dist/theme.schema.json` (`scripts/theme-schema.mjs`).
 
 Personal themes can be removed through `shell.deleteTheme` and the existing confirmation
 flow. The service rejects deletion of original themes and atomically selects BitaKit

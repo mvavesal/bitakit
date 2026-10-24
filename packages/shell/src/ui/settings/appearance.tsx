@@ -7,7 +7,9 @@ import SunIcon from 'reicon-react/icons/Sun';
 import MoonIcon from 'reicon-react/icons/Moon';
 import SettingsIcon from 'reicon-react/icons/Settings';
 import ChevronDownIcon from 'reicon-react/icons/ChevronDown';
-import { useState, type ReactNode } from 'react';
+import DownloadIcon from 'reicon-react/icons/Download';
+import UploadIcon from 'reicon-react/icons/Upload';
+import { useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import {
   Action,
   useService,
@@ -22,6 +24,7 @@ import {
   Field,
   FieldLabel,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldSet,
   FieldLegend,
@@ -41,7 +44,22 @@ import {
 import { themeService, type ThemeService } from '../../services/themes.js';
 import { ThemePreview, themePreviewStyle } from './theme-preview.js';
 import { useAppThemeBaseline } from '../providers/theme.js';
-import type { ShellThemeDefinition, ThemeSource } from '../../themes.js';
+import {
+  parseThemeFile,
+  stringifyThemeFile,
+  type ShellThemeDefinition,
+  type ThemeSource,
+} from '../../themes.js';
+
+/** A readable download name; the file content keeps the theme's own id. */
+const fileName = (name: string) =>
+  `${
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, '-')
+      .replace(/^-|-$/g, '') || 'theme'
+  }.theme.json`;
 
 /** Shell composition only; values and business operations stay in settings/services/actions. */
 export function AppearanceSettings({
@@ -62,16 +80,21 @@ export function AppearanceSettings({
   const service = useService(themeService) as ThemeService | undefined;
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [draft, setDraft] = useState<ShellThemeDefinition | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const active = service?.active();
-  function customize() {
-    if (!active) return;
-    setEditingPersonal(active.source === 'user');
+  const editInCurrentMode = () =>
     setColorMode(
       mode.value === 'dark' ||
         (mode.value === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
         ? 'dark'
         : 'light',
     );
+  function customize() {
+    if (!active) return;
+    setImportError(null);
+    setEditingPersonal(active.source === 'user');
+    editInCurrentMode();
     setDraft({
       schemaVersion: 1,
       id: active.source === 'user' ? active.id : crypto.randomUUID(),
@@ -80,6 +103,34 @@ export function AppearanceSettings({
       light: { ...active.light },
       dark: { ...active.dark },
     });
+  }
+  /** Downloads the theme shown in the preview: the open draft, otherwise the active theme. */
+  function download() {
+    const theme = draft ?? active;
+    if (!theme) return;
+    const url = URL.createObjectURL(
+      new Blob([stringifyThemeFile(theme)], { type: 'application/json' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName(theme.name);
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url));
+  }
+  /** Opens a theme file as an unsaved personal copy; saving uses the existing copy Action. */
+  async function importFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const theme = parseThemeFile(await file.text());
+      setImportError(null);
+      setEditingPersonal(false);
+      editInCurrentMode();
+      setDraft({ ...theme, id: crypto.randomUUID() });
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : String(error));
+    }
   }
   function token(group: 'shared' | 'light' | 'dark', name: string, label: string) {
     if (!draft) return null;
@@ -246,6 +297,31 @@ export function AppearanceSettings({
                   >
                     <SettingsIcon aria-hidden="true" />
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={text('download', 'Download theme')}
+                    disabled={!draft && (!active || active.key === 'shell:default')}
+                    onClick={download}
+                  >
+                    <DownloadIcon aria-hidden="true" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={text('import', 'Import theme')}
+                    disabled={library.disabled}
+                    onClick={() => fileInput.current?.click()}
+                  >
+                    <UploadIcon aria-hidden="true" />
+                  </Button>
+                  <input
+                    ref={fileInput}
+                    type="file"
+                    accept=".json,application/json"
+                    hidden
+                    onChange={importFile}
+                  />
                   <Action
                     id="shell.selectTheme"
                     input={{ key: 'shell:default' }}
@@ -258,6 +334,11 @@ export function AppearanceSettings({
                     </Button>
                   </Action>
                 </div>
+                {importError && (
+                  <FieldError>
+                    {text('importError', 'This file is not a valid theme.')} {importError}
+                  </FieldError>
+                )}
               </Field>
             </FieldGroup>
           </CardContent>

@@ -211,6 +211,7 @@ test('locales share one key set under the shell namespace; the manifest declares
     '.',
     './foundation',
     './pages',
+    './theme.schema.json',
     './styles.css',
     './locales/*.json',
     './package.json',

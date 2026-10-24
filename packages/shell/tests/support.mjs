@@ -14,6 +14,7 @@ for (const key of [
   'self',
   'document',
   'HTMLElement',
+  'HTMLFormElement',
   'HTMLAnchorElement',
   'HTMLButtonElement',
   'HTMLInputElement',

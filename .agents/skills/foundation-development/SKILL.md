@@ -729,6 +729,15 @@ Shell now registers the `themes` service through `defineService`/`provides`, wit
 or confirmed state exists. Additional theme definitions can be passed in Shell options.
 Source-qualified keys distinguish Shell, app and personal themes; duplicate display names
 are allowed. JSON tokens now project onto the document root with light/dark selection and cleanup on switching or unmount. Discovery collects app `src/themes/**/*.json`; Shell builds its bundled `themes/*.json`. Appearance uses standard controls and react-colorful for palette editing. Source file collection is build-time; personal persistence and switching are runtime.
+Theme files exchanged as downloads, imports or agent output go through `parseThemeFile`
+(`themeFileSchema`): known token names from the generated `themeDefaults` only, and values without
+resource-loading functions (`url(`, image functions), escapes, `;`, braces, `<`, `>` or `@`. Keep
+that rule regex-only so the build-generated `dist/theme.schema.json` enforces the same check.
+Bundled and app themes are trusted and stay on `themeSchema`, which accepts and drops `$schema`
+so downloaded files work in `src/themes/` unchanged (`themeCatalog` strips it). The agent recipe
+for theme files lives in the Shell README ("Theme files"); the app skill links to it rather than
+copying it. Imports open as an unsaved
+personal draft with a fresh ID and save through `shell.saveThemeCopy`; no separate import store.
 The bundled array has an explicit `readonly ShellThemeInput[]` type: `satisfies` alone infers
 optional undefined token keys across heterogeneous palettes and breaks the service input type.
 Shell exposes Themes at `/settings/shell` and Layout at `/settings/shell/layout` in the same
