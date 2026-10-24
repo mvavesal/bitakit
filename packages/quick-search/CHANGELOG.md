@@ -1,5 +1,12 @@
 # @bitakit/quick-search
 
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies [10cd9f1]
+  - @bitakit/app-preferences@0.3.0
+
 ## 0.2.4
 
 ### Patch Changes
