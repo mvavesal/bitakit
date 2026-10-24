@@ -818,7 +818,12 @@ preserved whole; `init --update-agent-files` replaces it only when its frontmatt
 the BitaKit-owned `AGENTS.md` block. Compare installed copies with `readSkillFiles` and
 `bundledSkillFiles` (stamp ignored), never byte by byte; the source SKILL.md has no `metadata`.
 Its recipes extend the `--sample` Todo plugins (`todos`, `activity`) with `about`, `summary`,
-`print` and `todos.toolbar`; keep those names consistent. Templates and docs name their data
+`print` and `todos.toolbar`; keep those names consistent. `worked-example.md`, `data-and-api.md`
+and `best-practices.md` instead build a standalone `bookmarks` feature (plus `sharing` and
+`src/app/api/bookmarks/route.ts`) in a create-app app without the sample. Each full file is
+introduced by a line ending in its backticked path and a colon; when changing them, write those
+blocks into a fresh `create-app --no-sample` app and run typecheck, doctor and both tests
+(the data recipe's test replaces the worked example's). Templates and docs name their data
 concretely: the sample service is `todos.list` (state `todos`), and `add plugin --example` writes
 `<plugin>.list` (state `entries`, type `Entry`). Keep this repository skill focused on package and
 framework implementation, not

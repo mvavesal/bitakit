@@ -75,15 +75,20 @@ save a recipe with a title and ingredients" works the same way.
 
 ## What the skill covers
 
-| Task                                                                     | Recipe                                                      |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| Create a plugin, a page or a sidebar link                                | [plugins-and-pages.md](references/plugins-and-pages.md)     |
-| Add an Action and bind it to a button or link                            | [actions.md](references/actions.md)                         |
-| Keep shared state, use another plugin's service, send and receive events | [services-and-events.md](references/services-and-events.md) |
-| Declare a slot, render it, contribute to one                             | [slots.md](references/slots.md)                             |
-| Block, check or observe Actions                                          | [interceptors.md](references/interceptors.md)               |
-| Add a user setting                                                       | [settings.md](references/settings.md)                       |
-| Test a plugin and check it in the browser                                | [testing-and-preview.md](references/testing-and-preview.md) |
+| Task                                                                       | Recipe                                                      |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Build a whole feature step by step (Bookmarks)                             | [worked-example.md](references/worked-example.md)           |
+| Create a plugin, a page or a sidebar link                                  | [plugins-and-pages.md](references/plugins-and-pages.md)     |
+| Add an Action and bind it to a button or link                              | [actions.md](references/actions.md)                         |
+| Keep shared state, use another plugin's service, send and receive events   | [services-and-events.md](references/services-and-events.md) |
+| Declare a slot, render it, contribute to one                               | [slots.md](references/slots.md)                             |
+| Block, check or observe Actions                                            | [interceptors.md](references/interceptors.md)               |
+| Add a user setting                                                         | [settings.md](references/settings.md)                       |
+| Replace a layout, the frame, a 404 or error page, or another plugin's part | [layouts-and-screens.md](references/layouts-and-screens.md) |
+| Load and save data through an API route                                    | [data-and-api.md](references/data-and-api.md)               |
+| Avoid common mistakes; naming                                              | [best-practices.md](references/best-practices.md)           |
+| Change the app's colors, fonts or theme                                    | Theme files in the `@bitakit/shell` README                  |
+| Test a plugin and check it in the browser                                  | [testing-and-preview.md](references/testing-and-preview.md) |
 
 Before every change the agent reads the app's packages, runs `npx bitakit info --json`,
 `npx bitakit slots` and `npx bitakit doctor`, and checks which layout renders the place it wants
