@@ -1,5 +1,20 @@
 # @bitakit/quick-search
 
+## 0.2.6
+
+### Patch Changes
+
+- b3a686f: Every package ships an `AGENTS.md`: a guide for coding agents that use the package in an app,
+  with what it provides, how to extend or replace it, its rules and a minimal example. The app
+  development skill points agents to `node_modules/@bitakit/<name>/AGENTS.md`.
+- Updated dependencies [03439c7]
+- Updated dependencies [b3a686f]
+- Updated dependencies [4e5ef15]
+- Updated dependencies [4e5ef15]
+  - @bitakit/ui@0.2.6
+  - @bitakit/core@0.2.5
+  - @bitakit/app-preferences@0.2.6
+
 ## 0.2.5
 
 ### Patch Changes

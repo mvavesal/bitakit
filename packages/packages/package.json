@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/packages",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "description": "Optional trusted package catalog adapter for a running BitaKit host.",
   "sideEffects": false,
@@ -22,7 +22,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.2"
+    "@bitakit/core": "^0.2.5"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
