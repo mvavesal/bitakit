@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/quick-search",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "BitaKit Quick Search: plugin-owned search sources, navigation, preferences and recent history.",
   "type": "module",
   "sideEffects": [

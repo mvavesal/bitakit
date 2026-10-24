@@ -1,5 +1,11 @@
 # @bitakit/quick-search
 
+## 0.2.4
+
+### Patch Changes
+
+- ed44370: Link results can carry an `image` (`{ src, alt? }`), shown as a small thumbnail, for example a cover. Results without one show their source's icon instead of the generic link icon.
+
 ## 0.2.3
 
 ### Patch Changes
