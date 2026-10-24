@@ -33,6 +33,7 @@ import { StartupFailureDialog, type StartupFailure } from '../components/startup
 import { standardBitaKitUI } from '../components/standard-foundation-ui.js';
 import { defaultLabels } from '../components/foundation-labels.js';
 import { bindPluginManagement } from './plugin-management.js';
+import { subscribeReadiness } from '../utils/subscribe-readiness.js';
 
 const ignore = () => {};
 const noServices = {};
@@ -131,22 +132,26 @@ function FoundationRuntimeProvider({
   const runtime = attempt.runtime;
   useEffect(() => {
     if (!runtime) return;
-    let active = true;
     let release: (() => void) | undefined;
-    void runtime.ready
-      .then(
-        () => {
-          if (active) release = bindPluginManagement(runtime);
-        },
-        () => {
-          /* Startup failure and cancelled mounts are handled by the controller. */
-        },
-      )
-      .catch((error) => {
-        if (active) console.error('[bitakit] Host Actions could not start.', error);
-      });
+    // Bind whenever the runtime is ready and idle. Strict Mode and failure isolation stop and
+    // remount the same runtime, and its shutdown releases host Actions, so bind again then.
+    const sync = () => {
+      if (!runtime.isReady()) {
+        release?.();
+        release = undefined;
+        return;
+      }
+      if (release || runtime.lifecycle.get().operation) return;
+      try {
+        release = bindPluginManagement(runtime);
+      } catch (error) {
+        console.error('[bitakit] Host Actions could not start.', error);
+      }
+    };
+    const stop = subscribeReadiness(runtime, sync);
+    sync();
     return () => {
-      active = false;
+      stop();
       release?.();
     };
   }, [runtime]);
