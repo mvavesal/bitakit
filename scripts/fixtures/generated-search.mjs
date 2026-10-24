@@ -64,11 +64,23 @@ export async function verifySearch(page, url, artifacts) {
   await expect(page).toHaveURL(/\/catalog$/);
   await open();
   await expect(page.getByText('Recent searches', { exact: true })).toBeVisible();
-  await expect(page.getByText('Recently opened', { exact: true })).toBeVisible();
+  // Recently opened results are recorded but hidden until the user turns them on.
+  await expect(page.getByText('Recently opened', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('dialog').locator('.quick-search-controls button')).toHaveCount(1);
   await page.keyboard.press('Escape');
   await page.goto(url + '/settings/quick-search');
   await expect(page.getByRole('heading', { name: 'Quick search', exact: true })).toBeVisible();
+  const recentSwitch = page.getByRole('switch', {
+    name: 'Show recently opened items',
+    exact: true,
+  });
+  await expect(recentSwitch).not.toBeChecked();
+  await recentSwitch.click();
+  await expect(recentSwitch).toBeChecked();
+  await open();
+  await expect(page.getByText('Recently opened', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
   const sourceSwitch = page.getByRole('switch', { name: 'Learning catalog', exact: true });
   await expect(sourceSwitch).toBeChecked();
   await sourceSwitch.click();
