@@ -347,3 +347,47 @@ test('SettingsFields renders one card, grouped cards, exclusions and an empty st
     await empty.unmount();
   }
 });
+
+test('a setting named in the address is scrolled to, focused and marked; settingHref links it', async () => {
+  const { settingHref, settingAnchor } = await import('../dist/index.js');
+  assert.equal(settingAnchor('prefs.theme'), 'setting-prefs.theme');
+  assert.equal(
+    settingHref('/settings', { path: 'prefs' }, 'prefs.theme'),
+    '/settings/prefs#setting-prefs.theme',
+  );
+  assert.equal(settingHref('/', { path: 'prefs' }, 'prefs.theme'), '/prefs#setting-prefs.theme');
+
+  const scrolled = [];
+  const original = window.Element.prototype.scrollIntoView;
+  window.Element.prototype.scrollIntoView = function () {
+    scrolled.push(this.id);
+  };
+  window.location.hash = '#setting-prefs.name';
+  const view = await renderApp(
+    h('div', null, [
+      h(SettingField, { key: 'enabled', settingKey: 'prefs.enabled' }),
+      h(SettingField, { key: 'name', settingKey: 'prefs.name' }),
+    ]),
+    { config, storage: controlledStorage() },
+  );
+  const field = (key) => view.container.querySelector(`[id="setting-${key}"]`);
+  try {
+    await act(tick);
+    assert.ok(field('prefs.name'), 'the field has its anchor id');
+    assert.equal(field('prefs.name').getAttribute('data-linked'), 'true');
+    // Scrolled to it (the provider may mount the page twice while it starts; each reveals the same field).
+    assert.equal(scrolled.at(-1), 'setting-prefs.name');
+    assert.equal(document.activeElement, field('prefs.name').querySelector('input'));
+    assert.equal(field('prefs.enabled').getAttribute('data-linked'), null);
+
+    // A later hash change brings another setting into view.
+    window.location.hash = '#setting-prefs.enabled';
+    await act(async () => window.dispatchEvent(new window.HashChangeEvent('hashchange')));
+    assert.equal(field('prefs.enabled').getAttribute('data-linked'), 'true');
+    assert.equal(scrolled.at(-1), 'setting-prefs.enabled');
+  } finally {
+    window.Element.prototype.scrollIntoView = original;
+    window.location.hash = '';
+    await view.unmount();
+  }
+});

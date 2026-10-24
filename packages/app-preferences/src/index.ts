@@ -26,6 +26,7 @@ export {
 export { SettingsOverview, type SettingsOverviewProps } from './components/settings-overview.js';
 export { PluginsOverview } from './components/plugins-overview.js';
 export { settingsCategories, type SettingsCategory } from './categories.js';
+export { sectionHref, settingAnchor, settingHref } from './paths.js';
 export type { SettingsCatalogSection, SettingsCatalogField } from '@bitakit/ui';
 
 export { ScrollArea, ScrollBar } from './components/ui/scroll-area.js';
