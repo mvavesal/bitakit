@@ -17,7 +17,13 @@ import path from 'node:path';
 import { execa } from 'execa';
 import { fileURLToPath } from 'node:url';
 import { planProject, createApp, createProject, useLocalPackages } from '../src/create-app.mjs';
-import { bitakitRange, releaseLineRange } from '../src/project-files.mjs';
+import {
+  bitakitRange,
+  minimumVersions,
+  packageRange,
+  releaseLineRange,
+} from '../src/project-files.mjs';
+import { detectPackageManager } from '../src/package-manager.mjs';
 import { bundledSkillFiles, readSkillFiles } from '@bitakit/cli';
 
 async function workspace(t) {
@@ -106,6 +112,47 @@ test('rejects existing projects, files and symlinks without touching user files'
   assert.deepEqual(await readdir(root), ['existing', 'file', 'linked']);
 });
 
+test('the package manager that started the generator scaffolds, installs and runs the app', async (t) => {
+  assert.equal(
+    detectPackageManager({ npm_config_user_agent: 'pnpm/11.5.0 npm/? node/v24' }),
+    'pnpm',
+  );
+  assert.equal(
+    detectPackageManager({ npm_config_user_agent: 'yarn/1.22.22 npm/? node/v24' }),
+    'yarn',
+  );
+  assert.equal(detectPackageManager({ npm_config_user_agent: 'bun/1.3.0 npm/? node/v24' }), 'bun');
+  assert.equal(detectPackageManager({}), 'npm', 'npm when nothing says otherwise');
+  const root = await workspace(t);
+  const plan = await planProject(path.join(root, 'app'), { packageManager: 'pnpm' });
+  assert.equal(plan.packageManager, 'pnpm');
+  const calls = [];
+  await createProject(plan, {
+    run: async (command, args, cwd) => {
+      calls.push({ command, args, cwd });
+      if (command === process.execPath) await scaffoldNext(command, args);
+    },
+  });
+  assert.ok(calls[0].args.includes('--use-pnpm'), 'create-next-app prepares a pnpm project');
+  assert.deepEqual(calls.at(-1), { command: 'pnpm', args: ['install'], cwd: plan.target });
+  const readmeText = await read(plan.target, 'README.md');
+  assert.match(readmeText, /pnpm run dev/);
+  assert.doesNotMatch(readmeText, /(^|[^p])npm run/m);
+
+  await assert.rejects(
+    planProject(path.join(root, 'x'), { packageManager: 'deno' }),
+    /Unknown package manager/,
+  );
+  await assert.rejects(
+    planProject(path.join(root, 'pkg'), { type: 'plugin', packageManager: 'pnpm' }),
+    /plugin package uses npm workspaces/,
+  );
+  assert.equal(
+    (await planProject(path.join(root, 'pkg'), { type: 'plugin' })).packageManager,
+    'npm',
+  );
+});
+
 test('an empty folder becomes the app; scaffolding runs in a sibling and installing in place', async (t) => {
   const root = await workspace(t);
   const target = path.join(root, 'here');
@@ -143,6 +190,12 @@ test('generated projects depend on the release line, not the generator version',
   assert.equal(releaseLineRange('0.2.4'), '^0.2.0');
   assert.equal(releaseLineRange('0.3.0'), '^0.3.0');
   assert.equal(releaseLineRange('1.4.2'), '^1.0.0');
+  // A minimum raises the start of the range for an API the generated files use, within the line.
+  for (const [name, version] of Object.entries(minimumVersions)) {
+    assert.equal(releaseLineRange(version), bitakitRange, `${name} stays on the release line`);
+    assert.equal(packageRange(name), `^${version}`);
+  }
+  assert.equal(packageRange('core'), bitakitRange);
 });
 
 /** Writes `files` (relative path to content) into `target`. */
@@ -473,7 +526,8 @@ test('the shell app adds the App Shell, settings, a not-found fallback and the T
   await createApp(plan, { run: scaffoldNext });
   const manifest = JSON.parse(await read(plan.target, 'package.json'));
   for (const name of ['app-preferences', 'shell', 'quick-search'])
-    assert.equal(manifest.dependencies[`@bitakit/${name}`], bitakitRange);
+    assert.equal(manifest.dependencies[`@bitakit/${name}`], packageRange(name));
+  assert.equal(manifest.dependencies['@bitakit/shell'], '^0.2.6', 'layout prop and HeroUI peers');
   assert.match(
     await read(plan.target, 'src/app/(app)/layout.tsx'),
     /<AppShell>\{children\}<\/AppShell>/,
@@ -666,7 +720,7 @@ test('TanStack apps get the same frame through native file routes and the Vite p
   const manifest = JSON.parse(await read(plan.target, 'package.json'));
   assert.equal(manifest.dependencies['@bitakit/tanstack'], bitakitRange);
   assert.equal(manifest.dependencies['@bitakit/next'], undefined);
-  assert.equal(manifest.dependencies['@bitakit/shell'], bitakitRange);
+  assert.equal(manifest.dependencies['@bitakit/shell'], packageRange('shell'));
   assert.ok(manifest.dependencies['@tanstack/react-start']);
   assert.ok(manifest.devDependencies.tailwindcss);
   assert.deepEqual(manifest.scripts, {
@@ -785,7 +839,7 @@ test('a plugin package has the same folders as an app plugin, a headless test an
   assert.equal(playgroundManifest.name, 'my-notes-playground');
   assert.equal(playgroundManifest.private, true);
   assert.equal(playgroundManifest.dependencies['@bitakit/devtools'], bitakitRange);
-  assert.equal(playgroundManifest.dependencies['@bitakit/shell'], bitakitRange);
+  assert.equal(playgroundManifest.dependencies['@bitakit/shell'], packageRange('shell'));
   assert.equal(playgroundManifest.overrides, undefined);
   assert.equal(
     await read(playground, 'bitakit.config.ts'),

@@ -9,6 +9,7 @@ import { tanstack } from './adapters/tanstack.mjs';
 import { createPluginPackage } from './plugin-package.mjs';
 import { writeProjectFiles } from './project-files.mjs';
 import { createInExistingFolder, existingFolder, failUnchanged } from './existing-folder.mjs';
+import { detectPackageManager, packageManagers } from './package-manager.mjs';
 
 export const adapters = { next, tanstack };
 
@@ -42,12 +43,21 @@ export async function planProject(directory, options = {}) {
   const features = resolveFeatures(
     type === 'plugin' ? defaultFeatures : (options.features ?? defaultFeatures),
   );
+  const packageManager = options.packageManager ?? detectPackageManager();
+  if (!packageManagers.includes(packageManager))
+    throw new Error(
+      `Unknown package manager: ${packageManager}. Use ${packageManagers.join(', ')}.`,
+    );
+  // A plugin package is an npm workspace (package and playground) with npm overrides.
+  if (type === 'plugin' && options.packageManager && packageManager !== 'npm')
+    throw new Error('A plugin package uses npm workspaces; create it with npm.');
   return {
     type,
     target,
     name,
     framework,
     features,
+    packageManager: type === 'plugin' ? 'npm' : packageManager,
     sample: type === 'app' && !!options.sample,
     install: options.install !== false,
     existing,
@@ -83,7 +93,7 @@ export async function createProject(plan, options = {}) {
     create({ target: staged, install: false }),
   );
   // Installing runs once the project is in place, so a failed install leaves it there to inspect.
-  if (plan.install) await run('npm', ['install'], plan.target);
+  if (plan.install) await run(plan.packageManager, ['install'], plan.target);
   return { target: plan.target, kept };
 }
 
@@ -100,7 +110,7 @@ export async function createApp(plan, { run, packagesDir, install = plan.install
       }),
     );
   if (packagesDir) await useLocalPackages(plan.target, packagesDir);
-  if (install) await run('npm', ['install'], plan.target);
+  if (install) await run(plan.packageManager, ['install'], plan.target);
   return plan.target;
 }
 
@@ -133,6 +143,9 @@ export async function useLocalPackages(target, directory) {
         );
       manifest[field][name] = overrides[name];
     }
+  // npm and Bun read `overrides`, Yarn reads `resolutions`, pnpm reads `pnpm.overrides`.
   manifest.overrides = { ...manifest.overrides, ...overrides };
+  manifest.resolutions = { ...manifest.resolutions, ...overrides };
+  manifest.pnpm = { ...manifest.pnpm, overrides: { ...manifest.pnpm?.overrides, ...overrides } };
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
 }

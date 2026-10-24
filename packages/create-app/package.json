@@ -4,12 +4,14 @@
   "description": "Create a BitaKit app (Next.js or TanStack Start) or a standalone plugin package.",
   "type": "module",
   "bin": {
-    "create-bitakit-app": "./src/cli.mjs"
+    "create-bitakit-app": "./src/cli.mjs",
+    "create-app": "./src/cli.mjs"
   },
   "files": [
     "src",
     "README.md",
     "AGENTS.md",
+    "CLAUDE.md",
     "LICENSE"
   ],
   "engines": {

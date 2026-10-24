@@ -5,6 +5,7 @@ import { Command, Option } from 'commander';
 import * as prompts from '@clack/prompts';
 import { createProject, planProject, adapters } from './create-app.mjs';
 import { features, defaultFeatures } from './features.mjs';
+import { packageManagers, runScript } from './package-manager.mjs';
 import { bitakitIdentity } from '@bitakit/cli';
 
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
@@ -29,6 +30,12 @@ const program = new Command()
   .option('--no-sample', 'do not add the Todo sample')
   .option('-y, --yes', 'use defaults without prompts')
   .option('--no-install', 'generate files without installing dependencies')
+  .addOption(
+    new Option(
+      '--package-manager <name>',
+      'install with this package manager (default: the one that started the generator)',
+    ).choices(packageManagers),
+  )
   .option('--packages-dir <directory>', 'install BitaKit from local npm-packed tarballs')
   .option('--dry-run', 'show the resolved plan without writing or installing')
   .addHelpText(
@@ -138,7 +145,7 @@ Examples:
             `Sample:    ${plan.sample ? 'Todo (todos + activity plugins)' : 'no'}`,
           ]
         : []),
-      `Install:   ${plan.install ? 'yes' : 'no'}`,
+      `Install:   ${plan.install ? `yes, with ${plan.packageManager}` : 'no'}`,
     ].join('\n');
     if (interactive) prompts.note(summary, 'Creating');
     else console.log(`\n${summary}\n`);
@@ -171,8 +178,8 @@ Examples:
     ];
     const steps = [
       ...(where === '.' ? [] : [`cd ${where}`]),
-      ...(plan.install ? [] : ['npm install']),
-      'npm run dev',
+      ...(plan.install ? [] : [`${plan.packageManager} install`]),
+      runScript(plan.packageManager, 'dev'),
       '',
       ...(plan.type === 'plugin'
         ? [

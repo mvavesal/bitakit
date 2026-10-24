@@ -17,7 +17,11 @@ npx @bitakit/create-app@latest <directory> --framework next --features <list|non
   `none`; without it the app gets `shell,quick-search`. Add `--sample` for the Todo sample.
 - `--yes` skips prompts. Use `.` as the directory when the folder holds only `.git` and agent
   files; existing agent files are kept and merged.
-- `--plugin` creates a plugin package with a playground app.
+- `--plugin` creates a plugin package with a playground app; it always installs with npm.
+- The app installs with the package manager that started the generator:
+  `pnpm create @bitakit/app <directory> ...`, `yarn create @bitakit/app ...`,
+  `bunx @bitakit/create-app@latest ...`, or `--package-manager <npm|pnpm|yarn|bun>`. Keep using
+  that package manager in the app.
 
 ## What an app gets
 

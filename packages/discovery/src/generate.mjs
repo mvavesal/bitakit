@@ -550,7 +550,8 @@ ${installed.plugins
     const optionsExpression = configPath ? `options.get(${quote(configPath)}, {})` : '';
     const argument =
       configPath === 'shell' && appThemes.length
-        ? `{ ...${optionsExpression}, themes: [...options.get("shell.themes", []), ...${quote(appThemes)}] }`
+        ? // `as const` keeps `"schemaVersion": 1` the literal Shell's option type requires.
+          `{ ...${optionsExpression}, themes: [...options.get("shell.themes", []), ...(${quote(appThemes)} as const)] }`
         : optionsExpression;
     const call = `packagePlugin${index}(${argument})`;
     // Manifest `dependencies` join the ones the plugin declares itself.

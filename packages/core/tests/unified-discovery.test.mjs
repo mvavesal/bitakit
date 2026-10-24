@@ -1630,6 +1630,8 @@ test('app JSON themes are additive Shell options and malformed files name their 
     const generated = await readFile(result.generated, 'utf8');
     assert.match(generated, /themes: \[\.\.\.options.get\("shell.themes", \[\]\)/);
     assert.match(generated, /"id":"ocean"/);
+    // A JSON number would widen to `number`; Shell's option type needs the literal 1.
+    assert.match(generated, /\.\.\.\(\[\{"schemaVersion":1,[^\]]*\}\] as const\)/);
     await put('src/themes/ocean.json', '{broken');
     await assert.rejects(
       generateBitaKit(root, { quiet: true }),

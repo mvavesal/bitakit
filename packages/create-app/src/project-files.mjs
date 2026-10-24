@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { stylePrelude } from '@bitakit/discovery';
 import { agentRules as sharedAgentRules, bitakitIdentity, gitignoreBlock } from '@bitakit/cli';
+import { runScript } from './package-manager.mjs';
 
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 /**
@@ -27,6 +28,23 @@ export async function writeProjectFiles(root, files) {
   for (const [file, content] of Object.entries(files)) await writeProjectFile(root, file, content);
 }
 
+/**
+ * The oldest release of a package that the generated files work with, when that is newer than
+ * the start of the line. Without it a resolver that skips fresh releases (pnpm's
+ * minimumReleaseAge) or an older lockfile installs a version missing an API the files use.
+ * Raise an entry when a template starts using a newer API; drop entries at a new release line.
+ */
+export const minimumVersions = {
+  // 0.2.5: not-found.tsx renders `<AppShell layout="error">` and error pages Shell's screens.
+  // 0.2.6: Shell declares HeroUI's peers, which Yarn does not install by itself.
+  shell: '0.2.6',
+};
+
+/** The dependency range for a generated project: the release line, from its minimum if any. */
+export function packageRange(name) {
+  return minimumVersions[name] ? `^${minimumVersions[name]}` : bitakitRange;
+}
+
 export const optionalPackages = {
   preferences: 'app-preferences',
   shell: 'shell',
@@ -41,7 +59,7 @@ export async function configureProject(
   const file = path.join(plan.target, 'package.json');
   const project = JSON.parse(await readFile(file, 'utf8'));
   for (const name of ['core', 'ui', ...packages])
-    project.dependencies[`@bitakit/${name}`] = bitakitRange;
+    project.dependencies[`@bitakit/${name}`] = packageRange(name);
   Object.assign(project.dependencies, dependencies);
   project.devDependencies = {
     ...project.devDependencies,
@@ -82,6 +100,7 @@ export default defineConfig({
 
 export function readme(plan, { routes }) {
   const shell = plan.features.includes('shell');
+  const run = (script) => runScript(plan.packageManager ?? 'npm', script);
   return `# ${plan.name}
 
 A ${plan.framework === 'tanstack' ? 'TanStack Start' : 'Next.js'} app built with [BitaKit](https://github.com/mvavesal/bitakit).
@@ -90,7 +109,7 @@ ${bitakitIdentity} Each feature is a folder in \`src/plugins/\`.
 ## 1. Run your app
 
 \`\`\`sh
-npm run dev
+${run('dev')}
 \`\`\`
 
 Open the address printed in the terminal. Your framework and BitaKit are already connected.
@@ -129,12 +148,12 @@ ${shell ? '| Shell options | `src/configs/shell.ts` |\n' : ''}
 ## 4. Check your work
 
 \`\`\`sh
-npm run typecheck
+${run('typecheck')}
 npx bitakit doctor
 \`\`\`
 
 The type check generates \`src/bitakit.gen.*\`; do not edit those files. Doctor reports wiring
-problems. Use \`npm run build\` when ready to check a production build.
+problems. Use \`${run('build')}\` when ready to check a production build.
 
 ## Work with a coding agent
 

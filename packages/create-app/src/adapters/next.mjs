@@ -58,7 +58,7 @@ export const next = {
         '--app',
         '--src-dir',
         '--empty',
-        '--use-npm',
+        `--use-${plan.packageManager ?? 'npm'}`,
         '--skip-install',
         '--disable-git',
         '--no-eslint',

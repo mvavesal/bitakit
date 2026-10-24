@@ -15,6 +15,20 @@ npm run dev
 For unpublished source changes, use the [local package workflow](../../apps/docs/content/docs/local-development.mdx).
 Open the printed address: BitaKit is already connected.
 
+### With pnpm, Yarn or Bun
+
+The generator installs with the package manager that started it, and the generated README
+uses its commands:
+
+```sh
+pnpm create @bitakit/app my-app --framework next --features none --yes
+yarn create @bitakit/app my-app --framework next --features none --yes
+bunx @bitakit/create-app@latest my-app --framework next --features none --yes
+```
+
+`--package-manager <npm|pnpm|yarn|bun>` chooses one explicitly. A plugin package (`--plugin`)
+is an npm workspace and always uses npm.
+
 ## 2. Add one page
 
 Create `src/plugins/counter/ui/pages/index.tsx`:
@@ -45,6 +59,7 @@ the minimal app above needs no additional options.
 | `--plugin`                   | Create a standalone plugin package with a playground app instead of an app.                                                   |
 | `-y, --yes`                  | Use the defaults without prompts.                                                                                             |
 | `--no-install`               | Write the files without installing dependencies.                                                                              |
+| `--package-manager <name>`   | `npm`, `pnpm`, `yarn` or `bun`. Default: the package manager that started the generator, else npm.                            |
 | `--dry-run`                  | Print the resolved plan without writing anything, including whether it uses an existing folder.                               |
 
 Features bring their prerequisites: Shell adds App Preferences, and Quick Search adds Shell. The generator never overwrites an existing project or file. If installing fails, the generated files stay for inspection and the command exits with an error.
