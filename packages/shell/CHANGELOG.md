@@ -1,5 +1,11 @@
 # @bitakit/shell
 
+## 0.2.4
+
+### Patch Changes
+
+- 39b4895: Distinguish the app's inherited default appearance from the explicit BitaKit palette. Preview app CSS colors accurately and preserve Reset's return to the app default.
+
 ## 0.2.3
 
 ### Patch Changes
