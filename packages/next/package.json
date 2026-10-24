@@ -5,6 +5,7 @@
   "files": [
     "src",
     "README.md",
+    "AGENTS.md",
     "dist"
   ],
   "exports": {

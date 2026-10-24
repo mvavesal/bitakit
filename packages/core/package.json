@@ -6,6 +6,7 @@
   "files": [
     "dist",
     "README.md",
+    "AGENTS.md",
     "assets",
     "discovery",
     "examples",

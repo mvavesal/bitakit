@@ -9,6 +9,7 @@
   "files": [
     "dist",
     "README.md",
+    "AGENTS.md",
     "styles.css",
     "locales",
     "examples",

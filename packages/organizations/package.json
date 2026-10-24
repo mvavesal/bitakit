@@ -5,6 +5,7 @@
   "files": [
     "dist",
     "README.md",
+    "AGENTS.md",
     "locales"
   ],
   "exports": {

@@ -88,7 +88,8 @@ the file path is the ID. Discovery generates \`src/bitakit.gen.*\`; there is no 
   React only under \`ui/\`. Use \`@bitakit/ui/components\` and the app theme; do not restyle locally or
   import package CSS from JavaScript (discovery writes \`src/bitakit.gen.css\`).
 - Do not rebuild what BitaKit provides: no own registries, event buses, settings stores or button state.
-${shell ? "- Shell: place an Action with `slots: ['shell.navigation']` or `['shell.toolbar']`; header content goes in `ui/slots/shell.header.end.tsx`.\n" : ''}- App-owned routes stay native framework routes in \`${routes}\`; layouts live in \`src/layouts/<name>.tsx\`.
+${shell ? "- Shell: place an Action with `slots: ['shell.navigation']` or `['shell.toolbar']`; header content goes in `ui/slots/shell.header.end.tsx`.\n" : ''}- App-owned routes stay native framework routes in \`${routes}\`; layouts live in \`src/layouts/<family>.tsx\` (pages pick one with \`export const layout\`).
+- Each installed \`@bitakit/*\` package explains itself in \`node_modules/@bitakit/<name>/AGENTS.md\`; read it before using the package.
 - Create files with \`npx bitakit add plugin <name>\` and \`npx bitakit add <kind> <name>/<file>\` (\`events\` and
   \`settings\` take only \`<name>\`); list IDs with \`npx bitakit info --json\` and slots with \`npx bitakit slots\`; check with \`npx bitakit doctor\` and \`npm run typecheck\`.
 - For feature work, use the project-local \`bitakit-app-development\` skill (\`$bitakit-app-development\` in Codex,
