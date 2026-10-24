@@ -213,6 +213,8 @@ server decides what is writable; the UI shows read-only settings as such.
 | `SettingsOverview({ basePath?, query?, showSearch? })`                    | Every page with its fields, searchable, with an empty state.                    |
 | `PluginsOverview()`                                                       | Installed plugins; one plugin's details and settings with `?plugin=<id>`.       |
 | `settingsCategories`                                                      | Known categories and their order.                                               |
+| `sectionHref(basePath, section)`, `settingHref(basePath, section, key)`   | Links to a page, or to one setting on it (see Linking to a setting).            |
+| `settingAnchor(key)`                                                      | A setting's anchor, `setting-<key>`: the id of its field.                       |
 | `SettingControlProps`, `SettingsCatalogSection`, `SettingsCatalogField`   | Types.                                                                          |
 
 The seven controls are `SwitchControl`, `SelectControl`, `RadioControl`, `CardsControl`,
@@ -236,6 +238,15 @@ no settings code:
 
 Each carries `destinationMetadata` (`settings` or `plugin` and the owning plugin). Titles follow
 the translator and every registration leaves with the plugin.
+
+### Linking to a setting
+
+Every generated field has the id `setting-<key>`, so a link can name one setting:
+`settingHref('/settings', { path: 'shell' }, 'shell.theme')` gives
+`/settings/shell#setting-shell.theme`. Opening it, or changing the hash on the page, scrolls the
+field to the middle (without animation when reduced motion is set), focuses its control and
+highlights it briefly with the theme's focus ring. Useful for search results, help texts or an
+assistant that sends people to one setting.
 
 ### Query parameters
 

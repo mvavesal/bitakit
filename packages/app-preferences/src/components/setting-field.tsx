@@ -20,6 +20,7 @@ import AlertCircleIcon from 'reicon-react/icons/AlertCircle';
 import LockIcon from 'reicon-react/icons/Lock';
 import Undo3Icon from 'reicon-react/icons/Undo3';
 import { catalogField, catalogText } from '../catalog.js';
+import { settingAnchor } from '../paths.js';
 import { sameValue } from '../same.js';
 import { controlFor, draftControls, groupControls, SwitchControl } from './controls.js';
 import { Spinner } from './ui/spinner.js';
@@ -44,14 +45,55 @@ function errorText(error: unknown): string {
   }
   return error instanceof Error && error.message ? error.message : String(error);
 }
-function focusControl(id: string) {
+function focusControl(id: string, options?: FocusOptions) {
   const element = document.getElementById(id);
   const target = element?.matches('button, input, select, textarea')
     ? element
     : element?.querySelector<HTMLElement>(
         '[role="radio"][aria-checked="true"], button, input, select, textarea',
       );
-  target?.focus();
+  target?.focus(options);
+}
+
+const HIGHLIGHT_MS = 2400;
+
+/**
+ * Brings the setting into view when the address names it (`#setting-<key>`, see `settingHref`),
+ * on arrival and on a later hash change: scrolled to the middle, its control focused and the field
+ * marked for a moment. Returns whether it is marked.
+ */
+function useLinkedSetting(anchor: string, controlId: string) {
+  const [linked, setLinked] = useState(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const reveal = () => {
+      let hash = window.location.hash.slice(1);
+      try {
+        hash = decodeURIComponent(hash);
+      } catch {
+        // A malformed hash names no setting.
+      }
+      if (hash !== anchor) return;
+      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      document
+        .getElementById(anchor)
+        ?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+      focusControl(controlId, { preventScroll: true });
+      setLinked(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => setLinked(false), HIGHLIGHT_MS);
+    };
+    // After the page has laid out; a mount that is replaced right away (the provider starting up)
+    // cancels it, so the field scrolls and focuses once.
+    const arrival = setTimeout(reveal);
+    window.addEventListener('hashchange', reveal);
+    return () => {
+      window.removeEventListener('hashchange', reveal);
+      clearTimeout(arrival);
+      clearTimeout(timer);
+    };
+  }, [anchor, controlId]);
+  return linked;
 }
 
 /** The catalog field of a key; hidden settings get the same labels outside the catalog. */
@@ -90,6 +132,8 @@ export function SettingField(props: SettingFieldProps) {
     feedback: `${id}feedback`,
   };
   const Control = controlFor(field);
+  const anchor = settingAnchor(field.key);
+  const linked = useLinkedSetting(anchor, ids.control);
   // The value a running write is about to confirm; draft-based controls keep their own.
   const [draft, setDraft] = useState<{ value: unknown; token: number }>();
   const [rejected, setRejected] = useState<string>();
@@ -171,8 +215,11 @@ export function SettingField(props: SettingFieldProps) {
   );
   return (
     <Field
+      id={anchor}
       orientation={horizontal ? 'horizontal' : 'vertical'}
       data-setting={field.key}
+      data-linked={linked || undefined}
+      className="scroll-mt-24 rounded-lg transition-shadow duration-300 data-[linked=true]:ring-(length:--focus-ring-width) data-[linked=true]:ring-ring/50 data-[linked=true]:ring-offset-4 data-[linked=true]:ring-offset-background"
       data-invalid={!!failure || undefined}
       data-disabled={disabled || undefined}
       aria-labelledby={grouped ? ids.label : undefined}

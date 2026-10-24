@@ -12,6 +12,20 @@ export function sectionHref(basePath: string, section: { readonly path: string }
   return `${base === '/' ? '' : base}/${section.path}`;
 }
 
+/** The anchor of one setting on its page, `setting-<key>`: the field's id, for links to it. */
+export function settingAnchor(key: string): string {
+  return `setting-${key}`;
+}
+
+/** `/settings` + `{ path: 'shell' }` + `shell.theme` → `/settings/shell#setting-shell.theme`. */
+export function settingHref(
+  basePath: string,
+  section: { readonly path: string },
+  key: string,
+): string {
+  return `${sectionHref(basePath, section)}#${settingAnchor(key)}`;
+}
+
 export function isBasePath(pathname: string, basePath: string): boolean {
   return normalizePath(pathname) === normalizePath(basePath);
 }
