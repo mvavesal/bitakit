@@ -1,0 +1,4 @@
+{
+  "title": "Advanced tutorials",
+  "pages": ["../plugin-management", "../package-management", "../concepts/tutorial"]
+}

@@ -3,28 +3,28 @@ title: Command line
 description: Create or wire an app, add plugins and files, generate, check and migrate.
 ---
 
-Two tools cover the whole lifecycle. `npx @bitakit/create-app` creates a new project; `npx bitakit` works inside a project. Apps made by the generator already have `@bitakit/cli` as a dev dependency; elsewhere run `npm install --save-dev @bitakit/cli`.
+Two tools cover the whole lifecycle. `npm create @bitakit/app` (or `pnpm create`, `yarn create`, `bunx @bitakit/create-app`) creates a new project; `npx bitakit` works inside a project with any package manager. Apps made by the generator already have `@bitakit/cli` as a dev dependency; elsewhere add it as a dev dependency.
 
 The command groups below are independent examples; use a new plugin name when scaffolding a complete feature. Use a matching 0.2 package set, or the [local checkout workflow](/docs/local-development). Only the reference tables use `<placeholders>` to describe what a command accepts.
 
-| You want to                            | Run                                    |
-| -------------------------------------- | -------------------------------------- |
-| Start a new app                        | `npx @bitakit/create-app my-app`       |
-| Add BitaKit to an app you already have | `npx @bitakit/cli init`                |
-| Add a feature to your app              | `npx bitakit add plugin notes`         |
-| Add one file to a feature              | `npx bitakit add action notes/archive` |
-| Write the generated files              | `npx bitakit generate`                 |
-| Find problems                          | `npx bitakit doctor`                   |
-| Update BitaKit                         | [Update BitaKit](#update-bitakit)      |
-| Check that a page renders              | `npx bitakit check-page /notes`        |
+| You want to                            | Run                                     |
+| -------------------------------------- | --------------------------------------- |
+| Start a new app                        | `npm create @bitakit/app@latest my-app` |
+| Add BitaKit to an app you already have | `npx @bitakit/cli init`                 |
+| Add a feature to your app              | `npx bitakit add plugin notes`          |
+| Add one file to a feature              | `npx bitakit add action notes/archive`  |
+| Write the generated files              | `npx bitakit generate`                  |
+| Find problems                          | `npx bitakit doctor`                    |
+| Update BitaKit                         | [Update BitaKit](#update-bitakit)       |
+| Check that a page renders              | `npx bitakit check-page /notes`         |
 
 ## Create a new app
 
-```sh
-npx @bitakit/create-app my-app
+```npm
+npm create @bitakit/app@latest my-app
 ```
 
-The generator asks which framework and extras you want, creates `my-app` and installs everything. It never overwrites an existing project or file. Switches answer the questions up front:
+The generator asks which framework and extras you want, creates `my-app` and installs everything with the package manager you started it with. It never overwrites an existing project or file. Switches answer the questions up front; with npm they follow a `--`, as in the examples below:
 
 | Switch               | What it does                                                                                                                |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -32,34 +32,35 @@ The generator asks which framework and extras you want, creates `my-app` and ins
 | `--features <list>`  | Comma-separated extras: `shell` (navigation frame, layouts), `preferences` (settings pages), `quick-search` (⌘K), or `none` |
 | `--sample`           | Adds the Todo sample: `todos` and an `activity` plugin that extends it; `--no-sample` leaves it out                         |
 | `--yes`              | Use the defaults for everything you did not set, without asking                                                             |
-| `--no-install`       | Write the files but do not run `npm install`                                                                                |
+| `--no-install`       | Write the files but do not install the dependencies                                                                         |
+| `--package-manager`  | `npm`, `pnpm`, `yarn` or `bun`: install with this one instead of the one that started the generator                         |
 | `--dry-run`          | Print what would be created, and whether in an existing folder, and change nothing                                          |
 | `--plugin`           | Create a standalone plugin package with a playground app instead of an app                                                  |
 
 A minimal Next.js app, created without any questions:
 
-```sh
-npx @bitakit/create-app my-app --framework next --features none --yes
+```npm
+npm create @bitakit/app@latest my-app -- --framework next --features none --yes
 ```
 
 An app with the navigation frame, ⌘K search and the Todo sample:
 
-```sh
-npx @bitakit/create-app my-app --features shell,quick-search --sample
+```npm
+npm create @bitakit/app@latest my-app -- --features shell,quick-search --sample
 ```
 
-A reusable plugin package with a playground app:
+A reusable plugin package with a playground app. Its package and playground form an npm workspace, so it always installs with npm:
 
-```sh
-npx @bitakit/create-app my-plugin --plugin
+```npm
+npm create @bitakit/app@latest my-plugin -- --plugin
 ```
 
 ### Create in the current folder
 
 A coding agent opens a folder before anything exists. Pass `.` so the app, its `AGENTS.md` and the agent skill land in that folder rather than in a subfolder the session does not see:
 
-```sh
-npx @bitakit/create-app . --yes
+```npm
+npm create @bitakit/app@latest . -- --yes
 ```
 
 The folder may hold only version control, editor and agent files: `.git`, `.gitignore`, `.gitattributes`, `.editorconfig`, `.DS_Store`, `Thumbs.db`, `.idea`, `.vscode`, `.agents`, `.claude`, `.codex`, `.cursor`, `AGENTS.md`, `CLAUDE.md`, `LICENSE`, `skills-lock.json`. Anything else stops the command with a list of the unexpected entries. The package name comes from the folder name. Your files stay: `AGENTS.md` gains the framework and BitaKit rules once, `CLAUDE.md` gains the `@AGENTS.md` import, `.gitignore` gains the lines it lacks ahead of your own, so your patterns still win, agent folders are merged entry by entry and an existing skill folder is kept whole. Start a new agent session afterwards so it loads the new rules and skill. `--plugin` accepts `.` the same way.
@@ -97,7 +98,7 @@ The generated `package.json` uses caret ranges (`^0.2.2`), so `npm update` insta
 npm update @bitakit/core @bitakit/ui @bitakit/next @bitakit/app-preferences @bitakit/shell @bitakit/quick-search @bitakit/cli @bitakit/discovery
 ```
 
-`package.json` keeps its ranges and `package-lock.json` records the new versions. `npm outdated` shows which packages have a newer version. Then refresh the agent files and check the project:
+With pnpm use `pnpm update`, with Yarn `yarn upgrade`, with Bun `bun update`, each with the same package names. `package.json` keeps its ranges and the lockfile records the new versions. `npm outdated` shows which packages have a newer version. Then refresh the agent files and check the project:
 
 ```sh
 npx bitakit init --update-agent-files
@@ -108,7 +109,7 @@ npx bitakit doctor
 
 `npm update` never leaves the line its range allows. Install every `@bitakit/*` package at the new line in one command, here 0.3; packages you already have keep their place in `dependencies` or `devDependencies`:
 
-```sh
+```npm
 npm install @bitakit/core@0.3 @bitakit/ui@0.3 @bitakit/next@0.3 @bitakit/app-preferences@0.3 @bitakit/shell@0.3 @bitakit/quick-search@0.3 @bitakit/cli@0.3 @bitakit/discovery@0.3
 ```
 
@@ -146,7 +147,11 @@ A feature is a plugin. This creates `src/plugins/notes/` with a page at `/notes`
 npx bitakit add plugin notes
 ```
 
-`--example` writes a complete feature instead (the service `notes.list` in `services/list.ts`, typed events, Actions and a page); `--minimal` writes only that service, its events and one Action. To grow the plugin, add one file at a time. A missing plugin folder is created by its first file. These two give it an `archive` action and a page at `/notes/archive`:
+`--example` writes a complete feature instead (the service `notes.list` in `services/list.ts`, typed events, Actions and a page); `--minimal` writes only that service, its events and one Action.
+
+All three modes include an `AGENTS.md` inside the plugin with its starter purpose, actual files, public IDs and checks. A `CLAUDE.md` beside it contains only `@AGENTS.md`. Keep the plugin's own descriptions and contracts in that local guide and update them with the code; `init --update-agent-files` does not replace it.
+
+To grow the plugin, add one file at a time. A missing plugin folder is created by its first file. These two give it an `archive` action and a page at `/notes/archive`:
 
 ```sh
 npx bitakit add action notes/archive
@@ -242,8 +247,11 @@ The exit code is 1 when any error was seen (warnings do not count) and 0 otherwi
 
 `check-page` uses the Playwright that your project installs (`playwright` or `@playwright/test`) and never installs anything itself. Without it, the command exits with 2 and prints the commands to run:
 
-```sh
+```npm
 npm install --save-dev playwright
+```
+
+```sh
 npx playwright install chromium
 ```
 

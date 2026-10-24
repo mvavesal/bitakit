@@ -1,0 +1,181 @@
+{
+  "action-interceptors": {
+    "title": "Gate or observe an Action",
+    "caption": "For an otherwise runnable Action, before hooks run in order and may be awaited. False skips. after and onError observe without replacing the outcome. Other execution guards may also skip an Action.",
+    "sources": [
+      "packages/core/src/actions/execution.ts",
+      "packages/core/src/actions/interceptors.ts",
+      "packages/core/src/runtime.ts"
+    ],
+    "width": 760,
+    "height": 464
+  },
+  "action-loop": {
+    "title": "One Action, every control",
+    "caption": "The numbered path is one execution; the accent path is the state update that reaches every bound control. Guards and interceptors still apply.",
+    "sources": ["packages/core/src/actions/action-list.ts", "packages/ui/src/hooks/use-action.ts"],
+    "width": 928,
+    "height": 300
+  },
+  "discovery-boundary": {
+    "title": "From files to a running plugin",
+    "caption": "Discovery runs in Node tooling. The generated imports are bundled by the host; browsers do not scan directories or install packages.",
+    "sources": ["packages/discovery/src/generate.mjs"],
+    "width": 960,
+    "height": 196
+  },
+  "event-delivery": {
+    "title": "Notify other plugins",
+    "caption": "Exact-name listeners run first, then matching wildcard groups. Normal emit does not await async handlers or replay earlier events. Listener failures do not stop the other listeners. Subscriptions end with their owner.",
+    "sources": ["packages/core/src/events/service.ts"],
+    "width": 760,
+    "height": 224
+  },
+  "feature-contracts": {
+    "title": "Features meet at their contracts",
+    "caption": "Illustrative connections: the auth adapter provides a service contract, Notes publishes an event and exposes a component slot. Each plugin owns its implementation; the arrows show the declared points of collaboration.",
+    "sources": [
+      "packages/core/src/contracts.ts",
+      "packages/core/src/events/service.ts",
+      "packages/core/src/slots/runtime.ts",
+      "apps/docs/components/illustrations/introduction-examples.tsx"
+    ],
+    "width": 940,
+    "height": 288
+  },
+  "layers": {
+    "title": "BitaKit is a composition layer",
+    "caption": "Your framework keeps routing, rendering and deployment. BitaKit adds the contracts between features; every feature, yours or optional, is a plugin in its own folder.",
+    "sources": [
+      "packages/core/src/runtime.ts",
+      "packages/discovery/src/generate.mjs",
+      "packages/next/src/config.mjs"
+    ],
+    "width": 880,
+    "height": 472
+  },
+  "lifecycle-flow": {
+    "title": "Update compatible plugin owners",
+    "caption": "For supported compatible updates, unrelated owners remain mounted. Cleanup failure blocks reuse; a timeout does not release the barrier. Structural changes return restart-required.",
+    "sources": [
+      "packages/core/src/runtime.ts",
+      "packages/ui/src/providers/foundation-provider.tsx"
+    ],
+    "width": 760,
+    "height": 576
+  },
+  "parallel-work": {
+    "title": "Three people, one app",
+    "caption": "The same three changes, twice. Shared files collect edits from everyone; plugin folders do not. Contracts are the only meeting point.",
+    "sources": ["packages/discovery/src/generate.mjs"],
+    "width": 960,
+    "height": 340
+  },
+  "part-selection": {
+    "title": "Which candidate renders a replaceable part?",
+    "caption": "Layouts, screens and any single slot decide the same way, once per part. With no decision among several candidates, the owner keeps its default and the console and doctor name the candidates.",
+    "sources": ["packages/core/src/slots/select.ts", "packages/ui/src/hooks/use-slot.ts"],
+    "width": 760,
+    "height": 572
+  },
+  "plugin-extension": {
+    "title": "How plugins extend a page",
+    "caption": "The Workspace sample: dashed regions are slots the notes plugin renders, each named with the plugin that fills it; the key lists the files.",
+    "sources": [
+      "examples/workspace/src/plugins/notes/ui/pages/index.tsx",
+      "examples/workspace/src/plugins/activity/ui/slots/notes.footer.tsx"
+    ],
+    "width": 880,
+    "height": 456
+  },
+  "plugin-lifecycle": {
+    "title": "Add, disable, enable and remove a plugin",
+    "caption": "Core owns each step. Disabling stops running services, Actions and contributions but keeps the definition, setting values and contracts; enabling starts fresh instances. Removing releases the declarations; saved setting records stay. Unrelated plugins keep running throughout.",
+    "sources": ["packages/core/src/runtime.ts", "packages/core/src/lifecycle/reconcile.ts"],
+    "width": 760,
+    "height": 316
+  },
+  "runtime-states": {
+    "title": "From startup to shutdown",
+    "caption": "Common whole-runtime transitions. starting awaits startup; stopping awaits cleanup. A failure is not proof that resources have been released. Inspect cleanup separately before replacement. Per-plugin isolation and compatible updates have their own flow.",
+    "sources": ["packages/core/src/lifecycle/state.ts", "packages/core/src/runtime.ts"],
+    "width": 848,
+    "height": 312
+  },
+  "service-interceptors": {
+    "title": "Observe a service call",
+    "caption": "Service hooks cannot gate or replace execution. Their return values are ignored and async observers are not awaited. The caller receives the original value, promise or error; internal self-calls bypass the wrapper.",
+    "sources": ["packages/core/src/interceptors/service-observers.ts"],
+    "width": 800,
+    "height": 200
+  },
+  "service-lifecycle": {
+    "title": "Own startup and cleanup",
+    "caption": "Startup follows required dependencies. Teardown stops dependents first and awaits cleanup before reuse. A rejected disposer blocks replacement; repeated stop calls share completion.",
+    "sources": [
+      "packages/core/src/services.ts",
+      "packages/core/src/scope.ts",
+      "packages/core/src/runtime.ts"
+    ],
+    "width": 816,
+    "height": 248
+  },
+  "service-state": {
+    "title": "One store, several readers",
+    "caption": "A service owns the current value. Both the page and Action presentation react to its store. Use an event for a notification, not as a replacement for reading current state.",
+    "sources": [
+      "packages/core/src/store.ts",
+      "packages/ui/src/hooks/use-service.ts",
+      "packages/core/src/runtime.ts"
+    ],
+    "width": 760,
+    "height": 224
+  },
+  "settings-flow": {
+    "title": "One declaration, one value owner",
+    "caption": "The declaration supplies defaults and catalog metadata. App Preferences derives navigation and fields. Changes pass through the runtime and settings.storage; server storage applies its own trusted validation and access rules.",
+    "sources": ["packages/app-preferences/src/catalog.ts", "packages/core/src/settings/store.ts"],
+    "width": 816,
+    "height": 248
+  },
+  "slot-flow": {
+    "title": "A slot: declared, filled, rendered",
+    "caption": "The owner declares the slot and mounts its outlet; other plugins contribute an Action or a component from their own folders; Core validates and attaches them. A declaration alone renders nothing.",
+    "sources": ["packages/core/src/slots/runtime.ts", "packages/ui/src/hooks/use-slot.ts"],
+    "width": 880,
+    "height": 272
+  },
+  "theme-editing": {
+    "title": "Preview first, save when ready",
+    "caption": "Customize starts a local draft. Previewing or cancelling does not change the app. Saving an original creates and selects a personal copy; subsequent saves update that copy. Failed saves leave the draft available.",
+    "sources": [
+      "packages/shell/src/ui/settings/appearance.tsx",
+      "packages/shell/src/ui/settings/theme-preview.tsx",
+      "packages/shell/src/services/themes.ts"
+    ],
+    "width": 760,
+    "height": 544
+  },
+  "theme-flow": {
+    "title": "From a theme file to the app",
+    "caption": "Discovery collects app JSON at build time. At runtime, the theme service reads the selected key from Core settings. Shell projects the active mode tokens onto the document; controls inherit them.",
+    "sources": [
+      "packages/discovery/src/generate.mjs",
+      "packages/shell/src/services/themes.ts",
+      "packages/shell/src/ui/providers/theme.tsx"
+    ],
+    "width": 896,
+    "height": 248
+  },
+  "trusted-package-flow": {
+    "title": "A trusted catalog becomes an active feature",
+    "caption": "The operator chooses code for the build. The host supplies an already-authorized selection. The package adapter loads only matching catalog entries, and Core owns their lifecycle. Visible contributions still need their normal app renderers.",
+    "sources": [
+      "packages/discovery/src/generate.mjs",
+      "packages/packages/src/index.ts",
+      "packages/core/src/lifecycle/reconcile.ts"
+    ],
+    "width": 816,
+    "height": 248
+  }
+}

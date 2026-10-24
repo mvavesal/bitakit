@@ -24,3 +24,8 @@ apps/*/AGENTS.md
 # Written by the Shell build (packages/shell/scripts/themes.mjs).
 packages/shell/src/bundled-themes.ts
 packages/shell/src/theme-defaults.ts
+
+# Diagram sources follow the diagram-design skill format; exports are generated (npm run diagrams).
+apps/docs/diagrams/
+apps/docs/public/diagrams/*.svg
+docs/assets/readme/*.svg

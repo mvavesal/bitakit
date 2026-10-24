@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 848 312" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="runtime-states-title runtime-states-desc" id="runtime-states-root">
+        <title id="runtime-states-title">From startup to shutdown</title>
+        <desc id="runtime-states-desc">State machine: a runtime is idle until mounted, then starting; it becomes ready or failed; a stop request from starting or ready, or a teardown after failure, moves it to stopping, which ends stopped, or failed when cleanup fails.</desc>
+        <defs>
+      <style>#runtime-states-root { --color-paper: #f6f8fa;
+      --color-ink: #122f4d;
+      --color-muted: #4b6279;
+      --color-accent: #9a6700;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #runtime-states-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #runtime-states-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#runtime-states-root .diagram-container { overflow-x: visible; }
+}</style><marker id="runtime-states-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4b6279"/></marker><marker id="runtime-states-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a6700"/></marker><marker id="runtime-states-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1f5fa8"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f6f8fa"/>
+        <path d="M 30,116 L 56,116" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#runtime-states-arrow)"/>
+        <path d="M 176,116 L 216,116" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#runtime-states-arrow)"/>
+        <path d="M 336,116 L 376,116" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#runtime-states-arrow)"/>
+        <path d="M 496,116 L 536,116" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#runtime-states-arrow)"/>
+        <path d="M 656,116 L 696,116" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#runtime-states-arrow)"/>
+        <path d="M 256,88 L 256,56 Q 256,48 264,48 L 608,48 Q 616,48 616,56 L 616,88" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#runtime-states-arrow)"/>
+        <path d="M 276,144 L 276,236 Q 276,244 284,244 L 376,244" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#runtime-states-arrow)"/>
+        <path d="M 496,236 L 568,236 Q 576,236 576,228 L 576,144" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#runtime-states-arrow)"/>
+        <path d="M 600,144 L 600,252 Q 600,260 592,260 L 496,260" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#runtime-states-arrow)"/>
+        <rect x="178.5" y="96" width="35" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="196" y="105" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">MOUNT</text>
+        <rect x="501.0" y="96" width="30" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="516" y="105" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">STOP</text>
+        <rect x="396.5" y="28" width="79" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="436" y="37" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">STOP REQUESTED</text>
+        <rect x="222.5" y="190" width="35" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="240" y="199" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">FAILS</text>
+        <rect x="511.0" y="190" width="50" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="536" y="199" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">TEARDOWN</text>
+        <rect x="617.5" y="190" width="45" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="640" y="199" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">CLEANUP</text>
+        <circle cx="24" cy="116" r="6" fill="#122f4d"/>
+        <rect x="56" y="88" width="120" height="56" rx="8" fill="#f6f8fa"/>
+        <rect x="56" y="88" width="120" height="56" rx="8" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="116.0" y="120.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">idle</text>
+        <rect x="216" y="88" width="120" height="56" rx="8" fill="#f6f8fa"/>
+        <rect x="216" y="88" width="120" height="56" rx="8" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="276.0" y="120.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">starting</text>
+        <rect x="376" y="88" width="120" height="56" rx="8" fill="#f6f8fa"/>
+        <rect x="376" y="88" width="120" height="56" rx="8" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="436.0" y="120.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">ready</text>
+        <rect x="536" y="88" width="120" height="56" rx="8" fill="#f6f8fa"/>
+        <rect x="536" y="88" width="120" height="56" rx="8" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="596.0" y="120.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">stopping</text>
+        <rect x="696" y="88" width="120" height="56" rx="8" fill="#f6f8fa"/>
+        <rect x="696" y="88" width="120" height="56" rx="8" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="756.0" y="120.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">stopped</text>
+        <rect x="376" y="216" width="120" height="64" rx="8" fill="#f6f8fa"/>
+        <rect x="376" y="216" width="120" height="64" rx="8" fill="#ebb759" stroke="#9a6700" stroke-width="1" fill-opacity="0.16"/>
+        <text x="436.0" y="245.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">failed</text>
+        <text x="436.0" y="259.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">reported, isolated</text>
+      </svg>

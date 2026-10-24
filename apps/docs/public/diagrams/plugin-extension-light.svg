@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 880 456" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="plugin-extension-title plugin-extension-desc" id="plugin-extension-root">
+        <title id="plugin-extension-title">How plugins extend a page</title>
+        <desc id="plugin-extension-desc">Wireframe of the Workspace notes page: the notes plugin owns the page; the activity plugin fills the header widget and the notes.footer slot, the export plugin fills the notes.toolbar slot and the guard plugin checks the Add note Action, each from its own folder.</desc>
+        <defs>
+      <style>#plugin-extension-root { --color-paper: #f6f8fa;
+      --color-ink: #122f4d;
+      --color-muted: #4b6279;
+      --color-accent: #9a6700;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #plugin-extension-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #plugin-extension-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#plugin-extension-root .diagram-container { overflow-x: visible; }
+}</style><marker id="plugin-extension-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4b6279"/></marker><marker id="plugin-extension-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a6700"/></marker><marker id="plugin-extension-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1f5fa8"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f6f8fa"/>
+        <rect x="168" y="112" width="444" height="308" rx="8" fill="#122f4d" stroke="#9a6700" stroke-width="1" fill-opacity="0.02"/>
+        <rect x="180" y="106" width="68" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="214.0" y="115" fill="#9a6700" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.14em">NOTES · OWNER</text>
+        <rect x="24" y="24" width="600" height="408" rx="8" fill="#122f4d" stroke="#122f4d" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
+        <circle cx="40" cy="38" r="3" fill="#122f4d" fill-opacity="0.2"/>
+        <circle cx="52" cy="38" r="3" fill="#122f4d" fill-opacity="0.2"/>
+        <circle cx="64" cy="38" r="3" fill="#122f4d" fill-opacity="0.2"/>
+        <rect x="36" y="56" width="120" height="364" rx="6" fill="#122f4d" stroke="#122f4d" stroke-width="0.8" fill-opacity="0.05" stroke-opacity="0.12"/>
+        <text x="56" y="84" fill="#4b6279" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="400" text-anchor="start">Home</text>
+        <rect x="44" y="96" width="104" height="24" rx="4" fill="#ffffff" stroke="#122f4d" stroke-width="0.8" stroke-opacity="0.12"/>
+        <text x="56" y="112" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">Notes</text>
+        <text x="56" y="140" fill="#4b6279" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="400" text-anchor="start">Settings</text>
+        <rect x="168" y="56" width="444" height="40" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="0.8" stroke-opacity="0.12"/>
+        <rect x="500" y="62" width="104" height="28" rx="8" fill="#122f4d" stroke="#122f4d" stroke-width="1" stroke-dasharray="4,3" fill-opacity="0.02" stroke-opacity="0.3"/>
+        <rect x="512" y="56" width="47" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="535.5" y="65" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.14em">ACTIVITY</text>
+        <text x="552" y="80" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">2 notes</text>
+        <text x="184" y="140" fill="#122f4d" font-size="16" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">Notes</text>
+        <rect x="184" y="156" width="296" height="32" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="0.8" stroke-opacity="0.2"/>
+        <text x="196" y="176" fill="#4b6279" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" text-anchor="start">Write docs</text>
+        <rect x="488" y="150" width="112" height="44" rx="8" fill="#122f4d" stroke="#122f4d" stroke-width="1" stroke-dasharray="4,3" fill-opacity="0.02" stroke-opacity="0.3"/>
+        <rect x="500" y="144" width="34" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="517.0" y="153" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.14em">GUARD</text>
+        <rect x="496" y="158" width="96" height="28" rx="6" fill="#122f4d"/>
+        <text x="544" y="176" fill="#f6f8fa" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Add note</text>
+        <rect x="184" y="212" width="416" height="48" rx="8" fill="#122f4d" stroke="#122f4d" stroke-width="1" stroke-dasharray="4,3" fill-opacity="0.02" stroke-opacity="0.3"/>
+        <rect x="196" y="206" width="107" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="249.5" y="215" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.14em">EXPORT · NOTES.TOOLBAR</text>
+        <rect x="196" y="222" width="144" height="28" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="0.8" stroke-opacity="0.3"/>
+        <text x="268" y="240" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">Export as Markdown</text>
+        <rect x="184" y="276" width="416" height="28" rx="4" fill="#122f4d" fill-opacity="0.05"/>
+        <text x="196" y="294" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" text-anchor="start">Write docs</text>
+        <rect x="184" y="312" width="416" height="28" rx="4" fill="#122f4d" fill-opacity="0.05"/>
+        <text x="196" y="330" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" text-anchor="start">Plan launch</text>
+        <rect x="184" y="356" width="416" height="52" rx="8" fill="#122f4d" stroke="#122f4d" stroke-width="1" stroke-dasharray="4,3" fill-opacity="0.02" stroke-opacity="0.3"/>
+        <rect x="196" y="350" width="112" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="252.0" y="359" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.14em">ACTIVITY · NOTES.FOOTER</text>
+        <text x="196" y="378" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">Recent activity</text>
+        <text x="196" y="396" fill="#4b6279" font-size="10" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" text-anchor="start">Added &quot;Write docs&quot;</text>
+        <text x="648" y="48" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" text-anchor="start" letter-spacing="0.18em">WHO FILLS WHAT</text>
+        <text x="648" y="80" fill="#9a6700" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">notes</text>
+        <text x="856" y="80" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">owner</text>
+        <text x="648" y="95" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start">ui/pages/index.tsx</text>
+        <text x="648" y="110" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start">slots/toolbar.ts, slots/footer.ts</text>
+        <text x="648" y="142" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">activity</text>
+        <text x="856" y="142" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">two widgets</text>
+        <text x="648" y="157" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start">ui/slots/shell.header.end.tsx</text>
+        <text x="648" y="172" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start">ui/slots/notes.footer.tsx</text>
+        <text x="648" y="204" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">export</text>
+        <text x="856" y="204" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">toolbar Action</text>
+        <text x="648" y="219" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start">actions/markdown.ts</text>
+        <text x="648" y="251" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">guard</text>
+        <text x="856" y="251" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">checks notes.add</text>
+        <text x="648" y="266" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start">interceptors/no-duplicates.ts</text>
+        <text x="648" y="306" fill="#4b6279" font-size="10" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" text-anchor="start">The notes folder is never edited.</text>
+      </svg>

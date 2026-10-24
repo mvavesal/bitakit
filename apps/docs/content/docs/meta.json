@@ -1,17 +1,22 @@
 {
   "title": "Documentation",
   "pages": [
+    "---Get started---",
     "index",
+    "why-bitakit",
     "concepts",
+    "examples",
+    "---Guides---",
     "guides",
-    "plugin-management",
-    "package-management",
+    "explanation",
+    "---Reference---",
     "reference",
     "cli",
-    "upgrade",
+    "packages",
     "plugins",
     "integrations",
-    "packages",
+    "---More---",
+    "advanced",
     "local-development",
     "contributing"
   ]

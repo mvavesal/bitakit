@@ -8,7 +8,7 @@ go?". This guide shows what an agent gets from a BitaKit app and how to brief it
 
 ## What the agent reads
 
-Apps created with `npx @bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that
+Apps created with `@bitakit/create-app` contain an `AGENTS.md` (and a `CLAUDE.md` that
 imports it, which Claude Code reads) and the `bitakit-app-development` agent skill.
 `npx @bitakit/cli init` adds the same files to an existing Next.js or TanStack Start app. Both
 need version 0.2.2 or later.
@@ -21,6 +21,13 @@ The `AGENTS.md` block fits on one screen:
 - the commands to create files and check the result, and a pointer to the skill.
 
 Keep the block as it is and add your own product rules above or below it.
+
+Every plugin folder keeps its own `AGENTS.md` too: what the plugin owns, the contracts other
+plugins use, its constraints and how to check it. `npx bitakit add plugin` starts one from the
+plugin's actual files, with a `CLAUDE.md` beside it that only imports it. Keep each guide
+complete and current with its plugin, and keep plugin details out of the app-wide rules. The
+[sample apps](/docs/examples) have one for every plugin. Installed packages explain themselves
+the same way in `node_modules/@bitakit/<name>/AGENTS.md`.
 
 The skill holds the fuller workflow. Before a change the agent reads the installed packages,
 runs `info` and `doctor`, and checks which layout renders the place it wants to use. It then

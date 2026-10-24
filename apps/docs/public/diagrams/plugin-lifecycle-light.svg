@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 760 316" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="plugin-lifecycle-title plugin-lifecycle-desc" id="plugin-lifecycle-root">
+        <title id="plugin-lifecycle-title">Add, disable, enable and remove a plugin</title>
+        <desc id="plugin-lifecycle-desc">State machine: adding a plugin definition starts it; a running plugin can be disabled, which keeps its definition, setting values and contracts, and enabled again with fresh instances; removing it from either state releases its declarations while saved setting records stay.</desc>
+        <defs>
+      <style>#plugin-lifecycle-root { --color-paper: #f6f8fa;
+      --color-ink: #122f4d;
+      --color-muted: #4b6279;
+      --color-accent: #9a6700;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #plugin-lifecycle-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #plugin-lifecycle-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#plugin-lifecycle-root .diagram-container { overflow-x: visible; }
+}</style><marker id="plugin-lifecycle-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4b6279"/></marker><marker id="plugin-lifecycle-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a6700"/></marker><marker id="plugin-lifecycle-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1f5fa8"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f6f8fa"/>
+        <path d="M 54,96 L 128,96" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#plugin-lifecycle-arrow)"/>
+        <path d="M 328,84 L 472,84" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#plugin-lifecycle-arrow)"/>
+        <path d="M 472,112 L 328,112" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#plugin-lifecycle-arrow)"/>
+        <path d="M 212,128 L 212,216 Q 212,224 220,224 L 300,224" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#plugin-lifecycle-arrow)"/>
+        <path d="M 588,128 L 588,216 Q 588,224 580,224 L 500,224" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#plugin-lifecycle-arrow)"/>
+        <path d="M 400,256 L 400,280" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#plugin-lifecycle-arrow)"/>
+        <rect x="79.5" y="76" width="25" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="92" y="85" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">ADD</text>
+        <rect x="377.5" y="64" width="45" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="400" y="73" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">DISABLE</text>
+        <rect x="380.0" y="120" width="40" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="400" y="129" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">ENABLE</text>
+        <rect x="228.0" y="204" width="40" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="248" y="213" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">REMOVE</text>
+        <rect x="532.0" y="204" width="40" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="552" y="213" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">REMOVE</text>
+        <circle cx="48" cy="96" r="6" fill="#122f4d"/>
+        <rect x="128" y="64" width="200" height="64" rx="8" fill="#f6f8fa"/>
+        <rect x="128" y="64" width="200" height="64" rx="8" fill="#ebb759" stroke="#9a6700" stroke-width="1" fill-opacity="0.16"/>
+        <text x="228.0" y="93.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Running</text>
+        <text x="228.0" y="107.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">services, Actions, UI</text>
+        <rect x="472" y="64" width="200" height="64" rx="8" fill="#f6f8fa"/>
+        <rect x="472" y="64" width="200" height="64" rx="8" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="572.0" y="93.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Disabled</text>
+        <text x="572.0" y="107.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">definition + settings kept</text>
+        <rect x="300" y="192" width="200" height="64" rx="8" fill="#f6f8fa"/>
+        <rect x="300" y="192" width="200" height="64" rx="8" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="400.0" y="215.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Removed</text>
+        <text x="400.0" y="229.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">declarations released</text>
+        <text x="400.0" y="242.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">saved settings stay</text>
+        <circle cx="400" cy="288" r="8" fill="#f6f8fa" stroke="#122f4d" stroke-width="1"/>
+        <circle cx="400" cy="288" r="5" fill="#122f4d"/>
+      </svg>

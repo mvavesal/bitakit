@@ -79,7 +79,7 @@ Optional service consumers must check `app.has(name)` before reading. Missing di
 
 Your service still owns its behavior and data. `store()` is in-memory state: BitaKit does not persist it, and `store.optimistic(apply, commit)` helps when the commit may fail. Use [events](/docs/concepts/events) when another plugin needs to react to a change.
 
-<Diagram name="service-lifecycle" />
+<Figure name="service-lifecycle" />
 
 ## Names, contracts and aliases
 

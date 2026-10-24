@@ -8,7 +8,6 @@
     "quick-search",
     "theming",
     "layouts",
-    "authentication",
-    "testing"
+    "authentication"
   ]
 }

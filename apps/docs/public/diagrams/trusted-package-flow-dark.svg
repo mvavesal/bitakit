@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 816 248" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="trusted-package-flow-dark-title trusted-package-flow-dark-desc" id="trusted-package-flow-dark-root">
+        <title id="trusted-package-flow-dark-title">A trusted catalog becomes an active feature</title>
+        <desc id="trusted-package-flow-dark-desc">Data flow: an operator selects reviewed code for the build; its catalog lists names, versions and loaders; with an authorized selection from the host, the package host loads the matching entries and Core starts and owns the plugins, whose Actions, services, pages and Settings appear.</desc>
+        <defs>
+      <style>#trusted-package-flow-dark-root { --color-paper: #0d1117;
+      --color-ink: #e6edf3;
+      --color-muted: #9bb1c8;
+      --color-accent: #ebb759;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #trusted-package-flow-dark-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #trusted-package-flow-dark-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#trusted-package-flow-dark-root .diagram-container { overflow-x: visible; }
+}</style><marker id="trusted-package-flow-dark-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9bb1c8"/></marker><marker id="trusted-package-flow-dark-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ebb759"/></marker><marker id="trusted-package-flow-dark-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#79a8e0"/></marker></defs>
+        <rect width="100%" height="100%" fill="#0d1117"/>
+        <path d="M 200,76 L 232,76" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#trusted-package-flow-dark-arrow)"/>
+        <path d="M 392,76 L 424,76" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#trusted-package-flow-dark-arrow)"/>
+        <path d="M 584,76 L 616,76" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#trusted-package-flow-dark-arrow)"/>
+        <path d="M 696,104 L 696,168" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#trusted-package-flow-dark-arrow)"/>
+        <path d="M 504,168 L 504,104" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#trusted-package-flow-dark-arrow)"/>
+        <rect x="517.5" y="130" width="45" height="12" rx="2" fill="#0d1117"/>
+        <text x="540" y="139" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">SELECTS</text>
+        <rect x="40" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="40" y="48" width="160" height="56" rx="6" fill="#9bb1c8" stroke="#9198a1" stroke-width="1" fill-opacity="0.1"/>
+        <rect x="48" y="54" width="45" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="70.5" y="63" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">OPERATOR</text>
+        <text x="120.0" y="82.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Reviewed code</text>
+        <text x="120.0" y="96.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">chosen for the build</text>
+        <rect x="232" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="232" y="48" width="160" height="56" rx="6" fill="#e6edf3" stroke="#9bb1c8" stroke-width="1" fill-opacity="0.05"/>
+        <rect x="240" y="54" width="32" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="256.0" y="63" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">BUILD</text>
+        <text x="312.0" y="82.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Catalog</text>
+        <text x="312.0" y="96.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">names, versions, loaders</text>
+        <rect x="424" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="424" y="48" width="160" height="56" rx="6" fill="#ebb759" stroke="#ebb759" stroke-width="1" fill-opacity="0.12"/>
+        <rect x="432" y="54" width="45" height="12" rx="2" fill="none" stroke="#ebb759" stroke-width="0.8"/>
+        <text x="454.5" y="63" fill="#ebb759" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">PACKAGES</text>
+        <text x="504.0" y="82.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Package host</text>
+        <text x="504.0" y="96.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">matches and loads</text>
+        <rect x="616" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="616" y="48" width="160" height="56" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <rect x="624" y="54" width="40" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="644.0" y="63" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">RUNTIME</text>
+        <text x="696.0" y="82.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Core</text>
+        <text x="696.0" y="96.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">starts and owns</text>
+        <rect x="424" y="168" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="424" y="168" width="160" height="56" rx="6" fill="#9bb1c8" stroke="#9198a1" stroke-width="1" fill-opacity="0.1"/>
+        <rect x="432" y="174" width="27" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="445.5" y="183" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">HOST</text>
+        <text x="504.0" y="202.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Authorized selection</text>
+        <text x="504.0" y="216.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">from the host</text>
+        <rect x="616" y="168" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="616" y="168" width="160" height="56" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <rect x="624" y="174" width="23" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="635.5" y="183" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">APP</text>
+        <text x="696.0" y="202.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">The feature</text>
+        <text x="696.0" y="216.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">Actions, pages, Settings</text>
+      </svg>

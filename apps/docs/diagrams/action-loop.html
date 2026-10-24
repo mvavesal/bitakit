@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!-- Source of a BitaKit documentation diagram, drawn with the diagram-design skill (profile:
+     bitakit, system fonts). Edit this file, then run `npm run diagrams` to derive the dark
+     variant and export both SVGs. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Action, every control</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #f6f8fa;
+      --color-ink: #122f4d;
+      --color-muted: #4b6279;
+      --color-accent: #9a6700;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400;
+      letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 928px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Loop · BitaKit</p>
+    <h1>One Action, every control</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 928 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="action-loop-title action-loop-desc">
+        <title id="action-loop-title">One Action, every control</title>
+        <desc id="action-loop-desc">Action loop: a bound button, menu item or shortcut executes todos.delete; the Action calls the tasks service, which updates its store; the store change recomputes enabled and every bound control receives the new state.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4b6279"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a6700"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1f5fa8"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f6f8fa"/>
+        <path d="M 180,100 L 276,100" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 416,100 L 512,100" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 652,100 L 748,100" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 818,176 L 818,216 Q 818,224 810,224 L 376,224 Q 368,224 368,216 L 368,176" fill="none" stroke="#9a6700" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <path d="M 276,148 L 180,148" fill="none" stroke="#9a6700" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="195.5" y="80" width="65" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="228.0" y="89" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">1 · EXECUTE</text>
+        <rect x="429.0" y="80" width="70" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="464.0" y="89" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">2 · REMOVE()</text>
+        <rect x="663.0" y="80" width="74" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="700.0" y="89" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">3 · SET STATE</text>
+        <rect x="556.0" y="232" width="74" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="593.0" y="241" fill="#9a6700" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">4 · RECOMPUTE</text>
+        <rect x="191.0" y="156" width="74" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="228.0" y="165" fill="#9a6700" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">5 · NEW STATE</text>
+        <rect x="40" y="64" width="140" height="112" rx="6" fill="#f6f8fa"/>
+        <rect x="40" y="64" width="140" height="112" rx="6" fill="rgba(75,98,121,0.1)" stroke="#59636e" stroke-width="1"/>
+        <rect x="48" y="70" width="19" height="12" rx="2" fill="none" stroke="#59636e" stroke-width="0.8"/>
+        <text x="57.5" y="79" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">UI</text>
+        <text x="110.0" y="120.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Your controls</text>
+        <text x="110.0" y="134.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">Button · Menu item</text>
+        <text x="110.0" y="147.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">Shortcut</text>
+        <rect x="276" y="64" width="140" height="112" rx="6" fill="#f6f8fa"/>
+        <rect x="276" y="64" width="140" height="112" rx="6" fill="rgba(235,183,89,0.16)" stroke="#9a6700" stroke-width="1"/>
+        <rect x="284" y="70" width="36" height="12" rx="2" fill="none" stroke="#9a6700" stroke-width="0.8"/>
+        <text x="302.0" y="79" fill="#9a6700" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">ACTION</text>
+        <text x="346.0" y="120.0" fill="#122f4d" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">todos.delete</text>
+        <text x="346.0" y="134.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">enabled · title</text>
+        <text x="346.0" y="147.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">confirm · execute</text>
+        <rect x="512" y="64" width="140" height="112" rx="6" fill="#f6f8fa"/>
+        <rect x="512" y="64" width="140" height="112" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <rect x="520" y="70" width="40" height="12" rx="2" fill="none" stroke="#59636e" stroke-width="0.8"/>
+        <text x="540.0" y="79" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">SERVICE</text>
+        <text x="582.0" y="120.0" fill="#122f4d" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">tasks</text>
+        <text x="582.0" y="134.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">remove()</text>
+        <text x="582.0" y="147.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">list()</text>
+        <rect x="748" y="64" width="140" height="112" rx="6" fill="#f6f8fa"/>
+        <rect x="748" y="64" width="140" height="112" rx="6" fill="rgba(18,47,77,0.05)" stroke="#4b6279" stroke-width="1"/>
+        <rect x="756" y="70" width="32" height="12" rx="2" fill="none" stroke="#59636e" stroke-width="0.8"/>
+        <text x="772.0" y="79" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">STORE</text>
+        <text x="818.0" y="126.5" fill="#122f4d" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">tasks.state</text>
+        <text x="818.0" y="140.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">observable state</text>
+        <line x1="32" y1="260" x2="896" y2="260" stroke="rgba(18,47,77,0.1)" stroke-width="0.8"/>
+        <text x="32" y="278" fill="#4b6279" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" letter-spacing="0.18em">LEGEND</text>
+        <line x1="104" y1="275" x2="128" y2="275" stroke="#9a6700" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+        <text x="136" y="278" fill="#4b6279" font-size="9" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif">state flows back to every control</text>
+        <line x1="342" y1="275" x2="366" y2="275" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="374" y="278" fill="#4b6279" font-size="9" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif">execution</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "title": "Concepts",
+  "pages": [
+    "../concepts/architecture",
+    "../concepts/discovery",
+    "../concepts/patterns",
+    "../concepts/type-safety",
+    "../concepts/runtime-management",
+    "../concepts/manual-composition"
+  ]
+}

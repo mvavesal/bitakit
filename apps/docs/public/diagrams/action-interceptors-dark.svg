@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 760 464" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="action-interceptors-dark-title action-interceptors-dark-desc" id="action-interceptors-dark-root">
+        <title id="action-interceptors-dark-title">Gate or observe an Action</title>
+        <desc id="action-interceptors-dark-desc">Flowchart: a visible, enabled Action runs its before hooks; returning false skips the run, continuing executes it and then runs after hooks with the result; a throw in a before hook or in execute reaches onError.</desc>
+        <defs>
+      <style>#action-interceptors-dark-root { --color-paper: #0d1117;
+      --color-ink: #e6edf3;
+      --color-muted: #9bb1c8;
+      --color-accent: #ebb759;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #action-interceptors-dark-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #action-interceptors-dark-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#action-interceptors-dark-root .diagram-container { overflow-x: visible; }
+}</style><marker id="action-interceptors-dark-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9bb1c8"/></marker><marker id="action-interceptors-dark-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ebb759"/></marker><marker id="action-interceptors-dark-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#79a8e0"/></marker></defs>
+        <rect width="100%" height="100%" fill="#0d1117"/>
+        <path d="M 360,72 L 360,104" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#action-interceptors-dark-arrow)"/>
+        <path d="M 470,152 L 560,152" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#action-interceptors-dark-arrow)"/>
+        <path d="M 360,200 L 360,240" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#action-interceptors-dark-arrow)"/>
+        <path d="M 250,152 L 128,152 Q 120,152 120,160 L 120,240" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#action-interceptors-dark-arrow)"/>
+        <path d="M 280,264 L 200,264" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#action-interceptors-dark-arrow)"/>
+        <path d="M 360,288 L 360,328" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#action-interceptors-dark-arrow)"/>
+        <path d="M 360,376 L 360,408" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#action-interceptors-dark-arrow)"/>
+        <rect x="498.5" y="132" width="35" height="12" rx="2" fill="#0d1117"/>
+        <text x="516" y="141" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">FALSE</text>
+        <rect x="371.0" y="214" width="50" height="12" rx="2" fill="#0d1117"/>
+        <text x="396" y="223" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">CONTINUE</text>
+        <rect x="176.0" y="132" width="40" height="12" rx="2" fill="#0d1117"/>
+        <text x="196" y="141" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">THROWS</text>
+        <rect x="220.0" y="244" width="40" height="12" rx="2" fill="#0d1117"/>
+        <text x="240" y="253" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">THROWS</text>
+        <rect x="369.5" y="302" width="45" height="12" rx="2" fill="#0d1117"/>
+        <text x="392" y="311" fill="#ebb759" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">SUCCESS</text>
+        <rect x="260" y="24" width="200" height="48" rx="20" fill="#0d1117"/>
+        <rect x="260" y="24" width="200" height="48" rx="20" fill="#e6edf3" stroke="#e6edf3" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
+        <text x="360.0" y="46.0" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">An Action runs</text>
+        <text x="360.0" y="60.0" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">visible and enabled</text>
+        <polygon points="360,104 470,152 360,200 250,152" fill="#0d1117"/>
+        <polygon points="360,104 470,152 360,200 250,152" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="360" y="149" fill="#e6edf3" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">before hooks</text>
+        <text x="360" y="163" fill="#e6edf3" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">return?</text>
+        <rect x="560" y="128" width="160" height="48" rx="6" fill="#0d1117"/>
+        <rect x="560" y="128" width="160" height="48" rx="6" fill="#e6edf3" stroke="#e6edf3" stroke-width="1" stroke-dasharray="4,3" fill-opacity="0.02" stroke-opacity="0.3"/>
+        <text x="640.0" y="149.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Skipped</text>
+        <text x="640.0" y="163.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">no toast, no error</text>
+        <rect x="280" y="240" width="160" height="48" rx="6" fill="#0d1117"/>
+        <rect x="280" y="240" width="160" height="48" rx="6" fill="#ebb759" stroke="#ebb759" stroke-width="1" fill-opacity="0.12"/>
+        <text x="360.0" y="261.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">execute</text>
+        <text x="360.0" y="275.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">the Action&#x27;s work</text>
+        <rect x="40" y="240" width="160" height="48" rx="6" fill="#0d1117"/>
+        <rect x="40" y="240" width="160" height="48" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="120.0" y="261.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">onError</text>
+        <text x="120.0" y="275.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">observe the failure</text>
+        <rect x="280" y="328" width="160" height="48" rx="6" fill="#0d1117"/>
+        <rect x="280" y="328" width="160" height="48" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="360.0" y="349.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">after</text>
+        <text x="360.0" y="363.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">observe the result</text>
+        <rect x="280" y="408" width="160" height="40" rx="20" fill="#0d1117"/>
+        <rect x="280" y="408" width="160" height="40" rx="20" fill="#e6edf3" stroke="#e6edf3" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
+        <text x="360.0" y="432.0" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Completed</text>
+      </svg>

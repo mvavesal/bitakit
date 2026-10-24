@@ -1,19 +1,20 @@
 {
-  "title": "Guides",
+  "title": "How-to guides",
   "pages": [
+    "run-an-operation",
+    "settings",
+    "../concepts/theming",
+    "layouts-and-screens",
+    "extend-a-plugin",
+    "react-to-events",
+    "../concepts/interceptors",
+    "search-source",
+    "../reference/testing",
     "ai-agents",
     "tanstack",
-    "../concepts/architecture",
-    "../concepts/discovery",
+    "../upgrade",
     "../concepts/configuration",
-    "../concepts/interceptors",
-    "../concepts/action-groups",
-    "../concepts/type-safety",
-    "../concepts/theming",
     "../concepts/overrides",
-    "../concepts/patterns",
-    "../concepts/runtime-management",
-    "../concepts/manual-composition",
-    "../concepts/tutorial"
+    "../concepts/action-groups"
   ]
 }

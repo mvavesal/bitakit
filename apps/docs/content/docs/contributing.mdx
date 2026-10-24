@@ -53,16 +53,24 @@ no custom visual treatment is needed. Verify copied examples against the current
 
 Use the interactive examples in [Actions](/docs/concepts/actions), [Settings](/docs/concepts/settings)
 and [Slots](/docs/concepts/slots) as the style references. Keep each visual and its code together
-in the relevant section; do not add a separate gallery or repeat it at the end. For a flow, add Mermaid text to
-`apps/docs/components/diagrams/charts.mjs`, then place `<Diagram name="your-chart" />` beside
-its example. Keep the title, caption and implementation references with the shared chart.
-For UI anatomy, reuse `SettingsIllustration` or `SlotIllustration`; they show the code for the
-selected region with the existing Fumadocs controls and theme.
+in the relevant section; do not add a separate gallery or repeat it at the end. For UI anatomy,
+reuse `SettingsIllustration` or `SlotIllustration`; they show the code for the selected region
+with the existing Fumadocs controls and theme.
 
-Do not create another diagram engine or export separate light/dark screenshots. Follow
-`.agents/skills/foundation-development/documentation-visuals.md` for the shared style and
-maintenance checklist. Run `npm run test --workspace @bitakit/docs` to check illustrated slot
-contracts, then verify keyboard use, both themes and narrow layouts in the browser.
+Every other diagram is drawn with the [diagram-design](https://github.com/cathrynlavery/diagram-design)
+agent skill in the BitaKit profile, which the repository's `.diagram-design` file selects:
+
+1. Install the skill once with `npx skills add cathrynlavery/diagram-design`.
+2. Ask your agent to draw the diagram, or edit an existing source in `apps/docs/diagrams/<name>.html`.
+   The light skin is the source; use only the profile's colors and keep the skill's rules
+   (orthogonal connectors, masked labels, at most two accent elements).
+3. Run `npm run diagrams -- <name>`. It derives the dark variant, exports both SVGs with the
+   skill's helper and copies them to `apps/docs/public/diagrams`.
+4. Add the title, caption, size and the implementation files it describes to
+   `apps/docs/components/diagrams/figures.json`, then place `<Figure name="…" />` beside its example.
+
+Run `npm run test --workspace @bitakit/docs`: it checks every diagram's exports and references and
+every `Figure` name in the pages. Then check both themes and a narrow window in the browser.
 
 ## Review expectations
 

@@ -40,7 +40,7 @@ and show the expected result. Keep generated-project and package READMEs aligned
 
 `/docs/concepts/theming` teaches app theme files and the Appearance manager;
 `/docs/reference/theming` covers identities, programmatic composition, Actions, storage and CSS.
-Their diagrams reuse the shared Mermaid renderer and are maintained against Shell sources.
+Their diagrams are diagram-design figures maintained against Shell sources.
 
 ## Help illustrations and diagrams
 
@@ -52,8 +52,10 @@ Do not create a separate gallery or repeat the same example at the bottom of a l
   event participants, interceptor targets and the Introduction. Shared framing/styles live in `shared.tsx`.
   Reuse Fumadocs controls/code highlighting and the site's theme. Labels/contracts live once in
   `regions.json`; preview selection does not run another application runtime.
-- `components/diagrams/charts.mjs`: shared Mermaid text, captions and implementation references.
-  `Diagram` uses the server renderer documented by Fumadocs; CSS variables adapt to both themes.
+- `diagrams/<name>.html`: diagram sources drawn with the diagram-design skill (BitaKit profile).
+  `npm run diagrams` derives the dark variant and exports both SVGs to `public/diagrams`;
+  `components/diagrams/figures.json` holds each one's title, caption, size and implementation
+  references, and `<Figure name>` shows it in both themes.
 - `.agents/skills/foundation-development/documentation-visuals.md`: canonical style, authoring
   prompt, tool choices and update checklist. No separate image generation step is needed.
 

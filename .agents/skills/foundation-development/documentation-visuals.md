@@ -83,21 +83,29 @@ and Core packages separately list app features, provider adapters and developmen
 
 | Need | Tool | Editable source |
 | --- | --- | --- |
-| Architecture, execution, events or lifecycle | Mermaid syntax, rendered on the server with `beautiful-mermaid` | `apps/docs/components/diagrams/charts.mjs` |
+| Architecture, flows, states, layers, comparisons, wireframes | The [diagram-design](https://github.com/cathrynlavery/diagram-design) agent skill, BitaKit profile | `apps/docs/diagrams/<name>.html` |
 | Show which code adds UI in which place | Small React example embedded in MDX | `apps/docs/components/illustrations/` |
 | Slot labels and accepted contribution types | One shared metadata file | `apps/docs/components/illustrations/regions.json` |
 | Highlighted example code and destination buttons | Fumadocs `DynamicCodeBlock` and `buttonVariants` | Existing package components |
+| Measured numbers | `MeasuredStats`, `PluginSizes` | `apps/docs/components/diagrams/measurements.json` |
 
-The Mermaid renderer follows [Fumadocs' documented integration](https://www.fumadocs.dev/docs/markdown/mermaid).
-Keep the wrapper small: server-render committed chart text, inherit `fd` theme tokens, provide
-an accessible description and allow local horizontal scrolling. Do not build a layout engine,
-canvas editor, illustration DSL, duplicated light/dark assets or another docs runtime.
-Only reviewed repository content reaches the SVG renderer; do not feed it user-supplied strings.
+Every diagram is drawn with the diagram-design skill (the user chose it on 2026-10-24 to unify
+the Mermaid flows and hand-drawn SVGs). The repository's `.diagram-design` file selects the
+`bitakit` profile in `~/.diagram-design/profiles/`: navy `#122f4d` ink, amber accent (`#9a6700`
+light, `#ebb759` dark), GitHub neutrals and `Font source: system` (no Google Fonts). Follow the
+skill's rules: one type per diagram, orthogonal r=8 connectors, masked uppercase arrow labels
+with a gap, the 4px grid, at most two accent elements, shape carries node type, and its
+self-check (`python3 <skill>/scripts/self_check.py --offline <file>`).
+
+The light HTML is the source. `npm run diagrams [name]` (scripts/diagrams.mjs) derives the dark
+HTML by swapping every profile token, refuses any color outside the profile, exports both with
+the skill's `export_svg.py --system-fonts` and copies them to `apps/docs/public/diagrams` (and
+`layers` to `docs/assets/readme`). Never hand-edit an exported SVG.
 
 ## Reuse in MDX
 
 ```mdx
-<Diagram name="action-interceptors" />
+<Figure name="action-interceptors" />
 <SlotIllustration />
 <SettingsIllustration />
 <ExtensionIllustration />
@@ -105,9 +113,9 @@ Only reviewed repository content reaches the SVG renderer; do not feed it user-s
 <InterceptorIllustration kind="actions" />
 ```
 
-Reuse a chart name on every page that needs it. Change its source once; do not copy SVGs
-or the Mermaid text into multiple pages. Each chart keeps its title, caption and implementation
-source references together. `components/mdx.tsx` exposes these ordinary MDX components.
+Reuse a figure name on every page that needs it. Change its source once; do not copy SVGs
+into pages. `components/diagrams/figures.json` keeps each figure's title, caption, size and
+implementation source references together. `components/mdx.tsx` exposes these ordinary MDX components.
 
 ## Preserve the approved style
 
@@ -122,14 +130,18 @@ These are authored illustrations, not another matcher, event bus or simulated ap
 Clearly distinguish Action interception from service observation, and owned event subscriptions
 from invoking an Action. Pair flow diagrams with the step they clarify; avoid a repeated gallery.
 
-The user also approved the existing architecture composition and numbered Action-loop graphics
-from `scripts/readme-diagrams.mjs`. Preserve their visual language: recognizable layers, short
-labels, numbered execution arrows and a distinct return path for state updates. They belong in
-Architecture and Actions respectively; Patterns links to the Action loop instead of duplicating it.
-Maintain these existing assets through their authoring script and export both themes to
-`docs/assets/readme` and `apps/docs/public/diagrams`. In docs, select the image using the site's
-light/dark classes, not the operating-system preference alone. Use Mermaid for new general flows;
-do not create another illustration engine.
+The diagram set (2026-10-24): `layers` (the composition layer; replaces the former
+architecture graphic), `action-loop` (numbered execution and an accent return path),
+`parallel-work`, `plugin-extension` (slot regions named by the filling plugin), and the flows,
+states and processes formerly in Mermaid. `action-bindings` was dropped as a subset of the
+Action loop and `action-placement` merged into `slot-flow`. Before adding a diagram, ask the
+skill's question: would a paragraph or table do? Delete or merge rather than add.
+
+Measured numbers come from `npm run measure:onboarding -- --write`
+(`components/diagrams/measurements.json`); render them with `MeasuredStats` (headline row) and
+`PluginSizes` (one hue, direct labels, a table beside it as the text view). Do not chart
+unmeasured "without BitaKit" numbers or use a log scale to force very different magnitudes into
+one chart.
 
 ## Make a UI example useful
 
@@ -163,8 +175,9 @@ Explain {learning_outcome} in the BitaKit documentation.
 Verify the API and region order against {implementation_sources}.
 Use the existing MDX components and the central Fumadocs theme.
 
-For a flow: add one short Mermaid definition to charts.mjs, with a title, caption and
-source references. Show only the decisions and branches needed for this lesson.
+For a flow or structure: draw it with the diagram-design skill (BitaKit profile) as
+apps/docs/diagrams/<name>.html, run npm run diagrams <name>, and add its title, caption,
+size and source references to figures.json. Show only the decisions and branches this lesson needs.
 For UI placement: reuse or minimally extend the existing React illustrations. Show the
 source file, real slot contract and resulting UI region together. Do not add a new engine.
 
@@ -178,7 +191,7 @@ Keep optional detail out of the first sample. Verify light/dark themes, mobile s
 
 ## Maintain and verify
 
-When an API changes, follow the `sources` references in `charts.mjs`, update the relevant
+When an API changes, follow the `sources` references in `figures.json`, update the relevant
 example and shared metadata, and review the explanation. No tool automatically proves a
 flow diagram's semantics. The slot-contract test detects renamed slots or changed accepts/policy
 using the existing discovery parser; it does not add a second parser or runtime registry.

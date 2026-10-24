@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!-- Source of a BitaKit documentation diagram, drawn with the diagram-design skill (profile:
+     bitakit, system fonts). Edit this file, then run `npm run diagrams` to derive the dark
+     variant and export both SVGs. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Which candidate renders a part?</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #f6f8fa;
+      --color-ink: #122f4d;
+      --color-muted: #4b6279;
+      --color-accent: #9a6700;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400;
+      letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 760px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Flowchart · BitaKit</p>
+    <h1>Which candidate renders a part?</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 760 572" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="part-selection-title part-selection-desc">
+        <title id="part-selection-title">Which candidate renders a part?</title>
+        <desc id="part-selection-desc">Flowchart: a replaceable part renders the candidate chosen in bitakit.config.ts, otherwise the app&#x27;s own file, otherwise its only candidate; with none the owner&#x27;s default renders, and with several undecided ones the default renders and doctor asks for a choice.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4b6279"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a6700"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1f5fa8"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f6f8fa"/>
+        <path d="M 260,72 L 260,104" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 380,152 L 520,152" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 260,200 L 260,236" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 380,284 L 520,284" fill="none" stroke="#9a6700" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <path d="M 260,332 L 260,368" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 380,416 L 520,416" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 260,464 L 260,504" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 140,416 L 80,416 Q 72,416 72,424 L 72,504" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="449.5" y="132" width="25" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="462" y="141" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="274.0" y="212.0" width="20" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="284" y="221.0" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <rect x="449.5" y="264" width="25" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="462" y="273" fill="#9a6700" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="274.0" y="344.0" width="20" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="284" y="353.0" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <rect x="449.5" y="396" width="25" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="462" y="405" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">ONE</text>
+        <rect x="269.0" y="478" width="30" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="284" y="487" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">NONE</text>
+        <rect x="73.5" y="398" width="45" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="96" y="407" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">SEVERAL</text>
+        <rect x="160" y="24" width="200" height="48" rx="20" fill="#f6f8fa"/>
+        <rect x="160" y="24" width="200" height="48" rx="20" fill="rgba(18,47,77,0.03)" stroke="rgba(18,47,77,0.3)" stroke-width="1"/>
+        <text x="260.0" y="46.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">A replaceable part</text>
+        <text x="260.0" y="60.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">layout.auth, screen.error</text>
+        <polygon points="260,104 380,152 260,200 140,152" fill="#f6f8fa"/>
+        <polygon points="260,104 380,152 260,200 140,152" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="260" y="149" fill="#122f4d" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">choose entry in</text>
+        <text x="260" y="163" fill="#122f4d" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">bitakit.config.ts?</text>
+        <rect x="520" y="128" width="200" height="48" rx="6" fill="#f6f8fa"/>
+        <rect x="520" y="128" width="200" height="48" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="620.0" y="149.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">The chosen candidate</text>
+        <text x="620.0" y="163.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">&#x27;&lt;plugin&gt;:&lt;variant&gt;&#x27;</text>
+        <polygon points="260,236 380,284 260,332 140,284" fill="#f6f8fa"/>
+        <polygon points="260,236 380,284 260,332 140,284" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="260" y="288" fill="#122f4d" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">an app file?</text>
+        <rect x="520" y="260" width="200" height="48" rx="6" fill="#f6f8fa"/>
+        <rect x="520" y="260" width="200" height="48" rx="6" fill="rgba(235,183,89,0.16)" stroke="#9a6700" stroke-width="1"/>
+        <text x="620.0" y="281.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">The app&#x27;s own file</text>
+        <text x="620.0" y="295.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">src/layouts, src/ui/slots</text>
+        <polygon points="260,368 380,416 260,464 140,416" fill="#f6f8fa"/>
+        <polygon points="260,368 380,416 260,464 140,416" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="260" y="413" fill="#122f4d" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">how many</text>
+        <text x="260" y="427" fill="#122f4d" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">candidates?</text>
+        <rect x="520" y="392" width="200" height="48" rx="6" fill="#f6f8fa"/>
+        <rect x="520" y="392" width="200" height="48" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="620.0" y="413.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">That candidate</text>
+        <text x="620.0" y="427.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">a plugin or package</text>
+        <rect x="160" y="504" width="200" height="48" rx="6" fill="#f6f8fa"/>
+        <rect x="160" y="504" width="200" height="48" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="260.0" y="525.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">The owner&#x27;s default</text>
+        <text x="260.0" y="539.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">Shell, or the outlet fallback</text>
+        <rect x="20" y="504" width="104" height="48" rx="6" fill="#f6f8fa"/>
+        <rect x="20" y="504" width="104" height="48" rx="6" fill="rgba(18,47,77,0.02)" stroke="rgba(18,47,77,0.3)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="72.0" y="525.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Default</text>
+        <text x="72.0" y="539.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">doctor asks</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

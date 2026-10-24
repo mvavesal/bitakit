@@ -1,0 +1,137 @@
+---
+title: Why BitaKit?
+description: What an app needs around every feature, what BitaKit provides instead, and how much code your coding agent does not have to write, read or test.
+---
+
+A feature is rarely just its page. Around it, an app needs a menu entry, a command palette
+entry, button states, confirmations, messages, a settings screen that saves, a way for other
+features to react and a place where they can add UI. Without a shared structure, someone
+writes that again for every feature, and with a coding agent, you pay for every line in
+tokens: to write it, to read it back next time, to debug it and to test it.
+
+BitaKit provides those mechanisms once, tested, and gives every feature one folder. Your
+agent writes the feature.
+
+<Figure name="layers" />
+
+## What every feature needs
+
+| A feature needs…                                 | Without a shared structure, you write…                                                | With BitaKit, you write…                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| A page and a menu entry                          | A route, an edit to the menu list, maybe a command palette entry                      | `ui/pages/index.tsx` and one Action with `href` and `slots`                      |
+| A button that runs an operation                  | The handler, disabled and pending state, a confirm dialog, success and error messages | One `defineAction` with `enabled`, `confirm` and `success`; any control binds it |
+| A preference that survives a reload              | A store, persistence, a form, validation and a settings page                          | One `setting({ default })` in `settings.ts`; the page is generated               |
+| Other features reacting to changes               | An event bus or callbacks threaded through components                                 | `events.ts`; listeners in their own folders                                      |
+| Other features adding UI                         | Props, render callbacks or edits to your component                                    | `slots/<name>.ts` and one `<PluginSlot>` or `useSlot`                            |
+| A rule over operations you do not own            | An edit inside someone else's handler                                                 | An interceptor in your own folder                                                |
+| A replaceable sign-in frame, 404 or error screen | Edits to shared layout files                                                          | `src/layouts/<family>.tsx` or `ui/slots/screen.<name>.tsx`                       |
+| Typed IDs across all of the above                | Hand-written types or string constants                                                | Nothing: discovery generates them, `typecheck` rejects a wrong name              |
+
+The middle column is not hard code. It is repetitive code, spread over shared files, and it
+has to be tested every time. That is where agents spend tokens and where two people, or two
+agents, collide.
+
+## What it measures
+
+<MeasuredStats />
+
+We counted the code with the open o200k tokenizer. Other models' tokenizers count somewhat
+differently, so read the numbers as sizes, not exact bills. Run `npm run measure:onboarding`
+in the repository to reproduce them.
+
+**What a default app runs on.** An app created with Shell, Settings and Quick Search uses
+these packages:
+
+| Package                                | Source files |      Lines |       Tokens |   Tests |
+| -------------------------------------- | -----------: | ---------: | -----------: | ------: |
+| Core (runtime, Actions, settings)      |           67 |      9,633 |       81,840 |     258 |
+| UI (React bindings, components)        |           73 |      5,933 |       49,614 |      90 |
+| Discovery (file conventions, types)    |           15 |      2,903 |       28,519 |       ¹ |
+| Next.js adapter                        |            9 |        112 |        1,020 |      31 |
+| Shell (frame, layouts, themes, toasts) |           34 |      4,495 |       43,377 |      48 |
+| App Preferences (Settings pages)       |           40 |      3,506 |       27,772 |      48 |
+| Quick Search                           |           18 |      1,420 |       11,230 |      16 |
+| CLI (add, doctor, slots, info)         |           15 |      4,187 |       41,544 |      64 |
+| **Total**                              |      **271** | **32,189** | **≈285,000** | **555** |
+
+¹ Discovery's tests run in Core's suite.
+
+Your app does not need all of this, and a hand-written version for one app would be smaller
+than general packages. But each part it does need is code an agent would otherwise write,
+read back in later sessions, debug and test. Here it is installed, tested and documented.
+
+**What a feature costs.** The [Workspace sample](/docs/examples#workspace) has four plugins.
+Three of them extend the first without editing it:
+
+| Plugin     | What it adds                                                                     | Files | Tokens |
+| ---------- | -------------------------------------------------------------------------------- | ----: | -----: |
+| `notes`    | The feature: service, event, setting, two slots, page, search source             |    10 |  1,359 |
+| `activity` | A feed below the notes and a count in the header, from the `notes.changed` event |     3 |    357 |
+| `export`   | An "Export as Markdown" button in the notes toolbar                              |     1 |    207 |
+| `guard`    | Skips duplicate notes and traces every notes call                                |     2 |    202 |
+
+<PluginSizes />
+
+Each extension is one folder of a few hundred tokens, and none changes a shared file. The
+generated Todo sample is the same shape: two plugins, 11 files, about 1,400 tokens.
+
+**What the agent reads first.** A generated app gives agents one screen of rules in
+`AGENTS.md` (about 800 tokens) and the BitaKit skill (about 3,000 tokens, with focused
+references of about 25,000 tokens that it opens only for the task at hand). Every installed
+`@bitakit/*` package adds its own short `AGENTS.md`.
+
+## Work in parallel without conflicts
+
+Every feature lives in `src/plugins/<name>/`, and the path is the ID: `notes/actions/add.ts`
+is the Action `notes.add`. Features meet only through contracts: a service, an event, a slot
+or a setting. So two developers or two agents can each own a folder:
+
+<Figure name="parallel-work" />
+
+```text
+src/plugins/
+├── notes/      owner: the feature
+├── activity/   listens to notes.changed, fills notes.footer
+├── export/     adds an Action to notes.toolbar
+└── guard/      intercepts notes.add
+```
+
+There is no route list, menu file or registry for them to edit at the same time. Delete
+`activity`, `export` or `guard` and the app still works without it. `npm run typecheck`
+catches a misspelled ID across folders, and `npx bitakit doctor` reports a slot or service
+that nobody provides.
+
+## Built for coding agents
+
+- **One place per task.** `AGENTS.md` maps each task to a path: a page goes to
+  `ui/pages/`, a button to `actions/`, a preference to `settings.ts`.
+- **Commands instead of guesses.** `npx bitakit add` creates the file in the right place,
+  `npx bitakit info --json` lists every ID, `npx bitakit slots` shows where UI can go.
+- **Checked results.** Generated types and `doctor` turn a wrong name into an error with the
+  fix, not a blank screen.
+- **Everything explains itself.** `node_modules/@bitakit/<name>/AGENTS.md` describes what each
+  package offers. Every plugin keeps an `AGENTS.md` in its folder with its contracts and checks;
+  `npx bitakit add plugin` starts it. The sample apps show one for every plugin.
+
+See [Work with AI coding agents](/docs/guides/ai-agents).
+
+## When BitaKit is not the right tool
+
+- **A small app with one or two screens.** You can still start with BitaKit, but the
+  benefit grows with the number of features and contributors.
+- **You need isolation between untrusted plugins.** Plugins are trusted code in the same
+  app. A failing slot component is contained, but plugins are not sandboxed.
+- **Server-side plugins.** Plugins run in the client app today; server plugins are planned.
+- **Another UI framework.** The React bindings and adapters cover Next.js and, experimentally,
+  TanStack Start.
+
+## Try it
+
+<Cards>
+  <Card title="Create an app" href="/docs/quickstart">
+    Four steps with npm, pnpm, Yarn or Bun.
+  </Card>
+  <Card title="Open the sample apps" href="/docs/examples">
+    From a counter to four plugins working together.
+  </Card>
+</Cards>

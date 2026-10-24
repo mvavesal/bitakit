@@ -31,7 +31,7 @@ before: ({ services }) => services.counter.value.state.get().count < 10,
 `false` skips execution with reason `intercepted`. A promise from `before` is awaited.
 This is a client execution rule; server authorization still belongs on the server.
 
-<Diagram name="action-interceptors" />
+<Figure name="action-interceptors" />
 
 ### 3. Observe failure
 
@@ -57,7 +57,7 @@ This observes calls through the service container, including calls outside an Ac
 Known service names infer method arguments and awaited result types. `service: 'todos.*'`
 also selects a service-name prefix; omit `method` to include every public method.
 
-<Diagram name="service-interceptors" />
+<Figure name="service-interceptors" />
 
 | Capability                     | Action interceptor                    | Service interceptor    |
 | ------------------------------ | ------------------------------------- | ---------------------- |

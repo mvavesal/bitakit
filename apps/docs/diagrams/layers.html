@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<!-- Source of a BitaKit documentation diagram, drawn with the diagram-design skill (profile:
+     bitakit, system fonts). Edit this file, then run `npm run diagrams` to derive the dark
+     variant and export both SVGs. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitaKit is a composition layer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #f6f8fa;
+      --color-ink: #122f4d;
+      --color-muted: #4b6279;
+      --color-accent: #9a6700;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400;
+      letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 880px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Layer stack · BitaKit</p>
+    <h1>BitaKit is a composition layer</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 880 472" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="layers-title layers-desc">
+        <title id="layers-title">BitaKit is a composition layer</title>
+        <desc id="layers-desc">Layer stack: your pages and components sit on feature plugins, one folder each; the plugins snap onto BitaKit Core, which provides Actions, services, events, settings, slots and layouts as contracts; discovery and the adapter connect it at build time; Next.js or TanStack Start keeps routing, rendering and deployment.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4b6279"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a6700"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1f5fa8"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f6f8fa"/>
+        <rect x="32" y="40" width="816" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="32" y="40" width="816" height="56" rx="6" fill="#ffffff" stroke="#c9d3de" stroke-width="1"/>
+        <text x="48" y="71.0" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" text-anchor="start" letter-spacing="0.18em">APP</text>
+        <text x="144" y="73.0" fill="#122f4d" font-size="14" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">Your pages and components</text>
+        <text x="832" y="72.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">routes and rendering stay native</text>
+        <rect x="32" y="104" width="816" height="88" rx="6" fill="#f6f8fa"/>
+        <rect x="32" y="104" width="816" height="88" rx="6" fill="rgba(235,183,89,0.16)" stroke="#9a6700" stroke-width="1"/>
+        <text x="48" y="124" fill="#9a6700" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" text-anchor="start" letter-spacing="0.18em">PLUGINS</text>
+        <text x="144" y="128" fill="#122f4d" font-size="14" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">Feature plugins</text>
+        <text x="832" y="128" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">one folder each</text>
+        <rect x="144" y="148" width="56" height="24" rx="4" fill="rgba(235,183,89,0.16)" stroke="#9a6700" stroke-width="0.8"/>
+        <text x="172.0" y="164" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">notes</text>
+        <rect x="208" y="148" width="68" height="24" rx="4" fill="rgba(235,183,89,0.16)" stroke="#9a6700" stroke-width="0.8"/>
+        <text x="242.0" y="164" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">billing</text>
+        <rect x="284" y="148" width="68" height="24" rx="4" fill="rgba(235,183,89,0.16)" stroke="#9a6700" stroke-width="0.8"/>
+        <text x="318.0" y="164" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">reports</text>
+        <text x="368" y="164" fill="#4b6279" font-size="10" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" text-anchor="start">and</text>
+        <rect x="400" y="148" width="56" height="24" rx="4" fill="#ffffff" stroke="#122f4d" stroke-width="0.8"/>
+        <text x="428.0" y="164" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">shell</text>
+        <rect x="464" y="148" width="76" height="24" rx="4" fill="#ffffff" stroke="#122f4d" stroke-width="0.8"/>
+        <text x="502.0" y="164" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">settings</text>
+        <rect x="548" y="148" width="64" height="24" rx="4" fill="#ffffff" stroke="#122f4d" stroke-width="0.8"/>
+        <text x="580.0" y="164" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">search</text>
+        <rect x="32" y="200" width="816" height="88" rx="6" fill="#f6f8fa"/>
+        <rect x="32" y="200" width="816" height="88" rx="6" fill="#ffffff" stroke="#c9d3de" stroke-width="1"/>
+        <text x="48" y="220" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" text-anchor="start" letter-spacing="0.18em">CORE</text>
+        <text x="144" y="224" fill="#122f4d" font-size="14" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">BitaKit Core</text>
+        <text x="832" y="224" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">contracts between features</text>
+        <rect x="144" y="244" width="68" height="24" rx="4" fill="rgba(18,47,77,0.05)" stroke="#4b6279" stroke-width="0.8"/>
+        <text x="178.0" y="260" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">Actions</text>
+        <rect x="220" y="244" width="76" height="24" rx="4" fill="rgba(18,47,77,0.05)" stroke="#4b6279" stroke-width="0.8"/>
+        <text x="258.0" y="260" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">services</text>
+        <rect x="304" y="244" width="64" height="24" rx="4" fill="rgba(18,47,77,0.05)" stroke="#4b6279" stroke-width="0.8"/>
+        <text x="336.0" y="260" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">events</text>
+        <rect x="376" y="244" width="76" height="24" rx="4" fill="rgba(18,47,77,0.05)" stroke="#4b6279" stroke-width="0.8"/>
+        <text x="414.0" y="260" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">settings</text>
+        <rect x="460" y="244" width="56" height="24" rx="4" fill="rgba(18,47,77,0.05)" stroke="#4b6279" stroke-width="0.8"/>
+        <text x="488.0" y="260" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">slots</text>
+        <rect x="524" y="244" width="68" height="24" rx="4" fill="rgba(18,47,77,0.05)" stroke="#4b6279" stroke-width="0.8"/>
+        <text x="558.0" y="260" fill="#122f4d" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">layouts</text>
+        <rect x="32" y="296" width="816" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="32" y="296" width="816" height="56" rx="6" fill="#ffffff" stroke="#c9d3de" stroke-width="1"/>
+        <text x="48" y="327.0" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" text-anchor="start" letter-spacing="0.18em">BUILD</text>
+        <text x="144" y="329.0" fill="#122f4d" font-size="14" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">Discovery and adapter</text>
+        <text x="832" y="328.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">file path = ID · generated types</text>
+        <rect x="32" y="360" width="816" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="32" y="360" width="816" height="56" rx="6" fill="#ffffff" stroke="#c9d3de" stroke-width="1"/>
+        <text x="48" y="391.0" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" text-anchor="start" letter-spacing="0.18em">FRAMEWORK</text>
+        <text x="144" y="393.0" fill="#122f4d" font-size="14" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">Next.js · TanStack Start</text>
+        <text x="832" y="392.0" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">routing, rendering, deployment</text>
+        <line x1="32" y1="432" x2="848" y2="432" stroke="rgba(18,47,77,0.1)" stroke-width="0.8"/>
+        <text x="32" y="450" fill="#4b6279" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" letter-spacing="0.18em">LEGEND</text>
+        <rect x="104" y="441" width="24" height="12" rx="2" fill="rgba(235,183,89,0.16)" stroke="#9a6700" stroke-width="1"/>
+        <text x="136" y="450" fill="#4b6279" font-size="9" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif">your code</text>
+        <rect x="213" y="441" width="24" height="12" rx="2" fill="rgba(18,47,77,0.05)" stroke="#4b6279" stroke-width="1"/>
+        <text x="245" y="450" fill="#4b6279" font-size="9" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif">provided by BitaKit</text>
+        <rect x="376" y="441" width="24" height="12" rx="2" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="408" y="450" fill="#4b6279" font-size="9" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif">optional BitaKit plugins</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

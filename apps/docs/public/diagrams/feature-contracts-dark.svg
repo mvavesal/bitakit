@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 940 288" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="feature-contracts-dark-title feature-contracts-dark-desc" id="feature-contracts-dark-root">
+        <title id="feature-contracts-dark-title">Features meet at their contracts</title>
+        <desc id="feature-contracts-dark-desc">Architecture: an auth adapter provides the auth contract the notes plugin uses; notes emits notes.changed, which notifies the activity plugin; the tips plugin fills the notes.footer slot that notes renders. Each plugin owns its implementation.</desc>
+        <defs>
+      <style>#feature-contracts-dark-root { --color-paper: #0d1117;
+      --color-ink: #e6edf3;
+      --color-muted: #9bb1c8;
+      --color-accent: #ebb759;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #feature-contracts-dark-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #feature-contracts-dark-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#feature-contracts-dark-root .diagram-container { overflow-x: visible; }
+}</style><marker id="feature-contracts-dark-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9bb1c8"/></marker><marker id="feature-contracts-dark-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ebb759"/></marker><marker id="feature-contracts-dark-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#79a8e0"/></marker></defs>
+        <rect width="100%" height="100%" fill="#0d1117"/>
+        <path d="M 200,76 L 280,76" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#feature-contracts-dark-arrow)"/>
+        <path d="M 440,76 L 520,76" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#feature-contracts-dark-arrow)"/>
+        <path d="M 680,76 L 760,76" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#feature-contracts-dark-arrow)"/>
+        <path d="M 830,104 L 830,192" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#feature-contracts-dark-arrow)"/>
+        <path d="M 200,220 L 280,220" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#feature-contracts-dark-arrow)"/>
+        <path d="M 440,220 L 592,220 Q 600,220 600,212 L 600,104" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#feature-contracts-dark-arrow)"/>
+        <rect x="215.0" y="56" width="50" height="12" rx="2" fill="#0d1117"/>
+        <text x="240" y="65" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">PROVIDES</text>
+        <rect x="457.5" y="56" width="45" height="12" rx="2" fill="#0d1117"/>
+        <text x="480" y="65" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">USED BY</text>
+        <rect x="702.5" y="56" width="35" height="12" rx="2" fill="#0d1117"/>
+        <text x="720" y="65" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">EMITS</text>
+        <rect x="841.0" y="142" width="50" height="12" rx="2" fill="#0d1117"/>
+        <text x="866" y="151" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">NOTIFIES</text>
+        <rect x="222.5" y="200" width="35" height="12" rx="2" fill="#0d1117"/>
+        <text x="240" y="209" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">FILLS</text>
+        <rect x="487.5" y="200" width="65" height="12" rx="2" fill="#0d1117"/>
+        <text x="520" y="209" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">RENDERED IN</text>
+        <rect x="40" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="40" y="48" width="160" height="56" rx="6" fill="#e6edf3" stroke="#e6edf3" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
+        <rect x="48" y="54" width="40" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="68.0" y="63" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">PACKAGE</text>
+        <text x="120.0" y="82.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Auth adapter</text>
+        <text x="120.0" y="96.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">@bitakit/better-auth</text>
+        <rect x="280" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="280" y="48" width="160" height="56" rx="6" fill="#e6edf3" stroke="#9bb1c8" stroke-width="1" fill-opacity="0.05"/>
+        <rect x="288" y="54" width="45" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="310.5" y="63" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">CONTRACT</text>
+        <text x="360.0" y="82.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">auth</text>
+        <text x="360.0" y="96.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">shared service</text>
+        <rect x="520" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="520" y="48" width="160" height="56" rx="6" fill="#ebb759" stroke="#ebb759" stroke-width="1" fill-opacity="0.12"/>
+        <rect x="528" y="54" width="36" height="12" rx="2" fill="none" stroke="#ebb759" stroke-width="0.8"/>
+        <text x="546.0" y="63" fill="#ebb759" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">PLUGIN</text>
+        <text x="600.0" y="82.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Notes plugin</text>
+        <text x="600.0" y="96.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">owns the feature</text>
+        <rect x="760" y="48" width="140" height="56" rx="6" fill="#0d1117"/>
+        <rect x="760" y="48" width="140" height="56" rx="6" fill="#e6edf3" stroke="#9bb1c8" stroke-width="1" fill-opacity="0.05"/>
+        <rect x="768" y="54" width="32" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="784.0" y="63" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">EVENT</text>
+        <text x="830.0" y="82.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">notes.changed</text>
+        <text x="830.0" y="96.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">typed payload</text>
+        <rect x="40" y="192" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="40" y="192" width="160" height="56" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <rect x="48" y="198" width="36" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="66.0" y="207" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">PLUGIN</text>
+        <text x="120.0" y="226.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Tips plugin</text>
+        <text x="120.0" y="240.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">a footer widget</text>
+        <rect x="280" y="192" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="280" y="192" width="160" height="56" rx="6" fill="#e6edf3" stroke="#9bb1c8" stroke-width="1" fill-opacity="0.05"/>
+        <rect x="288" y="198" width="27" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="301.5" y="207" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">SLOT</text>
+        <text x="360.0" y="226.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">notes.footer</text>
+        <text x="360.0" y="240.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">component slot</text>
+        <rect x="760" y="192" width="140" height="56" rx="6" fill="#0d1117"/>
+        <rect x="760" y="192" width="140" height="56" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <rect x="768" y="198" width="36" height="12" rx="2" fill="none" stroke="#9198a1" stroke-width="0.8"/>
+        <text x="786.0" y="207" fill="#9198a1" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">PLUGIN</text>
+        <text x="830.0" y="226.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Activity plugin</text>
+        <text x="830.0" y="240.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">keeps a feed</text>
+      </svg>

@@ -1,0 +1,214 @@
+---
+title: Run an operation from a control
+description: Define an operation once as an Action and bind buttons, rows, confirmations, messages and menu entries to it.
+---
+
+**Goal:** a todo list where every button gets its label, disabled state, pending state,
+confirmation and message from one definition, instead of hand-written `onClick` and
+`disabled` code in each component.
+
+**You need** an app with Shell, the create-app default. The finished code is the
+[Todo sample](/docs/examples#todo).
+
+<Steps>
+<Step>
+
+### Keep the data in a service
+
+Create `src/plugins/todos/services/list.ts`. The path names the service `todos.list`.
+
+```ts title="src/plugins/todos/services/list.ts"
+import { defineService } from '@bitakit/core';
+
+export type Todo = { id: number; title: string; done: boolean };
+
+// The todo list. It lives in memory, so a reload starts empty; call your API here later.
+export default defineService(({ store }) => {
+  const state = store<{ todos: Todo[] }>({ todos: [] });
+  let next = 1;
+  const update = (id: number, change: (todo: Todo) => Todo) =>
+    state.set((current) => ({
+      todos: current.todos.map((todo) => (todo.id === id ? change(todo) : todo)),
+    }));
+  return {
+    state,
+    add(title: string) {
+      state.set((current) => ({
+        todos: [...current.todos, { id: next++, title: title.trim(), done: false }],
+      }));
+    },
+    toggle: (id: number) => update(id, (todo) => ({ ...todo, done: !todo.done })),
+    remove(id: number) {
+      state.set((current) => ({ todos: current.todos.filter((todo) => todo.id !== id) }));
+    },
+    clearDone() {
+      state.set((current) => ({ todos: current.todos.filter((todo) => !todo.done) }));
+    },
+  };
+});
+```
+
+</Step>
+<Step>
+
+### Define an Action that takes input
+
+`src/plugins/todos/actions/add.ts` is the Action `todos.add`. Its input is the typed title.
+
+```ts title="src/plugins/todos/actions/add.ts"
+import { defineAction } from '@bitakit/core';
+
+export default defineAction<string>({
+  title: 'Add',
+  // Bound buttons stay disabled while the input is empty.
+  enabled: ({ input }) => !!input?.trim(),
+  execute: ({ services, input }) => services.todos.list.add(input),
+});
+```
+
+</Step>
+<Step>
+
+### Use one Action for every row
+
+A row Action takes the todo's ID as input. Its title follows the row, and `per-input` lets
+two rows run at the same time.
+
+```ts title="src/plugins/todos/actions/toggle.ts"
+import { defineAction } from '@bitakit/core';
+
+const find = (todos: { id: number; done: boolean }[], id?: number) =>
+  todos.find((todo) => todo.id === id);
+
+export default defineAction<number>({
+  // The label follows the row's state: one Action, a different title per todo.
+  title: ({ input, services }) =>
+    find(services.todos.list.state.get().todos, input)?.done ? 'Undo' : 'Done',
+  concurrency: 'per-input',
+  execute: ({ services, input }) => services.todos.list.toggle(input),
+});
+```
+
+Create `actions/remove.ts` the same way with `title: 'Delete'` and `services.todos.list.remove(input)`.
+
+</Step>
+<Step>
+
+### Ask first, then report
+
+`confirm` opens the standard dialog before the run; `success` shows a toast after it.
+
+```ts title="src/plugins/todos/actions/clear-done.ts"
+import { defineAction } from '@bitakit/core';
+
+export default defineAction({
+  title: 'Clear completed',
+  enabled: ({ services }) => services.todos.list.state.get().todos.some((todo) => todo.done),
+  confirm: {
+    title: 'Delete every completed todo?',
+    description: 'This cannot be undone.',
+    destructive: true,
+  },
+  execute: ({ services }) => services.todos.list.clearDone(),
+  success: 'Completed todos deleted',
+});
+```
+
+</Step>
+<Step>
+
+### Add a navigation entry
+
+An Action with `href` is a link. In `shell.navigation` it appears in the sidebar, and Quick
+Search lists it under Mod+K.
+
+```ts title="src/plugins/todos/actions/open.ts"
+import { defineAction } from '@bitakit/core';
+
+// A navigation entry: Shell shows it in the sidebar, Quick Search (Mod+K) finds it.
+export default defineAction({ title: 'Todos', href: '/todos', slots: ['shell.navigation'] });
+```
+
+</Step>
+<Step>
+
+### Bind the controls
+
+Wrap each control in `<Action id input>`. An empty `<Button />` takes the Action's title.
+
+```tsx title="src/plugins/todos/ui/pages/index.tsx"
+'use client';
+import { useState } from 'react';
+import { Action, useServiceState } from '@bitakit/ui';
+import { Button, Input, PageHeader } from '@bitakit/ui/components';
+
+export default function TodosPage() {
+  const [title, setTitle] = useState('');
+  const todos = useServiceState('todos.list', (state) => state.todos, []);
+  const left = todos.filter((todo) => !todo.done).length;
+  return (
+    <>
+      <PageHeader title="Todos" subtitle={`${left} of ${todos.length} left`} />
+      <form className="flex gap-2" onSubmit={(event) => event.preventDefault()}>
+        <Input
+          value={title}
+          aria-label="New todo"
+          placeholder="What needs doing?"
+          onChange={(event) => setTitle(event.target.value)}
+        />
+        {/* Clear the field only when the todo was added. */}
+        <Action
+          id="todos.add"
+          input={title}
+          onExecuted={(result) => result.status === 'completed' && setTitle('')}
+        >
+          <Button type="submit" />
+        </Action>
+      </form>
+      <ul className="flex flex-col gap-2">
+        {todos.map((todo) => (
+          <li key={todo.id} className="flex items-center gap-2">
+            <span className={todo.done ? 'flex-1 line-through text-muted-foreground' : 'flex-1'}>
+              {todo.title}
+            </span>
+            <Action id="todos.toggle" input={todo.id}>
+              <Button variant="outline" size="sm" />
+            </Action>
+            <Action id="todos.remove" input={todo.id}>
+              <Button variant="ghost" size="sm" />
+            </Action>
+          </li>
+        ))}
+      </ul>
+      <Action id="todos.clear-done">
+        <Button variant="outline" />
+      </Action>
+    </>
+  );
+}
+```
+
+</Step>
+</Steps>
+
+## Check it
+
+Run `npm run typecheck`: a misspelled Action ID or service name fails here. Then open
+**Todos** in the sidebar:
+
+1. **Add** stays disabled until you type.
+2. **Done** turns into **Undo** for that row only.
+3. **Clear completed** asks first and shows "Completed todos deleted".
+4. **Mod+K** lists **Todos**.
+
+## Variations
+
+| You want                               | Use                                                                  |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| A custom control (switch, menu item)   | `useAction(id)` and its prop getters, or `ActionButton`/`ActionLink` |
+| A keyboard shortcut                    | `shortcut: { keys: 'Mod+Shift+P' }` on the Action                    |
+| Validated input                        | `input: schema` instead of `defineAction<string>`                    |
+| A dialog instead of `execute`          | `dialog: { component }` with a file in `ui/dialogs/`                 |
+| The Action in another plugin's toolbar | [Extend another plugin](/docs/guides/extend-a-plugin)                |
+
+Every option is in the [Action reference](/docs/reference/actions).

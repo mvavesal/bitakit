@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 816 248" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="settings-flow-dark-title settings-flow-dark-desc" id="settings-flow-dark-root">
+        <title id="settings-flow-dark-title">One declaration, one value owner</title>
+        <desc id="settings-flow-dark-desc">Data flow: settings.ts feeds the settings catalog, which adds a navigation entry and a generated page; the page reads and writes the Core settings store, the only owner of values, which saves through the settings.storage contract.</desc>
+        <defs>
+      <style>#settings-flow-dark-root { --color-paper: #0d1117;
+      --color-ink: #e6edf3;
+      --color-muted: #9bb1c8;
+      --color-accent: #ebb759;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #settings-flow-dark-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #settings-flow-dark-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#settings-flow-dark-root .diagram-container { overflow-x: visible; }
+}</style><marker id="settings-flow-dark-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9bb1c8"/></marker><marker id="settings-flow-dark-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ebb759"/></marker><marker id="settings-flow-dark-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#79a8e0"/></marker></defs>
+        <rect width="100%" height="100%" fill="#0d1117"/>
+        <path d="M 200,76 L 232,76" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#settings-flow-dark-arrow)"/>
+        <path d="M 392,76 L 424,76" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#settings-flow-dark-arrow)"/>
+        <path d="M 312,104 L 312,168" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#settings-flow-dark-arrow)"/>
+        <path d="M 392,196 L 424,196" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#settings-flow-dark-arrow)"/>
+        <path d="M 584,196 L 616,196" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#settings-flow-dark-arrow)"/>
+        <rect x="40" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="40" y="48" width="160" height="56" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="120.0" y="73.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">settings.ts</text>
+        <text x="120.0" y="87.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">defineSettings(...)</text>
+        <rect x="232" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="232" y="48" width="160" height="56" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="312.0" y="73.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Settings catalog</text>
+        <text x="312.0" y="87.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">keys, labels, controls</text>
+        <rect x="424" y="48" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="424" y="48" width="160" height="56" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="504.0" y="73.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Navigation entry</text>
+        <text x="504.0" y="87.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">Settings → Greeting</text>
+        <rect x="232" y="168" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="232" y="168" width="160" height="56" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="312.0" y="193.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Generated page</text>
+        <text x="312.0" y="207.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">fields, save, reset</text>
+        <rect x="424" y="168" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="424" y="168" width="160" height="56" rx="6" fill="#ebb759" stroke="#ebb759" stroke-width="1" fill-opacity="0.12"/>
+        <text x="504.0" y="193.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Core settings store</text>
+        <text x="504.0" y="207.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">the value owner</text>
+        <rect x="616" y="168" width="160" height="56" rx="6" fill="#0d1117"/>
+        <rect x="616" y="168" width="160" height="56" rx="6" fill="#e6edf3" stroke="#9bb1c8" stroke-width="1" fill-opacity="0.05"/>
+        <text x="696.0" y="193.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">settings.storage</text>
+        <text x="696.0" y="207.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">browser or server</text>
+      </svg>

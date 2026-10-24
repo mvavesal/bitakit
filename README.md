@@ -13,15 +13,24 @@ settings.
 BitaKit is not another framework. It sits on top of the one you already use, through an adapter
 (Next.js today, TanStack Start experimental), which keeps routing, rendering and deployment.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/layers-dark.svg">
+  <img src="docs/assets/readme/layers-light.svg" alt="BitaKit as a composition layer: your pages sit on feature plugins, one folder each; the plugins snap onto BitaKit Core's contracts (Actions, services, events, settings, slots, layouts); discovery and the adapter connect it at build time; Next.js or TanStack Start keeps routing, rendering and deployment." width="880">
+</picture>
+
 ## Quick start
 
-You need Node.js 24 and npm 10 or newer.
+You need Node.js 24 and npm 10 or newer, pnpm, Yarn or Bun.
 
 **1. Create an app** (Next.js with navigation, settings and search included):
 
 ```bash
 npx @bitakit/create-app my-app --yes
 ```
+
+With pnpm, Yarn or Bun, start it with `pnpm create @bitakit/app my-app --yes`,
+`yarn create @bitakit/app my-app --yes` or `bunx @bitakit/create-app@latest my-app --yes`; the
+app then installs and runs with that package manager.
 
 **2. Run it:**
 
@@ -164,6 +173,21 @@ Every kind of change has exactly one place, so a person and a coding agent find 
 | Advanced     | 8    | A second plugin that extends the Counter | [Extend](apps/docs/content/docs/concepts/extend.mdx)     |
 
 The lessons grow the same Counter. You have a working feature after step 4; the rest can wait.
+
+## Sample apps and guides
+
+Six complete apps in [`examples/`](examples) go from a counter to four plugins working
+together: [counter](examples/counter), [todo](examples/todo), [settings](examples/settings),
+[theme](examples/theme), [layouts](examples/layouts) and [workspace](examples/workspace). Each
+runs on its own and is checked before every release. The how-to guides take their code from
+them: [run an operation](apps/docs/content/docs/guides/run-an-operation.mdx),
+[add settings](apps/docs/content/docs/guides/settings.mdx),
+[custom layouts and screens](apps/docs/content/docs/guides/layouts-and-screens.mdx),
+[extend another plugin](apps/docs/content/docs/guides/extend-a-plugin.mdx),
+[react to another plugin](apps/docs/content/docs/guides/react-to-events.mdx) and
+[add a Quick Search source](apps/docs/content/docs/guides/search-source.mdx).
+[Why BitaKit?](apps/docs/content/docs/why-bitakit.mdx) explains what the structure saves you
+and your coding agent, with measured numbers.
 Working with a coding agent? [Work with AI coding agents](apps/docs/content/docs/guides/ai-agents.mdx).
 They describe the **0.2 API**; keep all BitaKit packages on the same release line (0.2.x).
 Coming from 0.1? [Upgrade from 0.1](apps/docs/content/docs/upgrade.mdx) runs `npx bitakit migrate`.

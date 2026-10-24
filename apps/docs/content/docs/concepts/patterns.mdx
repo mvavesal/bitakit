@@ -30,7 +30,7 @@ export default defineAction({
 Import `defineAction` from `@bitakit/core`. Existing bindings reference `counter.increment`;
 each call carries its own input. A slot chooses where a control appears.
 
-<Diagram name="action-bindings" />
+<Figure name="action-loop" />
 
 Use [Action options](/docs/reference/actions) for confirmation, concurrency and feedback.
 Native navigation stays a real link; do not also invoke a handler when following it.
@@ -48,7 +48,7 @@ export default defineInterceptor({
 });
 ```
 
-<Diagram name="action-interceptors" />
+<Figure name="action-interceptors" />
 
 `before` may be async; `false` skips. `after` and `onError` observe, without replacing results.
 See [Action interceptors](/docs/concepts/interceptors#action-interceptors).
@@ -65,7 +65,7 @@ export default defineInterceptor({
 });
 ```
 
-<Diagram name="service-interceptors" />
+<Figure name="service-interceptors" />
 
 Internal self-calls bypass the wrapper. See [service interceptors](/docs/concepts/interceptors#service-interceptors).
 
@@ -83,7 +83,7 @@ events.emit('counter.incremented', count);
 events.on('counter.incremented', ({ data }) => console.log(data));
 ```
 
-<Diagram name="event-delivery" />
+<Figure name="event-delivery" />
 
 Subscriptions are owned and released. Ordinary emit does not await async handlers;
 [cancelable events](/docs/concepts/events#later-cancelable-events) await handlers and report
@@ -102,7 +102,7 @@ const increment = () => state.set((s) => ({ count: s.count + 1 }));
 const count = useServiceState('counter.value', (state) => state.count, 0);
 ```
 
-<Diagram name="service-state" />
+<Figure name="service-state" />
 
 See the [service lesson](/docs/concepts/services) for complete files. For persisted preferences,
 use `defineSettings` and `useSetting`; the runtime settings store remains the value owner.

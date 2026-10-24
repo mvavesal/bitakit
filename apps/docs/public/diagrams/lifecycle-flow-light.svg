@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 760 576" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lifecycle-flow-title lifecycle-flow-desc" id="lifecycle-flow-root">
+        <title id="lifecycle-flow-title">Update compatible plugin owners</title>
+        <desc id="lifecycle-flow-desc">Flowchart: a composition change that is not compatible reports restart-required; a compatible one gates the affected work and awaits its cleanup; if cleanup fails the replacement stays blocked, otherwise the affected owners start and readiness is published.</desc>
+        <defs>
+      <style>#lifecycle-flow-root { --color-paper: #f6f8fa;
+      --color-ink: #122f4d;
+      --color-muted: #4b6279;
+      --color-accent: #9a6700;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #lifecycle-flow-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #lifecycle-flow-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#lifecycle-flow-root .diagram-container { overflow-x: visible; }
+}</style><marker id="lifecycle-flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4b6279"/></marker><marker id="lifecycle-flow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a6700"/></marker><marker id="lifecycle-flow-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1f5fa8"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f6f8fa"/>
+        <path d="M 300,72 L 300,104" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#lifecycle-flow-arrow)"/>
+        <path d="M 410,148 L 480,148" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#lifecycle-flow-arrow)"/>
+        <path d="M 300,192 L 300,224" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#lifecycle-flow-arrow)"/>
+        <path d="M 300,272 L 300,304" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#lifecycle-flow-arrow)"/>
+        <path d="M 410,348 L 480,348" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#lifecycle-flow-arrow)"/>
+        <path d="M 300,392 L 300,424" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#lifecycle-flow-arrow)"/>
+        <path d="M 300,472 L 300,504" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#lifecycle-flow-arrow)"/>
+        <rect x="438.0" y="128" width="20" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="448" y="137" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <rect x="307.5" y="202" width="25" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="320" y="211" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="438.0" y="328" width="20" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="448" y="337" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <rect x="307.5" y="402" width="25" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="320" y="411" fill="#9a6700" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="200" y="24" width="200" height="48" rx="20" fill="#f6f8fa"/>
+        <rect x="200" y="24" width="200" height="48" rx="20" fill="#122f4d" stroke="#122f4d" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
+        <text x="300.0" y="52.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">The composition changed</text>
+        <polygon points="300,104 410,148 300,192 190,148" fill="#f6f8fa"/>
+        <polygon points="300,104 410,148 300,192 190,148" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="300" y="145" fill="#122f4d" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">A compatible</text>
+        <text x="300" y="159" fill="#122f4d" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">update?</text>
+        <rect x="480" y="124" width="200" height="48" rx="6" fill="#f6f8fa"/>
+        <rect x="480" y="124" width="200" height="48" rx="6" fill="#122f4d" stroke="#122f4d" stroke-width="1" stroke-dasharray="4,3" fill-opacity="0.02" stroke-opacity="0.3"/>
+        <text x="580.0" y="145.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Restart required</text>
+        <text x="580.0" y="159.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">replace the composition</text>
+        <rect x="200" y="224" width="200" height="48" rx="6" fill="#f6f8fa"/>
+        <rect x="200" y="224" width="200" height="48" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="300.0" y="245.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Gate and drain</text>
+        <text x="300.0" y="259.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">await cleanup</text>
+        <polygon points="300,304 410,348 300,392 190,348" fill="#f6f8fa"/>
+        <polygon points="300,304 410,348 300,392 190,348" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="300" y="345" fill="#122f4d" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Cleanup</text>
+        <text x="300" y="359" fill="#122f4d" font-size="11.5" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">succeeded?</text>
+        <rect x="480" y="324" width="200" height="48" rx="6" fill="#f6f8fa"/>
+        <rect x="480" y="324" width="200" height="48" rx="6" fill="#ebb759" stroke="#9a6700" stroke-width="1" fill-opacity="0.16"/>
+        <text x="580.0" y="345.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Replacement blocked</text>
+        <text x="580.0" y="359.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">no reuse after a failure</text>
+        <rect x="200" y="424" width="200" height="48" rx="6" fill="#f6f8fa"/>
+        <rect x="200" y="424" width="200" height="48" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <text x="300.0" y="445.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Start affected owners</text>
+        <text x="300.0" y="459.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">unrelated owners keep running</text>
+        <rect x="200" y="504" width="200" height="48" rx="20" fill="#f6f8fa"/>
+        <rect x="200" y="504" width="200" height="48" rx="20" fill="#122f4d" stroke="#122f4d" stroke-width="1" fill-opacity="0.03" stroke-opacity="0.3"/>
+        <text x="300.0" y="532.0" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Readiness published</text>
+      </svg>

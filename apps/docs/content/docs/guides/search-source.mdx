@@ -1,0 +1,88 @@
+---
+title: Add a Quick Search source
+description: Make your plugin's own data searchable with Mod+K, without editing Quick Search.
+---
+
+**Goal:** press **Mod+K**, type part of a note's title and open it. Quick Search owns the
+dialog, history and preferences; your plugin owns its data.
+
+**You need** an app with Quick Search, included in the create-app default. Pages, Settings
+and navigation Actions are searchable already; this guide adds your data. The finished code is
+the `notes` plugin of the [Workspace sample](/docs/examples#workspace).
+
+<Steps>
+<Step>
+
+### Attach a source in `setup.ts`
+
+`setup.ts` runs when the plugin starts and returns its cleanup. The source searches the
+current notes and resolves a remembered result again, so history never shows stale data.
+
+```ts title="src/plugins/notes/setup.ts"
+import type { Setup } from '@bitakit/core';
+import type { SearchResult, SearchSource } from '@bitakit/quick-search/sources';
+import type { Note } from './services/list';
+
+const result = (note: Note): SearchResult => ({
+  id: String(note.id),
+  title: note.title,
+  href: '/notes',
+});
+
+// Makes notes searchable with Mod+K. Quick Search owns the dialog; this plugin owns its data.
+const setup: Setup = ({ scope, services }) => {
+  // Optional integration: notes still works in an app without Quick Search.
+  if (!scope.slots.has('quick-search.sources')) return;
+  const notes = () => services.notes.list.state.get().notes;
+  const source: SearchSource = {
+    title: 'Notes',
+    description: 'Notes you wrote in this session.',
+    category: { id: 'notes', title: 'Notes' },
+    defaultEnabled: true,
+    search: ({ query, score }) =>
+      notes()
+        .filter((note) => !query || score(note.title) > 0)
+        .map(result),
+    resolve: (id) => {
+      const note = notes().find((note) => String(note.id) === id);
+      return note ? result(note) : null;
+    },
+  };
+  const handle = scope.slots.attach(
+    { slot: 'quick-search.sources', id: 'notes', data: source },
+    { availability: 'wait' },
+  );
+  return () => handle.dispose();
+};
+export default setup;
+```
+
+</Step>
+<Step>
+
+### Search your data
+
+Run `npm run typecheck`, start the app, add a note, press **Mod+K** and type part of its
+title. The result opens `/notes`.
+
+</Step>
+<Step>
+
+### Let users turn it off
+
+Your source appears under **Settings → Quick Search** with its title and description and a
+switch; `defaultEnabled` is its initial state. Nothing else to write.
+
+</Step>
+</Steps>
+
+## Make it production-ready
+
+- **Server data:** make `search` async, pass the `signal` to your request and let the server
+  decide what the user may see. A result shown in search never grants access.
+- **Many results:** filter and rank on the server; `score(title, keywords)` is the dialog's
+  own matcher for local arrays.
+- **Deep links:** point `href` at the item, for example `/notes#note-7`.
+- **Icons and pictures:** `icon` on the source, `image: { src, alt }` on a result.
+
+Every field is in the [Quick Search reference](/docs/reference/quick-search).

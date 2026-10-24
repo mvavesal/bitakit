@@ -1,0 +1,162 @@
+---
+title: React to another plugin
+description: Announce what happened with a typed event, listen to it from another plugin, and add rules over Actions you do not own.
+---
+
+**Goal:** an activity feed that records every note added or removed, and a guard that skips
+duplicate notes, both in their own folders, without changing the notes plugin.
+
+**You need** an app with BitaKit. The finished code is the [Workspace sample](/docs/examples#workspace).
+
+## How it works
+
+The owner **emits** an event after its state changes. Any plugin **listens** from a service;
+the listener ends when that plugin stops. An event is for "this happened"; to read the current
+data, use the owner's service.
+
+<Figure name="event-delivery" />
+
+<Steps>
+<Step>
+
+### Declare the event (owner)
+
+```ts title="src/plugins/notes/events.ts"
+import { defineEvents, event } from '@bitakit/core';
+
+// The contract other plugins listen to: `notes.changed`.
+export default defineEvents({
+  changed: event<{ kind: 'added' | 'removed'; title: string }>(),
+});
+```
+
+The plugin ID prefixes the name: `changed` becomes `notes.changed`.
+
+</Step>
+<Step>
+
+### Emit it after the change (owner)
+
+Only the declaring plugin emits its events, from its services or Actions.
+
+```ts title="src/plugins/notes/services/list.ts"
+import { defineService } from '@bitakit/core';
+
+export type Note = { id: number; title: string };
+
+// The notes plugin owns its data. Other plugins read this service, listen to `notes.changed`
+// or fill the notes slots; none of them edits this folder.
+export default defineService(({ store, events, settings }) => {
+  const state = store<{ notes: Note[] }>({ notes: [] });
+  let next = 1;
+  return {
+    state,
+    add(title: string) {
+      const note = { id: next++, title: title.trim() };
+      // Read the setting at call time: it may change while the app runs.
+      const newestFirst = settings.notes.newestFirst.get();
+      state.set((current) => ({
+        notes: newestFirst ? [note, ...current.notes] : [...current.notes, note],
+      }));
+      events.emit('notes.changed', { kind: 'added', title: note.title });
+    },
+    remove(id: number) {
+      const removed = state.get().notes.find((note) => note.id === id);
+      state.set((current) => ({ notes: current.notes.filter((note) => note.id !== id) }));
+      if (removed) events.emit('notes.changed', { kind: 'removed', title: removed.title });
+    },
+  };
+});
+```
+
+</Step>
+<Step>
+
+### Listen from another plugin
+
+The `activity` plugin keeps its own feed. The payload is typed from the declaration.
+
+```ts title="src/plugins/activity/services/feed.ts"
+import { defineService } from '@bitakit/core';
+
+// Listens to the notes plugin without changing it; the listener ends when this plugin stops.
+export default defineService(({ store, events }) => {
+  const state = store<{ entries: string[] }>({ entries: [] });
+  events.on('notes.changed', ({ data }) => {
+    const entry = `${data.kind === 'added' ? 'Added' : 'Removed'} "${data.title}"`;
+    state.set((current) => ({ entries: [entry, ...current.entries].slice(0, 5) }));
+  });
+  return { state };
+});
+```
+
+Show the feed with a slot widget, as in [Extend another plugin](/docs/guides/extend-a-plugin#add-a-widget-below-the-list-another-plugin).
+In a component, `useEvent('notes.changed', handler)` listens while it is mounted.
+
+</Step>
+<Step>
+
+### Add a rule over another plugin's Action
+
+An **interceptor** runs before or after Actions. Returning `false` from `before` skips the run
+quietly. `scope: 'global'` lets it see Actions of other plugins.
+
+```ts title="src/plugins/guard/interceptors/no-duplicates.ts"
+import { defineInterceptor } from '@bitakit/core';
+
+// A rule over another plugin's Action: adding a title that exists is skipped quietly.
+export default defineInterceptor({
+  action: 'notes.add',
+  // Without this, an interceptor only sees the Actions of its own plugin.
+  scope: 'global',
+  before: ({ input, services }) => {
+    const title = String(input ?? '')
+      .trim()
+      .toLowerCase();
+    // Returning false skips the run; any other value lets it continue.
+    return !services.notes.list.state
+      .get()
+      .notes.some((note) => note.title.toLowerCase() === title);
+  },
+});
+```
+
+</Step>
+<Step>
+
+### Trace a service
+
+A service interceptor observes every call made through the service container, from
+Actions, pages and other services. It cannot change or block the call.
+
+```ts title="src/plugins/guard/interceptors/trace.ts"
+import { defineInterceptor } from '@bitakit/core';
+
+// Observes every call to notes.list, from Actions, pages or other services, in the console.
+export default defineInterceptor({
+  service: 'notes.list',
+  after: ({ method, args }) => console.info('[guard] notes.list', method, args),
+});
+```
+
+</Step>
+</Steps>
+
+## Check it
+
+Open **Notes** and add "Write docs": **Recent activity** shows `Added "Write docs"`, the
+console shows `[guard] notes.list add`. Add "Write docs" again: nothing happens. Delete the
+`guard` folder and duplicates are allowed again; the notes folder never changed.
+
+## Choose the right tool
+
+| You want                                               | Use                                         |
+| ------------------------------------------------------ | ------------------------------------------- |
+| Tell other plugins that something happened             | An event                                    |
+| Show another plugin's current data                     | `useServiceState` on its service            |
+| A rule the user sees before clicking (disabled button) | The owner's Action `enabled`                |
+| A rule over Actions you do not own, or many Actions    | An interceptor with `scope: 'global'`       |
+| Log or measure calls                                   | A service interceptor, or `after`/`onError` |
+
+Events are not replayed: a plugin that starts later reads the current data from the service.
+See [Events](/docs/concepts/events) and [Interceptors](/docs/concepts/interceptors).

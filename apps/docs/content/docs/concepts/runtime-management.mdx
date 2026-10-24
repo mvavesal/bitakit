@@ -13,7 +13,7 @@ A runtime's **phase** tells you whether it is starting, usable or stopping. Its 
 status tells you whether owned resources have been released. Read both when diagnosing a
 failure; a failed startup still needs teardown.
 
-<Diagram name="runtime-states" />
+<Figure name="runtime-states" />
 
 These are common whole-runtime paths, not every per-plugin state. Under isolation,
 dependent plugins can be `blocked`; that does not mean their cleanup failed.
@@ -24,7 +24,7 @@ dependent plugins can be `blocked`; that does not mean their cleanup failed.
 immutable plugin definitions. Its first consumer is development/manual composition that needs
 to preserve unrelated service instances and stores. It is not an automatic discovery/HMR hook.
 
-<Diagram name="lifecycle-flow" />
+<Figure name="lifecycle-flow" />
 
 ```ts
 // Host code, after initial runtime.ready. Keep unchanged definitions by reference.

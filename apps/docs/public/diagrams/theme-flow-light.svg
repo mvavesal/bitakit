@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 896 248" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="theme-flow-title theme-flow-desc" id="theme-flow-root">
+        <title id="theme-flow-title">From a theme file to the app</title>
+        <desc id="theme-flow-desc">Data flow: discovery adds src/themes/ocean.json to the app theme catalog at build time; the user chooses a theme, saved as a Core setting; the Shell theme service applies its tokens for the chosen light, dark or system mode to the html element, and every control inherits them.</desc>
+        <defs>
+      <style>#theme-flow-root { --color-paper: #f6f8fa;
+      --color-ink: #122f4d;
+      --color-muted: #4b6279;
+      --color-accent: #9a6700;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #theme-flow-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #theme-flow-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#theme-flow-root .diagram-container { overflow-x: visible; }
+}</style><marker id="theme-flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4b6279"/></marker><marker id="theme-flow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a6700"/></marker><marker id="theme-flow-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1f5fa8"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f6f8fa"/>
+        <path d="M 216,76 L 256,76" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#theme-flow-arrow)"/>
+        <path d="M 416,76 L 456,76" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#theme-flow-arrow)"/>
+        <path d="M 616,76 L 664,76" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#theme-flow-arrow)"/>
+        <path d="M 216,196 L 256,196" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#theme-flow-arrow)"/>
+        <path d="M 416,196 L 528,196 Q 536,196 536,188 L 536,104" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#theme-flow-arrow)"/>
+        <path d="M 744,168 L 744,104" fill="none" stroke="#4b6279" stroke-width="1.2" marker-end="url(#theme-flow-arrow)"/>
+        <rect x="218.5" y="56" width="35" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="236" y="65" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">BUILD</text>
+        <rect x="622.5" y="56" width="35" height="12" rx="2" fill="#f6f8fa"/>
+        <text x="640" y="65" fill="#59636e" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">APPLY</text>
+        <rect x="40" y="48" width="176" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="40" y="48" width="176" height="56" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <rect x="48" y="54" width="27" height="12" rx="2" fill="none" stroke="#59636e" stroke-width="0.8"/>
+        <text x="61.5" y="63" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">FILE</text>
+        <text x="128.0" y="82.5" fill="#122f4d" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">ocean.json</text>
+        <text x="128.0" y="96.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">src/themes/</text>
+        <rect x="256" y="48" width="160" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="256" y="48" width="160" height="56" rx="6" fill="#122f4d" stroke="#4b6279" stroke-width="1" fill-opacity="0.05"/>
+        <rect x="264" y="54" width="40" height="12" rx="2" fill="none" stroke="#59636e" stroke-width="0.8"/>
+        <text x="284.0" y="63" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">CATALOG</text>
+        <text x="336.0" y="82.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">App themes</text>
+        <text x="336.0" y="96.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">app:ocean</text>
+        <rect x="456" y="48" width="160" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="456" y="48" width="160" height="56" rx="6" fill="#ebb759" stroke="#9a6700" stroke-width="1" fill-opacity="0.16"/>
+        <rect x="464" y="54" width="32" height="12" rx="2" fill="none" stroke="#9a6700" stroke-width="0.8"/>
+        <text x="480.0" y="63" fill="#9a6700" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">SHELL</text>
+        <text x="536.0" y="82.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Theme service</text>
+        <text x="536.0" y="96.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">Shell&#x27;s selection</text>
+        <rect x="664" y="48" width="160" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="664" y="48" width="160" height="56" rx="6" fill="#ffffff" stroke="#122f4d" stroke-width="1"/>
+        <rect x="672" y="54" width="45" height="12" rx="2" fill="none" stroke="#59636e" stroke-width="0.8"/>
+        <text x="694.5" y="63" fill="#59636e" font-size="7" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">DOCUMENT</text>
+        <text x="744.0" y="82.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">html tokens</text>
+        <text x="744.0" y="96.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">every control inherits</text>
+        <rect x="40" y="168" width="176" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="40" y="168" width="176" height="56" rx="6" fill="#4b6279" stroke="#59636e" stroke-width="1" fill-opacity="0.1"/>
+        <text x="128.0" y="193.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Choose a theme</text>
+        <text x="128.0" y="207.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">Settings → Themes</text>
+        <rect x="256" y="168" width="160" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="256" y="168" width="160" height="56" rx="6" fill="#122f4d" stroke="#4b6279" stroke-width="1" fill-opacity="0.05"/>
+        <text x="336.0" y="193.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Core settings</text>
+        <text x="336.0" y="207.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">saved selection</text>
+        <rect x="664" y="168" width="160" height="56" rx="6" fill="#f6f8fa"/>
+        <rect x="664" y="168" width="160" height="56" rx="6" fill="#4b6279" stroke="#59636e" stroke-width="1" fill-opacity="0.1"/>
+        <text x="744.0" y="193.5" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Light · Dark · System</text>
+        <text x="744.0" y="207.5" fill="#4b6279" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">shell.mode</text>
+      </svg>

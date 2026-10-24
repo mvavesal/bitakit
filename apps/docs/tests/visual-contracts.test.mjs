@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, access } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { describeDefinitions } from '../../../packages/discovery/src/definition-info.mjs';
-import { charts } from '../components/diagrams/charts.mjs';
 
 const root = new URL('../../../', import.meta.url);
 const regions = JSON.parse(
@@ -29,8 +28,28 @@ test('illustrated slot contracts agree with their owning packages', async () => 
   }
 });
 
-test('diagram maintenance references point to existing source files', async () => {
-  for (const diagram of Object.values(charts)) {
-    for (const source of diagram.sources) await access(new URL(source, root));
+const figures = JSON.parse(
+  await readFile(new URL('../components/diagrams/figures.json', import.meta.url)),
+);
+
+test('every diagram has its source, both exports and existing maintenance references', async () => {
+  const sources = (await readdir(new URL('../diagrams/', import.meta.url)))
+    .filter((file) => file.endsWith('.html'))
+    .map((file) => file.slice(0, -'.html'.length))
+    .sort();
+  assert.deepEqual(Object.keys(figures).sort(), sources, 'figures.json lists every diagram source');
+  for (const [name, figure] of Object.entries(figures)) {
+    for (const variant of ['light', 'dark'])
+      await access(new URL(`../public/diagrams/${name}-${variant}.svg`, import.meta.url));
+    for (const source of figure.sources) await access(new URL(source, root));
+  }
+});
+
+test('pages only show diagrams that exist', async () => {
+  const pages = await readdir(new URL('../content/docs/', import.meta.url), { recursive: true });
+  for (const page of pages.filter((file) => file.endsWith('.mdx'))) {
+    const text = await readFile(new URL(`../content/docs/${page}`, import.meta.url), 'utf8');
+    for (const [, name] of text.matchAll(/^<Figure name="([^"]+)"/gm))
+      assert.ok(figures[name], `${page} shows the unknown diagram ${name}`);
   }
 });

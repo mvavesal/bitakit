@@ -1,0 +1,105 @@
+{
+  "tokenizer": "o200k_base (gpt-tokenizer)",
+  "packages": [
+    {
+      "package": "@bitakit/core",
+      "files": 67,
+      "lines": 9633,
+      "tokens": 81840,
+      "tests": 258
+    },
+    {
+      "package": "@bitakit/ui",
+      "files": 73,
+      "lines": 5933,
+      "tokens": 49614,
+      "tests": 90
+    },
+    {
+      "package": "@bitakit/discovery",
+      "files": 15,
+      "lines": 2903,
+      "tokens": 28519,
+      "tests": 0
+    },
+    {
+      "package": "@bitakit/next",
+      "files": 9,
+      "lines": 112,
+      "tokens": 1020,
+      "tests": 31
+    },
+    {
+      "package": "@bitakit/shell",
+      "files": 34,
+      "lines": 4495,
+      "tokens": 43377,
+      "tests": 48
+    },
+    {
+      "package": "@bitakit/app-preferences",
+      "files": 40,
+      "lines": 3506,
+      "tokens": 27772,
+      "tests": 48
+    },
+    {
+      "package": "@bitakit/quick-search",
+      "files": 18,
+      "lines": 1420,
+      "tokens": 11230,
+      "tests": 16
+    },
+    {
+      "package": "@bitakit/cli",
+      "files": 15,
+      "lines": 4187,
+      "tokens": 41544,
+      "tests": 64
+    }
+  ],
+  "total": {
+    "files": 271,
+    "lines": 32189,
+    "tokens": 284916,
+    "tests": 555
+  },
+  "feature": {
+    "plugins": ["todos", "activity"],
+    "files": 11,
+    "lines": 154,
+    "tokens": 1361,
+    "sharedFiles": 0
+  },
+  "workspace": [
+    {
+      "plugin": "activity",
+      "files": 3,
+      "lines": 40,
+      "tokens": 357
+    },
+    {
+      "plugin": "export",
+      "files": 1,
+      "lines": 22,
+      "tokens": 207
+    },
+    {
+      "plugin": "guard",
+      "files": 2,
+      "lines": 26,
+      "tokens": 202
+    },
+    {
+      "plugin": "notes",
+      "files": 10,
+      "lines": 166,
+      "tokens": 1359
+    }
+  ],
+  "guide": {
+    "agentsMd": 822,
+    "skillEntry": 3044,
+    "skillReferences": 25178
+  }
+}

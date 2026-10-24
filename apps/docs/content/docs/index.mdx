@@ -13,6 +13,8 @@ or extends a feature with a small, local change instead of rewiring the app.
 BitaKit is not another framework. It sits on top of the one you already use, through an adapter
 (Next.js today, TanStack Start experimental), which keeps routing, rendering and deployment.
 
+<Figure name="layers" />
+
 Work through predictable **file conventions**, or compose the same definitions directly with
 the **TypeScript API**. Both use the same plugin model and runtime.
 
@@ -32,7 +34,9 @@ one owner and every feature one folder, so a new feature is mostly new files.
 - **The same commands.** `npx bitakit add` creates files in the right place, `npx bitakit info`
   lists every ID, and `npx bitakit doctor` reports wiring problems with the fix.
 - **Written-down rules.** Apps created with `@bitakit/create-app` or wired with `npx bitakit init`
-  carry a one-screen `AGENTS.md` that says where each task goes.
+  carry a one-screen `AGENTS.md` that says where each task goes. Every plugin folder from
+  `npx bitakit add plugin` and every `@bitakit/*` package keeps its own `AGENTS.md` with its
+  contracts and checks; the `CLAUDE.md` beside each one only imports it.
 
 ## What BitaKit is not
 
@@ -45,15 +49,14 @@ one owner and every feature one folder, so a new feature is mostly new files.
 
 ## Why BitaKit?
 
-| When your app needs…                                | BitaKit gives you…                                                                                   |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Features that can grow independently                | A plugin folder containing the feature's own files.                                                  |
-| Clear locations for developers and AI coding agents | Conventional paths and generated types that make each feature easier to find and extend.             |
-| Several people or agents extending the app          | Feature ownership and explicit contracts between plugins.                                            |
-| The same operation in several places                | One Action, bound to buttons, links or menus.                                                        |
-| New UI inside an existing feature                   | Named slots that other plugins can target.                                                           |
-| Preferences with a Settings page                    | One declaration for saved values; with App Preferences installed, its fields and navigation as well. |
-| Communication and shared observation                | Events and interceptors with runtime-owned cleanup.                                                  |
+Around every feature, an app needs navigation entries, button states, confirmations, messages,
+saved settings, events and places where other features add UI. Without a shared structure,
+that repetitive code is written, read back, debugged and tested again for each feature, which
+costs a coding agent many tokens and makes parallel work collide in shared files. BitaKit
+provides those mechanisms once, tested, so an extension like an export button is one file of
+about 200 tokens.
+
+[Read more: what it saves, with measured numbers →](/docs/why-bitakit)
 
 BitaKit is useful when several features need these shared conventions. A small page can stay
 small: you do not need every capability, an optional UI package or a full manifest to start.
@@ -94,8 +97,6 @@ or mounted slot still determines where UI appears.
 3. **Share the runtime, keep your framework.** Core owns execution, state and cleanup; React bindings
    and optional visual plugins connect that behavior to your application.
 
-<ArchitectureIllustration />
-
 [Read more: architecture and package boundaries →](/docs/concepts/architecture)
 
 ### Clear ownership, explicit contracts
@@ -104,7 +105,7 @@ Each developer or AI coding agent can work inside the feature it owns. Plugins c
 **service contracts, declared events and named slots**, so another feature can use or extend
 them without editing their internal files.
 
-<Diagram name="feature-contracts" />
+<Figure name="feature-contracts" />
 
 For example, Activity can listen to a Notes event and Tips can add a widget to the Notes footer.
 Neither needs to rewrite the Notes page or Core. Keeping changes local reduces accidental
@@ -123,11 +124,17 @@ Your added pieces stay until you reset.
 
 ## Start here
 
-[Build your first feature →](/docs/concepts)
-
-The short guide grows one Counter from a page into a working plugin, one idea at a time.
-Already comfortable with the basics? Use [Patterns at a glance](/docs/concepts/patterns),
-the [Action API reference](/docs/reference/actions) or [optional packages](/docs/packages).
+<Cards>
+  <Card title="Create an app" href="/docs/quickstart">
+    Four steps with npm, pnpm, Yarn or Bun, then a Counter one idea at a time.
+  </Card>
+  <Card title="Open a sample app" href="/docs/examples">
+    Six complete apps, from a counter to four plugins working together.
+  </Card>
+  <Card title="Follow a how-to guide" href="/docs/guides/run-an-operation">
+    Settings, layouts, extending a plugin and more, each with tested code.
+  </Card>
+</Cards>
 
 These guides describe the **0.2 API in this checkout**. Keep the generator and BitaKit packages
 on matching versions. The [local package workflow](/docs/local-development) runs this source

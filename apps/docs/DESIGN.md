@@ -43,8 +43,9 @@ when these surfaces change. A successful build alone does not verify their appea
 
 ## Explanatory examples
 
-The user requested theme-aware, interactive UI anatomy and more architecture/flow diagrams.
-Use the standard Fumadocs Mermaid integration (`beautiful-mermaid`, server rendering) and
-small MDX/React examples with existing code blocks/button variants. Reuse the central theme;
-no separate visual system or diagram engine. The shared recipe and source locations are in
+The user requested theme-aware, interactive UI anatomy and more architecture/flow diagrams,
+then (2026-10-24) unified every diagram with the diagram-design agent skill. Draw diagrams with
+that skill in the BitaKit profile (`.diagram-design`): HTML sources in `diagrams/`, light and
+dark SVGs from `npm run diagrams`, shown with `<Figure name>`. Interactive UI anatomy stays as
+small MDX/React examples with existing code blocks/button variants. No second diagram system. The shared recipe and source locations are in
 `.agents/skills/foundation-development/documentation-visuals.md`.

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="service-interceptors-dark-title service-interceptors-dark-desc" id="service-interceptors-dark-root">
+        <title id="service-interceptors-dark-title">Observe a service call</title>
+        <desc id="service-interceptors-dark-desc">Data flow: a call through the service container runs before hooks with the arguments, then the original method; after hooks observe the result and onError observes a failure. Hooks cannot block or change the call.</desc>
+        <defs>
+      <style>#service-interceptors-dark-root { --color-paper: #0d1117;
+      --color-ink: #e6edf3;
+      --color-muted: #9bb1c8;
+      --color-accent: #ebb759;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      #service-interceptors-dark-root { font-family: var(--font-sans); color: var(--color-ink); }
+      #service-interceptors-dark-root .diagram-container { width: 100%; overflow-x: auto; }
+      @media print {
+#service-interceptors-dark-root .diagram-container { overflow-x: visible; }
+}</style><marker id="service-interceptors-dark-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9bb1c8"/></marker><marker id="service-interceptors-dark-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ebb759"/></marker><marker id="service-interceptors-dark-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#79a8e0"/></marker></defs>
+        <rect width="100%" height="100%" fill="#0d1117"/>
+        <path d="M 184,104 L 232,104" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#service-interceptors-dark-arrow)"/>
+        <path d="M 376,104 L 424,104" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#service-interceptors-dark-arrow)"/>
+        <path d="M 560,96 L 576,96 Q 584,96 584,88 L 584,72 Q 584,64 592,64 L 648,64" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#service-interceptors-dark-arrow)"/>
+        <path d="M 560,112 L 592,112 Q 600,112 600,120 L 600,136 Q 600,144 608,144 L 648,144" fill="none" stroke="#9bb1c8" stroke-width="1.2" marker-end="url(#service-interceptors-dark-arrow)"/>
+        <rect x="591.0" y="44" width="50" height="12" rx="2" fill="#0d1117"/>
+        <text x="616" y="53" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">RESOLVES</text>
+        <rect x="604.0" y="152" width="40" height="12" rx="2" fill="#0d1117"/>
+        <text x="624" y="161" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">THROWS</text>
+        <rect x="40" y="80" width="144" height="48" rx="6" fill="#0d1117"/>
+        <rect x="40" y="80" width="144" height="48" rx="6" fill="#9bb1c8" stroke="#9198a1" stroke-width="1" fill-opacity="0.1"/>
+        <text x="112.0" y="101.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">A caller</text>
+        <text x="112.0" y="115.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">Action, page, service</text>
+        <rect x="232" y="80" width="144" height="48" rx="6" fill="#0d1117"/>
+        <rect x="232" y="80" width="144" height="48" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="304.0" y="101.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">before</text>
+        <text x="304.0" y="115.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">sees the arguments</text>
+        <rect x="424" y="80" width="136" height="48" rx="6" fill="#0d1117"/>
+        <rect x="424" y="80" width="136" height="48" rx="6" fill="#ebb759" stroke="#ebb759" stroke-width="1" fill-opacity="0.12"/>
+        <text x="492.0" y="101.5" fill="#e6edf3" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">The method</text>
+        <text x="492.0" y="115.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">runs unchanged</text>
+        <rect x="648" y="40" width="120" height="48" rx="6" fill="#0d1117"/>
+        <rect x="648" y="40" width="120" height="48" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="708.0" y="61.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">after</text>
+        <text x="708.0" y="75.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">sees the result</text>
+        <rect x="648" y="120" width="120" height="48" rx="6" fill="#0d1117"/>
+        <rect x="648" y="120" width="120" height="48" rx="6" fill="#151b23" stroke="#e6edf3" stroke-width="1"/>
+        <text x="708.0" y="141.5" fill="#e6edf3" font-size="12" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600" text-anchor="middle">onError</text>
+        <text x="708.0" y="155.5" fill="#9bb1c8" font-size="9" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">sees the failure</text>
+      </svg>
