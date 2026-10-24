@@ -4,6 +4,7 @@ export type {
   SearchText,
   SearchCategory,
   SearchResult,
+  SearchImage,
   SearchContext,
   SearchSource,
 } from './types.js';

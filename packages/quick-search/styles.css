@@ -105,6 +105,15 @@
   .quick-search-item[data-selected='true'] svg {
     color: var(--foreground);
   }
+  /* A result's own picture (a cover, an avatar) instead of the source icon. */
+  .quick-search-image {
+    width: 2.5rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--muted);
+    object-fit: cover;
+  }
   .quick-search-text,
   .quick-search-meta {
     display: flex;

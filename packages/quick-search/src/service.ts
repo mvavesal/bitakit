@@ -34,7 +34,13 @@ export function availableResult(
     const action = context.actions.resolve(result.actionId);
     return action?.visible && !action.internal && safeHref(action.href) ? result : null;
   }
-  return safeHref(result.href) ? result : null;
+  if (!safeHref(result.href)) return null;
+  // An unsafe picture address drops the picture, not the result.
+  if (result.image && !safeHref(result.image.src)) {
+    const { image: _image, ...rest } = result;
+    return rest;
+  }
+  return result;
 }
 
 /** Owns transient requests only. All confirmed preferences/history live in runtime.settings. */
