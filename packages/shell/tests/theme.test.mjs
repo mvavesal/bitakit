@@ -186,6 +186,10 @@ test('JSON themes follow color scheme and remove overrides when returning to def
   try {
     await settle();
     assert.equal(root.style.getPropertyValue('--radius'), '2rem');
+    await act(() => runtime().services.themes.select('shell:bitakit'));
+    assert.notEqual(root.style.getPropertyValue('--radius'), '2rem');
+    await act(() => runtime().services.themes.select('shell:default'));
+    assert.equal(root.style.getPropertyValue('--radius'), '2rem');
     await act(() => runtime().services.themes.select('app:ocean'));
     await act(() => runtime().settings.set('shell.mode', 'light'));
     assert.equal(root.style.getPropertyValue('--radius'), '1rem');
@@ -202,4 +206,25 @@ test('JSON themes follow color scheme and remove overrides when returning to def
   assert.equal(root.style.getPropertyValue('--radius'), '2rem');
   assert.equal(root.style.getPropertyValue('--primary'), '');
   resetRoot();
+});
+
+test('app baseline reads both host palettes and restores the original root classes', async () => {
+  const { readAppThemeBaseline } = await import('../dist/ui/providers/theme.js');
+  resetRoot();
+  const css = document.createElement('style');
+  css.textContent = ':root { --primary: #123456; } :root.dark { --primary: #abcdef; }';
+  document.head.append(css);
+  root.classList.add('dark', 'host-brand');
+  try {
+    const baseline = readAppThemeBaseline();
+    assert.equal(baseline.light.primary, '#123456');
+    assert.equal(baseline.dark.primary, '#abcdef');
+    assert.equal(root.classList.contains('dark'), true);
+    assert.equal(root.classList.contains('light'), false);
+    assert.equal(root.classList.contains('host-brand'), true);
+  } finally {
+    css.remove();
+    root.classList.remove('host-brand');
+    resetRoot();
+  }
 });

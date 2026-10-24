@@ -32,3 +32,20 @@ test('a preview keeps explicit flat effects and resets them when removed from th
   assert.equal(raised['--theme-shadow-control'], 'initial');
   assert.equal(raised['--primary'], flat['--primary']);
 });
+
+test('app baseline colors reach previews while explicit BitaKit colors remain independent', async () => {
+  const { bundledThemes } = await import('../dist/bundled-themes.js');
+  const baseline = { light: { primary: '#123456' }, dark: { primary: '#abcdef' } };
+  const bitakit = bundledThemes.find((theme) => theme.id === 'bitakit');
+  assert.ok(bitakit);
+  for (const mode of ['light', 'dark']) {
+    assert.equal(
+      themePreviewStyle(defaultTheme, mode, baseline)['--primary'],
+      baseline[mode].primary,
+    );
+    assert.notEqual(
+      themePreviewStyle(bitakit, mode, baseline)['--primary'],
+      baseline[mode].primary,
+    );
+  }
+});

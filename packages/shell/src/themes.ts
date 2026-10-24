@@ -66,7 +66,7 @@ export type ThemeLibrary = z.output<typeof themeLibrarySchema>;
 export const defaultTheme: ShellThemeDefinition = {
   schemaVersion: 1,
   id: 'default',
-  name: 'BitaKit Default',
+  name: 'App default',
   shared: {},
   light: {},
   dark: {},

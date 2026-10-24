@@ -23,11 +23,11 @@ Token maps contain string values and omit `--` from names. `themeSchema` checks 
 shape; it does not prove CSS validity or accessible color contrast. Use foreground/background
 pairs and check your controls in both modes.
 
-| Source              | Example key     | Editable in Appearance? |
-| ------------------- | --------------- | ----------------------- |
-| Bundled Shell theme | `shell:default` | Save a personal copy.   |
-| App theme           | `app:ocean`     | Save a personal copy.   |
-| Personal theme      | `user:my-ocean` | Update or delete.       |
+| Source          | Example key     | Editable in Appearance? |
+| --------------- | --------------- | ----------------------- |
+| App CSS default | `shell:default` | Save a personal copy.   |
+| App theme       | `app:ocean`     | Save a personal copy.   |
+| Personal theme  | `user:my-ocean` | Update or delete.       |
 
 `themeKey(source, id)` builds a key. Duplicate IDs within a source are errors; equal display
 names or IDs across different sources remain distinct. If the saved selection is no longer
@@ -39,11 +39,12 @@ Under the Appearance category, **Themes** (`/settings/shell`) contains color sch
 selection and the copy editor. **Layout** (`/settings/shell/layout`) contains navigation,
 density and notification position.
 
-Themes includes **BitaKit Default**, **Warm Sand**, **Soft Rose**, **Calm Sage**,
+Themes includes **App default**, **BitaKit Default**, **Warm Sand**, **Soft Rose**, **Calm Sage**,
 **High Contrast**, **Slate Flat**, **Ocean Blue**, **Golden Amber** and **Forest Green**
 without app configuration. Each bundled alternative
-provides light and dark colors through the existing semantic tokens. BitaKit Default remains
-the initial selection and adds no token overrides. Calm Sage uses rounded, flat controls;
+provides light and dark colors through the existing semantic tokens. App default remains
+the initial selection and Reset target, adding no token overrides. BitaKit Default uses
+its own explicit palette under `shell:bitakit`. Calm Sage uses rounded, flat controls;
 High Contrast uses square corners and stronger borders; Slate Flat removes gradients and
 raised surface/control shadows. Original definitions stay immutable; save a personal copy
 to customize them. Ocean Blue, Golden Amber and Forest Green retain the rounded, raised
@@ -175,7 +176,8 @@ For a host-owned baseline, keep the generated CSS entry and import your file **a
 ```
 
 Use this for app defaults; use a JSON definition for a theme users can select and copy.
-BitaKit Default adds no runtime token overrides, so the central CSS remains visible.
+App default adds no runtime token overrides, so the app CSS remains visible. Menu samples
+and previews read the app base tokens for both color schemes before applying theme overrides.
 
 | Customize         | Representative tokens                                                                                |
 | ----------------- | ---------------------------------------------------------------------------------------------------- |

@@ -40,7 +40,7 @@ import {
 } from '../../components/ui/card.js';
 import { themeService, type ThemeService } from '../../services/themes.js';
 import { ThemePreview, themePreviewStyle } from './theme-preview.js';
-import { themeDefaults } from '../../theme-defaults.js';
+import { useAppThemeBaseline } from '../providers/theme.js';
 import type { ShellThemeDefinition, ThemeSource } from '../../themes.js';
 
 /** Shell composition only; values and business operations stay in settings/services/actions. */
@@ -51,6 +51,7 @@ export function AppearanceSettings({
   section: SettingsCatalogSection;
   renderField?: (field: SettingsCatalogField) => ReactNode;
 }) {
+  const baseline = useAppThemeBaseline();
   const t = useTranslation();
   const text = (key: string, fallback: string) => t(`shell.ui.themes.${key}`, undefined, fallback);
   const sourceLabel = (source: ThemeSource) =>
@@ -95,7 +96,7 @@ export function AppearanceSettings({
         id={`theme-${group}-${name}`}
         label={label}
         value={value}
-        inherited={themeDefaults[group === 'dark' ? 'dark' : 'light'][name] ?? ''}
+        inherited={baseline[group === 'dark' ? 'dark' : 'light'][name] ?? ''}
         onChange={update}
       />
     );
@@ -153,7 +154,7 @@ export function AppearanceSettings({
                       >
                         <span className="truncate">
                           {active
-                            ? `${active.name} · ${sourceLabel(active.source)}`
+                            ? `${active.key === 'shell:default' ? text('appDefault', 'App default') : active.name} · ${sourceLabel(active.key === 'shell:default' ? 'app' : active.source)}`
                             : text('loading', 'Loading themes…')}
                         </span>
                         <ChevronDownIcon aria-hidden="true" />
@@ -174,9 +175,15 @@ export function AppearanceSettings({
                           >
                             <DropdownMenuItem className="justify-between gap-4">
                               <span className="min-w-0">
-                                <span className="block break-words">{theme.name}</span>
+                                <span className="block break-words">
+                                  {theme.key === 'shell:default'
+                                    ? text('appDefault', 'App default')
+                                    : theme.name}
+                                </span>
                                 <span className="block text-xs text-muted-foreground">
-                                  {sourceLabel(theme.source)}
+                                  {sourceLabel(
+                                    theme.key === 'shell:default' ? 'app' : theme.source,
+                                  )}
                                   {(service
                                     ?.list()
                                     .filter(
@@ -199,7 +206,7 @@ export function AppearanceSettings({
                               <span
                                 className="light pointer-events-none flex shrink-0 items-center gap-2"
                                 aria-hidden="true"
-                                style={themePreviewStyle(theme, 'light')}
+                                style={themePreviewStyle(theme, 'light', baseline)}
                               >
                                 <span
                                   className="rounded-md border border-border bg-card px-2 py-1"

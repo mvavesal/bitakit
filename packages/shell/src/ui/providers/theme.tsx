@@ -1,9 +1,50 @@
 'use client';
-import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { useBitaKit, useService, useSetting } from '@bitakit/ui';
 
+import { themeDefaults } from '../../theme-defaults.js';
 import { themeTokens } from '../../themes.js';
 import { themeService, type ThemeService } from '../../services/themes.js';
+
+type ThemeBaseline = Record<'light' | 'dark', Record<string, string>>;
+const AppThemeContext = createContext<ThemeBaseline>(themeDefaults);
+export const useAppThemeBaseline = () => useContext(AppThemeContext);
+
+/** Read app CSS before owned overrides are applied, restoring the root synchronously. */
+export function readAppThemeBaseline(): ThemeBaseline {
+  const root = document.documentElement;
+  const wasDark = root.classList.contains('dark');
+  const wasLight = root.classList.contains('light');
+  const baseline: ThemeBaseline = { light: {}, dark: {} };
+  try {
+    for (const mode of ['light', 'dark'] as const) {
+      root.classList.toggle('dark', mode === 'dark');
+      root.classList.toggle('light', mode === 'light');
+      const computed = getComputedStyle(root);
+      for (const key of new Set([
+        ...Object.keys(themeDefaults.light),
+        ...Object.keys(themeDefaults.dark),
+      ])) {
+        baseline[mode][key] =
+          computed.getPropertyValue(`--${key}`).trim() ||
+          themeDefaults[mode][key] ||
+          themeDefaults.light[key]!;
+      }
+    }
+  } finally {
+    root.classList.toggle('dark', wasDark);
+    root.classList.toggle('light', wasLight);
+  }
+  return baseline;
+}
 
 const darkScheme = '(prefers-color-scheme: dark)';
 /** Where the default browser settings storage keeps `shell.mode` (device scope, JSON). */
@@ -64,6 +105,7 @@ function useColorScheme(dark: boolean | undefined) {
  */
 export function ShellTheme({ children }: { children: ReactNode }) {
   const { runtime } = useBitaKit();
+  const [baseline, setBaseline] = useState<ThemeBaseline>(themeDefaults);
   const mode = confirmed(useSetting('shell.mode'));
   const systemDark = useSyncExternalStore(subscribeScheme, prefersDark, serverScheme);
   useColorScheme(
@@ -72,18 +114,27 @@ export function ShellTheme({ children }: { children: ReactNode }) {
   useRootAttribute('data-density', confirmed(useSetting('shell.density')));
   useRootAttribute('data-shell-corners', confirmed(useSetting('shell.corners')));
   return (
-    <>
+    <AppThemeContext.Provider value={baseline}>
       <ThemeProjection
+        onBaseline={setBaseline}
         dark={mode === 'dark' || (mode === 'system' && systemDark)}
         modeReady={mode !== undefined}
       />
       {runtime.settings.has('shell.preset') ? <PresetProjection /> : null}
       {children}
-    </>
+    </AppThemeContext.Provider>
   );
 }
 /** Root tokens also reach portaled controls. Switching removes all previous overrides. */
-function ThemeProjection({ dark, modeReady }: { dark: boolean; modeReady: boolean }) {
+function ThemeProjection({
+  dark,
+  modeReady,
+  onBaseline,
+}: {
+  dark: boolean;
+  modeReady: boolean;
+  onBaseline: (value: ThemeBaseline) => void;
+}) {
   const library = useSetting('shell.themeLibrary');
   const service = useService(themeService) as ThemeService | undefined;
   const tokens = useMemo(
@@ -95,6 +146,7 @@ function ThemeProjection({ dark, modeReady }: { dark: boolean; modeReady: boolea
   );
   useEffect(() => {
     if (!tokens) return;
+    onBaseline(readAppThemeBaseline());
     const style = document.documentElement.style;
     const previous = Object.keys(tokens).map((key) => {
       const name = `--${key}`;
@@ -109,7 +161,7 @@ function ThemeProjection({ dark, modeReady }: { dark: boolean; modeReady: boolea
         else style.removeProperty(name);
       }
     };
-  }, [tokens]);
+  }, [tokens, onBaseline]);
   return null;
 }
 

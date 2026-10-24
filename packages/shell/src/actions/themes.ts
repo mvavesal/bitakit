@@ -41,7 +41,7 @@ export const deleteTheme = defineAction({
       getService(services, themeService)
         .list()
         .find((theme) => theme.source === 'user' && theme.id === input?.id)?.name ?? ''
-    }”? This personal theme will be removed. If it is active, BitaKit Default will be selected.`,
+    }”? This personal theme will be removed. If it is active, App default will be selected.`,
     destructive: true,
   }),
   execute: ({ services, input }) => getService(services, themeService).remove(input.id),

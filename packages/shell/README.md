@@ -297,7 +297,7 @@ starts with one JSON file; [Theme reference](../../apps/docs/content/docs/refere
 covers the manager, Actions, persistence and CSS integration.
 
 The ordinary `themes` service provides `list`, `active`, `select` and `saveCopy`.
-Shell includes eight optional themes alongside BitaKit Default, each with light and dark palettes:
+Shell includes eight optional themes alongside App default and BitaKit Default, each with light and dark palettes:
 
 | Theme         | Character                                                                     |
 | ------------- | ----------------------------------------------------------------------------- |
@@ -310,7 +310,7 @@ Shell includes eight optional themes alongside BitaKit Default, each with light 
 Ocean Blue, Golden Amber and Forest Green add blue, amber and green palettes while inheriting
 the rounded corners, gradients and control shadows of BitaKit Default.
 
-BitaKit Default remains the initial selection. Choose a bundled theme under Appearance → Themes,
+App default remains the initial selection and Reset target; it inherits the host app CSS. BitaKit Default is a separate explicit palette. Choose a bundled theme under Appearance → Themes,
 or customize it by saving a personal copy. The variants use the existing semantic CSS tokens;
 they add no providers, settings or component-specific styles.
 
@@ -322,8 +322,10 @@ Shell options accept an additive `themes` array. Each definition has `schemaVers
 requires a fresh personal ID and does not overwrite originals.
 
 The Shell provider projects JSON tokens onto the document root, follows light/dark mode,
-and restores previous values when switching or unmounting. BitaKit Default adds no overrides,
-preserving the current CSS finish. Shell bundles JSON files from `themes/` during its build. Discovery adds app files from
+and restores previous values when switching or unmounting. App default adds no overrides,
+preserving the current app CSS finish. Its existing `shell:default` identity is retained for saved
+selections and Reset; the explicit BitaKit palette uses `shell:bitakit`. Menu samples and the
+live preview use the app’s light/dark base tokens, sampled before Shell overrides are applied. Shell bundles JSON files from `themes/` during its build. Discovery adds app files from
 `src/themes/**/*.json` (relative to the configured app source directory). Adding files requires
 regeneration/build; switching and saving personal copies happen at runtime. Duplicate IDs
 within a source are errors; equal names across sources remain separate.

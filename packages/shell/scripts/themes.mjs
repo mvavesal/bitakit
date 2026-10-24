@@ -10,11 +10,6 @@ const themes = await Promise.all(
     }
   }),
 );
-await writeFile(
-  new URL('../src/bundled-themes.ts', import.meta.url),
-  `// Generated from themes/*.json by the Shell build.\nimport type { ShellThemeInput } from './themes.js';\nexport const bundledThemes: readonly ShellThemeInput[] = ${JSON.stringify(themes, null, 2)};\n`,
-);
-
 // Editor defaults come from the same CSS contract, not a second hand-maintained palette.
 const { default: postcss } = await import('postcss');
 const css = postcss.parse(await readFile(new URL('../../ui/theme.css', import.meta.url), 'utf8'));
@@ -47,4 +42,18 @@ css.walkRules((rule) => {
 await writeFile(
   new URL('../src/theme-defaults.ts', import.meta.url),
   `// Generated from the central theme CSS by the Shell build.\nexport const themeDefaults: Record<'light' | 'dark', Record<string, string>> = ${JSON.stringify(defaults, null, 2)};\n`,
+);
+
+// The explicit BitaKit choice owns its palette; the legacy default keeps inheriting app CSS.
+themes.push({
+  schemaVersion: 1,
+  id: 'bitakit',
+  name: 'BitaKit Default',
+  shared: {},
+  light: defaults.light,
+  dark: defaults.dark,
+});
+await writeFile(
+  new URL('../src/bundled-themes.ts', import.meta.url),
+  `// Generated from themes/*.json and the central theme CSS by the Shell build.\nimport type { ShellThemeInput } from './themes.js';\nexport const bundledThemes: readonly ShellThemeInput[] = ${JSON.stringify(themes, null, 2)};\n`,
 );

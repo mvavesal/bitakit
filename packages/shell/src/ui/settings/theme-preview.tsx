@@ -31,16 +31,18 @@ import {
 import { themeTokens, type ShellThemeDefinition } from '../../themes.js';
 import SunIcon from 'reicon-react/icons/Sun';
 import MoonIcon from 'reicon-react/icons/Moon';
+import { useAppThemeBaseline } from '../providers/theme.js';
 import { themeDefaults } from '../../theme-defaults.js';
 
 /** Shared token scope for selected themes, draft previews and menu samples. */
 export function themePreviewStyle(
   theme: ShellThemeDefinition,
   variant: 'light' | 'dark',
+  baseline = themeDefaults,
 ): CSSProperties {
   const tokens = {
-    ...themeDefaults.light,
-    ...(variant === 'dark' ? themeDefaults.dark : {}),
+    ...baseline.light,
+    ...(variant === 'dark' ? baseline.dark : {}),
     ...themeTokens(theme, variant),
   };
   return {
@@ -76,7 +78,8 @@ export function ThemePreview({
   const appDark = mode.value === 'dark' || (mode.value === 'system' && systemDark);
   const variant = editMode ?? previewMode ?? (appDark ? 'dark' : 'light');
   const dark = variant === 'dark';
-  const style = themePreviewStyle(theme, variant);
+  const baseline = useAppThemeBaseline();
+  const style = themePreviewStyle(theme, variant, baseline);
   const t = useTranslation();
   const text = (key: string, fallback: string) => t(`shell.ui.themes.${key}`, undefined, fallback);
   return (
