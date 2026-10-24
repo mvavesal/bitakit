@@ -7,7 +7,7 @@ import {
   settingsStorage,
   authService,
 } from '@bitakit/core';
-import { searchService, sourceEnabled } from '../dist/service.js';
+import { availableResult, searchService, sourceEnabled } from '../dist/service.js';
 import { quickSearchSettings } from '../dist/settings.js';
 import { searchSources } from '../dist/slots.js';
 
@@ -403,4 +403,20 @@ test('unsafe URLs and hidden/internal Actions are excluded; malformed source fai
   } finally {
     await f.stop();
   }
+});
+
+test('link results keep a safe image and drop an unsafe one without losing the result', () => {
+  const context = { actions: { resolve: () => undefined } };
+  const cover = {
+    id: 'c1',
+    title: 'Course',
+    href: '/courses/c1',
+    image: { src: 'https://cdn.example/cover.webp', alt: 'Cover' },
+  };
+  assert.deepEqual(availableResult(cover, context), cover);
+  const relative = { ...cover, image: { src: '/covers/c1.webp' } };
+  assert.deepEqual(availableResult(relative, context), relative);
+  const unsafe = availableResult({ ...cover, image: { src: 'javascript:alert(1)' } }, context);
+  assert.deepEqual(unsafe, { id: 'c1', title: 'Course', href: '/courses/c1' });
+  assert.equal(availableResult({ ...cover, image: { alt: 'no source' } }, context), null);
 });

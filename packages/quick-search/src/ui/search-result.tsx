@@ -5,11 +5,13 @@ import { safeHref } from '@bitakit/core';
 import { useAction, useBitaKitNavigation, useSetting } from '@bitakit/ui';
 import { ActionLink, ActionShortcutLabel } from '@bitakit/ui/actions';
 import LinkIcon from 'reicon-react/icons/Link';
-import type { SearchResult } from '../types.js';
+import type { SearchResult, SearchSource } from '../types.js';
 
 export type ResultRow = { sourceId: string; result: SearchResult; recent?: boolean };
 type ResultProps = {
   row: ResultRow;
+  /** The source's icon, for link results without an image. */
+  icon?: SearchSource['icon'];
   close(): void;
   remember(row: ResultRow): void;
   current(row: ResultRow): boolean;
@@ -27,6 +29,7 @@ function ActionResultItem(props: ResultProps & { actionId: string }) {
 }
 function ResultContent({
   row,
+  icon,
   close,
   remember,
   current,
@@ -43,7 +46,8 @@ function ResultContent({
   const title = isAction ? action!.title : result.title;
   const description = isAction ? action?.description : result.description;
   const detail = showSource.value && isAction ? result.detail : undefined;
-  const Icon = action?.icon ?? LinkIcon;
+  const Icon = action?.icon ?? icon ?? LinkIcon;
+  const image = !isAction ? result.image : undefined;
   const disabled = isAction && (!action?.enabled || action?.pending);
   const value = isAction ? result.actionId : JSON.stringify([row.sourceId, result.id]);
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -59,7 +63,11 @@ function ResultContent({
   };
   const children = (
     <>
-      <Icon aria-hidden="true" />
+      {image ? (
+        <img className="quick-search-image" src={image.src} alt={image.alt ?? ''} loading="lazy" />
+      ) : (
+        <Icon aria-hidden="true" />
+      )}
       <span className="quick-search-text">
         <span className="quick-search-title">{title}</span>
         {description && <span className="quick-search-description">{description}</span>}

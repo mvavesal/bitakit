@@ -3,10 +3,20 @@ import type { ActionList, BitaKitRuntime, PresentationType } from '@bitakit/core
 /** Literal text, or a translation key and fallback owned by the contributing plugin. */
 export type SearchText = string | { key: string; fallback: string };
 export type SearchCategory = { id: string; title: SearchText };
+/** A small picture beside a link result, such as a cover; `src` follows the same rules as `href`. */
+export type SearchImage = { src: string; alt?: string };
 /** Action results retain references only; their presentation and guards remain in ActionList. */
 export type SearchResult =
   | { id: string; actionId: string; keywords?: string[]; detail?: string }
-  | { id: string; title: string; href: string; description?: string; keywords?: string[] };
+  | {
+      id: string;
+      title: string;
+      href: string;
+      description?: string;
+      keywords?: string[];
+      /** Shown instead of the source's icon. */
+      image?: SearchImage;
+    };
 export type SearchContext = {
   query: string;
   signal: AbortSignal;

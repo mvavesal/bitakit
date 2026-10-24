@@ -10,6 +10,7 @@ export { searchSources } from './slots.js';
 export type {
   SearchSource,
   SearchResult,
+  SearchImage,
   SearchContext,
   SearchText,
   SearchCategory,

@@ -267,6 +267,7 @@ export function SearchResults({
               <ResultItem
                 key={JSON.stringify([row.sourceId, row.result.id])}
                 row={row}
+                icon={found.find((entry) => entry.source.id === row.sourceId)?.source.source.icon}
                 close={close}
                 remember={remember}
                 current={current}

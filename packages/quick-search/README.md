@@ -27,8 +27,10 @@ cleanup handle. Core qualifies the ID with the owner, for example `catalog:lesso
 The complete, typed local example is included in `examples/catalog`. Icons use Core’s existing
 opaque presentation type; React hosts supply a component, with Reicon Search as the default.
 
-Results are safe links (`{ id, title, href, description? }`) or live Action references
-(`{ id, actionId }`). Sources filter/rank their own arrays; local sources can use the supplied
+Results are safe links (`{ id, title, href, description?, image? }`) or live Action references
+(`{ id, actionId }`). A link result's `image: { src, alt? }` (a cover, an avatar) is shown as a small
+thumbnail instead of the source's icon; `src` follows the same rules as `href`, and an unsafe address
+drops the picture, not the result. Results without an image show their source's icon. Sources filter/rank their own arrays; local sources can use the supplied
 `score(title, keywords)` cmdk matcher. Source-owned text accepts literals/translation keys or
 `{ key, fallback }`. Existing Action titles and guards remain owned by ActionList.
 
