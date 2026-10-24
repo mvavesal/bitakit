@@ -164,22 +164,22 @@ The `--example` and `--minimal` templates already declare events; do not add tha
 
 `npx bitakit add <kind> <plugin>/<name>` supports these kinds:
 
-| Kind              | Name argument     | File it creates           | What you get                                           |
-| ----------------- | ----------------- | ------------------------- | ------------------------------------------------------ |
-| `action`          | `<plugin>/<name>` | `actions/<name>.ts`       | Action `<plugin>.<name>`                               |
-| `service`         | `<plugin>/<name>` | `services/<name>.ts`      | `services.<plugin>.<name>`                             |
-| `page`            | `<plugin>/<name>` | `ui/pages/<name>.tsx`     | The route `/<plugin>/<name>`                           |
-| `slot-definition` | `<plugin>/<name>` | `slots/<name>.ts`         | An owned slot contract                                 |
-| `settings-page`   | `<plugin>`        | `ui/settings/page.tsx`    | Custom content using the existing settings fields      |
-| `slot`            | `<plugin>/<slot>` | `ui/slots/<slot>.tsx`     | A component in a layout slot such as `app-bar.end`     |
-| `dialog`          | `<plugin>/<name>` | `ui/dialogs/<name>.tsx`   | A component an action opens with `dialog`              |
-| `provider`        | `<plugin>/<name>` | `ui/providers/<name>.tsx` | A React provider wrapped around the app                |
-| `interceptor`     | `<plugin>/<name>` | `interceptors/<name>.ts`  | Logic that runs around actions or service calls        |
-| `config`          | `<plugin>/<name>` | `configs/<name>.ts`       | `app.config.<plugin>.<name>`                           |
-| `events`          | `<plugin>`        | `events.ts`               | Typed events `<plugin>.<event>`                        |
-| `settings`        | `<plugin>`        | `settings.ts`             | User settings and a generated settings page            |
-| `layout`          | `<name>`          | `src/layouts/<name>.tsx`  | An app layout; pages opt in with `export const layout` |
-| `test`            | `<plugin>`        | `tests/<plugin>.test.ts`  | A headless test at the app root that mounts the plugin |
+| Kind              | Name argument          | File it creates                                                                     | What you get                                                               |
+| ----------------- | ---------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `action`          | `<plugin>/<name>`      | `actions/<name>.ts`                                                                 | Action `<plugin>.<name>`                                                   |
+| `service`         | `<plugin>/<name>`      | `services/<name>.ts`                                                                | `services.<plugin>.<name>`                                                 |
+| `page`            | `<plugin>/<name>`      | `ui/pages/<name>.tsx`                                                               | The route `/<plugin>/<name>`                                               |
+| `slot-definition` | `<plugin>/<name>`      | `slots/<name>.ts`                                                                   | An owned slot contract                                                     |
+| `settings-page`   | `<plugin>`             | `ui/settings/page.tsx`                                                              | Custom content using the existing settings fields                          |
+| `slot`            | `<plugin>/<slot>`      | `ui/slots/<slot>.tsx`                                                               | A component in a layout slot such as `app-bar.end`                         |
+| `dialog`          | `<plugin>/<name>`      | `ui/dialogs/<name>.tsx`                                                             | A component an action opens with `dialog`                                  |
+| `provider`        | `<plugin>/<name>`      | `ui/providers/<name>.tsx`                                                           | A React provider wrapped around the app                                    |
+| `interceptor`     | `<plugin>/<name>`      | `interceptors/<name>.ts`                                                            | Logic that runs around actions or service calls                            |
+| `config`          | `<plugin>/<name>`      | `configs/<name>.ts`                                                                 | `app.config.<plugin>.<name>`                                               |
+| `events`          | `<plugin>`             | `events.ts`                                                                         | Typed events `<plugin>.<event>`                                            |
+| `settings`        | `<plugin>`             | `settings.ts`                                                                       | User settings and a generated settings page                                |
+| `layout`          | `<family>[/<variant>]` | `src/layouts/<family>[/<variant>].tsx`, or a plugin's `ui/layouts/` with `--plugin` | A candidate for `layout.<family>`; pages opt in with `export const layout` |
+| `test`            | `<plugin>`             | `tests/<plugin>.test.ts`                                                            | A headless test at the app root that mounts the plugin                     |
 
 In an app, `add test` writes a headless test for an existing plugin at the app root:
 
@@ -205,7 +205,7 @@ You rarely run `generate` yourself: the framework adapters run it during `dev` a
 | `npx bitakit generate` | Writes `src/bitakit.gen.*` from your plugin folders                                                                                                                                                                                             | `--watch` keeps regenerating       |
 | `npx bitakit doctor`   | Reports wiring problems with a fix for each; exit code 1 when something is wrong                                                                                                                                                                | `--json` for CI                    |
 | `npx bitakit info`     | Lists every plugin with the IDs you type: Actions, services, page URLs, events, settings and slots                                                                                                                                              | `--json`                           |
-| `npx bitakit slots`    | Lists every slot you can fill, including those of installed packages, with its owner, what it accepts and what your files already put there                                                                                                     | `--json`                           |
+| `npx bitakit slots`    | Lists every slot you can fill, including those of installed packages, with its owner, what it accepts, what your files already put there and, for replaceable parts, which candidate renders                                                    | `--json`                           |
 | `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout and API spellings: setup `{ scope }`, placement `slot`, `attach({ slot })`, `Foundation*` → `BitaKit*` (also in root config files), and Core names imported from `@bitakit/ui` move to `@bitakit/core` | `--dry-run` only lists the changes |
 
 Moving from 0.1? [Upgrade from 0.1](/docs/upgrade) walks through `migrate` and the few steps it leaves to you.

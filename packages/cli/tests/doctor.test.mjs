@@ -539,3 +539,34 @@ test('doctor reports an app whose Tailwind integration was lost, and accepts the
     'ok',
   );
 });
+
+test('doctor asks for a decision on replaceable parts with several candidates', async (t) => {
+  const layout = 'export default ({ children }) => children;\n';
+  const root = await project(
+    {
+      ...nextApp(),
+      'src/layouts/auth/split.tsx': layout,
+      'src/layouts/auth/centered.tsx': layout,
+      'src/slots/banner.ts':
+        "import { defineSlot } from '@bitakit/core';\nexport default defineSlot({ accepts: 'component' });\n",
+      'bitakit.config.ts':
+        "export default { choose: { 'screen.nowhere': 'brand', banner: 'mine' } };\n",
+    },
+    t,
+  );
+  let { results } = await doctor({ cwd: root });
+  const parts = find(results, /replaceable parts? need/);
+  assert.equal(parts.status, 'warn');
+  assert.deepEqual(parts.details, [
+    'bitakit.config.ts chooses "brand" for "screen.nowhere", but no slot "screen.nowhere" exists.',
+    'bitakit.config.ts chooses "mine" for "banner", a list slot; choose applies to single slots only.',
+    '"layout.auth" has several candidates (app:centered, app:split) and renders its default.',
+  ]);
+  assert.match(parts.fix, /choose: \{ 'layout\.auth': 'split' \}/);
+
+  await write(root, {
+    'bitakit.config.ts': "export default { choose: { 'layout.auth': 'split' } };\n",
+  });
+  ({ results } = await doctor({ cwd: root }));
+  assert.equal(status(results, /Replaceable parts are decided/), 'ok');
+});

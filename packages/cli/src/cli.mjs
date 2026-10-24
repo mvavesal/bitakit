@@ -51,21 +51,26 @@ add
           : `\nThe dev server picks it up automatically; no registration needed.\n`,
     );
   });
-for (const kind of contributionKinds)
-  add
-    .command(kind)
+for (const kind of contributionKinds) {
+  const command = add.command(kind);
+  if (kind === 'layout')
+    command.option(
+      '--plugin <id>',
+      "write the layout into an app plugin's ui/layouts instead of src/layouts",
+    );
+  command
     .argument(
       kind === 'events' || kind === 'settings' || kind === 'settings-page'
         ? '[plugin]'
         : kind === 'layout'
-          ? '<name>'
+          ? '<family>'
           : kind === 'test'
             ? '<plugin>'
             : '<target>',
       kind === 'events' || kind === 'settings' || kind === 'settings-page'
         ? `the plugin that owns the ${kind}; omit it inside a plugin package`
         : kind === 'layout'
-          ? 'the layout name; pages choose it with export const layout'
+          ? '"<family>" or "<family>/<variant>": a candidate for the layout.<family> slot; pages choose the family with export const layout'
           : kind === 'test'
             ? 'an existing plugin of the app, for example "notes"'
             : kind === 'slot'
@@ -78,13 +83,13 @@ for (const kind of contributionKinds)
         : kind === 'settings-page'
           ? "Create ui/settings/page.tsx, which replaces the plugin's generated settings page."
           : kind === 'layout'
-            ? 'Create src/layouts/<name>.tsx of the app.'
+            ? 'Create a layout: src/layouts/<family>[/<variant>].tsx, or ui/layouts/... of a plugin.'
             : kind === 'test'
               ? 'Create tests/<plugin>.test.ts, a headless test that mounts the plugin, and list what running it still needs.'
               : `Create ${/^[aeiou]/.test(kind) ? 'an' : 'a'} ${kind} file. Its ID comes from the file path.`,
     )
-    .action(async (target) => {
-      const result = await addContribution(kind, target);
+    .action(async (target, options) => {
+      const result = await addContribution(kind, target, { plugin: options?.plugin });
       if (result.createdPlugin) console.log(`\nCreated plugin "${result.plugin}".`);
       console.log(
         kind === 'slot'
@@ -102,6 +107,7 @@ for (const kind of contributionKinds)
         console.log(`\nRun it from the app root with ${result.run} (Node.js 24 or newer).`);
       console.log('');
     });
+}
 
 program
   .command('init')

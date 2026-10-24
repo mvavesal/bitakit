@@ -1,21 +1,40 @@
 'use client';
-import { useMemo, useCallback, useContext, useSyncExternalStore, type ComponentType } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useCallback,
+  useContext,
+  useSyncExternalStore,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
-import type { SlotMap, SlotPayload, SlotData, SlotName, LifecyclePhase } from '@bitakit/core';
+import {
+  candidateNames,
+  selectSingle,
+  type SlotMap,
+  type SlotPayload,
+  type SlotData,
+  type SlotName,
+  type SlotPolicy,
+  type LifecyclePhase,
+} from '@bitakit/core';
 import { useBitaKit } from '../providers/foundation-context.js';
 import { UIContext } from '../providers/action-context.js';
 import { useBitaKitReady } from '../components/plugin-slot.js';
 import { buildControl, useActionList, type ActionControl } from './use-action.js';
 import { useSlotPayload } from './use-slot-payload.js';
 
-export type SlotProps<Name extends string> = { payload: SlotPayload<Name> };
+/** Props of a contributed component; `children` is what the outlet wraps, such as a page in a layout. */
+export type SlotProps<Name extends string> = { payload: SlotPayload<Name>; children?: ReactNode };
 export type SlotOptions<Name extends string> = { entryKey?: string } & (Name extends keyof SlotMap
   ? SlotMap[Name] extends { payload: unknown }
     ? { payload: SlotPayload<Name> }
     : { payload?: undefined }
   : { payload?: unknown });
-type Common = { key: string; plugin: string; order?: number };
+/** `key` identifies the entry for React; `entryKey` is the contribution's own key (a variant). */
+type Common = { key: string; plugin: string; order?: number; entryKey?: string };
 export type SlotComponentEntry = Common & { kind: 'component'; component: ComponentType<any> };
 export type SlotActionEntry = Common & {
   kind: 'action';
@@ -46,15 +65,21 @@ export type SlotDiagnostics = Readonly<{
     | 'validating-payload'
     | 'invalid-payload'
     | 'binding-error'
-    | 'filtered';
+    | 'filtered'
+    /** A single slot with several candidates and no decision renders the owner's fallback. */
+    | 'ambiguous'
+    /** The app's `choose` entry names no available candidate. */
+    | 'choice-unavailable';
   attached: number | null;
   selected: number;
+  /** Single slots: every eligible candidate as `<plugin>` or `<plugin>:<key>`, the names `choose` accepts. */
+  candidates?: readonly string[];
   /** Selection is not proof of a successful React commit or visibility on screen. */
   rendered: null;
   excluded: readonly Readonly<{
     id: string;
     plugin: string;
-    reason: 'key' | 'condition' | 'action-hidden' | 'action-unavailable';
+    reason: 'key' | 'condition' | 'action-hidden' | 'action-unavailable' | 'not-selected';
   }>[];
 }>;
 export type SlotView<Name extends string = string> = {
@@ -64,6 +89,8 @@ export type SlotView<Name extends string = string> = {
   diagnostics: SlotDiagnostics;
   /** Declared owner's phase; unavailable for legacy undeclared outlets. */
   phase?: LifecyclePhase;
+  /** The declared policy; `single` views hold at most the selected candidate. */
+  policy?: SlotPolicy;
   error?: Error;
 };
 /** One outlet's validated context and live contributions. Unmount never detaches shared entries. */
@@ -113,7 +140,7 @@ export function useSlot<const Name extends SlotName>(
     ),
   );
   const ui = useContext(UIContext);
-  return useMemo(() => {
+  const result = useMemo(() => {
     const view = {
       items: [] as SlotEntry[],
       payload: context.value,
@@ -124,6 +151,7 @@ export function useSlot<const Name extends SlotName>(
           (['idle', 'starting', 'stopping'].includes(snapshot.phase) ||
             (snapshot.phase === 'stopped' && lifecycle.phase === 'starting'))),
       phase: snapshot?.phase,
+      policy: definition?.policy,
       error: context.error,
       diagnostics: {
         slot: name,
@@ -141,14 +169,51 @@ export function useSlot<const Name extends SlotName>(
                 : 'empty') as SlotDiagnostics['reason'],
         attached: snapshot?.items.length ?? null,
         selected: 0,
+        candidates: undefined as readonly string[] | undefined,
         rendered: null,
         excluded: [] as {
           id: string;
           plugin: string;
-          reason: 'key' | 'condition' | 'action-hidden' | 'action-unavailable';
+          reason: 'key' | 'condition' | 'action-hidden' | 'action-unavailable' | 'not-selected';
         }[],
       },
     };
+    const appId = runtime.config.appId ?? 'app';
+    if (view.pending && !view.error && !context.pending && definition?.policy === 'single') {
+      // File contributions are known before startup. Render the selected one at once, so the
+      // owner's default does not flash and a layout does not remount its page when the runtime
+      // becomes ready; the key equals the attachment ID the runtime gives the same view. A
+      // payload must be validated first: a contribution never receives an unchecked payload.
+      const selection = selectSingle(
+        runtime.modules.flatMap((plugin) =>
+          plugin.views.flatMap((item, index) =>
+            item.slot === name
+              ? [
+                  {
+                    plugin: plugin.id,
+                    key: item.key,
+                    item,
+                    id: `${plugin.id}:${item.id ?? `view:${index}`}`,
+                  },
+                ]
+              : [],
+          ),
+        ),
+        { choice: runtime.config.choose?.[name], appId },
+      );
+      const selected = selection.selected;
+      if (selected)
+        view.items = [
+          {
+            key: selected.id,
+            plugin: selected.plugin,
+            order: selected.item.order,
+            entryKey: selected.key,
+            kind: 'component',
+            component: selected.item.component as ComponentType<any>,
+          },
+        ];
+    }
     if (view.pending || view.error) return view as unknown as SlotView<Name>;
     try {
       if (snapshot) {
@@ -165,7 +230,12 @@ export function useSlot<const Name extends SlotName>(
             });
             continue;
           }
-          const common = { key: item.id, plugin: item.plugin, order: item.order };
+          const common = {
+            key: item.id,
+            plugin: item.plugin,
+            order: item.order,
+            entryKey: item.key,
+          };
           if ('actionId' in item) {
             const input = item.input ? item.input({ payload: context.value }) : undefined;
             const action = list.resolve(item.actionId!, input);
@@ -222,13 +292,30 @@ export function useSlot<const Name extends SlotName>(
         { cause },
       );
     }
+    let unresolved: SlotDiagnostics['reason'] | undefined;
+    if (!view.error && definition?.policy === 'single') {
+      const selection = selectSingle(
+        view.items.map((entry) => ({ entry, plugin: entry.plugin, key: entry.entryKey })),
+        { choice: runtime.config.choose?.[name], appId },
+      );
+      unresolved = selection.reason;
+      view.diagnostics.candidates = selection.candidates.map(
+        (candidate) => candidateNames(candidate)[1] ?? candidate.plugin,
+      );
+      view.items = selection.selected ? [selection.selected.entry] : [];
+      for (const candidate of selection.candidates)
+        if (candidate !== selection.selected)
+          view.diagnostics.excluded.push({
+            id: candidate.entry.key,
+            plugin: candidate.plugin,
+            reason: 'not-selected',
+          });
+    }
     view.diagnostics.selected = view.items.length;
     if (!view.error && (!snapshot || snapshot.phase === 'ready'))
       view.diagnostics.reason = view.items.length
         ? 'ready'
-        : view.diagnostics.excluded.length
-          ? 'filtered'
-          : 'empty';
+        : (unresolved ?? (view.diagnostics.excluded.length ? 'filtered' : 'empty'));
     return view as unknown as SlotView<Name>;
   }, [
     ready,
@@ -243,5 +330,25 @@ export function useSlot<const Name extends SlotName>(
     options?.entryKey,
     list,
     ui,
+    definition,
   ]);
+  const unresolved =
+    result.diagnostics.reason === 'ambiguous' || result.diagnostics.reason === 'choice-unavailable';
+  useEffect(() => {
+    if (unresolved) reportUnresolved(name, result.diagnostics, runtime.config.choose?.[name]);
+  }, [unresolved, name, result.diagnostics, runtime]);
+  return result;
+}
+
+const reported = new Set<string>();
+/** Logs an unresolved single slot once per slot, naming the candidates and both fixes. */
+function reportUnresolved(name: string, diagnostics: SlotDiagnostics, choice?: string) {
+  const candidates = diagnostics.candidates ?? [];
+  const message =
+    diagnostics.reason === 'choice-unavailable'
+      ? `[bitakit] Slot "${name}": choose names "${choice}", but no available candidate matches it; the owner's default renders.`
+      : `[bitakit] Slot "${name}" has several candidates (${candidates.join(', ')}) and renders the owner's default. Choose one in bitakit.config.ts (choose: { '${name}': '<plugin>' or '<plugin>:<key>' }), or contribute it from the app itself.`;
+  if (reported.has(message)) return;
+  reported.add(message);
+  console.error(message);
 }

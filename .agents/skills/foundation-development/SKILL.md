@@ -76,7 +76,9 @@ React files stay under `ui/` (the only place that imports React), with the same 
 `ui/pages/<path>.tsx` (`/<id>/<path>`, `[param]` segments, `export const layout`),
 `ui/slots/<slot>.tsx` (`export const order`), `ui/dialogs/<name>.tsx`, `ui/settings/page.tsx`
 (replaces the generated settings page) and `ui/providers/<name>.tsx` (`export const requires`).
-App layouts live in `src/layouts/<name>.tsx`; pages opt in with `export const layout = '<name>'`.
+Layout files live in `src/layouts/<family>[/<variant>].tsx` (app) or `ui/layouts/...` (plugins)
+and are candidates of the single slot `layout.<family>`; pages opt in with
+`export const layout = '<family>'`.
 
 - The folder name is the plugin ID. In a contribution path a folder and a dot mean the same
   (`contributionSegments` in `entries.mjs`): `actions/team/refresh.ts`, `actions/team.refresh.ts`
@@ -960,8 +962,43 @@ Shell owns `brand`, `header.start/center/end`, `header.rows`, contextual `header
 `content.before/after`, `footer`, `drawer.header/body/footer`, `navigation.group.before/after`
 and optional `state.content/actions` under the `shell.` prefix. Existing `sidebar.header/footer`,
 `sidebar.body`, `app-bar.end` and the Action slots `shell.navigation` and `shell.toolbar` remain explicit contracts.
-`ShellSurface` is the shared base for `AppShell.Content` and `AppShell.FullPage`; named layouts
-use the existing `src/layouts/` convention. `blank` remains bare. Render children once.
+`ShellSurface` is the shared base for `AppShell.Content` and `AppShell.FullPage`; layout
+families are single slots (below). `blank` remains bare. Render children once.
+
+## Replaceable parts (single slots)
+
+One mechanism replaces UI parts; there is no layout, screen or override registry.
+
+- `policy: 'single'` slots accept candidates from several contributors (the same contributor
+  and key twice is still a conflict). Core's pure `selectSingle` decides: `choose` in
+  `bitakit.config.ts` (generated into `BitaKitRuntimeConfig.choose`; candidate names
+  `<plugin>`, `<plugin>:<key>`, `<key>`), then the app's own contribution, then the only
+  candidate; a tie selects none (`ambiguous`), a stale choice `choice-unavailable`.
+- `useSlot` applies the selection for single slots after `entryKey`/`when`/Action filters,
+  reports `candidates` and `not-selected` exclusions, logs a tie once (console.error, so
+  `check-page` sees it), and before startup renders the selected file view (keys equal the
+  runtime attachment IDs `<plugin>:view:<index>`, so nothing remounts). It does that only after
+  payload validation: a contribution never receives an unchecked payload.
+- `PluginSlot` takes `fallback` (rendered with no occupant, and as the error fallback of a
+  single slot) and passes `children` to occupants; layouts are occupants that wrap pages.
+- Layout files become `pluginLayout(module, family, variant, source)` views; discovery declares
+  app-owned `layout.<family>` slots (`layoutSlots`) for families no package metadata, plugin or
+  app slot file declares; `validatePluginPages` accepts declared `layout.*` families (plus legacy
+  `ui.layouts`). Shell declares `layout.app/auth/error/full-page` and
+  `screen.not-found/error/forbidden/loading`; `AppShell` resolves families (and its `layout`
+  prop), and the page-state components render screen occupants, falling back to their defaults
+  without a runtime. CLI: `add layout <family>[/<variant>] [--plugin]`, `slots` selection,
+  doctor "Replaceable parts are decided".
+- Better Auth screens (`screen.sign-in`, ...) belong to bitakit-integrations after a release.
+
+## Package agent guides
+
+Every published package ships `AGENTS.md` (listed in `files`): a guide for agents that use the
+package in an app (IDs, extension and replacement points, rules, a minimal example). It opens
+with a note that changing the package follows the repository's own rules, because nested
+AGENTS.md files also reach agents working inside the package. Update it with the package's
+public contract; the app skill and the generated app rules point agents to
+`node_modules/@bitakit/<name>/AGENTS.md`, and recommend the same file for shared app plugins.
 
 Use `AppShell.HeaderRow` with a unique row ID, `AppShell.NavigationGroup` with an explicit Action
 slot, and `AppShell.Drawer` with a unique drawer ID. Contributions filter rowId/groupId/drawerId

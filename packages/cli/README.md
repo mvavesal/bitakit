@@ -105,6 +105,8 @@ npx bitakit add page notes/archive          # ui/pages/archive.tsx      → /not
 npx bitakit add interceptor notes/audit     # interceptors/audit.ts
 npx bitakit add config notes/limits         # configs/limits.ts         → app.config.notes.limits
 npx bitakit add events notes                # events.ts
+npx bitakit add layout auth/split           # src/layouts/auth/split.tsx → a candidate for layout.auth
+npx bitakit add layout auth --plugin brand  # src/plugins/brand/ui/layouts/auth.tsx
 ```
 
 The file path decides the ID; nested names such as `notes/team/invite` create
@@ -146,11 +148,17 @@ npx bitakit info [--json]   # the plugins, services, actions, events and pages d
 npx bitakit slots [--json]  # every slot you can fill: owner, accepts and this app's contributions
 ```
 
+For a replaceable (`single`) slot, `slots` also prints which candidate renders, from the app's
+files and `choose` in `bitakit.config.ts` (`renders app:split`, or `renders the default: choose
+one of ...`); `--json` adds `selection: { candidates, renders, reason, choice }`. Layout files
+count as candidates of `layout.<family>`. Packages can add candidates at runtime.
+
 Doctor checks package versions, duplicate copies of `@bitakit/core`, the config wrapper and
 provider wiring, scripts that still force Webpack or `foundation-generate`, ignored generated
 files, plugin pages and links no route reaches, colliding service names, `requires` entries that
-name nothing, plugin dependency cycles, missing package styles, deprecated layouts and agent files
-that are out of sync, and prints a fix for each problem.
+name nothing, plugin dependency cycles, missing package styles, deprecated layouts, replaceable
+parts without a decision (several candidates in the app's files, or `choose` entries for unknown
+or non-single slots) and agent files that are out of sync, and prints a fix for each problem.
 
 The `requires` check reads the string literals of `requires` in services, actions, interceptors
 and in `export const requires` of provider files. A name must be a service ID, an `exposeAs`

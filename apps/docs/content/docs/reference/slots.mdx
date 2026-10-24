@@ -21,6 +21,28 @@ export default defineSlot({
 The name is `reports.row.menu`. A flat `slots/row.menu.ts`, an index collection or manual
 `definePlugin({ id: 'reports', slots: { row: { menu } } })` produces the same contract.
 
+### Policies
+
+| `policy`         | Renders                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `list` (default) | Every contribution, sorted by `order`                                                 |
+| `keyed`          | The contribution whose `key` the outlet asks for with `entryKey`; keys must be unique |
+| `single`         | One candidate: a replaceable part such as `layout.auth` or `screen.not-found`         |
+
+A `single` slot accepts candidates from several plugins and renders one: the app's `choose`
+entry in `bitakit.config.ts` (`'<plugin>'`, `'<plugin>:<key>'` or `'<key>'`), else the app's
+own contribution, else the only candidate. Several candidates without a decision render the
+outlet's `fallback`, report the candidates once in the console and make doctor ask for a
+decision. The owner renders the part with its default:
+
+```tsx
+<PluginSlot name="billing.plan-card" fallback={<DefaultPlanCard />} />
+```
+
+`children` given to `PluginSlot` reach the contribution, which is how layouts wrap pages. A
+contribution that throws is replaced by the `fallback`. Before the runtime has started, a single
+slot already renders its selected file contribution, so the default does not flash.
+
 ## Bind each occurrence
 
 ```ts
@@ -169,8 +191,10 @@ console.info(view.diagnostics.reason);
 ```
 
 When needed, inspect `view.diagnostics.excluded`: each entry names its plugin, contribution
-and reason (`key`, `condition`, `action-hidden`, or `action-unavailable`). No payload is
-copied into diagnostics. `selected` counts eligible entries, not successful or visible renders.
+and reason (`key`, `condition`, `action-hidden`, `action-unavailable`, or `not-selected` for
+the other candidates of a single slot). A single slot without an occupant reports `ambiguous`
+or `choice-unavailable` as its reason and lists `candidates`. No payload is copied into
+diagnostics. `selected` counts eligible entries, not successful or visible renders.
 The existing error boundary reports rendering errors separately.
 
 For a slow plugin, inspect `runtime.lifecycle.get().operation` and the plugin/service

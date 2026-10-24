@@ -49,6 +49,8 @@ import {
   renderRegion,
   ShellSurface,
   ShellFullPage,
+  ShellAuthLayout,
+  ShellErrorLayout,
   ShellFooter,
   ShellHeaderRow,
   ShellDrawer,
@@ -107,6 +109,11 @@ export type AppShellProps = {
   account?: ReactNode;
   /** Next to the sidebar trigger in the sidebar layout. */
   header?: ReactNode;
+  /**
+   * The layout family instead of the current page's `export const layout`, for routes outside
+   * plugin pages such as the framework's not-found and error files: `'error'`, `'auth'`, ...
+   */
+  layout?: string;
 };
 
 type NamedLayouts = Readonly<Record<string, ComponentType<{ children?: ReactNode }>>>;
@@ -357,11 +364,19 @@ function AppShellContent({ children, topBar }: AppShellContentProps) {
 const layoutsOf = (runtime: BitaKitRuntime) =>
   (runtime.config.ui as { layouts?: NamedLayouts } | undefined)?.layouts;
 
+/** Shell's default for each family it declares; other families fall back to the app frame. */
+const defaultLayouts: Readonly<Record<string, ComponentType<{ children?: ReactNode }>>> = {
+  auth: ShellAuthLayout,
+  error: ShellErrorLayout,
+  'full-page': ShellFullPage,
+};
+
 /**
  * The application frame. Renders the default parts in the layout the user chose, unless the
- * children compose `AppShell.Sidebar`, `AppShell.TopBar` or `AppShell.Content` themselves.
- * Plugin pages with `layout = 'blank'` render bare; a named layout from `src/layouts/<name>.tsx`
- * replaces the frame. Switching layouts keeps the page mounted.
+ * children compose `AppShell.Sidebar`, `AppShell.TopBar` or `AppShell.Content` themselves, or a
+ * `layout.app` contribution replaces the frame. Plugin pages with `layout = 'blank'` render bare;
+ * another family renders its `layout.<family>` contribution (`src/layouts/<family>.tsx` or a
+ * plugin's `ui/layouts/...`) or Shell's default. Switching layouts keeps the page mounted.
  */
 function AppShellRoot({
   children,
@@ -370,6 +385,7 @@ function AppShellRoot({
   brand,
   account,
   header,
+  layout: family,
 }: AppShellProps) {
   const { runtime } = useBitaKit();
   const parent = useContext(ShellContext);
@@ -380,8 +396,10 @@ function AppShellRoot({
     () => ({ navigationSlot: resolved, components, inLayout: false }),
     [resolved, components],
   );
-  const name = parent.inLayout ? undefined : page?.layout;
+  const replaced = useSlot('layout.app').items.length > 0;
+  const name = family ?? (parent.inLayout ? undefined : page?.layout);
   if (name === 'blank') return <>{children}</>;
+  // Hand-written configurations may still pass `ui.layouts`; discovery emits layout slots.
   const Named = name ? layoutsOf(runtime)?.[name] : undefined;
   if (Named)
     return (
@@ -389,6 +407,34 @@ function AppShellRoot({
         <Named>{children}</Named>
       </ShellContext.Provider>
     );
+  if (name && name !== 'app') {
+    if (!runtime.slots.has(`layout.${name}`))
+      throw new Error(
+        `AppShell: no layout family "${name}". Add src/layouts/${name}.tsx (or src/layouts/${name}/<variant>.tsx), or a plugin's ui/layouts/${name}.tsx; "app" and "blank" are always available.`,
+      );
+    const Default = defaultLayouts[name];
+    return (
+      <ShellContext.Provider value={{ ...scope, inLayout: true }}>
+        <PluginSlot
+          name={`layout.${name}`}
+          fallback={
+            Default ? (
+              <Default>{children}</Default>
+            ) : (
+              <AppShellRoot
+                {...{ navigationSlot, components, brand, account, header }}
+                layout="app"
+              >
+                {children}
+              </AppShellRoot>
+            )
+          }
+        >
+          {children}
+        </PluginSlot>
+      </ShellContext.Provider>
+    );
+  }
   const SidebarPart = components.Sidebar ?? AppShellSidebar;
   const TopBarPart = components.TopBar ?? AppShellTopBar;
   const ContentPart = components.Content ?? AppShellContent;
@@ -412,22 +458,25 @@ function AppShellRoot({
       end={navbar ? account : undefined}
     />
   );
+  const frame = composed ? (
+    children
+  ) : (
+    <>
+      {navbar ? topBar : <SidebarPart navigationSlot={resolved} header={brand} footer={account} />}
+      <ContentPart topBar={navbar ? undefined : topBar}>{children}</ContentPart>
+    </>
+  );
   return (
     <ShellContext.Provider value={scope}>
       <TooltipProvider>
-        <SidebarProvider data-shell-layout={layout} className={navbar ? 'flex-col' : undefined}>
-          {composed ? (
-            children
-          ) : (
-            <>
-              {navbar ? (
-                topBar
-              ) : (
-                <SidebarPart navigationSlot={resolved} header={brand} footer={account} />
-              )}
-              <ContentPart topBar={navbar ? undefined : topBar}>{children}</ContentPart>
-            </>
-          )}
+        <SidebarProvider
+          data-shell-layout={replaced ? 'app' : layout}
+          className={navbar && !replaced ? 'flex-col' : undefined}
+        >
+          {/* A layout.app contribution replaces the frame and can compose the AppShell parts. */}
+          <PluginSlot name="layout.app" fallback={frame}>
+            {children}
+          </PluginSlot>
         </SidebarProvider>
       </TooltipProvider>
     </ShellContext.Provider>
@@ -441,6 +490,8 @@ export const AppShell = Object.assign(AppShellRoot, {
   Content: AppShellContent,
   Surface: ShellSurface,
   FullPage: ShellFullPage,
+  AuthLayout: ShellAuthLayout,
+  ErrorLayout: ShellErrorLayout,
   Footer: ShellFooter,
   HeaderRow: ShellHeaderRow,
   Drawer: ShellDrawer,

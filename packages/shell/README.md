@@ -89,6 +89,7 @@ or lose unsaved input. The top bar renders the `app-bar.end` slot in both layout
 | `account`        | Sidebar footer (sidebar layout) or end of the top bar (navbar layout)        |
 | `header`         | Next to the sidebar trigger (sidebar layout), for example the page title     |
 | `components`     | `{ Sidebar?, TopBar?, Content?, NavigationItem? }` replacing parts wholesale |
+| `layout`         | The layout family instead of the page's, for framework files: `'error'`      |
 
 Navigation entries are bound actions from `useNavigation(slotName)`: actions with an `href`
 render as links (the framework link for internal paths), the others as buttons. The entry
@@ -96,13 +97,23 @@ whose `href` matches the current pathname carries `aria-current="page"`.
 
 ### Page layouts
 
-Plugin pages choose a layout with `export const layout = '<name>'`. `AppShell` reads it through
-`useCurrentPage()`:
+Plugin pages choose a layout family with `export const layout = '<family>'`. `AppShell` reads
+it through `useCurrentPage()` (or its `layout` prop):
 
-- `blank` renders the page without a frame.
-- A name with a layout in `src/layouts/<name>.tsx` renders that layout instead of the frame. A
-  layout may render its own `<AppShell>`, which then draws the frame.
-- Pages without a layout use the default frame.
+- `blank` renders the page without a frame; no export or `app` renders the frame.
+- Every other family is the replaceable part `layout.<family>`, a single slot. Shell declares
+  `layout.auth` (default `ShellAuthLayout`: a centered column with `shell.brand`),
+  `layout.error` (`ShellErrorLayout`) and `layout.full-page` (`ShellFullPage`). A family the app
+  invents (`src/layouts/onboarding.tsx`) is declared by discovery and falls back to the frame.
+- A layout file replaces the default and receives the page as `children`: the app's
+  `src/layouts/<family>.tsx` (variant `default`) or `src/layouts/<family>/<variant>.tsx`, or a
+  plugin's `ui/layouts/...`. The app's file beats plugins; several candidates need
+  `choose: { 'layout.<family>': '<variant>' }` in `bitakit.config.ts`. A layout may render its
+  own `<AppShell>`, which then draws the frame.
+- `layout.app` replaces the whole frame of normal pages. The occupant renders inside the
+  frame's `SidebarProvider`, so it can compose `AppShell.Sidebar`, `.TopBar` and `.Content`.
+- An unknown family throws with the files that would add it; startup already rejects plugin
+  pages that name one.
 
 ### Parts
 
@@ -173,6 +184,8 @@ export default function MinimalLayout({ children }: { children: ReactNode }) {
 | `app-bar.end`      | The top bar in both layouts (`AppBar`)                                   |
 | `sidebar.header`   | `AppShell.Sidebar`, after the `header` prop                              |
 | `sidebar.footer`   | `AppShell.Sidebar`, before the `footer` prop                             |
+| `layout.*`         | Single slots: the frame of a layout family (see Page layouts)            |
+| `screen.*`         | Single slots: the page states (see Replaceable screens)                  |
 
 For a toolbar Action, set `slots: ['shell.toolbar']` on its `defineAction` declaration. Shell
 uses the existing Action binding for its title, icon, visibility, disabled and pending state;
@@ -281,6 +294,16 @@ plain text passes through. In components, `useNotifications()` returns the servi
 runtime is ready. Shell renders the one toast region at the `shell.toasts` placement and routes
 action feedback (`success`/`failure` messages) through the same service. Do not pass `notify`
 to `BitaKitRuntimeProvider` or render a second `Toast.Provider`.
+
+## Replaceable screens
+
+`NotFoundPage`, `ErrorPage`, `AccessDeniedPage` and `LoadingPage` render the single slots
+`screen.not-found`, `screen.error` (payload `{ reset }`), `screen.forbidden` and
+`screen.loading`. A contribution (`ui/slots/screen.not-found.tsx` in the app or a plugin)
+replaces the whole page state wherever it renders, including call-site props; a failing
+replacement falls back to the default. Without a runtime, or without Shell, the defaults render
+unchanged. create-app's `src/app/(app)/error.tsx` and `src/app/not-found.tsx` render these
+screens.
 
 ## Page states
 
@@ -415,8 +438,9 @@ Shell owns `brand`, `header.start/center/end`, `header.rows`, contextual `header
 `content.before/after`, `footer`, `drawer.header/body/footer`, `navigation.group.before/after`
 and optional `state.content/actions` under the `shell.` prefix. Existing `sidebar.header/footer`,
 `sidebar.body`, `app-bar.end` and the Action slots `shell.navigation` and `shell.toolbar` remain explicit contracts.
-`ShellSurface` is the shared base for `AppShell.Content` and `AppShell.FullPage`; named layouts
-use the existing `src/layouts/` convention. `blank` remains bare. Render children once.
+`ShellSurface` is the shared base for `AppShell.Content` and `AppShell.FullPage`; layout
+families are the single slots `layout.<family>` (see Page layouts). `blank` remains bare.
+Render children once.
 
 Use `AppShell.HeaderRow` with a unique row ID, `AppShell.NavigationGroup` with an explicit Action
 slot, and `AppShell.Drawer` with a unique drawer ID. Contributions filter rowId/groupId/drawerId

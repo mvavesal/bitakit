@@ -1,6 +1,11 @@
 import type { InputSchema, SchemaOutput, EffectiveActionId } from '../definitions.js';
 import type { SlotMap } from '../presentation.js';
 
+/**
+ * `list`: every contribution renders, sorted by `order`. `single`: a replaceable part; several
+ * contributors may offer a candidate and outlets render the one `selectSingle` picks, or the
+ * owner's fallback. `keyed`: contributions need unique keys and an outlet picks one by key.
+ */
 export type SlotPolicy = 'list' | 'single' | 'keyed';
 /** Payload is supplied by the owner; schema describes contributed data, not UI. */
 export type SlotOptions = {

@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
+import { useCallback, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import { PluginSlot, useSlot, useTranslation, useOptionalBitaKit } from '@bitakit/ui';
 import { ErrorBoundary } from 'react-error-boundary';
 import { renderRegion } from './regions.js';
@@ -78,33 +78,64 @@ export function PageState({
   );
 }
 
+/**
+ * A replaceable screen: the `screen.<name>` contribution when Shell runs and one is placed,
+ * otherwise the default children. Outside a runtime the default renders unchanged.
+ */
+function Screen({
+  name,
+  payload,
+  children,
+}: {
+  name: 'screen.not-found' | 'screen.error' | 'screen.forbidden' | 'screen.loading';
+  payload?: { reset?: () => void };
+  children: ReactNode;
+}) {
+  const foundation = useOptionalBitaKit();
+  if (!foundation?.runtime.slots.has(name)) return <>{children}</>;
+  const Outlet = PluginSlot as (props: {
+    name: string;
+    payload?: unknown;
+    fallback: ReactNode;
+  }) => ReactNode;
+  return <Outlet name={name} payload={payload} fallback={children} />;
+}
+
 function StateContent({ id, fallback }: { id: string; fallback: ReactNode }) {
   const view = useSlot('shell.state.content', { payload: { surfaceId: id }, entryKey: id });
   const content = renderRegion('shell.state.content', view, () => fallback);
   return content.length ? content : fallback;
 }
 
-/** Presentation only: use the framework's native not-found route to set the HTTP status. */
+/**
+ * Presentation only: use the framework's native not-found route to set the HTTP status. A
+ * `screen.not-found` contribution replaces it everywhere, including the props given here.
+ */
 export function NotFoundPage({ title, description, ...props }: PageStateProps) {
   const t = useTranslation();
   return (
-    <PageState
-      {...props}
-      icon={<SearchIcon aria-hidden="true" />}
-      title={title ?? t('shell.pages.notFound.title', undefined, 'Page not found')}
-      description={
-        description ??
-        t(
-          'shell.pages.notFound.description',
-          undefined,
-          'The page you are looking for is unavailable.',
-        )
-      }
-    />
+    <Screen name="screen.not-found">
+      <PageState
+        {...props}
+        icon={<SearchIcon aria-hidden="true" />}
+        title={title ?? t('shell.pages.notFound.title', undefined, 'Page not found')}
+        description={
+          description ??
+          t(
+            'shell.pages.notFound.description',
+            undefined,
+            'The page you are looking for is unavailable.',
+          )
+        }
+      />
+    </Screen>
   );
 }
 
-/** Safe error presentation: raw errors are never rendered. The host owns recovery. */
+/**
+ * Safe error presentation: raw errors are never rendered. The host owns recovery. A
+ * `screen.error` contribution replaces it and receives `{ payload: { reset } }`.
+ */
 export function ErrorPage({
   title,
   description,
@@ -116,51 +147,64 @@ export function ErrorPage({
   reset?: () => void;
 }) {
   const t = useTranslation();
+  const payload = useMemo(() => ({ reset }), [reset]);
   return (
-    <PageState
-      surfaceId={surfaceId}
-      content={content}
-      icon={<WarningIcon aria-hidden="true" />}
-      title={title ?? t('shell.pages.error.title', undefined, 'Something went wrong')}
-      description={
-        description ?? t('shell.pages.error.description', undefined, 'Please try again.')
-      }
-    >
-      {reset && (
-        <Button type="button" onClick={reset}>
-          {t('shell.pages.error.retry', undefined, 'Try again')}
-        </Button>
-      )}
-      {children}
-    </PageState>
+    <Screen name="screen.error" payload={payload}>
+      <PageState
+        surfaceId={surfaceId}
+        content={content}
+        icon={<WarningIcon aria-hidden="true" />}
+        title={title ?? t('shell.pages.error.title', undefined, 'Something went wrong')}
+        description={
+          description ?? t('shell.pages.error.description', undefined, 'Please try again.')
+        }
+      >
+        {reset && (
+          <Button type="button" onClick={reset}>
+            {t('shell.pages.error.retry', undefined, 'Try again')}
+          </Button>
+        )}
+        {children}
+      </PageState>
+    </Screen>
   );
 }
 
+/** A `screen.loading` contribution replaces it. */
 export function LoadingPage({ title, description, ...props }: PageStateProps) {
   const t = useTranslation();
   return (
-    <PageState
-      {...props}
-      loading
-      title={title ?? t('shell.pages.loading.title', undefined, 'Loading')}
-      description={
-        description ?? t('shell.pages.loading.description', undefined, 'Please wait a moment.')
-      }
-    />
+    <Screen name="screen.loading">
+      <PageState
+        {...props}
+        loading
+        title={title ?? t('shell.pages.loading.title', undefined, 'Loading')}
+        description={
+          description ?? t('shell.pages.loading.description', undefined, 'Please wait a moment.')
+        }
+      />
+    </Screen>
   );
 }
 
+/** A `screen.forbidden` contribution replaces it. */
 export function AccessDeniedPage({ title, description, ...props }: PageStateProps) {
   const t = useTranslation();
   return (
-    <PageState
-      {...props}
-      icon={<LockIcon aria-hidden="true" />}
-      title={title ?? t('shell.pages.accessDenied.title', undefined, 'Access denied')}
-      description={
-        description ??
-        t('shell.pages.accessDenied.description', undefined, 'You do not have access to this page.')
-      }
-    />
+    <Screen name="screen.forbidden">
+      <PageState
+        {...props}
+        icon={<LockIcon aria-hidden="true" />}
+        title={title ?? t('shell.pages.accessDenied.title', undefined, 'Access denied')}
+        description={
+          description ??
+          t(
+            'shell.pages.accessDenied.description',
+            undefined,
+            'You do not have access to this page.',
+          )
+        }
+      />
+    </Screen>
   );
 }

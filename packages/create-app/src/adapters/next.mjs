@@ -131,6 +131,27 @@ export default function Page() {
   return <PluginPage fallback={<NotFoundPage />} />;
 }
 `,
+        // Next.js error files render Shell's replaceable screens (screen.error, screen.not-found).
+        'src/app/(app)/error.tsx': `'use client';
+import { ErrorPage } from '@bitakit/shell/pages';
+
+// Errors in app pages, inside the app frame. A screen.error contribution replaces this page.
+export default function Error({ retry }: { error: unknown; retry: () => void }) {
+  return <ErrorPage reset={retry} />;
+}
+`,
+        'src/app/not-found.tsx': `import { AppShell } from '@bitakit/shell';
+import { NotFoundPage } from '@bitakit/shell/pages';
+
+// notFound() outside app pages. The error layout and screen.not-found can be replaced.
+export default function NotFound() {
+  return (
+    <AppShell layout="error">
+      <NotFoundPage />
+    </AppShell>
+  );
+}
+`,
       });
     else
       Object.assign(files, {

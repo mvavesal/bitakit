@@ -491,6 +491,15 @@ test('the shell app adds the App Shell, settings, a not-found fallback and the T
     await read(plan.target, 'src/app/settings/[[...section]]/page.tsx'),
     /<SettingsRoute \/>/,
   );
+  // Next.js error files render Shell's replaceable screens.
+  assert.match(
+    await read(plan.target, 'src/app/(app)/error.tsx'),
+    /export default function Error\(\{ retry \}[\s\S]*<ErrorPage reset=\{retry\} \/>/,
+  );
+  assert.match(
+    await read(plan.target, 'src/app/not-found.tsx'),
+    /<AppShell layout="error">\s*<NotFoundPage \/>\s*<\/AppShell>/,
+  );
   assert.match(
     await read(plan.target, 'src/configs/shell.ts'),
     /export default defineConfig\(\{[\s\S]*navigationSlot: 'shell\.navigation',[\s\S]*\} satisfies ShellOptions/,
@@ -676,7 +685,14 @@ test('TanStack apps get the same frame through native file routes and the Vite p
   assert.match(rootRoute, /<head>\n\s+<HeadContent \/>\n\s+<ShellThemeScript \/>\n\s+<\/head>/);
   // ShellThemeScript sets the color scheme on <html> before hydration, as in the Next template.
   assert.match(rootRoute, /<html lang="en" suppressHydrationWarning>/);
-  assert.match(await read(plan.target, 'src/routes/_app.tsx'), /<AppShell>/);
+  const appRoute = await read(plan.target, 'src/routes/_app.tsx');
+  assert.match(appRoute, /<AppShell>/);
+  // Errors and notFound() render Shell's replaceable screens, as in Next.js apps.
+  assert.match(
+    appRoute,
+    /errorComponent: \(\{ reset \}\) => \([\s\S]*<ErrorPage reset=\{reset\} \/>/,
+  );
+  assert.match(appRoute, /notFoundComponent: \(\) => \([\s\S]*<AppShell layout="error">/);
   assert.match(
     await read(plan.target, 'src/routes/_app.$.tsx'),
     /<PluginPage fallback=\{<NotFoundPage \/>\} \/>/,

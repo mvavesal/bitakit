@@ -92,6 +92,8 @@ test('slots lists local and package contracts with owners, payloads and static c
     payloadKeys: [],
     source: 'src/slots/banner.ts',
     contributions: [],
+    // A replaceable part: no candidate in the app's files, so the owner's default renders.
+    selection: { candidates: [], renders: null, reason: null, choice: null },
   });
   assert.deepEqual(
     [byId['todos.row'].policy, byId['todos.row'].payload, byId['todos.row'].payloadKeys],
@@ -180,7 +182,7 @@ test('bitakit slots prints one line per slot under its owner; --json prints the 
   assert.equal(text.code, 0, text.stderr);
   assert.match(
     text.stdout,
-    /\nPlugin "app"\n  banner +component  0 contributions\n\nPlugin "todos"\n  todos\.footer +component  1 contribution\n/,
+    /\nPlugin "app"\n  banner +component  0 contributions  renders the default\n\nPlugin "todos"\n  todos\.footer +component  1 contribution\n/,
   );
   assert.match(
     text.stdout,
@@ -229,5 +231,38 @@ test('an app without slots says so and still reports what it could not read', ()
       '1 file could not be read statically:',
       '  src/plugins/notes/slots/toolbar.ts',
     ],
+  );
+});
+
+test('layout files are layout.<family> candidates; slots reports which one renders', async (t) => {
+  const layout = 'export default ({ children }) => children;\n';
+  const root = await project(
+    {
+      'package.json': { name: 'frames-app' },
+      'bitakit.config.ts': "export default { choose: { 'layout.auth': 'split' } };\n",
+      'src/layouts/auth/split.tsx': layout,
+      'src/layouts/auth/centered.tsx': layout,
+      'src/layouts/onboarding/steps.tsx': layout,
+      'src/layouts/onboarding/tour.tsx': layout,
+      'src/plugins/brand/ui/layouts/kiosk.tsx': layout,
+    },
+    t,
+  );
+  const result = await describeSlots(await describeBitaKit(root));
+  const byId = Object.fromEntries(result.slots.map((entry) => [entry.id, entry]));
+  assert.deepEqual(byId['layout.auth'].selection, {
+    candidates: ['app:centered', 'app:split'],
+    renders: 'app:split',
+    reason: null,
+    choice: 'split',
+  });
+  assert.equal(byId['layout.auth'].generated, true);
+  assert.deepEqual(byId['layout.onboarding'].selection.reason, 'ambiguous');
+  assert.equal(byId['layout.kiosk'].selection.renders, 'brand:default');
+  const lines = formatSlots(result).join('\n');
+  assert.match(lines, /layout\.auth +component +2 contributions +renders app:split/);
+  assert.match(
+    lines,
+    /layout\.onboarding +component +2 contributions +renders the default: choose one of app:steps, app:tour in bitakit\.config\.ts/,
   );
 });

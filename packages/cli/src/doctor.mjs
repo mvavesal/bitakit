@@ -11,6 +11,7 @@ import {
 import { checkAgentFiles } from './doctor-agent-files.mjs';
 import { exists, findProject } from './project.mjs';
 import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
+import { describeSlots } from './slots.mjs';
 
 /**
  * Checks a project for the problems that most often break a BitaKit app: mixed package
@@ -97,6 +98,7 @@ export async function doctor({ cwd } = {}) {
   results.push(await checkStyles(project, description));
   results.push(...(await checkTailwind(project, description)));
   results.push(checkIgnored(description), checkDeprecated(description), checkSlots(description));
+  results.push(await checkParts(description));
   if (shell) {
     const missing = [];
     for (const module of modules)
@@ -910,6 +912,38 @@ function checkSlots(description) {
     title: `${plural(problems.length, 'slot contract issue')} need review`,
     details: problems,
     fix: 'Declare the owner contract with defineSlot in slots/. ui/slots/ contributes components; Action slots must reference declared action contracts. Legacy bitakit.config.ts slots are name hints only.',
+  };
+}
+/**
+ * Replaceable (`single`) slots: every `choose` entry names one, and no part has several
+ * candidates in the app's files without a decision. Packages add candidates only at runtime.
+ */
+async function checkParts(description) {
+  const { slots } = await describeSlots(description);
+  const byId = new Map(slots.map((slot) => [slot.id, slot]));
+  const problems = [];
+  for (const [id, choice] of Object.entries(description.choose ?? {})) {
+    const slot = byId.get(id);
+    if (!slot)
+      problems.push(
+        `bitakit.config.ts chooses "${choice}" for "${id}", but no slot "${id}" exists.`,
+      );
+    else if (slot.policy && slot.policy !== 'single')
+      problems.push(
+        `bitakit.config.ts chooses "${choice}" for "${id}", a ${slot.policy} slot; choose applies to single slots only.`,
+      );
+  }
+  for (const slot of slots)
+    if (slot.selection?.reason === 'ambiguous')
+      problems.push(
+        `"${slot.id}" has several candidates (${slot.selection.candidates.join(', ')}) and renders its default.`,
+      );
+  if (!problems.length) return { status: 'ok', title: 'Replaceable parts are decided' };
+  return {
+    status: 'warn',
+    title: `${plural(problems.length, 'replaceable part')} need${problems.length === 1 ? 's' : ''} a decision`,
+    details: problems,
+    fix: "Pick one per slot in bitakit.config.ts, for example choose: { 'layout.auth': 'split' }, or keep a single candidate. The app's own file wins over plugins without configuration.",
   };
 }
 function checkDeprecated(description) {

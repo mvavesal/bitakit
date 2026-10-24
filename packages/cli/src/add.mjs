@@ -108,21 +108,12 @@ const singleFile = {
  * `events` takes only the plugin: a plugin declares its events once in `events.ts`. `test` also
  * takes only an existing plugin of an app and writes `tests/<plugin>.test.ts` at the app root.
  */
-export async function addContribution(kind, target, { cwd } = {}) {
+export async function addContribution(kind, target, { cwd, plugin: layoutPlugin } = {}) {
   if (!contributionKinds.includes(kind))
     throw new Error(`Unknown kind "${kind}". Use ${contributionKinds.join(', ')}.`);
   const project = await configuredProject(cwd);
   if (kind === 'test') return addTest(project, target);
-  if (kind === 'layout') {
-    if (project.kind !== 'app')
-      throw new Error('Layouts belong to the app: run "bitakit add layout <name>" inside an app.');
-    if (!target) throw new Error('Name the layout, for example "bitakit add layout admin".');
-    validateName(target, 'layout name');
-    const created = await writeNewFiles(project.appDirectory, {
-      [`layouts/${target}.tsx`]: layoutFile(target),
-    });
-    return { project, created, id: target, path: undefined };
-  }
+  if (kind === 'layout') return addLayout(project, target, layoutPlugin);
   const single = Object.hasOwn(singleFile, kind);
   const example = single
     ? `bitakit add ${kind} notes`
@@ -192,6 +183,43 @@ export async function addContribution(kind, target, { cwd } = {}) {
     plugin,
     path: kind === 'page' ? pagePath : undefined,
   };
+}
+
+/**
+ * `bitakit add layout <family>[/<variant>]`: a candidate for the `layout.<family>` slot, in the
+ * app's `src/layouts`, an app plugin's `ui/layouts` (`--plugin`) or a plugin package's `ui/layouts`.
+ */
+async function addLayout(project, target, plugin) {
+  if (!target)
+    throw new Error(
+      'Name the layout family, for example "bitakit add layout auth" or "bitakit add layout auth/split".',
+    );
+  const [family, variant, ...rest] = target.split('/');
+  if (rest.length) throw new Error(`Use "<family>" or "<family>/<variant>", not "${target}".`);
+  validateName(family, 'layout family');
+  if (variant !== undefined) validateName(variant, 'layout variant');
+  const file = `${variant === undefined ? family : `${family}/${variant}`}.tsx`;
+  let root;
+  let folder = 'ui/layouts';
+  if (project.kind === 'plugin') {
+    if (plugin)
+      throw new Error('Inside a plugin package, run "bitakit add layout" without --plugin.');
+    root = project.moduleRoot;
+  } else if (plugin) {
+    validateName(plugin, 'plugin name');
+    root = path.join(project.pluginsDirectory, plugin);
+    if (!(await exists(root)))
+      throw new Error(
+        `There is no plugin "${plugin}". Create it first: bitakit add plugin ${plugin}.`,
+      );
+  } else {
+    root = project.appDirectory;
+    folder = 'layouts';
+  }
+  const created = await writeNewFiles(root, {
+    [`${folder}/${file}`]: layoutFile(family, variant),
+  });
+  return { project, created, id: `layout.${family}`, plugin, path: undefined };
 }
 
 /** What `mountPlugin` needs under Node besides `@bitakit/core`, as the testing guide lists it. */

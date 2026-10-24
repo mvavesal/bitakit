@@ -1100,9 +1100,11 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
       'slotDeclarations',
       'unresolvedSlots',
       'slots',
+      'choose',
       'warnings',
     ]);
     assert.equal(description.root, root);
+    assert.deepEqual(description.choose, {});
     assert.equal(description.framework, 'none');
     assert.equal(description.pluginsDirectory, 'src/plugins');
     assert.equal(description.appDirectory, 'src');
@@ -1915,4 +1917,113 @@ test('a nested plugin folder with its own plugin.config.ts becomes a child plugi
     const described = Object.fromEntries(description.plugins.map((plugin) => [plugin.id, plugin]));
     assert.equal(described.deals.parent, 'crm');
     assert.deepEqual(described['deal-notes'].dependencies, ['deals']);
+  }));
+
+test('layout files become layout.<family> candidates; undeclared families become app slots; choose reaches the runtime', async () =>
+  fixture(async (root, put) => {
+    await put(
+      'package.json',
+      JSON.stringify({ name: 'layouts-demo', dependencies: { '@acme/frames': '1.0.0' } }),
+    );
+    // A package that declares the auth family itself, as Shell does.
+    await put(
+      'node_modules/@acme/frames/package.json',
+      JSON.stringify({
+        name: '@acme/frames',
+        exports: { './package.json': './package.json', './plugin': './plugin.js' },
+        bitakit: { plugin: './plugin' },
+      }),
+    );
+    await put(
+      'node_modules/@acme/frames/plugin.js',
+      `export default () => ({ id: 'frames', slots: { auth: { kind: 'slot', id: 'layout.auth', accepts: 'component', policy: 'single', conflict: 'error' } } });`,
+    );
+    await put(
+      'node_modules/@acme/frames/plugin.d.ts',
+      `declare const plugin: () => { id: 'frames'; slots: { auth: import('@bitakit/core').LayoutSlot & { id: 'layout.auth' } } };\nexport default plugin;`,
+    );
+    await put(
+      'node_modules/@acme/frames/plugin.slots.json',
+      JSON.stringify({
+        version: 1,
+        definitions: [
+          {
+            id: 'layout.auth',
+            accepts: 'component',
+            policy: 'single',
+            file: 'plugin.js',
+            plugin: 'frames',
+          },
+        ],
+        unresolved: [],
+      }),
+    );
+    await put('bitakit.config.ts', `export default { choose: { 'layout.auth': 'split' } };`);
+    const layout = 'export default ({ children }: { children?: unknown }) => children;';
+    await put('src/layouts/full-page.tsx', layout);
+    await put('src/layouts/auth/split.tsx', layout);
+    await put('src/layouts/auth/centered.tsx', layout);
+    await put('src/layouts/README.md', 'not a layout');
+    await put('src/plugins/brand/ui/layouts/auth/brand.tsx', layout);
+    await put('src/plugins/brand/ui/layouts/onboarding.tsx', layout);
+    await put(
+      'src/plugins/brand/ui/pages/welcome.tsx',
+      `export const layout = 'onboarding';\nexport default () => null;`,
+    );
+    const consumer = await put(
+      'consumer.ts',
+      `
+      import type { SlotName } from '@bitakit/core';
+      import './src/bitakit.gen';
+      const families: SlotName[] = ['layout.onboarding', 'layout.full-page'];
+      export default families;
+      `,
+    );
+    const result = await generateBitaKit(root, { quiet: true });
+    assert.deepEqual(typeErrors([result.generated, consumer], root), []);
+    const { createBitaKitConfig } = await loadGenerated(result.generated);
+    const config = createBitaKitConfig();
+    assert.deepEqual(config.choose, { 'layout.auth': 'split' });
+    assert.equal(config.ui.layouts, undefined, 'layouts are slot candidates now');
+    const runtime = createRuntime(config);
+    const app = runtime.modules.find((module) => module.id === 'app');
+    // The package declares layout.auth; the app declares only the families nobody else does.
+    assert.deepEqual(
+      app.slots.map((slot) => [slot.id, slot.policy]),
+      [
+        ['layout.full-page', 'single'],
+        ['layout.onboarding', 'single'],
+      ],
+    );
+    const candidates = (id) =>
+      runtime.modules
+        .find((module) => module.id === id)
+        .views.map(({ slot, key }) => `${slot}:${key}`);
+    assert.deepEqual(candidates('app'), [
+      'layout.auth:centered',
+      'layout.auth:split',
+      'layout.full-page:default',
+    ]);
+    assert.deepEqual(candidates('brand'), ['layout.auth:brand', 'layout.onboarding:default']);
+    const description = await describeBitaKit(root);
+    assert.deepEqual(
+      description.app.layouts.map(({ family, variant, file }) => [family, variant, file]),
+      [
+        ['auth', 'centered', 'src/layouts/auth/centered.tsx'],
+        ['auth', 'split', 'src/layouts/auth/split.tsx'],
+        ['full-page', 'default', 'src/layouts/full-page.tsx'],
+      ],
+    );
+    assert.deepEqual(
+      description.plugins
+        .find((plugin) => plugin.id === 'brand')
+        .layouts.map(({ family }) => family),
+      ['auth', 'onboarding'],
+    );
+
+    await put('bitakit.config.ts', `export default { choose: { 'layout.auth': 3 } };`);
+    await assert.rejects(
+      generateBitaKit(root, { quiet: true }),
+      /choose\["layout.auth"\] in bitakit.config.ts must name a candidate/,
+    );
   }));

@@ -61,6 +61,31 @@ export function ShellFullPage({
     </div>
   );
 }
+/** Shell's default `layout.auth`: a narrow centered column with the brand above the page. */
+export function ShellAuthLayout({ children }: ShellSurfaceProps) {
+  return (
+    <div
+      data-shell-layout="auth"
+      className="flex min-h-svh min-w-0 flex-col items-center justify-center bg-muted p-6 md:p-10"
+    >
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <PluginSlot name="shell.brand" />
+        {children}
+      </div>
+    </div>
+  );
+}
+/** Shell's default `layout.error`: the page centered, without navigation. */
+export function ShellErrorLayout({ children }: ShellSurfaceProps) {
+  return (
+    <div
+      data-shell-layout="error"
+      className="flex min-h-svh min-w-0 flex-col items-center justify-center p-6 md:p-10"
+    >
+      <div className="flex w-full max-w-lg flex-col gap-6">{children}</div>
+    </div>
+  );
+}
 export function ShellFooter({ children }: ShellSurfaceProps) {
   return (
     <footer className="flex min-w-0 flex-wrap items-center gap-3 px-4 py-2 empty:hidden">

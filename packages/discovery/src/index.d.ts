@@ -32,6 +32,13 @@ export type DiscoveryConfig = {
   groups?: readonly string[];
   /** Legacy name hints only; declare owned contracts in src/slots with defineSlot. */
   slots?: readonly string[];
+  /**
+   * The occupant of each `single` slot, by slot ID: a candidate's `<plugin>`, `<plugin>:<key>` or
+   * `<key>`, for example `{ 'screen.not-found': 'brand', 'layout.auth': 'split' }`. Without an
+   * entry, the app's own contribution wins, then the only candidate; several candidates and no
+   * entry render the owner's default.
+   */
+  choose?: Readonly<Record<string, string>>;
   /** Reject unknown action IDs at compile time (default true). */
   strict?: boolean;
   /** Which provider the generated file wires; detected from package.json by default. */
@@ -133,8 +140,12 @@ export type DescribedModule = {
   settings: DescribedEntry[];
   /** `ui/settings/page.tsx`, when present. */
   settingsPage?: string;
-  /** App module only: `src/layouts/<name>.tsx`. */
-  layouts?: { name: string; file: string }[];
+  /**
+   * Layout files: the app's `src/layouts/<family>[/<variant>].tsx` or a plugin's
+   * `ui/layouts/...`, each a candidate for the `layout.<family>` slot (variant `default` for a
+   * flat file).
+   */
+  layouts?: { family: string; variant: string; file: string }[];
   pages: DescribedEntry[];
   slots: DescribedEntry[];
   /** Owned contracts under slots/, distinct from ui/slots contributions. */
@@ -173,6 +184,8 @@ export type BitaKitDescription = {
     policy?: string;
   }[];
   unresolvedSlots: string[];
+  /** `choose` of bitakit.config.ts: the occupant the app picks for each `single` slot. */
+  choose: Readonly<Record<string, string>>;
   warnings: string[];
 };
 export function describeBitaKit(root: string): Promise<BitaKitDescription>;

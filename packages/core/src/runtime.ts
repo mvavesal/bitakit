@@ -13,7 +13,7 @@ import {
 } from './contribution-origin.js';
 import { ServiceNames, type ServiceEntry, type ServiceRequester } from './service-names.js';
 import { BitaKitStartupError, isBitaKitStartupError, moduleLabel } from './startup-error.js';
-import { findPluginPage, validatePluginPages } from './pages.js';
+import { findPluginPage, layoutFamilies, validatePluginPages } from './pages.js';
 import { projectedDestination, type Destination } from './destinations.js';
 import { resolveText } from './translation.js';
 import {
@@ -436,12 +436,7 @@ export class BitaKitRuntime implements ContributionHost {
     } catch (error) {
       throw attributed(error, this.appId, 'Configuration', this.appId);
     }
-    validatePluginPages(
-      this.modules,
-      new Set(
-        Object.keys(this.modules.find((module) => module.id === this.appId)?.ui?.layouts ?? {}),
-      ),
-    );
+    validatePluginPages(this.modules, layoutFamilies(this.modules));
     const groups = config.groups ?? [];
     const duplicate = groups.find((id, index) => groups.indexOf(id) !== index);
     if (duplicate) throw new Error(`Action group "${duplicate}" is listed twice in groups.`);
@@ -1468,7 +1463,7 @@ export class BitaKitRuntime implements ContributionHost {
       const declarations = [app, ...nextInstalled.map((plugin) => normalize(plugin, this.appId))];
       orderPlugins(all, this.appId);
       validateSlotDeclarations(declarations, this.appId);
-      validatePluginPages(all, new Set(Object.keys(app.ui?.layouts ?? {})));
+      validatePluginPages(all, layoutFamilies(all));
       // Failed updates may have already disposed a projection's scope. Recover its recorded
       // failure cohort when the host retries one of those owners, without restarting other failures.
       const lifecycle = this.lifecycle.get();
@@ -1682,7 +1677,7 @@ export class BitaKitRuntime implements ContributionHost {
       ];
       orderPlugins(all, this.appId);
       validateSlotDeclarations(all, this.appId);
-      validatePluginPages(all, new Set(Object.keys(all[0].ui?.layouts ?? {})));
+      validatePluginPages(all, layoutFamilies(all));
       // A projection that captured the composition is an explicit consumer of every revision.
       affected = updateClosure(all, [
         ...changed,

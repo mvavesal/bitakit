@@ -144,6 +144,9 @@ export {
   pluginProvider,
   pluginSettingsPage,
   pluginLayout,
+  layoutSlots,
+  layoutFamilies,
+  type LayoutSlot,
 } from './pages.js';
 export { destinationMetadata, type Destination, type DestinationKind } from './destinations.js';
 export * from './actions/core.js';
@@ -161,6 +164,7 @@ export type * from './slots/define.js';
 export type * from './slots/types.js';
 export type { ActionSlotPlacement } from './slots/action-placement.js';
 export { SlotError } from './slots/runtime.js';
+export { selectSingle, candidateNames, type SingleSelection } from './slots/select.js';
 export {
   configureAuthPaths,
   resolveAuthReturnTo,

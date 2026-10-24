@@ -6,6 +6,7 @@ import { files, discoverEntries, contributionKindSpecs } from './entries.mjs';
 import { installedContributions } from './packages.mjs';
 import { parentDirectory, pluginManifests } from './modules.mjs';
 import { stylePrelude } from './styles.mjs';
+import { layoutEntries } from './layouts.mjs';
 
 const quote = JSON.stringify;
 /** Single-quoted module specifiers, matching the style of hand-written imports. */
@@ -186,15 +187,16 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
         : '';
     return `${fn}([${names.join(', ')}]${extra})`;
   };
-  /** `src/layouts/<name>.tsx` of the app: layouts pages choose with `export const layout`. */
-  const layoutFiles = (moduleFiles, base) =>
-    moduleFiles
-      .filter(
-        (file) =>
-          path.dirname(file) === path.join(base, 'layouts') &&
-          /^[a-z][a-z0-9-]*\.tsx$/.test(path.basename(file)),
-      )
-      .map((file) => ({ name: path.basename(file, '.tsx'), file }));
+  /**
+   * Layout files of a module become candidates for `layout.<family>` slots; pages choose a
+   * family with `export const layout`. Every family is recorded for the app's declarations.
+   */
+  const layoutFamiliesFound = new Set();
+  const emitLayouts = (moduleFiles, dir) =>
+    layoutEntries(moduleFiles, dir).map(({ family, variant, file }) => {
+      layoutFamiliesFound.add(family);
+      return `pluginLayout(${importFile(file, true)}, ${quote(family)}, ${quote(variant)}, ${quote(relativeTo(file))})`;
+    });
   /** `ui/settings/page.tsx` replaces the generated settings page of a module. */
   const settingsPage = (moduleFiles, base) => {
     const file = moduleFiles.find(
@@ -296,7 +298,13 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
   const appPrefix = appManifest.id ?? '';
   const appActions = emit('actions', await appEntries('actions'), appPrefix);
   const appServices = emit('services', await appEntries('services'), appPrefix);
-  const appSlotDefinitions = emit('slotDefinitions', await appEntries('slotDefinitions'), '');
+  const appSlotEntries = await appEntries('slotDefinitions');
+  // Layout families nobody declares become app-owned slots (see appLayoutFamilies).
+  const declaredSlotIds = new Set([
+    ...(installed.slotDeclarations ?? []).map((item) => item.id),
+    ...appSlotEntries.map((entry) => entry.path.join('.')),
+  ]);
+  const appSlotDefinitions = emit('slotDefinitions', appSlotEntries, '');
   const appEvents = emit(
     'events',
     appFiles
@@ -313,9 +321,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     '',
   );
   const appSettingsPage = settingsPage(appFiles, appRoot);
-  const appLayouts = layoutFiles(appFiles, appRoot).map(
-    ({ name, file }) => `${quote(name)}: pluginLayout(${importFile(file, true)})`,
-  );
+  const appLayouts = emitLayouts(appFiles, path.join(appRoot, 'layouts'));
   const appConfigExpression = emit('configs', await appEntries('configs'), appId);
   let interceptorEntries = await appEntries('interceptors');
   if (config.interceptors?.enabled !== undefined) {
@@ -333,7 +339,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
   }
   const appInterceptors = emit('interceptors', interceptorEntries, appId);
   const appPages = emitUI('pages', await appEntries('pages'), appId, true);
-  const appSlots = emitUI('slots', await appEntries('slots'), appId, true);
+  const appSlots = [...emitUI('slots', await appEntries('slots'), appId, true), ...appLayouts];
   // Providers under ui/providers are included; the legacy providers/ folder needs the enabled list.
   let providerEntries = await appEntries('providers');
   if (config.providers?.enabled !== undefined) {
@@ -447,11 +453,9 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     const setupFiles = await resolveEntry('setup', 'setup.ts');
     const actions = emit('actions', await entriesFor('actions'), manifest.id);
     const services = emit('services', await entriesFor('services'), manifest.id);
-    const slotDefinitions = emit(
-      'slotDefinitions',
-      await entriesFor('slotDefinitions'),
-      manifest.id,
-    );
+    const slotEntries = await entriesFor('slotDefinitions');
+    for (const entry of slotEntries) declaredSlotIds.add([manifest.id, ...entry.path].join('.'));
+    const slotDefinitions = emit('slotDefinitions', slotEntries, manifest.id);
     const events = emit(
       'events',
       eventsFile ? [{ file: eventsFile, path: [], source: relativeTo(eventsFile) }] : [],
@@ -466,7 +470,10 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     const pluginConfig = emit('configs', await entriesFor('configs'), manifest.id);
     const pluginInterceptors = emit('interceptors', await entriesFor('interceptors'), manifest.id);
     const pages = emitUI('pages', await entriesFor('pages'), manifest.id, false);
-    const slots = emitUI('slots', await entriesFor('slots'), manifest.id, false);
+    const slots = [
+      ...emitUI('slots', await entriesFor('slots'), manifest.id, false),
+      ...emitLayouts(moduleFiles, path.join(base, 'ui', 'layouts')),
+    ];
     const providers = emitUI('providers', await entriesFor('providers'), manifest.id, false);
     const setup = setupFiles[0] ? importFile(setupFiles[0]) : 'undefined';
     const pluginContributions = contributions(
@@ -563,6 +570,11 @@ ${installed.plugins
       ...(config.slots ?? []),
     ]),
   ];
+  const appLayoutFamilies = [...layoutFamiliesFound]
+    .filter((family) => !declaredSlotIds.has(`layout.${family}`))
+    .sort();
+  for (const family of appLayoutFamilies)
+    types.slots.push(`{ ${quote(`layout.${family}`)}: LayoutSlot }`);
   const strict = config.strict !== false;
   const provider =
     framework === 'next' ? '@bitakit/next' : framework === 'tanstack' ? '@bitakit/tanstack' : null;
@@ -571,7 +583,9 @@ ${installed.plugins
   const typeImports = [
     types.actions.length && 'type DiscoveredActionEntry',
     types.services.length && 'type DiscoveredServiceEntry',
-    types.slots.length && 'type DiscoveredSlotEntry',
+    types.slots.some((entry) => entry.includes('DiscoveredSlotEntry')) &&
+      'type DiscoveredSlotEntry',
+    appLayoutFamilies.length && 'type LayoutSlot',
     types.events.length && 'type DiscoveredEventsEntry',
     types.cancelable.length && 'type DiscoveredCancelableEntry',
     types.settings.length && 'type DiscoveredSettingsEntry',
@@ -590,7 +604,6 @@ ${installed.plugins
     appSlots.join(''),
     appProviders.join(''),
     appSettingsPage ?? '',
-    appLayouts.join(''),
   ].join('\n');
   const helpers = [
     'pluginPage',
@@ -599,6 +612,7 @@ ${installed.plugins
     'pluginSettingsPage',
     'pluginLayout',
   ].filter((helper) => body.includes(`${helper}(`));
+  if (appLayoutFamilies.length) helpers.push('layoutSlots');
   const usesFiles = imports.some((line) => line.includes('discoveredFile('));
   const content = `${generatedHeader}
 ${provider ? "'use client';\n" : ''}import {
@@ -655,15 +669,16 @@ ${configured ? `  const options = new ConfigService([{ id: ${quote(appId)}, conf
     dependencies: ${quote(appManifest.dependencies ?? [])},
     groups: ${quote(config.groups ?? [])},
     actionOverrides: ${quote((config.actions && config.actions.overrides) || {})},
+    choose: ${quote(chooseConfig(config.choose))},
     config: appConfig,
     configOverrides,
     events: ${appEvents},
     settings: ${appSettings},
     services: ${appServices},
-    slots: ${appSlotDefinitions},
+    slots: ${appLayoutFamilies.length ? `[...${appSlotDefinitions}, ...layoutSlots(${quote(appLayoutFamilies)})]` : appSlotDefinitions},
     actions: ${appActions},
     interceptors: ${appInterceptors},
-    ui: { pages: [${appPages.join(', ')}], slots: [${appSlots.join(', ')}], providers: [${appProviders.join(', ')}]${appSettingsPage ? `, settings: ${appSettingsPage}` : ''}${appLayouts.length ? `, layouts: { ${appLayouts.join(', ')} }` : ''} },
+    ui: { pages: [${appPages.join(', ')}], slots: [${appSlots.join(', ')}], providers: [${appProviders.join(', ')}]${appSettingsPage ? `, settings: ${appSettingsPage}` : ''} },
     setup: ${appSetup},
     contributions: ${appContributions},
     plugins: [
@@ -728,4 +743,19 @@ async function cleanupLegacy(root) {
     await removeGenerated(path.join(legacy, name));
   await rm(path.join(legacy, 'messages.json'), { force: true });
   if ((await readdir(legacy).catch(() => null))?.length === 0) await rmdir(legacy).catch(() => {});
+}
+
+/** `choose` of bitakit.config.ts: the occupant the app picks for each `single` slot, by slot ID. */
+function chooseConfig(choose) {
+  if (choose === undefined) return {};
+  if (!choose || typeof choose !== 'object' || Array.isArray(choose))
+    throw new Error(
+      'choose in bitakit.config.ts maps slot IDs to a candidate, for example { "screen.not-found": "brand" }.',
+    );
+  for (const [slot, candidate] of Object.entries(choose))
+    if (typeof candidate !== 'string' || !candidate)
+      throw new Error(
+        `choose["${slot}"] in bitakit.config.ts must name a candidate: "<plugin>", "<plugin>:<key>" or "<key>".`,
+      );
+  return choose;
 }

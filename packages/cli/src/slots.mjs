@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { candidateNames, selectSingle } from '@bitakit/core';
 import { describeDefinitions } from '@bitakit/discovery';
 
 const objectHelpers = new Set(['object', 'strictObject', 'looseObject']);
@@ -102,6 +103,15 @@ export async function describeSlots(description) {
         plugin: module.id,
         source: entry.file,
       });
+    // Layout files are candidates for layout.<family>, keyed by their variant.
+    for (const entry of module.layouts ?? [])
+      contribute(`layout.${entry.family}`, {
+        kind: 'component',
+        id: null,
+        plugin: module.id,
+        key: entry.variant,
+        source: entry.file,
+      });
     const actions = await describeDefinitions(absolute(module.actions), {
       helper: 'defineAction',
       moduleId: moduleId(module),
@@ -144,6 +154,24 @@ export async function describeSlots(description) {
     };
   });
   const declared = new Set(slots.map((slot) => slot.id));
+  // Discovery declares layout families nobody else declares as app-owned single slots.
+  for (const [id, entries] of contributions)
+    if (id.startsWith('layout.') && !declared.has(id) && entries.some((entry) => entry.key)) {
+      declared.add(id);
+      slots.push({
+        id,
+        owner: description.app.id,
+        plugin: description.app.id,
+        contract: true,
+        accepts: 'component',
+        policy: 'single',
+        payload: false,
+        payloadKeys: [],
+        source: entries[0].source,
+        generated: true,
+        contributions: entries,
+      });
+    }
   for (const id of description.slots ?? [])
     if (!declared.has(id)) {
       declared.add(id);
@@ -171,6 +199,23 @@ export async function describeSlots(description) {
     const index = slot.contract ? order.indexOf(slot.owner) : -1;
     return index >= 0 ? index : order.length + (slot.contract ? 0 : 1);
   };
+  // A single slot renders one candidate: report which, by the runtime's own rules, from files.
+  for (const slot of slots)
+    if (slot.policy === 'single') {
+      const candidates = slot.contributions.filter((entry) => entry.kind === 'component');
+      const selection = selectSingle(candidates, {
+        choice: description.choose?.[slot.id],
+        appId: description.app.id,
+      });
+      slot.selection = {
+        candidates: candidates.map((entry) => candidateNames(entry)[1] ?? entry.plugin),
+        renders: selection.selected
+          ? (candidateNames(selection.selected)[1] ?? selection.selected.plugin)
+          : null,
+        reason: selection.reason ?? null,
+        choice: description.choose?.[slot.id] ?? null,
+      };
+    }
   return {
     version: 1,
     slots: slots
@@ -180,6 +225,15 @@ export async function describeSlots(description) {
     unresolved: [...unresolved],
     unknownTargets,
   };
+}
+
+/** One replaceable part: which candidate renders, or why the owner's default does. */
+function selectionText({ renders, reason, candidates }) {
+  if (renders) return `renders ${renders}`;
+  if (reason === 'ambiguous')
+    return `renders the default: choose one of ${candidates.join(', ')} in bitakit.config.ts`;
+  if (reason === 'choice-unavailable') return 'renders the default: choose names no candidate';
+  return 'renders the default';
 }
 
 /** The short human listing: one line per slot under its owner. */
@@ -197,7 +251,7 @@ export function formatSlots(result, { dim = (text) => text } = {}) {
     if (title !== group) lines.push('', title);
     group = title;
     lines.push(
-      `  ${slot.id.padEnd(width)}  ${(slot.accepts ?? 'unknown').padEnd(9)}  ${plural(slot.contributions.length, 'contribution')}`,
+      `  ${slot.id.padEnd(width)}  ${(slot.accepts ?? 'unknown').padEnd(9)}  ${plural(slot.contributions.length, 'contribution')}${slot.selection ? `  ${selectionText(slot.selection)}` : ''}`,
     );
   }
   if (result.slots.length)

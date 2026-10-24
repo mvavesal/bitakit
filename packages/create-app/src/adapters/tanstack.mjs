@@ -132,11 +132,23 @@ export const Route = createFileRoute('/settings/$')({ component: SettingsRoute }
         'src/configs/shell.ts': shellConfig,
         'src/routes/_app.tsx': `import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { AppShell } from '@bitakit/shell';
+import { ErrorPage, NotFoundPage } from '@bitakit/shell/pages';
 
+// Errors and notFound() in app pages render Shell's replaceable screen.error and screen.not-found.
 export const Route = createFileRoute('/_app')({
   component: () => (
     <AppShell>
       <Outlet />
+    </AppShell>
+  ),
+  errorComponent: ({ reset }) => (
+    <AppShell>
+      <ErrorPage reset={reset} />
+    </AppShell>
+  ),
+  notFoundComponent: () => (
+    <AppShell layout="error">
+      <NotFoundPage />
     </AppShell>
   ),
 });

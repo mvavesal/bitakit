@@ -35,9 +35,11 @@ export default defineSlot({ accepts: 'actions' });
   `slots/row.menu.ts` are both `todos.row.menu`.
 - The command writes `accepts: 'component'`. Set `accepts` to what the slot takes: `'actions'`
   (buttons, links, menu items), `'component'` (React widgets) or `'data'` (needs a `schema`).
-- `policy` is `'list'` by default. `'single'` allows one occupant; a second one fails as a
-  conflict. `'keyed'` requires a unique `key` per contribution (a repeated key fails as a
-  conflict); the outlet picks one with `entryKey`.
+- `policy` is `'list'` by default: every contribution renders. `'single'` is a replaceable
+  part: several plugins may offer a candidate, one renders (the app's `choose` entry, else the
+  app's own file, else the only candidate) and the outlet's `fallback` is the default; see
+  [layouts-and-screens.md](layouts-and-screens.md). `'keyed'` requires a unique `key` per
+  contribution (a repeated key fails as a conflict); the outlet picks one with `entryKey`.
 - `payload` is a schema for context the owner passes to every outlet, such as a row ID.
 - A declaration renders nothing. The owner also mounts an outlet (next section).
 
@@ -68,8 +70,11 @@ function TodosToolbar() {
 - Each item has `key`, `plugin`, `order`, `actionId`, `input` and `action` (the live control).
   Use `item.key` as the React key and pass `item.action` to `<Action id>`.
 - An empty `<Button />` gets the Action's icon, title, disabled and pending state.
-- `useSlot` also returns `payload`, `pending`, `phase`, `error` and `diagnostics`. Items stay
-  empty while the slot is pending.
+- `useSlot` also returns `payload`, `pending`, `phase`, `policy`, `error` and `diagnostics`.
+  Items stay empty while the slot is pending, except that a single slot already shows its
+  selected file candidate.
+- `<PluginSlot name fallback={<Default />}>{children}</PluginSlot>`: `fallback` renders while
+  nothing is placed, and `children` reach the contribution (a layout wraps the page).
 - For a slot with a payload, pass it at every outlet:
   `useSlot('todos.row.menu', { payload: { todoId: todo.id } })` or
   `<PluginSlot name="sidebar.footer" payload={{ collapsed }} />`. Memoize payload objects
@@ -129,16 +134,18 @@ export default defineAction({
 
 The Shell layout is the `shell.layout` setting (`sidebar` or `navbar`).
 
-| Slot                                               | Accepts                                     | Where it renders                                     |
-| -------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------- |
-| `shell.navigation`                                 | Actions, usually with `href` (`todos.open`) | Sidebar menu, or the top menu in `navbar`            |
-| `shell.toolbar`                                    | Actions                                     | Header, right side, both layouts                     |
-| `app-bar.end`                                      | component                                   | Header, right side, before the toolbar, both layouts |
-| `shell.header.end`                                 | component                                   | Header, right side, after the toolbar, both layouts  |
-| `shell.header.start`, `shell.header.center`        | component                                   | Header left / center, both layouts                   |
-| `shell.content.before`, `shell.content.after`      | component                                   | Above / below every page, both layouts               |
-| `shell.footer`                                     | component                                   | Page footer, both layouts                            |
-| `sidebar.header`, `sidebar.body`, `sidebar.footer` | component, payload `{ collapsed }`          | `sidebar` layout only                                |
+| Slot                                                                     | Accepts                                     | Where it renders                                     |
+| ------------------------------------------------------------------------ | ------------------------------------------- | ---------------------------------------------------- |
+| `shell.navigation`                                                       | Actions, usually with `href` (`todos.open`) | Sidebar menu, or the top menu in `navbar`            |
+| `shell.toolbar`                                                          | Actions                                     | Header, right side, both layouts                     |
+| `app-bar.end`                                                            | component                                   | Header, right side, before the toolbar, both layouts |
+| `shell.header.end`                                                       | component                                   | Header, right side, after the toolbar, both layouts  |
+| `shell.header.start`, `shell.header.center`                              | component                                   | Header left / center, both layouts                   |
+| `shell.content.before`, `shell.content.after`                            | component                                   | Above / below every page, both layouts               |
+| `shell.footer`                                                           | component                                   | Page footer, both layouts                            |
+| `sidebar.header`, `sidebar.body`, `sidebar.footer`                       | component, payload `{ collapsed }`          | `sidebar` layout only                                |
+| `layout.app`, `layout.auth`, `layout.error`, `layout.full-page`          | component, single (replaceable)             | The frame of a layout family                         |
+| `screen.not-found`, `screen.error`, `screen.forbidden`, `screen.loading` | component, single                           | Shell's page states, everywhere they render          |
 
 - Put header widgets in `shell.header.end` (the summary example). Use `shell.toolbar` for
   header buttons, so they keep the Shell's standard Button.
@@ -153,8 +160,10 @@ The Shell layout is the `shell.layout` setting (`sidebar` or `navbar`).
   page is open, and the selected Shell layout renders that slot.
 - Log `useSlot('todos.toolbar').diagnostics` in the outlet. `reason` is `ready`, `empty`,
   `filtered`, `initializing`, `validating-payload`, `update-pending`, `owner-unavailable`,
-  `invalid-payload` or `binding-error`. `excluded` lists each skipped entry with its `id`,
-  `plugin` and `reason` (`key`, `condition`, `action-hidden` or `action-unavailable`).
+  `invalid-payload`, `binding-error`, or for a single slot `ambiguous` (several candidates, no
+  decision) and `choice-unavailable`. `excluded` lists each skipped entry with its `id`,
+  `plugin` and `reason` (`key`, `condition`, `action-hidden`, `action-unavailable` or
+  `not-selected`); `candidates` lists a single slot's candidates by the names `choose` accepts.
 - Run `npx bitakit doctor`: it warns when a `ui/slots` file targets a slot nobody declares.
 - Use only declared names: `npx bitakit slots` lists them. When no outlet exists where the user
   wants content, the owning plugin declares a slot and renders it.

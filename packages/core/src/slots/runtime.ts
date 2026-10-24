@@ -240,11 +240,14 @@ export class SlotRuntime {
     )
       throw error('invalid-contribution', 'a keyed slot requires a non-empty key.');
     const id = `${plugin}:${contribution.id ?? ++this.serial}`;
+    // A single slot collects candidates from several contributors; outlets select one.
     for (const current of this.attachments)
       if (
         current.slot === name &&
         (current.id === id ||
-          definition.policy === 'single' ||
+          (definition.policy === 'single' &&
+            current.plugin === plugin &&
+            current.key === contribution.key) ||
           (definition.policy === 'keyed' && current.key === contribution.key))
       )
         throw error(

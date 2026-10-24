@@ -97,13 +97,14 @@ use a component slot and `PluginSlot` for contributed React content.
 
 ## Later: context, policies and manual composition
 
-| Question                               | Answer                                                                                         |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Does a group choose UI placement?      | No. `groups` organizes queries; `slots` chooses placement.                                     |
-| Can I use an existing navigation slot? | Yes. With Shell installed and mounted, target `shell.navigation` from a URL Action.            |
-| How do row menus get the row ID?       | Declare a payload and map it to Action input. See the [slot reference](/docs/reference/slots). |
-| Can I define slots without files?      | Yes. `definePlugin({ id: 'counter', slots: { toolbar } })` uses the same declarations.         |
-| Can slots be nested in folders?        | Yes. `slots/row/menu.ts` and `slots/row.menu.ts` both name `counter.row.menu`.                 |
+| Question                               | Answer                                                                                                                                                                                          |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Does a group choose UI placement?      | No. `groups` organizes queries; `slots` chooses placement.                                                                                                                                      |
+| Can I use an existing navigation slot? | Yes. With Shell installed and mounted, target `shell.navigation` from a URL Action.                                                                                                             |
+| How do row menus get the row ID?       | Declare a payload and map it to Action input. See the [slot reference](/docs/reference/slots).                                                                                                  |
+| Can I define slots without files?      | Yes. `definePlugin({ id: 'counter', slots: { toolbar } })` uses the same declarations.                                                                                                          |
+| Can slots be nested in folders?        | Yes. `slots/row/menu.ts` and `slots/row.menu.ts` both name `counter.row.menu`.                                                                                                                  |
+| Can another plugin replace a part?     | Yes. Declare it with `policy: 'single'` and render `<PluginSlot name fallback={<Default />} />`; a contribution replaces the default. See [Layouts](/docs/reference/layouts#5-choose-a-layout). |
 
 Use `item.key` for rendering and `item.action` for binding. Hiding an outlet hides its content;
 it does not stop plugins or unregister their contributions. A stopped contributor releases its attachments.

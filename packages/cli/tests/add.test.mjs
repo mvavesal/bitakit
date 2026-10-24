@@ -500,3 +500,50 @@ test('add test rejects missing plugins, nested names and plugin packages without
   );
   await assert.rejects(addContribution('test', 'notes', { cwd: pluginPackage }), /inside an app/);
 });
+
+test('add layout writes a layout.<family> candidate for the app, an app plugin or a package', async (t) => {
+  const root = await project(nextApp(), t);
+  const flat = await addContribution('layout', 'auth', { cwd: root });
+  assert.equal(flat.id, 'layout.auth');
+  assert.deepEqual(relative(root, flat.created), ['src/layouts/auth.tsx']);
+  const source = await read(root, 'src/layouts/auth.tsx');
+  assert.match(source, /export const layout = 'auth';/);
+  assert.match(source, /choose: \{ 'layout\.auth': 'default' \}/);
+  assert.match(
+    source,
+    /export default function AuthLayout\(\{ children \}: \{ children\?: ReactNode \}\)/,
+  );
+
+  const variant = await addContribution('layout', 'auth/split', { cwd: root });
+  assert.deepEqual(relative(root, variant.created), ['src/layouts/auth/split.tsx']);
+  assert.match(await read(root, 'src/layouts/auth/split.tsx'), /function AuthSplitLayout/);
+
+  await assert.rejects(
+    addContribution('layout', 'auth/split', { cwd: root, plugin: 'brand' }),
+    /There is no plugin "brand"\. Create it first/,
+  );
+  await addPlugin('brand', { cwd: root });
+  const plugin = await addContribution('layout', 'auth/split', { cwd: root, plugin: 'brand' });
+  assert.deepEqual(relative(root, plugin.created), ['src/plugins/brand/ui/layouts/auth/split.tsx']);
+
+  await assert.rejects(
+    addContribution('layout', undefined, { cwd: root }),
+    /Name the layout family/,
+  );
+  await assert.rejects(addContribution('layout', 'a/b/c', { cwd: root }), /"<family>\/<variant>"/);
+  await assert.rejects(addContribution('layout', 'Auth', { cwd: root }), /layout family/);
+
+  const pkg = await project(
+    {
+      'package.json': {
+        name: '@acme/bitakit-frames',
+        bitakit: { plugin: './plugin' },
+        peerDependencies: { '@bitakit/core': '^0.2.0' },
+      },
+      'src/services/list.ts': 'export default defineService(() => ({}));\n',
+    },
+    t,
+  );
+  const packaged = await addContribution('layout', 'onboarding/steps', { cwd: pkg });
+  assert.deepEqual(relative(pkg, packaged.created), ['src/ui/layouts/onboarding/steps.tsx']);
+});

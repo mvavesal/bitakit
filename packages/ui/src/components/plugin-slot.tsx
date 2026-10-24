@@ -1,5 +1,12 @@
 'use client';
-import { createElement, memo, useCallback, useSyncExternalStore, type ComponentType } from 'react';
+import {
+  createElement,
+  memo,
+  useCallback,
+  useSyncExternalStore,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 import { useBitaKit } from '../providers/foundation-context.js';
 import { useSlot } from '../hooks/use-slot.js';
 import type { SlotName, SlotMap } from '@bitakit/core';
@@ -18,22 +25,33 @@ export function useBitaKitReady(plugin?: string) {
   return useSyncExternalStore(subscribe, read, notReady);
 }
 /**
- * One placed component. Memoized on its component and payload: when the outlet renders again
- * with the same payload, the contribution does not (it still follows its own hooks).
+ * One placed component. Memoized on its component, payload and children: when the outlet
+ * renders again with the same values, the contribution does not (it still follows its own hooks).
  */
 const Contribution = memo(function Contribution({
   component,
   payload,
+  children,
 }: {
   component: ComponentType<any>;
   payload: unknown;
+  children?: ReactNode;
 }) {
-  return createElement(component, { payload });
+  return createElement(component, { payload, children });
 });
 
-/** Renders every component plugins placed in the slot; layouts use `useSlot` for custom markup. */
+/**
+ * Renders the components plugins placed in the slot; custom markup uses `useSlot`. `children` go
+ * to each contribution (a layout wraps the page); `fallback` renders when nothing is placed, and
+ * replaces a failing occupant of a `single` slot, so a broken replacement shows the default.
+ */
 export function PluginSlot<const Name extends SlotName>(
-  props: { name: Name; errorFallback?: SlotErrorFallback } & SlotOptions<Name> &
+  props: {
+    name: Name;
+    errorFallback?: SlotErrorFallback;
+    fallback?: ReactNode;
+    children?: ReactNode;
+  } & SlotOptions<Name> &
     (Name extends keyof SlotMap
       ? SlotMap[Name] extends { accepts: 'component' }
         ? unknown
@@ -42,7 +60,11 @@ export function PluginSlot<const Name extends SlotName>(
 ) {
   const view = useSlot(props.name as string, { payload: props.payload, entryKey: props.entryKey });
   if (view.error) throw view.error;
-  return view.items.flatMap((entry) =>
+  const fallback = props.fallback;
+  const errorFallback =
+    props.errorFallback ??
+    (view.policy === 'single' && fallback !== undefined ? () => fallback : undefined);
+  const rendered = view.items.flatMap((entry) =>
     entry.kind === 'component'
       ? [
           <SlotErrorBoundary
@@ -50,11 +72,14 @@ export function PluginSlot<const Name extends SlotName>(
             slot={props.name}
             plugin={entry.plugin}
             contribution={entry.key}
-            errorFallback={props.errorFallback}
+            errorFallback={errorFallback}
           >
-            <Contribution component={entry.component} payload={view.payload} />
+            <Contribution component={entry.component} payload={view.payload}>
+              {props.children}
+            </Contribution>
           </SlotErrorBoundary>,
         ]
       : [],
   );
+  return rendered.length || fallback === undefined ? rendered : fallback;
 }

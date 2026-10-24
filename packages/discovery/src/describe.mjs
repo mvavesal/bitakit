@@ -6,6 +6,7 @@ import { parentDirectory, pluginManifests } from './modules.mjs';
 import { installedContributions } from './packages.mjs';
 import { detectFramework, loadDiscoveryConfig } from './generate.mjs';
 import { describeDefinitions } from './definition-info.mjs';
+import { layoutEntries } from './layouts.mjs';
 
 const kinds = [
   'actions',
@@ -62,14 +63,13 @@ async function contributionsOf(
   result.settings = settings ? [{ path: '', file: relative(settings) }] : [];
   const settingsPage = list.find((file) => file === path.join(base, 'ui', 'settings', 'page.tsx'));
   if (settingsPage) result.settingsPage = relative(settingsPage);
-  if (app)
-    result.layouts = list
-      .filter(
-        (file) =>
-          path.dirname(file) === path.join(base, 'layouts') &&
-          /^[a-z][a-z0-9-]*\.tsx$/.test(path.basename(file)),
-      )
-      .map((file) => ({ name: path.basename(file, '.tsx'), file: relative(file) }));
+  const layouts = layoutEntries(list, path.join(base, ...(app ? ['layouts'] : ['ui', 'layouts'])));
+  if (app || layouts.length)
+    result.layouts = layouts.map(({ family, variant, file }) => ({
+      family,
+      variant,
+      file: relative(file),
+    }));
   return result;
 }
 
@@ -188,6 +188,8 @@ export async function describeBitaKit(root) {
         ...(config.slots ?? []),
       ]),
     ],
+    /** `choose` of bitakit.config.ts: the occupant the app picks for each `single` slot. */
+    choose: config.choose ?? {},
     warnings,
   };
 }

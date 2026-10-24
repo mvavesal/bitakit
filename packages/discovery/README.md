@@ -88,6 +88,7 @@ verified by `scripts/verify-generated.mjs` in clean packed-package consumers.
   (`describeModule`).
 - `src/packages.mjs`: opt-in metadata (`bitakit` in `package.json`) of installed packages and the
   plugin packages they depend on.
+- `src/layouts.mjs`: the layout-file convention shared by generation and `describeBitaKit`.
 - `src/styles.mjs`: canonical layer prelude, stylesheet resolution and package CSS validation.
 - `src/modules.mjs`: which folders are plugins.
 - `src/watch.mjs`: development regeneration.
@@ -133,6 +134,20 @@ Declared `ui/slots` targets use runtime-owned attachment with wait by default. N
 `id`, `key`, `order` and `availability` are preserved, including through `bitakit build`; the
 generated `pluginSlot` call records the source file for attribution. Target definitions and
 component files remain separate. Unknown legacy targets are not promoted to declarations.
+
+## Layout families and replaceable parts
+
+Layout files are candidates for the single slot `layout.<family>`: the app's
+`src/layouts/<family>.tsx` (key `default`) and `src/layouts/<family>/<variant>.tsx`, and a
+plugin's `ui/layouts/...` in the same forms. Generation emits them as `pluginLayout(module,
+family, variant, source)` entries in the module's `ui.slots`, and declares app-owned
+`layout.<family>` slots (`layoutSlots([...])`) for every family that no installed package
+(`*.slots.json`), plugin or app slot file declares. `describeBitaKit` lists them as `layouts`
+(`{ family, variant, file }`) per module.
+
+`choose` in `bitakit.config.ts` maps single slots to the candidate the app picks (`'<plugin>'`,
+`'<plugin>:<key>'` or `'<key>'`) and is emitted as `choose` in the runtime configuration;
+`describeBitaKit` returns it too. A value that is not a non-empty string stops generation.
 
 ## Development refresh
 

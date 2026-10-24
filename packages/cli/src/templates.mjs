@@ -443,12 +443,14 @@ export default defineSettings({
 `;
 }
 
-export function layoutFile(name) {
-  const component = `${pascalOf(name)}Layout`;
+export function layoutFile(family, variant) {
+  const component = `${pascalOf(variant === undefined ? family : `${family}-${variant}`)}Layout`;
   return `import type { ReactNode } from 'react';
 
-// Pages choose this layout with: export const layout = '${name}';
-export default function ${component}({ children }: { children: ReactNode }) {
+// A candidate for the layout.${family} slot. Pages choose the family with:
+//   export const layout = '${family}';
+// With several candidates, pick one in bitakit.config.ts: choose: { 'layout.${family}': '${variant ?? 'default'}' }
+export default function ${component}({ children }: { children?: ReactNode }) {
   return <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-4 md:p-6">{children}</div>;
 }
 `;
@@ -458,8 +460,9 @@ export function slotFile(plugin, slot) {
   const component = `${pascalOf(slot.replace(/\./g, '-'))}Slot`;
   return `'use client';
 
-// A widget for the "${slot}" extension point; its owner renders it with <PluginSlot name="${slot}" />.
-// It appears once both plugins are ready. Optional: export const order = 1 to sort widgets.
+// A contribution to the "${slot}" slot; its owner renders it with <PluginSlot name="${slot}" />.
+// In a list slot it appears next to the others (export const order = 1 sorts them). In a single
+// slot, a replaceable part such as screen.not-found, it replaces the owner's default.
 export default function ${component}() {
   return <span className="text-sm text-muted-foreground">${plugin}</span>;
 }

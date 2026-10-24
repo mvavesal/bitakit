@@ -49,6 +49,8 @@ export { shellSlots } from './slots.js';
 export {
   ShellSurface,
   ShellFullPage,
+  ShellAuthLayout,
+  ShellErrorLayout,
   ShellFooter,
   ShellHeaderRow,
   ShellDrawer,

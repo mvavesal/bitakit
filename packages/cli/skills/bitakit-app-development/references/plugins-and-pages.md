@@ -121,18 +121,13 @@ export default function TodoPage({ params }: { params: { id: string } }) {
 
 ## Choose a layout
 
-```sh
-npx bitakit add layout full-page
-```
-
-Replace the template in `src/layouts/full-page.tsx` with `import { AppShell } from '@bitakit/shell';`
-and `export default AppShell.FullPage;`. A page opts in with one export:
+A page names its layout family with one export; the family's layout wraps the page:
 
 ```tsx
 'use client';
 import { PageHeader } from '@bitakit/ui/components';
 
-// The name of src/layouts/full-page.tsx: this page renders without the sidebar and header.
+// This page renders without the sidebar and header, with the normal page spacing.
 export const layout = 'full-page';
 
 export default function AboutTeamPage() {
@@ -140,13 +135,15 @@ export default function AboutTeamPage() {
 }
 ```
 
-- Values: no export or `'app'` for the normal frame, `'blank'` for a bare page, or the file name
-  of a layout in `src/layouts/<name>.tsx`. An unknown name stops startup with an error that names the
-  missing `src/layouts/<name>.tsx` and the valid choices.
+- Values: no export or `'app'` for the normal frame, `'blank'` for a bare page, Shell's
+  `'auth'`, `'error'` and `'full-page'`, or a family of the app such as `'onboarding'`
+  (`src/layouts/onboarding.tsx`). An unknown name stops startup with an error that names the
+  files to add and the known families.
 - Shell's `AppShell` applies the choice. In an app without Shell, read its layout before relying
   on `export const layout`.
-- `AppShell.FullPage` keeps Shell's page spacing and the `shell.content.before/after` regions;
-  `'blank'` keeps nothing.
+- To change how a family looks, replace its layout: `npx bitakit add layout full-page` writes
+  `src/layouts/full-page.tsx`, which wins over Shell's default. Variants, choosing between them
+  and replacing the whole frame are in [layouts-and-screens.md](layouts-and-screens.md).
 
 ## Link the page in the sidebar
 

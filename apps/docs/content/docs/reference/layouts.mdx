@@ -139,24 +139,51 @@ they are not authorization. Protected content still belongs inside the owner's a
 
 ## 5. Choose a layout
 
-| Need                                      | Use                                                           |
-| ----------------------------------------- | ------------------------------------------------------------- |
-| Navigation and header                     | `<AppShell>{children}</AppShell>`                             |
-| Shared page spacing, no navigation/header | `<AppShell.FullPage>{children}</AppShell.FullPage>`           |
-| Completely bare plugin page               | `export const layout = 'blank'`                               |
-| Custom named plugin-page layout           | `src/layouts/<name>.tsx` and `export const layout = '<name>'` |
+A plugin page names a layout **family** with `export const layout = '<family>'`. Each family is
+a replaceable part, the single slot `layout.<family>`: Shell renders its default until a layout
+file replaces it.
 
-Create `src/layouts/full-page.tsx`:
+| Need                                      | Use                                                                  |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| Navigation and header                     | No export (or `'app'`): `<AppShell>{children}</AppShell>`            |
+| Shared page spacing, no navigation/header | `export const layout = 'full-page'`                                  |
+| Sign-in, sign-up and similar              | `export const layout = 'auth'`: a centered column with `shell.brand` |
+| Error pages                               | `export const layout = 'error'`                                      |
+| Completely bare plugin page               | `export const layout = 'blank'`                                      |
+| A family of your own                      | `src/layouts/<family>.tsx` and `export const layout = '<family>'`    |
+
+Replace a family's look with a layout file; the page arrives as `children`:
 
 ```tsx
-import { AppShell } from '@bitakit/shell';
-export default AppShell.FullPage;
+// src/layouts/auth/split.tsx — a variant of the auth family
+import type { ReactNode } from 'react';
+
+export default function AuthSplitLayout({ children }: { children?: ReactNode }) {
+  return (
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <div className="hidden bg-primary lg:block" />
+      <div className="flex items-center justify-center p-6">
+        <div className="w-full max-w-sm">{children}</div>
+      </div>
+    </div>
+  );
+}
 ```
 
-A plugin page selects it with `export const layout = 'full-page'`.
-Native host routes compose the component directly. Layout selection does not replace the router.
-Each layout renders `children` once. Full-page supports `shell.content.before/after`; the other
-chrome regions have no outlet there. Attached content is not automatically visible in every layout.
+- `src/layouts/<family>.tsx` is the variant `default`; `src/layouts/<family>/<variant>.tsx`
+  adds variants, and a plugin keeps its layouts in `ui/layouts/`. `npx bitakit add layout
+auth/split` scaffolds one.
+- One candidate renders automatically; the app's own file beats plugins. With several, choose in
+  `bitakit.config.ts`: `choose: { 'layout.auth': 'split' }`. A tie renders Shell's default and
+  doctor asks for a decision.
+- `src/layouts/app.tsx` replaces the whole frame of normal pages; compose `AppShell.Sidebar`,
+  `AppShell.TopBar` and `AppShell.Content` so navigation and header slots keep working.
+- Framework files pass the family: `<AppShell layout="error"><NotFoundPage /></AppShell>`.
+
+Native host routes compose the components directly. Layout selection does not replace the
+router. Each layout renders `children` once. Full-page supports `shell.content.before/after`;
+the other chrome regions have no outlet there. Attached content is not automatically visible in
+every layout.
 
 ## 6. Change a shared part once
 
@@ -195,28 +222,63 @@ All rows below accept **components**, use ordered **list** policy and are owned 
 except `shell.navigation` (Actions) and `shell.state.content` (keyed component selection).
 Definitions use the normal `defineSlot` / programmatic / flat-or-nested discovery mechanism.
 
-| Target                                | Context                       | Where                                                    |
-| ------------------------------------- | ----------------------------- | -------------------------------------------------------- |
-| `shell.brand`                         | None                          | Sidebar header or navbar start                           |
-| `shell.header.start/center/end`       | None                          | Main header areas                                        |
-| `shell.toolbar`                       | None                          | Standard Action buttons/links before `shell.header.end`  |
-| `app-bar.end`                         | None                          | Existing trailing region, before `shell.header.end`      |
-| `shell.header.rows`                   | None                          | Rows below the header                                    |
-| `shell.header.row.start/end`          | `{ rowId }`                   | A contributed `HeaderRow`                                |
-| `shell.navigation`                    | None                          | Default navigation Actions                               |
-| `shell.navigation.group.before/after` | `{ groupId }`                 | Existing sidebar groups                                  |
-| `sidebar.header/body/footer`          | `{ collapsed }`               | Sidebar sections; same sections inside its mobile drawer |
-| `shell.content.before/after`          | None                          | Shared page surface                                      |
-| `shell.footer`                        | None                          | App frame footer                                         |
-| `shell.drawer.header/body/footer`     | `{ drawerId }`                | A composed Drawer                                        |
-| `shell.state.content`                 | `{ surfaceId }`, matching key | Optional replacement message                             |
-| `shell.state.actions`                 | `{ surfaceId }`               | Optional additional recovery UI                          |
+| Target                                     | Context                             | Where                                                     |
+| ------------------------------------------ | ----------------------------------- | --------------------------------------------------------- |
+| `shell.brand`                              | None                                | Sidebar header or navbar start                            |
+| `shell.header.start/center/end`            | None                                | Main header areas                                         |
+| `shell.toolbar`                            | None                                | Standard Action buttons/links before `shell.header.end`   |
+| `app-bar.end`                              | None                                | Existing trailing region, before `shell.header.end`       |
+| `shell.header.rows`                        | None                                | Rows below the header                                     |
+| `shell.header.row.start/end`               | `{ rowId }`                         | A contributed `HeaderRow`                                 |
+| `shell.navigation`                         | None                                | Default navigation Actions                                |
+| `shell.navigation.group.before/after`      | `{ groupId }`                       | Existing sidebar groups                                   |
+| `sidebar.header/body/footer`               | `{ collapsed }`                     | Sidebar sections; same sections inside its mobile drawer  |
+| `shell.content.before/after`               | None                                | Shared page surface                                       |
+| `shell.footer`                             | None                                | App frame footer                                          |
+| `shell.drawer.header/body/footer`          | `{ drawerId }`                      | A composed Drawer                                         |
+| `shell.state.content`                      | `{ surfaceId }`, matching key       | Optional replacement message                              |
+| `shell.state.actions`                      | `{ surfaceId }`                     | Optional additional recovery UI                           |
+| `layout.app/auth/error/full-page`          | Page as `children`; single          | The frame of a layout family (replaceable)                |
+| `screen.not-found/error/forbidden/loading` | `screen.error`: `{ reset }`; single | Shell's page states, everywhere they render (replaceable) |
 
 Slash notation abbreviates **separate slot IDs**. Hiding/unmounting a region hides its contents;
 it does not stop the contributors. Empty optional rows/footer wrappers collapse. Dotted names do
 not create DOM nesting: the owning component chooses which child outlet to mount.
 
-## 7. Extend an empty or error surface
+## 7. Replace a screen
+
+`NotFoundPage`, `ErrorPage`, `AccessDeniedPage` and `LoadingPage` render the single slots
+`screen.not-found`, `screen.error`, `screen.forbidden` and `screen.loading`. A contribution
+replaces the whole page state wherever it appears (the catch-all route, `error.tsx`,
+`not-found.tsx`), including call-site titles:
+
+```tsx
+// src/plugins/brand/ui/slots/screen.error.tsx
+'use client';
+import type { SlotProps } from '@bitakit/ui';
+import { Button } from '@bitakit/ui/components';
+import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from '@bitakit/shell/pages';
+
+export default function ErrorScreen({ payload }: SlotProps<'screen.error'>) {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyTitle>That did not work</EmptyTitle>
+      </EmptyHeader>
+      {payload.reset && (
+        <EmptyContent>
+          <Button onClick={payload.reset}>Try again</Button>
+        </EmptyContent>
+      )}
+    </Empty>
+  );
+}
+```
+
+A replacement that throws renders the default instead. Outside a runtime the defaults render
+unchanged. To change only the message of one occurrence, use the surface extensions below.
+
+## 8. Extend an empty or error surface
 
 Start with host-owned recovery that works even without BitaKit:
 

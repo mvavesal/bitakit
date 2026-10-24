@@ -345,6 +345,11 @@ export type BitaKitRuntimeConfig = Omit<Plugin, 'id' | 'dependencies' | 'parent'
   configOverrides?: Readonly<Record<string, ConfigValues>>;
   groups?: readonly string[];
   actionOverrides?: Readonly<Record<string, { enabled?: boolean; visible?: boolean }>>;
+  /**
+   * The occupant of each `single` slot the app decides, by slot ID: `<plugin>`, `<plugin>:<key>`
+   * or `<key>` of a contribution. From `choose` in bitakit.config.ts; see `selectSingle`.
+   */
+  choose?: Readonly<Record<string, string>>;
   plugins?: readonly Plugin[];
 };
 

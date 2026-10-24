@@ -116,7 +116,15 @@ the components plugins placed in a slot. Declared targets read owned live attach
 legacy targets retain the existing view path. Hiding an outlet never detaches its entries.
 Both paths retain the runtime-wide readiness barrier used by service hooks. `PluginSlot`
 passes the validated payload to each component. Action and data slots use `useSlot` and the
-owner's renderer. React providers from `ui/providers` wrap the app
+owner's renderer.
+
+`<PluginSlot name payload? fallback? errorFallback?>{children}</PluginSlot>`: `fallback` renders
+while no contribution is placed; `children` reach each contribution as a prop (a layout wraps
+the page). For a `single` slot, `useSlot` keeps only the candidate `selectSingle` picks (the
+app's `choose` entry, the app's own contribution, or the only candidate), reports `ambiguous`
+or `choice-unavailable` in `diagnostics.reason` with `diagnostics.candidates`, logs a tie once,
+and shows the selected file contribution before the runtime has started; a failing occupant
+renders the `fallback`. `SlotProps<'slot.id'>` types a contribution's `{ payload, children }`. React providers from `ui/providers` wrap the app
 automatically. `DialogHost` and `ConfirmDialog` render `dialog` and `confirm` actions through the
 host's dialog primitives.
 

@@ -160,6 +160,17 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
 - `bitakit add settings-page <plugin>` preserves automatic Settings registration. Navigation
   migration is explicit (`--navigation-slot` plus preview); grouping never implies placement.
 
+## Replaceable parts and package agent guides
+
+- A `policy: 'single'` slot is the one mechanism for replaceable UI: layout families
+  (`layout.<family>`), screens (`screen.*`) and any plugin part. Owners render
+  `<PluginSlot name fallback>`; candidates come from files; `choose` in `bitakit.config.ts`, then
+  the app's own file, then the only candidate decides, and a tie renders the default. Do not add
+  a separate layout, screen or override registry.
+- Every published package ships an `AGENTS.md` consumer guide in its `files`; update it in the
+  same change as the package's public contract. When changing a package, these root rules apply,
+  not its consumer guide.
+
 ## Slot render recovery
 
 - `PluginSlot` isolates component render errors automatically using the standard React boundary
