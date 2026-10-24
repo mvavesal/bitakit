@@ -1,5 +1,14 @@
 # @bitakit/discovery
 
+## 0.2.4
+
+### Patch Changes
+
+- 4ccdd11: Ship a `CLAUDE.md` beside the package's `AGENTS.md`. It only imports `AGENTS.md`, so Claude Code
+  reads the same complete guide as other coding agents.
+- 8f99932: Emit app themes from `src/themes/*.json` as constant literals, so an app with a theme file passes
+  `typecheck` (`"schemaVersion": 1` stayed `number` and did not match Shell's option type).
+
 ## 0.2.3
 
 ### Patch Changes

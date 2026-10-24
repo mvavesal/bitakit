@@ -1,5 +1,16 @@
 # @bitakit/quick-search
 
+## 0.2.7
+
+### Patch Changes
+
+- 4ccdd11: Ship a `CLAUDE.md` beside the package's `AGENTS.md`. It only imports `AGENTS.md`, so Claude Code
+  reads the same complete guide as other coding agents.
+- Updated dependencies [4ccdd11]
+  - @bitakit/app-preferences@0.2.7
+  - @bitakit/core@0.2.6
+  - @bitakit/ui@0.2.7
+
 ## 0.2.6
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/next",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "files": [
     "src",
@@ -32,9 +32,9 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.5",
-    "@bitakit/discovery": "^0.2.3",
-    "@bitakit/ui": "^0.2.6",
+    "@bitakit/core": "^0.2.6",
+    "@bitakit/discovery": "^0.2.4",
+    "@bitakit/ui": "^0.2.7",
     "nuqs": "^2.10.1"
   },
   "peerDependencies": {
