@@ -170,7 +170,9 @@ tests, workflows) need no changeset. Commit the file with the change.
 
 A `minor` bump starts the next release line (0.2 to 0.3). Changesets moves only the packages a
 changeset names, so a new line needs one changeset that lists every published package as `minor`;
-CI's version check fails while packages sit on two lines.
+CI's version check fails while packages sit on two lines. It also checks pending changesets, so a
+`minor` or `major` changeset that does not list every published package fails the pull request
+that adds it, before the Version packages pull request could split the line.
 
 ### 2. Merge into main
 

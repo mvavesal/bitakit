@@ -121,7 +121,7 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
 ## Releases
 
 - Releases run from `main` in `.github/workflows/release.yml` with Changesets and npm trusted publishing. Do not publish from a local machine.
-- A change to a published package's shipped content adds a changeset (`npm run changeset`; `patch` within the line). A new release line is one changeset that lists every published package as `minor`.
+- A change to a published package's shipped content adds a changeset (`npm run changeset`; `patch` within the line). A new release line is one changeset that lists every published package as `minor`; `scripts/check-versions.mjs` rejects any other `minor` or `major` changeset in CI.
 - Do not edit package versions or `CHANGELOG.md` files by hand; the "Version packages" pull request does. See the Release section of `apps/docs/content/docs/contributing.mdx`.
 
 ## Minimal host application code
