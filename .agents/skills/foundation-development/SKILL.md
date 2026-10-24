@@ -556,7 +556,15 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 - Release: a change to a published package's shipped content adds a changeset (`npm run changeset`);
   `release.yml` on `main` opens the "Version packages" pull request and, once it is merged,
   publishes through npm trusted publishing. Generated apps depend on the release line
-  (`^0.2.0`), so create-app may be released alone. Never bump versions or publish by hand.
+  (`^0.2.0`), so create-app may be released alone; a template that uses a newer API raises that
+  package in create-app's `minimumVersions` (pnpm 11 skips releases younger than a day, and old
+  lockfiles keep old patches). Never bump versions or publish by hand.
+- create-app installs with the package manager in `npm_config_user_agent` (`--package-manager`
+  overrides); plugin packages stay npm workspaces. Yarn 1 runs the bin named after the package,
+  hence the `create-app` bin beside `create-bitakit-app`. A package that depends on a library
+  with peer dependencies (Shell on HeroUI) declares those peers itself, because Yarn does not
+  install peers. Verify other package managers with packed packages (`--packages-dir` writes
+  npm `overrides`, Yarn `resolutions` and `pnpm.overrides`).
 - UI consistency is an acceptance criterion: central components and tokens, keyboard
   operation, narrow viewports, light and dark, computed styles in a browser. A successful
   build is not a visual check; package or DOM tests are not a full-host check.
@@ -835,6 +843,13 @@ filesystem and moves in without replacing user files (managed AGENTS.md blocks o
 `claudeFileFor`, missing `.gitignore` lines ahead of the user's, root text files also through links
 inside the folder, folders entry by entry, SKILL.md folders whole, other kept files reported).
 
+The consumer skill routes bootstrap and plugin-guide examples to `references/create-app.md`
+and `references/plugin-guides.md`. Recipes load on demand; checks follow the task (prose-only,
+behavior, UI), and existing user authorization is retained. Select compatible package versions
+within the release line, not another package's exact patch. Keep concrete plugin specifications
+in their owning guides. Reuse CLI commands and app scripts; additional skill scripts need a
+demonstrated gap rather than a duplicate implementation of scaffolding or diagnostics.
+
 
 ### Positioning (single source)
 
@@ -910,6 +925,21 @@ generated README and AGENTS.md, create-app help) uses these words:
   Preserve their depth; link from the short guide rather than inlining every option.
 - Keep root/package/generated READMEs aligned with the learning path. Verify the documented
   snippets in a generated app; do not guess API shapes or imply an unpublished API is on npm.
+- The docs follow Diátaxis; `apps/docs/AGENTS.md` maps sections to folders and says how each
+  kind of page reads. Navigation lives in `meta.json` files, so a page moves between sections
+  without a new URL; list each page in exactly one `meta.json`.
+- Sample apps in `examples/` are the tested source of how-to code: change the app, run
+  `npm run verify:examples -- --only <app>` (packed packages, typecheck, doctor, build, browser
+  walk-through from `scripts/fixtures/example-checks.mjs`), then copy the file into the guide.
+  `apps/docs/tests/example-snippets.test.mjs` compares every file-titled block with the sample.
+  Writing the samples found real defects the unit tests missed (a JSON theme failing typecheck,
+  pnpm resolving an older Shell, Yarn missing HeroUI peers); keep walking samples in a browser.
+- Install and create commands use `npm` code blocks, which Fumadocs turns into remembered
+  npm/pnpm/yarn/bun tabs. Use `npm create @bitakit/app@latest <dir> -- <options>`; the `npx`
+  form converts to `yarn dlx`, which Yarn 1 lacks, and `npx bitakit` would become `pnpm dlx`,
+  which downloads another package, so keep CLI commands in `sh` blocks.
+- "Why BitaKit?" states only numbers from `npm run measure:onboarding` (o200k tokenizer, package
+  sources, sample plugins, agent guides) and says how they were measured.
 
 
 ## Runtime diagnostics
@@ -1003,7 +1033,16 @@ package in an app (IDs, extension and replacement points, rules, a minimal examp
 with a note that changing the package follows the repository's own rules, because nested
 AGENTS.md files also reach agents working inside the package. Update it with the package's
 public contract; the app skill and the generated app rules point agents to
-`node_modules/@bitakit/<name>/AGENTS.md`, and recommend the same file for shared app plugins.
+`node_modules/@bitakit/<name>/AGENTS.md`, and explain how app plugins maintain local guides.
+
+`bitakit add plugin` writes `AGENTS.md` and a `CLAUDE.md` importing it in the new plugin's
+folder, including `--example` and `--minimal`. Generate the guide from the actual starter
+files and IDs; do not promise services, pages or placements absent from that variant.
+The plugin owns its purpose, public contracts, extension points, constraints and checks in
+that local guide. Read it before changes and update it with the code. Other plugins keep
+their own details; general skills and app rules hold shared conventions only. These local
+guides are editable plugin documentation, outside the app-root `init --update-agent-files`
+refresh. Standalone plugin packages already write their own root guide and Claude import.
 
 Use `AppShell.HeaderRow` with a unique row ID, `AppShell.NavigationGroup` with an explicit Action
 slot, and `AppShell.Drawer` with a unique drawer ID. Contributions filter rowId/groupId/drawerId

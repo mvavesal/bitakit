@@ -42,7 +42,8 @@ export default defineAction<string>({
   execution. They are UI rules, not server authorization.
 - `input: z.string().trim().min(1)` (any Standard Schema or object with `parse`) replaces
   `defineAction<string>`: it infers the type and `execute` gets the parsed value. zod is not in the
-  generated `package.json`; ask the user before adding it. A schema disables controls while the
+  generated `package.json`; reuse the app's schema library or follow existing dependency
+  authorization when adding one. A schema disables controls while the
   input is invalid only when `enabled` is not set.
 
 ## Run, confirm and report

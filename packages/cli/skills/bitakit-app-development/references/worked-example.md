@@ -240,7 +240,8 @@ export default function BookmarksPage() {
 
 ## 9. Test it (when the app has a test runner)
 
-Ask before adding the runner ([testing-and-preview.md](testing-and-preview.md)), then run
+Reuse the app's runner or complete its authorized setup
+([testing-and-preview.md](testing-and-preview.md)), then run
 `npx bitakit add test bookmarks` and replace the body. `tests/bookmarks.test.ts`:
 
 ```ts
@@ -286,7 +287,11 @@ test('saving and removing a bookmark updates the list and emits events', async (
 - A disabled Action resolves to `{ status: 'skipped' }`; a failing one rejects.
 - `remove` has a confirmation, so the test calls the service method directly.
 
-## 10. Report it
+## 10. Update the plugin guide and report
+
+Replace the starter description in `src/plugins/bookmarks/AGENTS.md` with the implemented
+contracts and checks, following [plugin-guides.md](plugin-guides.md). Keep `CLAUDE.md` as
+the import; do not copy this feature's specification into the general app skill.
 
 A good report names what changed, where it appears, how it connects and what was checked:
 

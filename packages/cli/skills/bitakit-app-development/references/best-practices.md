@@ -191,10 +191,13 @@ Deleting your file brings the default back. With several candidates, decide in
 ## Let a plugin introduce itself
 
 Every installed `@bitakit/*` package ships an `AGENTS.md` with its IDs, extension points and
-rules; read `node_modules/@bitakit/<name>/AGENTS.md` before using it. Give your own shared
-plugins the same: a short `src/plugins/<id>/AGENTS.md` that names what the plugin owns
+rules; read `node_modules/@bitakit/<name>/AGENTS.md` before using it. `bitakit add plugin <id>`
+starts a local guide and a `CLAUDE.md` importing it. Keep `src/plugins/<id>/AGENTS.md` specific
+to that plugin: its purpose, what it owns
 (services, Actions, events, settings, slots and replaceable parts), how other features extend
-or replace it, and what must not change. Keep it current when the contract changes.
+or replace it, and its constraints and checks. Document only implemented contracts, keep the
+guide current with the code, and keep other plugins' details in their own folders. The shared
+app guide and skill describe conventions, not individual plugins' specifications.
 
 ## Name things after the domain
 

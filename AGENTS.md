@@ -167,9 +167,36 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
   `<PluginSlot name fallback>`; candidates come from files; `choose` in `bitakit.config.ts`, then
   the app's own file, then the only candidate decides, and a tie renders the default. Do not add
   a separate layout, screen or override registry.
-- Every published package ships an `AGENTS.md` consumer guide in its `files`; update it in the
-  same change as the package's public contract. When changing a package, these root rules apply,
-  not its consumer guide.
+- Every `AGENTS.md` is the complete guide for its folder; the `CLAUDE.md` beside it contains only
+  `@AGENTS.md` and never instructions of its own. This holds for the repository root, apps,
+  every published package (both files in `files`), generated apps, plugin folders and sample
+  apps; `scripts/check-agent-guides.mjs` enforces it in `npm test`.
+- Every published package ships an `AGENTS.md` consumer guide; update it in the same change as
+  the package's public contract. When changing a package, these root rules apply, not its
+  consumer guide. `bitakit add plugin` starts a plugin's own guide from its actual files; keep
+  plugin-specific contracts there, not in the shared app rules or skill.
+
+## Sample apps and documentation
+
+- `examples/<app>` are complete apps made with create-app plus the files their README lists,
+  ordered from `counter` to the multi-plugin `workspace`. They depend on the published release
+  line, carry no lockfile or installed skill copy, and every plugin keeps an `AGENTS.md`.
+  `npm run verify:examples` installs each from freshly packed packages and runs typecheck,
+  doctor, a production build and the browser walk-through in `scripts/fixtures/example-checks.mjs`;
+  update that check with the app's README.
+- The docs follow Diátaxis (lessons, how-to guides, concepts, reference); `apps/docs/AGENTS.md`
+  describes the sections. How-to guides copy complete files from a sample app;
+  `apps/docs/tests/example-snippets.test.mjs` fails when they differ. Change and verify the
+  sample first, then the guide.
+- Install and create commands in the docs use `npm` code blocks (package-manager tabs) and
+  `npm create @bitakit/app@latest <dir> -- <options>`; `npx bitakit` stays a plain shell block.
+  create-app installs with the package manager that started it. When a template starts using a
+  newer package API, raise that package in create-app's `minimumVersions`.
+- Diagrams are drawn with the diagram-design skill in the `bitakit` profile (`.diagram-design`):
+  HTML sources in `apps/docs/diagrams`, `npm run diagrams` for the light and dark SVGs, metadata
+  in `figures.json`. Do not add Mermaid, another renderer or hand-edited SVGs.
+- Numbers about BitaKit in the docs come from `npm run measure:onboarding`; rerun it and update
+  the "Why BitaKit?" page when packages or samples change noticeably.
 
 ## Slot render recovery
 

@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { contributionSegments, describeBitaKit, describeModule } from '@bitakit/discovery';
 import { exists, findProject } from './project.mjs';
+import { appPluginAgentRules, claudeFileFor } from './agent-rules.mjs';
 import {
   actionFile,
   configFile,
@@ -67,7 +68,11 @@ export async function addPlugin(name, { cwd, minimal = false, example = false } 
     : example
       ? pluginFiles(name, { navigationSlot })
       : starterFiles(name, { navigationSlot });
-  const created = await writeNewFiles(root, files);
+  const created = await writeNewFiles(root, {
+    ...files,
+    'AGENTS.md': appPluginAgentRules(name, files, { navigationSlot }),
+    'CLAUDE.md': claudeFileFor(),
+  });
   return {
     project,
     root,

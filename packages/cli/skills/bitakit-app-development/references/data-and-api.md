@@ -58,8 +58,8 @@ export async function DELETE(request: Request) {
 - The example list also resets whenever the dev server reloads after a file change; a database
   does not.
 - Answer errors with a short, user-readable text: the service passes it on and the Action shows it.
-- Use the schema library the app already has (for example zod) for larger inputs; ask before
-  adding one.
+- Use the schema library the app already has (for example zod) for larger inputs; follow
+  existing dependency authorization when adding one.
 - For per-user data, read the session in the route and filter by the user. Client rules
   (`enabled`, `visible`, interceptors) only shape the UI.
 

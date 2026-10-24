@@ -6,7 +6,8 @@
   "files": [
     "dist",
     "README.md",
-    "AGENTS.md"
+    "AGENTS.md",
+    "CLAUDE.md"
   ],
   "exports": {
     ".": {

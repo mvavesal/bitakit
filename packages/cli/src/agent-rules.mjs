@@ -45,14 +45,55 @@ export async function projectAgentRules(project) {
 }
 
 /**
- * Claude Code reads `CLAUDE.md`, not `AGENTS.md`, so the app's `CLAUDE.md` imports the rules with
- * `@AGENTS.md`. Returns the file to write: a new one, or `existing` with the import appended;
+ * Import the shared rules for Claude Code sessions that do not load `AGENTS.md` directly.
+ * Returns the file to write: a new one, or `existing` with the import appended;
  * `existing` is returned unchanged when it already imports AGENTS.md.
  */
 export function claudeFileFor(existing) {
   const text = existing?.trim() ? existing : undefined;
   if (!text) return '@AGENTS.md\n';
   return /^@AGENTS\.md\s*$/m.test(text) ? existing : `${text.trimEnd()}\n\n@AGENTS.md\n`;
+}
+
+/** A new app plugin's editable guide; file paths come from its actual scaffold. */
+export function appPluginAgentRules(id, files, { navigationSlot } = {}) {
+  const details = {
+    'services/list.ts': `Service \`${id}.list\` owns in-memory \`entries\` (\`id\`, \`title\`) and the \`add\`/\`remove\` methods.`,
+    'events.ts': `Declares \`${id}.changed\` with \`{ kind: 'added' | 'removed' }\`.`,
+    'actions/add.ts': `Action \`${id}.add\` takes a title string and adds an entry.`,
+    'actions/remove.ts': `Action \`${id}.remove\` takes an entry ID and removes it.`,
+    'actions/clear.ts': `Action \`${id}.clear\` confirms before removing all entries.`,
+    'actions/open.ts': `Action \`${id}.open\` links to \`/${id}\`${navigationSlot ? ` through \`${navigationSlot}\`` : ''}.`,
+    'ui/pages/index.tsx': `Page at \`/${id}\`.`,
+  };
+  return `# ${id} plugin
+
+This folder owns the \`${id}\` feature. ${Object.hasOwn(files, 'services/list.ts') ? 'The starter manages an in-memory entry list; data is lost on reload.' : 'The starter provides a page to build the feature on.'}
+Follow the app's root \`AGENTS.md\` and \`bitakit-app-development\` skill for shared conventions.
+
+## Files and contracts
+
+Paths are relative to this folder; discovery connects these files automatically.
+
+${Object.keys(files)
+  .sort()
+  .map((file) => `- \`${file}\`: ${details[file]}`)
+  .join('\n')}
+
+## Maintenance
+
+Replace the starter description as the feature develops. Keep this plugin's purpose, public
+contracts, extension points, constraints and test instructions here, alongside its code.
+Update this guide when they change; document other plugins in their own folders.
+\`CLAUDE.md\` imports this file, so maintain the instructions only here.
+
+## Checks
+
+From the app root, run \`npx bitakit generate\`, \`npx bitakit doctor\`, and the app's existing
+typecheck and test scripts from \`package.json\`.
+To add a headless test, run \`npx bitakit add test ${id}\` and follow its printed setup and test
+commands.${Object.hasOwn(files, 'ui/pages/index.tsx') ? ' Exercise changed UI in the running app.' : ''}
+`;
 }
 
 /**

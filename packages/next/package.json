@@ -6,6 +6,7 @@
     "src",
     "README.md",
     "AGENTS.md",
+    "CLAUDE.md",
     "dist"
   ],
   "exports": {

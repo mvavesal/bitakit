@@ -77,6 +77,7 @@ save a recipe with a title and ingredients" works the same way.
 
 | Task                                                                       | Recipe                                                      |
 | -------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Create a new app or a standalone plugin package                            | [create-app.md](references/create-app.md)                   |
 | Build a whole feature step by step (Bookmarks)                             | [worked-example.md](references/worked-example.md)           |
 | Create a plugin, a page or a sidebar link                                  | [plugins-and-pages.md](references/plugins-and-pages.md)     |
 | Add an Action and bind it to a button or link                              | [actions.md](references/actions.md)                         |
@@ -89,11 +90,18 @@ save a recipe with a title and ingredients" works the same way.
 | Avoid common mistakes; naming                                              | [best-practices.md](references/best-practices.md)           |
 | Change the app's colors, fonts or theme                                    | Theme files in the `@bitakit/shell` README                  |
 | Test a plugin and check it in the browser                                  | [testing-and-preview.md](references/testing-and-preview.md) |
+| Keep a plugin's description, contracts and checks beside its code          | [plugin-guides.md](references/plugin-guides.md)             |
 
-Before every change the agent reads the app's packages, runs `npx bitakit info --json`,
-`npx bitakit slots` and `npx bitakit doctor`, and checks which layout renders the place it wants
-to use. After the change it runs the typecheck and doctor, opens the page in the browser, and
-tells you what it built, where it appears, how it connects and what it checked.
+The agent selects the recipe and checks relevant to the request. For feature work it reads
+the owning plugin's guide and installed package contracts, uses `info`, `slots` and `doctor`
+where needed, then verifies the changed behavior. Documentation-only edits need source and
+link checks; UI changes need interaction checks in the running app. Existing authorization for
+tests or dependencies is retained. The report says what was built, where it appears and what
+was actually verified.
+
+Complete examples stay in references and are read on demand. The skill reuses BitaKit's CLI
+for scaffolding, inspection and checks, plus the app's scripts and test runner; it does not
+ship a second implementation of those tools.
 
 ## Keep the skill current
 

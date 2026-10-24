@@ -25,8 +25,13 @@ checks a project. It also ships the `bitakit-app-development` skill, which `crea
 `add` never overwrites a file. Run `npm run typecheck` and `npx bitakit doctor` after changes;
 doctor exits 1 on errors and names the fix.
 
+`add plugin` (including `--example` and `--minimal`) writes an `AGENTS.md` inside that plugin
+and a `CLAUDE.md` importing it. Read the local guide before editing the plugin. Keep its purpose,
+contracts and checks there and update them with the code; shared rules stay in the app guide.
+
 ## Rules
 
 - Replace template bodies and tutorial comments with the real implementation.
 - `bitakit migrate` is the 0.1 upgrade; do not run it to tidy a current project.
-- Ask before installing Playwright or test dependencies that commands print.
+- Install printed Playwright or test dependencies only within the user's authorized scope;
+  obtain missing approval without requesting an authorization already given again.

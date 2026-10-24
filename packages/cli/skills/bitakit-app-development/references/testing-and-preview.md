@@ -1,9 +1,9 @@
 # Check the work: typecheck, doctor, tests and preview
 
-Use this after every change and before telling the user it works. Report only the checks you
-actually ran.
+Use this to verify changed behavior, runnable examples or UI. For prose-only changes, check
+links and claims against source instead. Report only the checks you actually ran.
 
-## Run typecheck and doctor (always)
+## Run typecheck and Doctor for implementation changes
 
 ```sh
 npm run typecheck
@@ -15,16 +15,19 @@ npx bitakit doctor --json
   same three steps yourself: `npx bitakit generate`, the framework step, `npx tsc --noEmit`.
 - Doctor prints `{ project, results: [{ status, title, details?, fix? }], errors, warnings }`.
   `status` is `ok`, `warn` or `error`; `details` is a list of strings. It exits 1 when `errors` is
-  above 0; warnings keep exit 0. Apply the `fix` it names before guessing.
+  above 0; warnings keep exit 0. Inspect its suggested fix against the requested scope; report
+  unrelated findings separately instead of expanding the task to repair the whole app.
 - Doctor checks wiring statically (versions, provider, routes, links, service names, styles, slot
   file targets). It renders nothing.
 - When the starting state is unknown, run both before editing, so an existing error is not
   blamed on your change.
 
-## Add a test runner (ask first)
+## Use or add the test setup
 
-Generated apps have no test runner and no `test` script. Tell the user, and ask before adding
-test files or dependencies. When they agree, generate the first test:
+Inspect the app's scripts first and reuse an existing runner. A fresh create-app app has no
+`test` script; standalone plugin packages already have one. If the requested work authorizes
+tests and their setup, proceed without asking again. Otherwise resolve any missing approval
+for new dependencies. Generate the first test in an app with:
 
 ```sh
 npx bitakit add test <plugin>
@@ -136,8 +139,8 @@ when missing:
   runtime state (`ready` when startup finished), `[bitakit]` errors, console and page errors
   and failed requests. Exit code 1 means it saw an error. Add `--base-url http://localhost:<port>`
   when the server uses another port. It needs Playwright in the project: when it exits with 2,
-  ask the user before running the install commands it prints. It does not click, so give the
-  user the clicks and the expected result and report interactions as not verified.
+  follow the user's existing installation authorization or obtain it if missing. It does not
+  click, so give the user the clicks and expected result and report interactions as not verified.
 
 - An HTTP 200 or the server HTML proves nothing. The catch-all route
   `src/app/(app)/[...path]/page.tsx` answers every path, and plugin pages and slots render only

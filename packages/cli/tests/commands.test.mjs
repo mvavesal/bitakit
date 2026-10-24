@@ -464,4 +464,10 @@ test('add plugin without Shell does not promise a navigation entry', async (t) =
   assert.equal(added.code, 0, added.stderr);
   assert.doesNotMatch(added.stdout, /navigation/);
   assert.match(added.stdout, /"Notes" opens \/notes\./);
+  assert.match(added.stdout, /AGENTS\.md/);
+  assert.match(added.stdout, /CLAUDE\.md/);
+  const guide = await read(root, 'src/plugins/notes/AGENTS.md');
+  assert.match(guide, /`ui\/pages\/index\.tsx`/);
+  assert.doesNotMatch(guide, /actions\/open\.ts|shell\.navigation/);
+  assert.equal(await read(root, 'src/plugins/notes/CLAUDE.md'), '@AGENTS.md\n');
 });

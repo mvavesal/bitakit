@@ -26,6 +26,8 @@ test('add plugin starts with one page and its navigation link', async (t) => {
   assert.equal(result.path, '/user-notes');
   assert.equal(result.navigation, true);
   assert.deepEqual(relative(root, result.created), [
+    'src/plugins/user-notes/AGENTS.md',
+    'src/plugins/user-notes/CLAUDE.md',
     'src/plugins/user-notes/actions/open.ts',
     'src/plugins/user-notes/ui/pages/index.tsx',
   ]);
@@ -36,6 +38,10 @@ test('add plugin starts with one page and its navigation link', async (t) => {
     await read(root, 'src/plugins/user-notes/actions/open.ts'),
     /href: '\/user-notes', groups: \['navigation'\], slots: \["shell\.navigation"\]/,
   );
+  const guide = await read(root, 'src/plugins/user-notes/AGENTS.md');
+  assert.match(guide, /`user-notes\.open` links to `\/user-notes` through `shell\.navigation`/);
+  assert.doesNotMatch(guide, /services\/list\.ts|user-notes\.changed/);
+  assert.equal(await read(root, 'src/plugins/user-notes/CLAUDE.md'), '@AGENTS.md\n');
 });
 
 test('add plugin --example writes a service, its events, actions, a navigation link and a page', async (t) => {
@@ -44,6 +50,8 @@ test('add plugin --example writes a service, its events, actions, a navigation l
   assert.equal(result.path, '/user-notes');
   assert.equal(result.title, 'User notes');
   assert.deepEqual(relative(root, result.created), [
+    'src/plugins/user-notes/AGENTS.md',
+    'src/plugins/user-notes/CLAUDE.md',
     'src/plugins/user-notes/actions/add.ts',
     'src/plugins/user-notes/actions/clear.ts',
     'src/plugins/user-notes/actions/open.ts',
@@ -53,6 +61,11 @@ test('add plugin --example writes a service, its events, actions, a navigation l
     'src/plugins/user-notes/ui/pages/index.tsx',
   ]);
   const file = (name) => read(root, `src/plugins/user-notes/${name}`);
+  const guide = await file('AGENTS.md');
+  assert.match(guide, /Service `user-notes\.list` owns in-memory `entries`/);
+  assert.match(guide, /Declares `user-notes\.changed`/);
+  assert.match(guide, /Action `user-notes\.clear`/);
+  assert.equal(await file('CLAUDE.md'), '@AGENTS.md\n');
   const service = await file('services/list.ts');
   assert.match(service, /export default defineService\(\(\{ store, events \}\) =>/);
   assert.match(service, /export type Entry = \{ id: number; title: string \};/);
@@ -99,6 +112,8 @@ test('add plugin --minimal keeps the service, its events and one action', async 
   const result = await addPlugin('stats', { cwd: root, minimal: true });
   assert.equal(result.path, undefined);
   assert.deepEqual(relative(root, result.created), [
+    'src/plugins/stats/AGENTS.md',
+    'src/plugins/stats/CLAUDE.md',
     'src/plugins/stats/actions/add.ts',
     'src/plugins/stats/events.ts',
     'src/plugins/stats/services/list.ts',
@@ -107,6 +122,12 @@ test('add plugin --minimal keeps the service, its events and one action', async 
     await read(root, 'src/plugins/stats/actions/add.ts'),
     /services\.stats\.list\.add\(input\)/,
   );
+  const guide = await read(root, 'src/plugins/stats/AGENTS.md');
+  assert.match(guide, /Service `stats\.list`/);
+  assert.match(guide, /Declares `stats\.changed`/);
+  assert.match(guide, /npx bitakit add test stats/);
+  assert.doesNotMatch(guide, /ui\/pages|actions\/(open|remove|clear)\.ts|shell\.navigation/);
+  assert.equal(await read(root, 'src/plugins/stats/CLAUDE.md'), '@AGENTS.md\n');
 });
 
 test('the sample and the scaffolds name their data instead of using "items"', () => {
@@ -293,6 +314,8 @@ test('findProject reads bitakit.config.ts, flags foundation.config.ts and keeps 
   assert.ok(
     relative(configured, result.created).every((file) => file.startsWith('src/features/notes/')),
   );
+  assert.equal(await read(configured, 'src/features/notes/CLAUDE.md'), '@AGENTS.md\n');
+  assert.doesNotMatch(await read(configured, 'src/features/notes/AGENTS.md'), /src\/plugins/);
 
   const legacy = await project(nextApp({ 'foundation.config.ts': 'export default {};\n' }), t);
   assert.equal((await findProject(legacy)).legacyConfig, true);

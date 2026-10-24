@@ -23,6 +23,8 @@ npx bitakit add plugin about
   check), and `app` is the app's own plugin ID, so `bitakit generate` rejects it as a duplicate.
   `npx bitakit info` lists the existing plugin IDs.
 - The CLI never overwrites. It stops when the folder or file already exists.
+- Every `add plugin` mode also writes `AGENTS.md` and a `CLAUDE.md` importing it. Update the
+  plugin's local guide as its starter becomes a feature; see [plugin-guides.md](plugin-guides.md).
 
 ## Folder = feature, file path = ID
 

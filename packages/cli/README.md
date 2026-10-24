@@ -96,6 +96,10 @@ Action; discovery connects it, so there is nothing to register. `--example` writ
 feature (the service `notes.list`, events, Actions, page); `--minimal` only that service, its
 events and one action.
 
+All three modes also write the plugin's own `AGENTS.md` with its starter purpose, actual files,
+public IDs and checks, plus a `CLAUDE.md` containing `@AGENTS.md`. Keep that local guide current
+as the feature develops; it is not replaced by `init --update-agent-files`.
+
 Add single files to an existing plugin (inside a plugin package, give only the name):
 
 ```sh
