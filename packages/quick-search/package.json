@@ -44,7 +44,7 @@
     "cmdk": "^1.1.1",
     "reicon-react": "1.2.5",
     "zod": "^4.6.5",
-    "@bitakit/app-preferences": "^0.3.0"
+    "@bitakit/app-preferences": "^0.2.5"
   },
   "peerDependencies": {
     "react": "^19",

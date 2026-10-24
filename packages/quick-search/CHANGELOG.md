@@ -5,7 +5,7 @@
 ### Patch Changes
 
 - Updated dependencies [10cd9f1]
-  - @bitakit/app-preferences@0.3.0
+  - @bitakit/app-preferences@0.2.5
 
 ## 0.2.4
 
