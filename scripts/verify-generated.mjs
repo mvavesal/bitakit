@@ -3,12 +3,11 @@
 // developer uses it: install, type check, doctor, production build, then a browser smoke test
 // that fails on any console or page error. Needs the npm registry and Playwright's Chromium.
 // Usage: node scripts/verify-generated.mjs [--only next-sample,notes-plugin] [--keep]
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { mkdtemp, readdir, readFile, rm, mkdir } from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { chromium } from '@playwright/test';
+import { serve, smoke } from './fixtures/browser.mjs';
 import { configureAuthFixture, verifyAuthStyles } from './fixtures/generated-auth.mjs';
 import { configureSearchFixture, verifySearch } from './fixtures/generated-search.mjs';
 import { configureThemeFixture, verifyDeveloperTheme } from './fixtures/generated-theme.mjs';
@@ -25,7 +24,6 @@ const keep = argv.includes('--keep');
 const work = await mkdtemp(path.join(tmpdir(), 'bitakit-verify-'));
 const packs = path.join(work, 'packs');
 const generator = path.join(root, 'packages/create-app/src/cli.mjs');
-let port = 4100;
 
 const addTodo = async (page) => {
   // Enter submits the form through the Action-bound Add button.
@@ -93,64 +91,6 @@ const run = (command, args, cwd) =>
     encoding: 'utf8',
     env: { ...process.env, NO_COLOR: '1' },
   });
-
-async function serve(framework, cwd, { development = false, auth = false } = {}) {
-  const current = port++;
-  const [command, args] =
-    framework === 'next'
-      ? ['npx', ['next', development ? 'dev' : 'start', '--port', String(current)]]
-      : ['npx', ['vite', 'preview', '--port', String(current), '--strictPort']];
-  const url = `http://localhost:${current}`;
-  const log = createWriteStream(
-    path.join(cwd, development ? 'verify-dev.log' : 'verify-server.log'),
-  );
-  const server = spawn(command, args, {
-    cwd,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true,
-    env: { ...process.env, ...(auth ? { BITAKIT_TEST_AUTH: '1', BITAKIT_TEST_ORIGIN: url } : {}) },
-  });
-  server.stdout.pipe(log);
-  server.stderr.pipe(log);
-  for (let attempt = 0; attempt < 120; attempt++) {
-    if (
-      await fetch(url, { signal: AbortSignal.timeout(10000) }).then(
-        (response) => response.ok,
-        () => false,
-      )
-    )
-      return { url, stop: () => process.kill(-server.pid) };
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  process.kill(-server.pid);
-  throw new Error(
-    `The ${framework} server did not start. See ${cwd}/verify-${development ? 'dev' : 'server'}.log.`,
-  );
-}
-
-async function smoke(url, visits, extra) {
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  const errors = [];
-  page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
-  page.on('pageerror', (error) => errors.push(error.message));
-  try {
-    for (const [route, text, act] of visits) {
-      await page.goto(url + route);
-      await page.getByText(text).first().waitFor({ timeout: 15000 });
-      await act?.(page);
-    }
-    await extra?.(page);
-    // Package styles need Tailwind; an app whose integration was lost renders browser defaults.
-    const spacing = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--spacing').trim(),
-    );
-    if (!spacing) errors.push('Tailwind did not compile the app styles (--spacing is empty).');
-  } finally {
-    await browser.close();
-  }
-  if (errors.length) throw new Error(`Browser errors:\n${errors.join('\n')}`);
-}
 
 async function verify(name, scenario) {
   const target = path.join(work, name);

@@ -50,3 +50,10 @@ packages/*/.copy-*/
 
 # Private working documents, proposals, TODOs and reviews
 /.private/
+
+# Sample apps install the agent skill per machine (npx bitakit init --update-agent-files)
+/examples/*/.agents/
+/examples/*/.claude/
+/examples/*/package-lock.json
+/examples/*/pnpm-lock.yaml
+/examples/*/yarn.lock
