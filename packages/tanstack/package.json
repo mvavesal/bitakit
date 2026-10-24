@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/tanstack",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "files": [
     "dist",
@@ -28,9 +28,9 @@
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.2",
-    "@bitakit/discovery": "^0.2.2",
-    "@bitakit/ui": "^0.2.2",
+    "@bitakit/core": "^0.2.5",
+    "@bitakit/discovery": "^0.2.3",
+    "@bitakit/ui": "^0.2.6",
     "nuqs": "^2.10.1"
   },
   "peerDependencies": {

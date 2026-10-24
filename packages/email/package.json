@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/email",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -18,7 +18,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.2"
+    "@bitakit/core": "^0.2.5"
   },
   "devDependencies": {
     "typescript": "^5"

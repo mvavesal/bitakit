@@ -1,5 +1,34 @@
 # @bitakit/shell
 
+## 0.2.5
+
+### Patch Changes
+
+- b3a686f: Every package ships an `AGENTS.md`: a guide for coding agents that use the package in an app,
+  with what it provides, how to extend or replace it, its rules and a minimal example. The app
+  development skill points agents to `node_modules/@bitakit/<name>/AGENTS.md`.
+- 4e5ef15: Layouts and screens are replaceable parts. Shell declares `layout.app` (the whole frame),
+  `layout.auth` (new default: a centered column with the brand), `layout.error`, `layout.full-page`
+  and the screens `screen.not-found`, `screen.error` (payload `{ reset }`), `screen.forbidden` and
+  `screen.loading`. A file in the app or a plugin replaces a default: `src/layouts/auth.tsx`,
+  `ui/slots/screen.not-found.tsx`. `AppShell` gains a `layout` prop for framework files, and
+  `ShellAuthLayout`/`ShellErrorLayout` (`AppShell.AuthLayout`/`.ErrorLayout`) are exported.
+- ddd1daa: Themes can be shared as JSON files. The Themes page has **Download theme** and **Import theme**
+  buttons: a download saves the theme shown in the preview as `<name>.theme.json`, and an import
+  opens the file as an unsaved personal copy with a new ID that **Save copy and apply** saves.
+  Imported files may set only known theme tokens, and values that load resources (`url()`, image
+  functions) or contain CSS escapes, `;`, braces, `<`, `>` or `@` are rejected. New exports:
+  `parseThemeFile`, `stringifyThemeFile`, `themeFileSchema`, `themeFileSchemaUrl`, and the JSON
+  Schema at `@bitakit/shell/theme.schema.json` that downloaded files reference in `$schema`.
+  Source themes (`src/themes/*.json`, the `themes` option) accept and ignore `$schema`, so a
+  downloaded file can be copied into the app unchanged.
+- Updated dependencies [03439c7]
+- Updated dependencies [b3a686f]
+- Updated dependencies [4e5ef15]
+- Updated dependencies [4e5ef15]
+  - @bitakit/ui@0.2.6
+  - @bitakit/core@0.2.5
+
 ## 0.2.4
 
 ### Patch Changes

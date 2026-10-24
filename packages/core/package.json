@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/core",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -52,7 +52,7 @@
     }
   },
   "devDependencies": {
-    "@bitakit/discovery": "^0.2.2",
+    "@bitakit/discovery": "^0.2.3",
     "jiti": "^2.7.0",
     "typescript": "^5.9.3"
   },

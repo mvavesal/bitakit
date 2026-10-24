@@ -1,5 +1,27 @@
 # @bitakit/ui
 
+## 0.2.6
+
+### Patch Changes
+
+- 03439c7: The plugin management Action (`runtime.plugins.change`) binds whenever the runtime is ready and
+  idle. Before, an app whose plugins have no `onStart` hooks logged
+  `[bitakit] Host Actions could not start` in React Strict Mode (every development page load) and
+  left the Action unbound, because the runtime was stopped for Strict Mode's second mount when the
+  binding ran and nothing retried it.
+- b3a686f: Every package ships an `AGENTS.md`: a guide for coding agents that use the package in an app,
+  with what it provides, how to extend or replace it, its rules and a minimal example. The app
+  development skill points agents to `node_modules/@bitakit/<name>/AGENTS.md`.
+- 4e5ef15: `PluginSlot` takes `fallback`, rendered while no contribution is placed and instead of a failing
+  occupant of a single slot, and passes `children` to its contributions so layouts can wrap pages.
+  For single slots, `useSlot` keeps the candidate `selectSingle` picks, reports `ambiguous` or
+  `choice-unavailable` with `diagnostics.candidates`, logs a tie once, and renders the selected file
+  contribution before the runtime has started (after payload validation) so the default does not
+  flash. Entries carry their contribution key as `entryKey`; `SlotProps` includes `children`.
+- Updated dependencies [b3a686f]
+- Updated dependencies [4e5ef15]
+  - @bitakit/core@0.2.5
+
 ## 0.2.5
 
 ### Patch Changes

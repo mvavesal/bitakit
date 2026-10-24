@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/discovery",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Node-only BitaKit discovery: scans plugin folders and installed packages and generates the typed wiring.",
   "type": "module",
   "exports": {
