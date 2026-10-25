@@ -611,6 +611,10 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   miss the valid group roots. Inspect the owning group's imports and verify the actual app
   route; never mount a second runtime on a marketing page just to satisfy this heuristic.
   Record the diagnostic limitation instead of reporting Doctor as passed.
+- When a deployment builds local BitaKit workspaces, run installation from the repository
+  root with development dependencies included before building packages. An install scoped to
+  the host app can omit the shared package toolchain/types even though the app itself installs.
+  Configure the deployment's existing install/build commands; do not add host runtime wiring.
 - Doctor is the place for wiring checks (missing providers for `requires`, plugin dependency
   cycles, undeclared slots, unreachable pages); add a check when a confirmed integration
   mistake can be detected mechanically. `bitakit init` wires an existing Next or TanStack app.

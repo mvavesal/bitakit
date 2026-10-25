@@ -144,8 +144,10 @@ update them with the plugins.
 
 The `bitakit` Vercel project serves this app with the standard Next.js runtime, including
 the locale cookie and Server Action. Its root directory is `apps/landing`; the build command
-from there is `cd ../.. && npm run build:actions && npm run build:landing` with Node 24 and
-`npm ci`. Production `NEXT_PUBLIC_DOCS_URL` is `https://mvavesal.github.io/bitakit`.
+from there is `cd ../.. && npm run build:actions && npm run build:landing` with Node 24.
+The install command is `cd ../.. && npm ci --include=dev`: package compilation requires
+the complete workspace's development dependencies, not only the app's dependency subset.
+Production `NEXT_PUBLIC_DOCS_URL` is `https://mvavesal.github.io/bitakit`.
 Do not statically export the live demo or replace its locale/settings ownership.
 The project currently deploys through authenticated Vercel CLI; Git integration requires
 the account's GitHub integration. Use the verified project/team, never an implicit CLI target.
