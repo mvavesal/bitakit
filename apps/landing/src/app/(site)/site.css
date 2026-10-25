@@ -447,7 +447,33 @@ h3 {
   height: 1rem;
 }
 .evidence-section {
-  border-block: 1px solid var(--border);
+  position: relative;
+}
+.site-divider,
+.evidence-section::before,
+.evidence-section::after,
+.stat-ranking > div::before {
+  pointer-events: none;
+  background: linear-gradient(
+    var(--divider-direction, 90deg),
+    transparent,
+    color-mix(in srgb, var(--site-emphasis) 75%, var(--foreground)) 50%,
+    transparent
+  );
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--site-glow) 40%, transparent));
+}
+.evidence-section::before,
+.evidence-section::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  height: 1px;
+}
+.evidence-section::before {
+  top: 0;
+}
+.evidence-section::after {
+  bottom: 0;
 }
 .stat-ranking {
   display: grid;
@@ -455,12 +481,22 @@ h3 {
   margin-top: 4rem;
 }
 .stat-ranking > div {
+  position: relative;
   padding-inline: 2rem;
-  border-left: 1px solid var(--border);
+}
+.stat-ranking > div::before {
+  --divider-direction: 180deg;
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 1px;
 }
 .stat-ranking > div:first-child {
   padding-left: 0;
-  border-left: 0;
+}
+.stat-ranking > div:first-child::before {
+  display: none;
 }
 .stat-value {
   font: 500 clamp(3.5rem, 6vw, 5.5rem) / 1 var(--font-heading);
@@ -668,8 +704,14 @@ h3 {
   .stat-ranking > div,
   .stat-ranking > div:first-child {
     padding: 1.5rem 0;
-    border-left: 0;
-    border-top: 1px solid var(--border);
+  }
+  .stat-ranking > div::before,
+  .stat-ranking > div:first-child::before {
+    --divider-direction: 90deg;
+    display: block;
+    inset: 0 0 auto;
+    width: auto;
+    height: 1px;
   }
   .stat-value {
     margin-bottom: 0.75rem;
@@ -700,6 +742,27 @@ h3 {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Magic UI's masked motion path keeps the light on the perimeter, with no card movement. */
+.site-border-beam-light {
+  background: linear-gradient(to left, var(--site-emphasis), var(--site-glow), transparent);
+  offset-distance: 24%;
+  animation: site-border-beam var(--beam-duration) linear infinite;
+  animation-delay: var(--beam-delay);
+}
+@keyframes site-border-beam {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-border-beam-light {
+    animation: none !important;
   }
 }
 

@@ -24,6 +24,7 @@ import { links } from '@/components/landing/links';
 import { Logo } from '@/components/landing/logo';
 import { Playground } from '@/components/landing/playground';
 import { StatRanking } from '@/components/landing/stat-ranking';
+import { BorderBeam } from '@/components/ui/border-beam';
 
 const { comparison, growth } = measurements;
 const last = growth.rows.at(-1)!;
@@ -57,7 +58,10 @@ export default async function Landing() {
           <div className="site-container hero-content">
             <div className="hero-intro">
               <div className="hero-eyebrow">
-                <span className="eyebrow">For humans & AI agents</span>
+                <Badge variant="outline" className="relative h-auto px-3 py-2">
+                  <span className="eyebrow">For humans & AI agents</span>
+                  <BorderBeam size={50} duration={12} />
+                </Badge>
               </div>
               <h1 id="hero-title">
                 Build ambitious apps.
@@ -284,7 +288,7 @@ export default async function Landing() {
         </div>
       </main>
       <footer className="site-container site-footer">
-        <Separator />
+        <Separator className="site-divider" />
         <div className="footer-main">
           <div className="section-copy">
             <a href="#top" aria-label="BitaKit home">

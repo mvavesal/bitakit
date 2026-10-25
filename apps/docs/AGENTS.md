@@ -19,6 +19,8 @@ Why BitaKit owns benefits, evidence, assumptions and tradeoffs, linking back for
 SVG marks stay unchanged in each app's `public/brand`; browser media selects the scheme.
 The transparent 192px fallback and 180px Apple PNGs are rendered from the light SVG with Sharp
 using contain sizing. Preserve full wordmarks in the navigation; do not add favicon observers.
+The current supplied replacements use `-light-theme.svg`/`-dark-theme.svg` and `-v2.png` names
+to refresh browser caches. Preserve the supplied SVG bytes and transparency in both apps.
 
 ## Structure (Diátaxis)
 

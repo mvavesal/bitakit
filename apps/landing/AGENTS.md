@@ -80,6 +80,15 @@ update them with the plugins.
   Capability cards remain stationary: the original Aceternity Spotlight fades in/out over 700ms
   with spaced, subdued warm-gold dots behind the content and a stronger gold outline/glow. Lazy-load WebGL, pause after fade-out and
   omit it for reduced motion; standard Card owns geometry and spacing.
+- The hero audience label uses the standard outline Badge. It and the six capability cards
+  share Magic UI's Border Beam mask/motion-path pattern, adapted to native CSS animation and
+  the existing gold tokens. Keep the 12s badge/18s card pace, pause offscreen and on hidden
+  pages, and use a static perimeter highlight for reduced motion. Decorative layers are
+  aria-hidden and pointer-events none. Never animate the card itself or brighten its dot layer.
+- Marketing dividers around the evidence section, in its metric columns and above the footer
+  use one thin gold line that fades from its center to both ends, with a restrained halo.
+  Metric separators turn horizontal on phones. Keep this treatment out of inspector/app
+  boundaries; do not add extra section lines.
 - The live preview uses light-neutral desktop window chrome with decorative, non-interactive
   window dots in both marketing schemes. Rebind standard control-surface tokens inside its
   title bar; Customize uses standard outline/default Button variants, never brown secondary.
@@ -113,6 +122,7 @@ update them with the plugins.
   Reduced motion changes selection instantly. Never replace it with tab/icon hover lifts.
   At 1024px and above, the topic strip uses one row with no scroll container. Below 1024px,
   the existing standard Select and View live link share one row, with 44px touch targets.
+  This topic Select uses the standard rounded-xl token on its trigger and popup only.
   Both controls use the same topics and parent selection; do not add a mobile state store.
   Selecting the current topic after closing its inspector must reopen it. Verify keyboard
   selection, visible focus and no page overflow at 375px, 390px, 784px and desktop widths.
@@ -147,6 +157,8 @@ update them with the plugins.
   variant independently of the site's theme switch. The transparent 192px fallback and 180px
   Apple PNGs come from the light SVG via Sharp contain sizing. Keep full wordmarks in existing
   navigation/footer surfaces; no favicon observer or separate theme state is needed.
+  Current supplied replacements use the `-light-theme.svg`/`-dark-theme.svg` names and `-v2.png`
+  fallbacks so browsers request fresh assets. Preserve their original artwork and transparency.
 
 ## Hosting
 

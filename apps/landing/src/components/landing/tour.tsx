@@ -29,10 +29,13 @@ export function TopicTabs({
       <div className="playground-topic-select">
         {/* Clearing the selection when closed lets the current topic reopen the inspector. */}
         <Select value={expanded ? active : ''} onValueChange={(id) => onChange(id as Topic['id'])}>
-          <SelectTrigger aria-label="Explore the live app" className="w-full">
+          <SelectTrigger aria-label="Explore the live app" className="w-full rounded-xl">
             <SelectValue placeholder={topics.find((topic) => topic.id === active)?.label} />
           </SelectTrigger>
-          <SelectContent className="site-theme playground-topic-options" position="popper">
+          <SelectContent
+            className="site-theme playground-topic-options rounded-xl"
+            position="popper"
+          >
             <SelectGroup>
               {topics.map((topic) => (
                 <SelectItem key={topic.id} value={topic.id}>
