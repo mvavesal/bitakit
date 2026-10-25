@@ -13,7 +13,7 @@ export default function Dashboard() {
         subtitle={t('dashboard.page.subtitle', undefined, 'Every widget below is a plugin.')}
         trailing={toolbar.items.map((item) => (
           <Action key={item.key} id={item.action}>
-            <Button size="sm" variant="outline" />
+            <Button size="sm" variant={item.action.variant ?? 'outline'} />
           </Action>
         ))}
       />

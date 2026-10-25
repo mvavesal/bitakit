@@ -1,5 +1,6 @@
 /** Shared demo inspector copy; source files are discovered from src/plugins. */
 export const pluginInfo: Record<string, { name: string; role: string }> = {
+  'theme-toggle': { name: 'Theme toggle', role: 'One header button bound to the app color scheme' },
   reports: { name: 'Reports', role: 'A table of monthly snapshots in your currency and language' },
   tasks: { name: 'Tasks', role: 'A small service and an Action to complete or reopen tasks' },
   notes: { name: 'Notes', role: 'A page of sample project notes' },

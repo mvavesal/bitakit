@@ -4,6 +4,8 @@ Owns `/pipeline`, `pipeline.open`, `pipeline.add`, `pipeline.win`, `pipeline.rem
 
 Keep mutations in the deals service, execution/guards in Actions and sample data under `data/`. Other plugins respond through events and slots, without editing this folder.
 
+`pipeline.add` declares the standard primary variant and toolbar order 10, after revenue refresh.
+
 The dashboard statistic uses the shared `StatCard` and next-intl number formatting. Keep
 responsive chart placement in the shared component, not in this plugin.
 

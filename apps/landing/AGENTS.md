@@ -38,6 +38,7 @@ A mini CRM: `src/plugins/<name>/`, one folder per feature. Sample data lives in 
 | `reports`   | Monthly sample reports using standard Table and locale/currency formatting |
 | `tasks`     | Session-only service and Action for completion/reopening                   |
 | `notes`     | Read-only sample project notes using standard Item                        |
+| `theme-toggle` | One header button bound directly to Shell's existing color scheme setting |
 
 `src/settings.ts` holds the app setting `currency`. The sidebar has two groups: Shell's main
 navigation (Dashboard and Pipeline) and
