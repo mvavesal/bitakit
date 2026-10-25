@@ -15,7 +15,7 @@ BitaKit is not another framework. It sits on top of the one you already use, thr
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/layers-dark.svg">
-  <img src="docs/assets/readme/layers-light.svg" alt="BitaKit as a composition layer: your pages sit on feature plugins, one folder each; the plugins snap onto BitaKit Core's contracts (Actions, services, events, settings, slots, layouts); discovery and the adapter connect it at build time; Next.js or TanStack Start keeps routing, rendering and deployment." width="880">
+  <img src="docs/assets/readme/layers-light.svg" alt="BitaKit as a composition layer: your pages sit on feature plugins, one folder each; the plugins snap onto BitaKit Core's contracts (Actions, services, events, settings, slots, layouts, interceptors); discovery and the adapter connect it at build time; Next.js or TanStack Start keeps routing, rendering and deployment." width="880">
 </picture>
 
 ## Quick start

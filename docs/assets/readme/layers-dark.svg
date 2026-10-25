@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 880 472" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="layers-dark-title layers-dark-desc" id="layers-dark-root">
         <title id="layers-dark-title">BitaKit is a composition layer</title>
-        <desc id="layers-dark-desc">Layer stack: your pages and components sit on feature plugins, one folder each; the plugins snap onto BitaKit Core, which provides Actions, services, events, settings, slots and layouts as contracts; discovery and the adapter connect it at build time; Next.js or TanStack Start keeps routing, rendering and deployment.</desc>
+        <desc id="layers-dark-desc">Layer stack: your pages and components sit on feature plugins, one folder each; the plugins snap onto BitaKit Core, which provides Actions, services, events, settings, slots, layouts and interceptors as contracts; discovery and the adapter connect it at build time; Next.js or TanStack Start keeps routing, rendering and deployment.</desc>
         <defs>
       <style>#layers-dark-root { --color-paper: #0d1117;
       --color-ink: #e6edf3;
@@ -56,6 +56,8 @@
         <text x="488.0" y="260" fill="#e6edf3" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">slots</text>
         <rect x="524" y="244" width="68" height="24" rx="4" fill="#e6edf3" stroke="#9bb1c8" stroke-width="0.8" fill-opacity="0.05"/>
         <text x="558.0" y="260" fill="#e6edf3" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">layouts</text>
+        <rect x="600" y="244" width="104" height="24" rx="4" fill="#e6edf3" stroke="#9bb1c8" stroke-width="0.8" fill-opacity="0.05"/>
+        <text x="652.0" y="260" fill="#e6edf3" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="500" text-anchor="middle">interceptors</text>
         <rect x="32" y="296" width="816" height="56" rx="6" fill="#0d1117"/>
         <rect x="32" y="296" width="816" height="56" rx="6" fill="#151b23" stroke="#9db0c6" stroke-width="1" stroke-opacity="0.30"/>
         <text x="48" y="327.0" fill="#9198a1" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" text-anchor="start" letter-spacing="0.18em">BUILD</text>
