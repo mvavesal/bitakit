@@ -171,8 +171,10 @@ The install command is `cd ../.. && npm ci --include=dev`: package compilation r
 the complete workspace's development dependencies, not only the app's dependency subset.
 Production `NEXT_PUBLIC_DOCS_URL` is `https://mvavesal.github.io/bitakit`.
 Do not statically export the live demo or replace its locale/settings ownership.
-The project currently deploys through authenticated Vercel CLI; Git integration requires
-the account's GitHub integration. Use the verified project/team, never an implicit CLI target.
+The existing Vercel project is connected to `mvavesal/bitakit` with production branch `main`.
+Preview deployments are disabled, and `vercel.json` allows Git builds only for `main`.
+Pushes to `main` deploy automatically; verify that deployment instead of starting a duplicate
+CLI build. Use the verified project/team, never an implicit CLI target.
 `.vercelignore` keeps local environments, private work and development output out of uploads.
 Use `NEXT_BUILD_DIR=.next-build` for production checks alongside the stable 3104 preview.
 
