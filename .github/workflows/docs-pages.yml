@@ -38,7 +38,7 @@ jobs:
       - run: npm run build:docs
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-          NEXT_PUBLIC_SITE_URL: https://bitakit-tawny.vercel.app
+          NEXT_PUBLIC_SITE_URL: https://bitakit.app
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: apps/docs/out
