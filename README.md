@@ -6,11 +6,11 @@
 
 [Website](https://bitakit.app/) · [Documentation](https://mvavesal.github.io/bitakit/docs/)
 
-**BitaKit is a composition layer for building apps with AI agents.** Every feature is a
-self-contained plugin in its own folder, and features meet only through explicit contracts. A
-developer or a coding agent adds or extends a feature with a small, local change, without
-touching the rest of the app and without rebuilding commands, events, extension points or
-settings.
+**BitaKit is an AI-friendly composition layer for building extensible apps—designed for
+developers and AI agents to work together.** Every feature is a self-contained plugin in its
+own folder, connected through explicit contracts. Developers and AI agents can add and extend
+features through small, local changes, using BitaKit's shared commands, events, extension points
+and settings.
 
 BitaKit is not another framework. It sits on top of the one you already use, through an adapter
 (Next.js today, TanStack Start experimental), which keeps routing, rendering and deployment.

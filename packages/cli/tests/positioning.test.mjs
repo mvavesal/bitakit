@@ -8,8 +8,7 @@ const read = (file) => readFile(new URL(file, repository), 'utf8');
 /** Markdown emphasis and line wrapping do not change the sentence. */
 const prose = (text) => text.replace(/\*\*/g, '').replace(/\s+/g, ' ');
 
-test('the README, the docs introduction and the agent rules state the same identity', async () => {
-  assert.ok(prose(await read('README.md')).includes(bitakitIdentity), 'README.md');
+test('the docs introduction and the agent rules state the same identity', async () => {
   assert.ok(
     prose(await read('apps/docs/content/docs/index.mdx')).includes(bitakitIdentity),
     'apps/docs/content/docs/index.mdx',

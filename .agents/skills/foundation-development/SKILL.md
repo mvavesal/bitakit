@@ -893,14 +893,16 @@ in their owning guides. Reuse CLI commands and app scripts; additional skill scr
 demonstrated gap rather than a duplicate implementation of scaffolding or diagnostics.
 
 
-### Positioning (single source)
+### Positioning
 
 Every entry surface (root README, docs introduction, package READMEs and descriptions,
-generated README and AGENTS.md, create-app help) uses these words:
+generated README and AGENTS.md, create-app help) preserves this positioning:
 
-- Identity, verbatim: "BitaKit is a composition layer for building apps with AI agents."
+- Shared identity: "BitaKit is a composition layer for building apps with AI agents."
   The string lives in `bitakitIdentity` (`packages/cli/src/agent-rules.mjs`); a CLI test checks
-  the README, the docs introduction and the agent rules against it.
+  the docs introduction and the agent rules against it. The root README uses independent
+  editorial wording: an AI-friendly composition layer for extensible apps, designed for
+  developers and AI agents to work together.
 - Message: BitaKit is not another framework. It sits on top of the framework you already use,
   through an adapter (Next.js supported, TanStack Start experimental), and gives every feature a
   predictable place and explicit contracts. Developers and AI agents extend an app with small,
