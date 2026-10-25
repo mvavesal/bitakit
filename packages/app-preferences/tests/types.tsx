@@ -59,7 +59,13 @@ void [toggle, count, cards, wrong, inferred, custom, byField, byKey, both, field
 void [shell, route, id, order];
 
 import { defineAction, type SlotPredicate } from '@bitakit/core';
-import { PluginSlot, useSlot } from '@bitakit/ui';
+import { ActionLink, PluginSlot, useSlot } from '@bitakit/ui';
+type SettingsEntry = import('@bitakit/core').ActionMap['app-preferences.settings'];
+const noSettingsInput: SettingsEntry['input'] = undefined;
+const settingsEntry = <ActionLink action="app-preferences.settings" />;
+// @ts-expect-error the Settings destination takes no input
+const settingsInput = <ActionLink action="app-preferences.settings" input="other" />;
+void [settingsEntry, settingsInput, noSettingsInput];
 const historyOnly: SlotPredicate<'app-preferences.page.after'> = ({ payload }) =>
   payload.pageId === 'billing/history';
 const body = (

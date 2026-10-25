@@ -7,6 +7,18 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 export function baseOptions(): BaseLayoutProps {
   return {
     githubUrl: 'https://github.com/mvavesal/bitakit',
+    links: [
+      {
+        text: 'Website',
+        url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3104',
+        external: true,
+      },
+      {
+        text: 'Live demo',
+        url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3104'}/dashboard`,
+        external: true,
+      },
+    ],
     themeSwitch: { mode: 'light-dark' },
     nav: {
       title: (

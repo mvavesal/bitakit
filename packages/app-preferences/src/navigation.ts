@@ -16,6 +16,13 @@ import { pluginId } from './id.js';
 import { sectionHref } from './paths.js';
 import { categoryTitle, message } from './text.js';
 
+declare module '@bitakit/core' {
+  interface ActionMap {
+    /** The plugin's existing entry Action; bind it wherever the host exposes Settings. */
+    'app-preferences.settings': { input: void; result: void };
+  }
+}
+
 export type SettingsNavigationProjection = {
   readonly modules: readonly SettingsCatalogModule[];
   readonly appId: string;

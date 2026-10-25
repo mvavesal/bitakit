@@ -5,7 +5,6 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev --port 3002",
-    "start": "next start --port 3002",
     "types:check": "next typegen && tsc --noEmit",
     "test": "node --test tests/*.test.mjs"
   },

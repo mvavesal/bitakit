@@ -1,6 +1,44 @@
 @import 'tailwindcss';
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
+@import '../../brand-theme.css';
+
+/* Fumadocs keeps its native components; only its public color tokens adopt BitaKit's palette. */
+.site-theme {
+  --color-fd-background: var(--background);
+  --color-fd-foreground: var(--foreground);
+  --color-fd-muted: var(--muted);
+  --color-fd-muted-foreground: var(--muted-foreground);
+  --color-fd-popover: var(--popover);
+  --color-fd-popover-foreground: var(--popover-foreground);
+  --color-fd-card: var(--card);
+  --color-fd-card-foreground: var(--card-foreground);
+  --color-fd-border: var(--border);
+  --color-fd-primary: var(--site-emphasis);
+  --color-fd-primary-foreground: var(--card);
+  --color-fd-secondary: var(--muted);
+  --color-fd-secondary-foreground: var(--foreground);
+  --color-fd-accent: var(--accent);
+  --color-fd-accent-foreground: var(--accent-foreground);
+  --color-fd-ring: var(--ring);
+}
+
+.site-theme.dark {
+  --color-fd-primary-foreground: var(--primary-foreground);
+}
+
+/* Override the neutral preset's sidebar-local grays with the same readable navy palette. */
+.site-theme.dark #nd-sidebar {
+  --color-fd-muted: var(--muted);
+  --color-fd-secondary: var(--muted);
+  --color-fd-muted-foreground: var(--muted-foreground);
+}
+
+/* Standard sidebar links use primary/10 for selection; use the shared navy surface in dark mode. */
+.site-theme.dark :is(#nd-sidebar, #nd-sidebar-mobile) [data-active='true'],
+.site-theme.dark :is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button):focus-visible {
+  background-color: var(--color-fd-accent);
+}
 
 html {
   scrollbar-gutter: stable;

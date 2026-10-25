@@ -1,0 +1,12 @@
+{
+  "dashboard": {
+    "open": {
+      "title": "Dashboard"
+    },
+    "page": {
+      "title": "Dashboard",
+      "subtitle": "Every widget below is a plugin.",
+      "empty": "No widgets: every widget plugin is off."
+    }
+  }
+}

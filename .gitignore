@@ -1,5 +1,8 @@
 node_modules/
 .next/
+.next-build/
+out/
+.vercel/
 dist/
 build/
 .cache/

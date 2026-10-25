@@ -1,0 +1,19 @@
+{
+  "goals": {
+    "widget": {
+      "title": "Quartalsziele",
+      "description": "Fortschritt zu den Zielen dieses Quartals",
+      "progress": "Fortschritt",
+      "value": "Wert",
+      "deals": "Gewonnene Deals",
+      "size": "Deal-Größe",
+      "reached": "{percent}% des Wertziels"
+    },
+    "settings": {
+      "title": "Ziele",
+      "target": {
+        "label": "Quartalsziel"
+      }
+    }
+  }
+}

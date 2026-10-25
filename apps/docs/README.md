@@ -1,7 +1,8 @@
 # BitaKit documentation
 
 Independent Fumadocs/Next.js workspace. The canonical developer handbook lives in `content/docs`.
-Uses the upstream Fumadocs theme, navigation, local Orama search and theme switcher.
+Uses upstream Fumadocs navigation, local Orama search and theme switcher, with the shared
+BitaKit navy/gold palette from `apps/brand-theme.css`.
 
 From the repository root:
 
@@ -11,10 +12,24 @@ npm run dev:docs
 npm run build:docs
 ```
 
-Development and production start use port 3002. No BitaKit runtime, auth service or database
-is required to run this site. For production, build this workspace and run its `start` script,
-or configure a Next.js-compatible deployment with `apps/docs` as the application directory
-and the repository workspace lockfile available. Nothing is deployed automatically.
+Development uses port 3002. No BitaKit runtime, auth service or database is required.
+Production is a Next.js static export in `apps/docs/out`, deployed by
+`.github/workflows/docs-pages.yml` to https://mvavesal.github.io/bitakit/docs/.
+The workflow builds the repository subpath supplied by GitHub Pages through
+`NEXT_PUBLIC_BASE_PATH` and points `NEXT_PUBLIC_SITE_URL` at the landing page on Vercel.
+Set the base path to an empty string for a future root-domain deployment and rebuild.
+
+Search uses Fumadocs' generated `search.json` and its built-in static Orama client.
+Next.js owns link prefixes; diagram URLs, search and Markdown fetches include the build's base
+path explicitly. Direct page loads use directory indexes (`trailingSlash: true`).
+The explicit `/llms.txt`, `/llms-full.txt` and `/llms.mdx/docs/.../content.md` exports remain
+available; Pages cannot run the former Accept-header or `.md` suffix proxy rewrites.
+
+Keep an established local preview URL stable when switching checkouts. Verify the process
+owning port 3002 before stopping a known docs development server, then run this workspace's
+dev command on the same port. Landing's existing `NEXT_PUBLIC_DOCS_URL` can point to that
+origin in its ignored `.env.local`. To build alongside the running preview, set
+`NEXT_BUILD_DIR=.next-build` so the production build does not overwrite the dev cache.
 
 Add reviewed MDX pages under `content/docs`, with title/description frontmatter and navigation
 metadata as needed. Follow `/docs/contributing`. Do not add fictitious repository links.

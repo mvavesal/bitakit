@@ -1,0 +1,22 @@
+{
+  "contacts": {
+    "open": {
+      "title": "Kontakte"
+    },
+    "widget": {
+      "title": "Kontakte",
+      "count": "{count, plural, one {# Person} other {# Personen}} bei deinen Kunden"
+    },
+    "page": {
+      "title": "Kontakte",
+      "subtitle": "Auch mit Mod+K durchsuchbar."
+    },
+    "search": {
+      "title": "Kontakte"
+    },
+    "stat": {
+      "title": "Neue Kunden",
+      "caption": "Letzte 28 Tage"
+    }
+  }
+}

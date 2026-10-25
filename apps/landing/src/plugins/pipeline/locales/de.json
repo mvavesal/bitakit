@@ -1,0 +1,44 @@
+{
+  "pipeline": {
+    "open": {
+      "title": "Pipeline"
+    },
+    "add": {
+      "title": "Neuer Deal",
+      "success": "Deal hinzugefügt"
+    },
+    "win": {
+      "title": "Als gewonnen markieren",
+      "success": "Deal gewonnen"
+    },
+    "remove": {
+      "title": "Löschen",
+      "success": "Deal gelöscht"
+    },
+    "stages": {
+      "lead": "Lead",
+      "qualified": "Qualifiziert",
+      "demo": "Demo",
+      "proposal": "Angebot",
+      "negotiation": "Verhandlung",
+      "won": "Gewonnen"
+    },
+    "widget": {
+      "title": "Pipeline",
+      "description": "Deal-Wert pro Phase, dieses und letztes Quartal",
+      "thisQuarter": "Dieses Quartal",
+      "lastQuarter": "Letztes Quartal",
+      "trendUp": "{percent}% mehr als letztes Quartal",
+      "trendDown": "{percent}% weniger als letztes Quartal",
+      "count": "{count, plural, one {# Deal} other {# Deals}}"
+    },
+    "page": {
+      "title": "Pipeline",
+      "subtitle": "Deals, mit Actions, die prüfen und nachfragen."
+    },
+    "stat": {
+      "title": "Offene Pipeline",
+      "caption": "Noch nicht gewonnen"
+    }
+  }
+}

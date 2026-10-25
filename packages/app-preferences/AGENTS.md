@@ -57,6 +57,12 @@ The `app-preferences.page.body` slot is keyed and maintained by the plugin; repl
 
 ## Link to a setting
 
+`app-preferences.settings` is a typed navigation Action with no input. Bind it with
+`ActionLink` when the host places Settings in its own footer/header. Configure the plugin
+with `slots: []` to omit its default Shell navigation placement; do not create another Action.
+In a discovered app, pass the configured `appPreferencesPlugin` through the provider's
+`additionalPlugins` to replace the discovered instance with the same ID.
+
 `settingHref('/settings', { path: 'theme' }, 'shell.mode')` gives
 `/settings/theme#setting-shell.mode`; opening it scrolls to, focuses and highlights that field.
 `sectionHref` links to a page. Use these for help texts, search results or onboarding.

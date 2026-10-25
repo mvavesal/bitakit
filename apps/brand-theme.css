@@ -1,0 +1,64 @@
+/* Logo palette: gold #EBB759 and navy #122F4D, verified in public/brand/bitakit-logo.svg. */
+/* Shared palette for landing, documentation and demo chrome; application themes stay independent. */
+.site-theme {
+  --theme-control-pressed-offset: 0px;
+  --theme-control-pressed-scale: 1;
+  --control-surface: var(--background);
+  --background: #f8f9fb;
+  --foreground: #122f4d;
+  --site-window-border: #9aa8b7;
+  --site-window-bar: #eef1f5;
+  --site-window-foreground: #122f4d;
+  --site-window-muted: #52657f;
+  --site-window-control: #ffffff;
+  --site-window-hover: #dce3ec;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  --primary: #ebb759;
+  --primary-foreground: #122f4d;
+  --muted: #e9eff8;
+  --muted-foreground: #52657f;
+  --secondary: #fbefd8;
+  --secondary-foreground: #122f4d;
+  --accent: #fbefd8;
+  --accent-foreground: var(--foreground);
+  --border: #d7e1ef;
+  --input: #c5d3e7;
+  --ring: #94621b;
+  --site-ice: #94621b;
+  --site-emphasis: #94621b;
+  --site-glow: #ebb759;
+  --site-shadow: 0 24px 80px #253c6c12;
+  --theme-shadow-card: 0 2px 8px #253c6c04;
+  --brand-1: var(--primary);
+  --brand-2: var(--site-ice);
+}
+.site-theme.dark,
+.dark:not([data-site-theme]) .site-theme,
+[data-site-theme='dark'] .site-theme {
+  --control-surface: var(--card);
+  --background: #0a111b;
+  --foreground: #ffffff;
+  --card: #141d2b;
+  --card-foreground: var(--foreground);
+  --popover: #142a40;
+  --popover-foreground: var(--foreground);
+  --primary: #ebb759;
+  --primary-foreground: #122f4d;
+  --muted: #142a40;
+  --muted-foreground: #c5cfdd;
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --accent: #19344e;
+  --accent-foreground: var(--foreground);
+  --border: #2b3646;
+  --input: #2e5275;
+  --ring: #648fbd;
+  --site-ice: #ebb759;
+  --site-emphasis: #ebb759;
+  --site-glow: #ebb759;
+  --site-shadow: 0 32px 100px #02071566;
+  --theme-shadow-card: 0 2px 8px #02071512;
+}
