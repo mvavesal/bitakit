@@ -148,6 +148,8 @@ update them with the plugins.
 - The app document owns its background, color-scheme and thin native scrollbar colors; never inherit the dark marketing track into a light iframe. Auto-hide follows browser/OS behavior.
 - Chart colors for the default app theme stay in `playground.css` (gold, slate, copper, sage, taupe); alternate themes can override them. Each plugin uses semantic chart tokens.
 - Code-tab folders and files are read from the real plugin directories. Its selector uses that loaded inventory; the bridge automatically includes new feature plugins while keeping foundation plugins protected and the original dependent startup order.
+- The marketing source example shows the complete `pipeline/actions/add.ts` file from that same
+  inventory. Derive its filename label from the file and wrap long lines on narrow screens.
 - KPI tiles stay in `src/components/ui/stat-card.tsx`; marketing styles must not reach that document. All three stat plugins use the shared
   StatCard: container queries move the sparkline below narrow metrics; values wrap in normal
   flow rather than truncate. Format values with next-intl's active locale.

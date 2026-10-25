@@ -394,6 +394,8 @@ h3 {
 .source-example pre {
   max-height: 19rem;
   overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font-size: 0.6875rem;
   line-height: 1.9;
 }

@@ -45,7 +45,7 @@ const stats = [
 export default async function Landing() {
   const code = await loadPluginCode();
   const pipeline = code.find((plugin) => plugin.id === 'pipeline');
-  const action = pipeline?.files.find((file) => file.path === 'actions/win.ts');
+  const action = pipeline?.files.find((file) => file.path === 'actions/add.ts');
   return (
     <>
       <a href="#main" className="skip-link">
@@ -192,7 +192,7 @@ export default async function Landing() {
                 {action && (
                   <div className="source-example">
                     <div className="source-label">
-                      <code>actions/win.ts</code>
+                      <code>{action.path}</code>
                       <Badge variant="secondary">Real source</Badge>
                     </div>
                     <div className="code-view" dangerouslySetInnerHTML={{ __html: action.html }} />
