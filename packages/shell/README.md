@@ -198,8 +198,8 @@ in `app-bar.end`. The plugin owns typed `defineSlot` contracts; manifest names a
 ## Appearance settings
 
 Shell declares its settings once and presents two pages in the `appearance` category:
-**Themes** at `/settings/shell` for color scheme, theme selection and personal copies, and
-**Layout** at `/settings/shell/layout` for navigation, density and notification position.
+**Themes** at `/settings/theme` for color scheme, theme selection and personal copies, and
+**Layout** at `/settings/layout` for navigation, density and notification position.
 The existing Appearance URL remains valid. Labels come from `shell.settings.*` in the Shell locales.
 
 | Key             | Scope  | Default       | Values                                                                | Applied as                       |

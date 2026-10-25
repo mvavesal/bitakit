@@ -57,8 +57,8 @@ The `app-preferences.page.body` slot is keyed and maintained by the plugin; repl
 
 ## Link to a setting
 
-`settingHref('/settings', { path: 'shell' }, 'shell.mode')` gives
-`/settings/shell#setting-shell.mode`; opening it scrolls to, focuses and highlights that field.
+`settingHref('/settings', { path: 'theme' }, 'shell.mode')` gives
+`/settings/theme#setting-shell.mode`; opening it scrolls to, focuses and highlights that field.
 `sectionHref` links to a page. Use these for help texts, search results or onboarding.
 
 ## Rules

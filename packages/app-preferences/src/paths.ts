@@ -17,7 +17,7 @@ export function settingAnchor(key: string): string {
   return `setting-${key}`;
 }
 
-/** `/settings` + `{ path: 'shell' }` + `shell.theme` → `/settings/shell#setting-shell.theme`. */
+/** `/settings` + `{ path: 'theme' }` + `shell.theme` → `/settings/theme#setting-shell.theme`. */
 export function settingHref(
   basePath: string,
   section: { readonly path: string },

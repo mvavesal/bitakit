@@ -85,7 +85,7 @@ export async function verifyDeveloperTheme(page, url, artifacts) {
     });
   });
   for (const dark of [false, true]) {
-    await page.goto(url + '/settings/shell');
+    await page.goto(url + '/settings/theme');
     const mode = page.getByRole('radio', { name: dark ? 'Dark' : 'Light', exact: true });
     await mode.click();
     await expect(mode).toHaveAttribute('aria-checked', 'true');
@@ -141,7 +141,7 @@ export async function verifyDeveloperTheme(page, url, artifacts) {
     assert.match((await style(page.getByRole('menuitem').last())).fontFamily, /Georgia/);
     await page.keyboard.press('Escape');
     await page.getByRole('menu').waitFor({ state: 'hidden' });
-    await page.goto(url + '/settings/shell');
+    await page.goto(url + '/settings/theme');
     const settingsSearch = page.getByRole('textbox', { name: 'Search settings', exact: true });
     await expect(
       page.locator('[data-slot="input-group"]').filter({ has: settingsSearch }),

@@ -9,7 +9,8 @@ import SettingsIcon from 'reicon-react/icons/Settings';
 import ChevronDownIcon from 'reicon-react/icons/ChevronDown';
 import DownloadIcon from 'reicon-react/icons/Download';
 import UploadIcon from 'reicon-react/icons/Upload';
-import { useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import ResetIcon from 'reicon-react/icons/Undo';
+import { useRef, useState, type ChangeEvent, type ComponentProps, type ReactNode } from 'react';
 import {
   Action,
   useService,
@@ -33,6 +34,10 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@bitakit/ui/components';
 import {
   Card,
@@ -195,23 +200,36 @@ export function AppearanceSettings({
             <FieldGroup>
               <Field>
                 <FieldLabel>{text('selected', 'Selected theme')}</FieldLabel>
-                <div className="flex flex-wrap items-center gap-2">
+                {/* The select on its own line, the theme's tools below it. */}
+                <div className="flex flex-col items-start gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        className="w-full min-w-0 justify-between sm:w-80"
+                        className="w-full min-w-0 justify-between"
                         variant="outline"
                         disabled={!library.ready}
                       >
-                        <span className="truncate">
-                          {active
-                            ? `${active.key === 'shell:default' ? text('appDefault', 'App default') : active.name} · ${sourceLabel(active.key === 'shell:default' ? 'app' : active.source)}`
-                            : text('loading', 'Loading themes…')}
-                        </span>
+                        {active ? (
+                          <span className="flex min-w-0 items-baseline gap-1.5">
+                            <span className="truncate">
+                              {active.key === 'shell:default'
+                                ? text('appDefault', 'App default')
+                                : active.name}
+                            </span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {sourceLabel(active.key === 'shell:default' ? 'app' : active.source)}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="truncate">{text('loading', 'Loading themes…')}</span>
+                        )}
                         <ChevronDownIcon aria-hidden="true" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-80 max-w-[calc(100vw-2rem)]">
+                    <DropdownMenuContent
+                      align="start"
+                      className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-64 max-w-[calc(100vw-2rem)]"
+                    >
                       <DropdownMenuGroup>
                         {service?.list().map((theme) => (
                           <Action
@@ -288,33 +306,52 @@ export function AppearanceSettings({
                       </DropdownMenuGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label={text('customize', 'Customize theme')}
-                    disabled={library.disabled}
-                    onClick={customize}
-                  >
-                    <SettingsIcon aria-hidden="true" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label={text('download', 'Download theme')}
-                    disabled={!draft && (!active || active.key === 'shell:default')}
-                    onClick={download}
-                  >
-                    <DownloadIcon aria-hidden="true" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label={text('import', 'Import theme')}
-                    disabled={library.disabled}
-                    onClick={() => fileInput.current?.click()}
-                  >
-                    <UploadIcon aria-hidden="true" />
-                  </Button>
+                  <TooltipProvider delayDuration={300}>
+                    <div
+                      role="toolbar"
+                      aria-label={text('tools', 'Theme tools')}
+                      className="inline-flex items-center gap-1"
+                    >
+                      <ThemeTool
+                        label={text('customize', 'Customize theme')}
+                        disabled={library.disabled}
+                        onClick={customize}
+                      >
+                        <SettingsIcon aria-hidden="true" />
+                      </ThemeTool>
+                      <ThemeTool
+                        label={text('import', 'Import theme')}
+                        disabled={library.disabled}
+                        onClick={() => fileInput.current?.click()}
+                      >
+                        <UploadIcon aria-hidden="true" />
+                      </ThemeTool>
+                      <ThemeTool
+                        label={text('download', 'Download theme')}
+                        disabled={!draft && (!active || active.key === 'shell:default')}
+                        onClick={download}
+                      >
+                        <DownloadIcon aria-hidden="true" />
+                      </ThemeTool>
+                      <Action
+                        id="shell.selectTheme"
+                        input={{ key: 'shell:default' }}
+                        onExecuted={(result) => {
+                          if (result.status === 'completed' && result.value === 'saved')
+                            setDraft(null);
+                        }}
+                      >
+                        {(control) => (
+                          <ThemeTool
+                            label={text('resetDefault', 'Reset to default theme')}
+                            {...control.props()}
+                          >
+                            <ResetIcon aria-hidden="true" />
+                          </ThemeTool>
+                        )}
+                      </Action>
+                    </div>
+                  </TooltipProvider>
                   <input
                     ref={fileInput}
                     type="file"
@@ -322,17 +359,6 @@ export function AppearanceSettings({
                     hidden
                     onChange={importFile}
                   />
-                  <Action
-                    id="shell.selectTheme"
-                    input={{ key: 'shell:default' }}
-                    onExecuted={(result) => {
-                      if (result.status === 'completed' && result.value === 'saved') setDraft(null);
-                    }}
-                  >
-                    <Button variant="outline">
-                      {text('resetDefault', 'Reset to default theme')}
-                    </Button>
-                  </Action>
                 </div>
                 {importError && (
                   <FieldError>
@@ -535,5 +561,23 @@ export function AppearanceSettings({
         )}
       </div>
     </div>
+  );
+}
+
+/** One tool of the theme toolbar: an icon button named by its tooltip (and for screen readers). */
+function ThemeTool({
+  label,
+  children,
+  ...button
+}: { label: string; children: ReactNode } & ComponentProps<typeof Button>) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button type="button" variant="outline" size="icon" aria-label={label} {...button}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }

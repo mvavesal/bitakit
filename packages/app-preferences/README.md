@@ -221,9 +221,11 @@ The seven controls are `SwitchControl`, `SelectControl`, `RadioControl`, `CardsC
 `TextControl`, `TextareaControl` and `NumberControl`. `embedded` on `SettingsShell` drops the
 back link and keeps the sidebar open on wide screens, for a host dialog.
 
-`@bitakit/app-preferences/foundation` (default export): `appPreferencesPlugin({ basePath?, groups?, slots? })`.
+`@bitakit/app-preferences/foundation` (default export): `appPreferencesPlugin({ basePath?, groups?, slots?, searchShortcut? })`.
 `basePath` (default `/settings`) must match the route; `groups` (default `['navigation']`) are
-the logical groups of the "Settings" entry. `slots` selects its placement targets; by default it joins Shell navigation when installed. `slots: []` omits navigation placement. Explicit unknown targets fail.
+the logical groups of the "Settings" entry. `slots` selects its placement targets; by default it joins Shell navigation when installed. `slots: []` omits navigation placement. Explicit unknown targets fail. `searchShortcut` (default `/`)
+is the `app-preferences.search` Action's key: while Settings is open it focuses the settings search,
+which shows the key while empty; `false` turns it off.
 
 ### URL Actions
 
@@ -242,8 +244,8 @@ the translator and every registration leaves with the plugin.
 ### Linking to a setting
 
 Every generated field has the id `setting-<key>`, so a link can name one setting:
-`settingHref('/settings', { path: 'shell' }, 'shell.theme')` gives
-`/settings/shell#setting-shell.theme`. Opening it, or changing the hash on the page, scrolls the
+`settingHref('/settings', { path: 'theme' }, 'shell.theme')` gives
+`/settings/theme#setting-shell.theme`. Opening it, or changing the hash on the page, scrolls the
 field to the middle (without animation when reduced motion is set), focuses its control and
 highlights it briefly with the theme's focus ring. Useful for search results, help texts or an
 assistant that sends people to one setting.

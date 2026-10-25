@@ -61,6 +61,7 @@ function Overview({
           clearLabel={messages('clearSearch')}
           value={query}
           onValueChange={onQueryChange}
+          shortcut
         />
       )}
       <p role="status" className="sr-only">

@@ -125,7 +125,7 @@ export const checks = {
     visits: [
       ['/', 'Theme example'],
       ['/gallery', 'Every component reads the same theme tokens.', theme],
-      ['/settings/shell', 'Ocean'],
+      ['/settings/theme', 'Ocean'],
     ],
   },
   layouts: {

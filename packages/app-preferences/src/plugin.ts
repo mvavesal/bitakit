@@ -1,11 +1,20 @@
-import { definePlugin, defineSettings, scopeModules, scopeTranslation } from '@bitakit/core';
+import {
+  defineAction,
+  definePlugin,
+  defineSettings,
+  getService,
+  scopeModules,
+  scopeTranslation,
+} from '@bitakit/core';
 import PuzzleIcon from 'reicon-react/icons/Puzzle';
+import SearchIcon from 'reicon-react/icons/Search';
 import SettingIcon from 'reicon-react/icons/Setting';
 import { PluginsOverview } from './components/plugins-overview.js';
 import { settingsSlots } from './slots.js';
 import { pluginId } from './id.js';
 import { bindSettingsNavigation } from './navigation.js';
 import { defaultBasePath } from './paths.js';
+import { settingsSearch, settingsSearchService } from './search-target.js';
 
 export type AppPreferencesPluginOptions = {
   /** Where the host mounts `SettingsRoute`; navigation and search link there. Default `/settings`. */
@@ -14,6 +23,8 @@ export type AppPreferencesPluginOptions = {
   groups?: readonly string[];
   /** Explicit placement targets; default is Shell navigation when installed. Empty omits placement. */
   slots?: readonly string[];
+  /** Focuses the settings search while Settings is open. Default `/`; false turns it off. */
+  searchShortcut?: string | false;
 };
 
 /**
@@ -24,6 +35,7 @@ export type AppPreferencesPluginOptions = {
 export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) {
   const basePath = (options.basePath ?? defaultBasePath).replace(/\/+$/, '') || '/';
   const groups = options.groups ?? ['navigation'];
+  const searchShortcut = options.searchShortcut ?? '/';
   return definePlugin({
     id: pluginId,
     slots: settingsSlots,
@@ -44,6 +56,16 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) 
         order: 90,
       },
     ),
+    services: { search: settingsSearchService },
+    actions: {
+      search: defineAction({
+        title: 'Search settings',
+        icon: SearchIcon,
+        shortcut: searchShortcut ? { keys: searchShortcut } : undefined,
+        visible: ({ services }) => getService(services, settingsSearch).shown(),
+        execute: ({ services }) => getService(services, settingsSearch).focus(),
+      }),
+    },
     ui: { settings: { component: PluginsOverview, showHeader: false }, providers: [] },
     setup: ({ scope }) => {
       if (!basePath.startsWith('/'))
