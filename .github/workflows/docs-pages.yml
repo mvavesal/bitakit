@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/docs/**'
       - 'apps/brand-theme.css'
+      - 'apps/brand-icons.ts'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/docs-pages.yml'

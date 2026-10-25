@@ -139,6 +139,11 @@ update them with the plugins.
   StatCard: container queries move the sparkline below narrow metrics; values wrap in normal
   flow rather than truncate. Format values with next-intl's active locale.
 - `NEXT_PUBLIC_DOCS_URL` sets where the docs links point; it defaults to the local docs server.
+- Both root layouts use `apps/brand-icons.ts` for browser/home-screen metadata. Preserve the
+  supplied SVG marks in `public/brand`; native `prefers-color-scheme` media selects the browser
+  variant independently of the site's theme switch. The transparent 192px fallback and 180px
+  Apple PNGs come from the light SVG via Sharp contain sizing. Keep full wordmarks in existing
+  navigation/footer surfaces; no favicon observer or separate theme state is needed.
 
 ## Hosting
 
