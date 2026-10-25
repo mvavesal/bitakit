@@ -1,0 +1,12 @@
+{
+  "dashboard": {
+    "open": {
+      "title": "Übersicht"
+    },
+    "page": {
+      "title": "Übersicht",
+      "subtitle": "Jedes Widget unten ist ein Plugin.",
+      "empty": "Keine Widgets: alle Widget-Plugins sind aus."
+    }
+  }
+}

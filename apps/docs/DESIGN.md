@@ -1,9 +1,10 @@
 # Documentation design
 
-The design authority for this workspace is upstream Fumadocs. The user selected its
-standard documentation interface: use the neutral theme and preset, native layouts,
-and default MDX components. This decision applies to `apps/docs`; it does not change
-the Foundation applications' design system.
+Use upstream Fumadocs layouts and components with BitaKit's shared website palette.
+The user's October 25 decision replaces the earlier neutral-color choice with navy/gold
+branding while retaining the standard documentation interface. `apps/brand-theme.css`
+owns the colors for landing, docs and demo chrome; Core and application theme defaults
+remain independent.
 
 ## Read mode
 
@@ -25,18 +26,23 @@ table of contents in their standard Fumadocs roles. Use the existing `DocsLayout
 
 ## Styling and verification
 
-`app/global.css` imports Fumadocs' neutral theme and preset. Its scrollbar-gutter and
-scroll-lock rules address layout stability; they do not establish a custom palette,
-typography, spacing or component style. Keep future changes within upstream public
-configuration and components.
+`app/global.css` imports Fumadocs' neutral theme and preset, then maps their public
+`--color-fd-*` tokens to the shared `.site-theme` palette. Light-theme link text uses the
+darker gold emphasis token for contrast; dark mode uses logo gold. Sidebar-local neutral
+grays are mapped to the same navy tokens. Keep upstream typography, spacing, responsive
+layouts, search and components. Scrollbar-gutter and scroll-lock rules preserve layout
+stability. RootProvider retains the standard theme switcher and defaults to dark.
+Dark hover, focus and selected surfaces use the shared navy accent/muted tokens, including
+search portals and both sidebar variants. Keep primary text and buttons gold; the sidebar's
+standard active state uses the navy accent surface instead of primary/10. Light mode is unchanged.
 
 The user requested a small code-block refinement on October 1: warm tinted surfaces,
 no drop shadow and a subtle border. Central `--docs-code-background` and
 `--docs-code-border` tokens apply to Fumadocs code-block figures in light and dark mode.
 Preserve upstream syntax highlighting, copy controls, scrolling, typography and spacing.
-The light surface is nearly neutral with a trace of warmth. In dark mode, match the
-selected sidebar item's background: 10% primary over the card surface, with a subtle
-neutral border. Reuse the upstream theme tokens for this match.
+The light surface is nearly neutral with a trace of warmth. Dark code blocks retain their
+10% primary tint over the card surface with a subtle border, independently of navigation's
+navy selection surface. Reuse the upstream theme tokens.
 
 Check article navigation, search, narrow layouts and both themes in the rendered site
 when these surfaces change. A successful build alone does not verify their appearance.

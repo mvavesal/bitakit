@@ -1,0 +1,32 @@
+{
+  "app": {
+    "demo": {
+      "label": "Live-Demo",
+      "back": "Zurück zu BitaKit",
+      "customize": "Anpassen",
+      "description": "Funktionen und Einstellungen der Live-Demo ändern."
+    },
+    "settings": {
+      "title": "Firma",
+      "currency": {
+        "label": "Währung",
+        "options": {
+          "USD": {
+            "label": "US-Dollar"
+          },
+          "EUR": {
+            "label": "Euro"
+          }
+        }
+      }
+    },
+    "navigation": {
+      "features": "Funktionen"
+    }
+  },
+  "shell": {
+    "ui": {
+      "navigation": "Arbeitsbereich"
+    }
+  }
+}

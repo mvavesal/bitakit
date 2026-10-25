@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "open": { "title": "Tasks" },
+    "page": {
+      "title": "Tasks",
+      "subtitle": "Complete or reopen a task. Changes last for this demo session."
+    },
+    "toggle": { "complete": "Complete", "reopen": "Reopen" },
+    "done": "Done",
+    "pending": "To do"
+  }
+}

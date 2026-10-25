@@ -1,6 +1,6 @@
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
@@ -12,6 +12,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 The developer handbook for BitaKit: a Fumadocs site (Next.js) whose pages are MDX files in
 `content/docs`. Write all pages in English. Read `DESIGN.md` before changing anything visual.
+The shared website palette lives in `apps/brand-theme.css`; map Fumadocs' public color tokens
+without rebuilding its shell. Introduction owns the composition-layer overview and figure;
+Why BitaKit owns benefits, evidence, assumptions and tradeoffs, linking back for orientation.
 
 ## Structure (Diátaxis)
 
@@ -72,7 +75,17 @@ Diagrams: draw them with the diagram-design skill in the BitaKit profile (the re
 exported SVG; the tests check every figure's exports, references and page usage. Reuse them; do not add a
 second visual system or local styles (see `DESIGN.md`, which also covers diagrams).
 
-## Checks
+## Hosting
+
+GitHub Pages serves the static export built by `.github/workflows/docs-pages.yml`.
+Keep `output: 'export'`, directory indexes, the build-time `NEXT_PUBLIC_BASE_PATH`, and
+Fumadocs' standard static search (`search.json`, `staticGET`, built-in search options).
+Use Next.js links for navigation; raw asset/fetch URLs must include the base path.
+Keep the explicit Markdown exports; server proxies and request-time APIs cannot run on Pages.
+`NEXT_PUBLIC_SITE_URL` connects the website and live demo on Vercel. Local docs stay on 3002.
+Use `NEXT_BUILD_DIR=.next-build` for production checks while the dev preview is running.
+
+## Verification
 
 From the repository root: `npm run build:docs` and `npm test --workspace @bitakit/docs`. For
 visible changes, open the page with `npm run dev:docs` (port 3002) and check navigation,

@@ -229,6 +229,10 @@ which shows the key while empty; `false` turns it off.
 
 ### URL Actions
 
+The fixed `app-preferences.settings` destination is included in the public `ActionMap` and
+takes no input. It can be bound directly with `ActionLink` in strict generated apps.
+Use `slots: []` when the host supplies its own placement instead of Shell's main navigation.
+
 The plugin's setup projects the catalog into the ActionList, so Quick Search and navigation need
 no settings code:
 

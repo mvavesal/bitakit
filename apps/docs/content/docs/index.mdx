@@ -18,13 +18,6 @@ BitaKit is not another framework. It sits on top of the one you already use, thr
 Work through predictable **file conventions**, or compose the same definitions directly with
 the **TypeScript API**. Both use the same plugin model and runtime.
 
-## The problem it solves
-
-As an app grows, each new feature tends to edit shared files: a route list, a menu, a provider
-tree, an event bus, a settings screen. Every edit is small, but it changes code that someone else
-owns, and that is where people and coding agents collide. BitaKit gives those shared mechanisms
-one owner and every feature one folder, so a new feature is mostly new files.
-
 ## Humans and AI agents, one structure
 
 - **The path is the ID.** `src/plugins/notes/actions/archive.ts` is the Action `notes.archive`;
@@ -47,20 +40,12 @@ one owner and every feature one folder, so a new feature is mostly new files.
 | A sandbox               | Plugins are trusted code in the same app. A failing plugin is reported at startup and a failing slot component is contained, but plugins are not isolated from each other. |
 | A backend               | Plugins run in your client app. Server-side plugins are planned, not shipped.                                                                                              |
 
-## Why BitaKit?
+## Is it a fit?
 
-Around every feature, an app needs navigation entries, central management of UI actions and
-their state, guards, confirmations, feedback, interception, persisted app settings and
-configuration, events and places where other features add UI. Without a shared structure,
-that repetitive code is written, read back, debugged and tested again for each feature, which
-costs a coding agent many tokens and makes parallel work collide in shared files. BitaKit
-provides those mechanisms once, tested, so an extension like an export Action in another plugin's
-toolbar is one file of about 200 tokens.
-
-[Read more: what it saves, with measured numbers →](/docs/why-bitakit)
-
-BitaKit is useful when several features need these shared conventions. A small page can stay
-small: you do not need every capability, an optional UI package or a full manifest to start.
+BitaKit is useful when several features need shared conventions. A small page can stay small:
+you do not need every capability, an optional UI package or a full manifest to start.
+See [Why BitaKit?](/docs/why-bitakit) for the benefits, measured examples, estimation assumptions
+and tradeoffs before choosing it for a project.
 
 ## Files first, APIs when you need them
 

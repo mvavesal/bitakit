@@ -18,7 +18,7 @@ export function Figure({ name }: { name: FigureName }) {
         <img
           className="block h-auto w-full dark:hidden"
           style={{ minWidth: Math.round(width * 0.75) }}
-          src={`/diagrams/${name}-light.svg`}
+          src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/diagrams/${name}-light.svg`}
           width={width}
           height={height}
           alt={alt}
@@ -26,7 +26,7 @@ export function Figure({ name }: { name: FigureName }) {
         <img
           className="hidden h-auto w-full dark:block"
           style={{ minWidth: Math.round(width * 0.75) }}
-          src={`/diagrams/${name}-dark.svg`}
+          src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/diagrams/${name}-dark.svg`}
           width={width}
           height={height}
           alt={alt}

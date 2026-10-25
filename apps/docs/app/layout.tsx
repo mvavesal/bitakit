@@ -9,9 +9,19 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="site-theme" suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
-        <RootProvider>{children}</RootProvider>
+        <RootProvider
+          theme={{ defaultTheme: 'dark', storageKey: 'bitakit-site-theme' }}
+          search={{
+            options: {
+              type: 'static',
+              api: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/search.json`,
+            },
+          }}
+        >
+          {children}
+        </RootProvider>
       </body>
     </html>
   );

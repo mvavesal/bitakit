@@ -9,11 +9,12 @@ confirmation before operations run, interception of operations, app settings and
 configuration that persist, theming, layouts and error screens. Usually you, or your coding agent,
 write it again for each app and touch it again for each feature.
 
-BitaKit is a composition layer on top of Next.js that ships those parts once, tested. Every
-feature is a plugin in its own folder that meets the rest only through explicit contracts. You
-and your agent write the feature; the app around it is already there.
+BitaKit provides those shared mechanisms so feature work can stay local. This page compares
+the code and coordination that approach can save, the assumptions behind the estimates, and
+the cases where the structure is not worth adding.
 
-<Figure name="layers" />
+For the plugin model and where BitaKit fits in your stack, start with the
+[Introduction](/docs#what-is-bitakit).
 
 ## What you get
 

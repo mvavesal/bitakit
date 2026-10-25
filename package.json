@@ -13,6 +13,8 @@
     "pretest": "npm run build:actions",
     "dev:docs": "npm run dev --workspace @bitakit/docs",
     "build:docs": "npm run build --workspace @bitakit/docs",
+    "dev:landing": "npm run dev --workspace @bitakit/landing",
+    "build:landing": "npm run build --workspace @bitakit/landing",
     "pack": "node scripts/pack-packages.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version && npm install --package-lock-only --ignore-scripts",
@@ -29,6 +31,7 @@
   "workspaces": [
     "packages/*",
     "apps/docs",
+    "apps/landing",
     "apps/todo-preview"
   ],
   "devDependencies": {

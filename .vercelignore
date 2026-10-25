@@ -1,0 +1,11 @@
+.private/
+.agents/
+.claude/
+.codex/
+**/.env
+**/.env.*
+**/.next/
+**/.next-build/
+**/out/
+**/*.tsbuildinfo
+**/*.log

@@ -1,0 +1,10 @@
+{
+  "reports": {
+    "open": { "title": "Berichte" },
+    "page": {
+      "title": "Berichte",
+      "subtitle": "Monatliche Beispieldaten in deiner Währung und Sprache."
+    },
+    "columns": { "month": "Monat", "revenue": "Umsatz", "deals": "Gewonnene Deals" }
+  }
+}

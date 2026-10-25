@@ -175,6 +175,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `unavailable`, `replaces`, the curried builder, class/factory discovery,
   `defineURLAction`, `defineDialogAction`, `defineFormAction`. Action state lives in a
   service store.
+- Function-valued Action text returns the final presentation value; it is not looked up as a
+  translation key afterwards. Use the installed `services.i18n.translate(...)` contract when
+  a dynamic label needs localization. Keep that label in the Action, not in each UI binding.
 - Slot/group renderers pass the resolved control to `Action` or `useAction`; mapped input
   stays on that control. Bindings accept dynamic controls even when every generated Action
   returns `void`. Keep strict checks on literal IDs and known inputs. The independent
@@ -412,6 +415,23 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   the application facade. One field names a slot target everywhere: `slot` in Action placements,
   `ui.slots` and `scope.slots.attach({ slot, … })`.
 
+- The fixed `app-preferences.settings` destination is part of the public `ActionMap` and takes
+  no input. A host can configure `appPreferencesPlugin({ slots: [] })` through the generated
+  provider's `additionalPlugins` and bind that same Action in existing sidebar/header slots.
+  Do not create a duplicate Settings Action or relax strict IDs for this placement.
+- When marketing owns `/` and the app starts elsewhere, mount `SettingsRoute` with the app's
+  real `backHref` (for example `/dashboard`). The default `/` otherwise loads marketing inside
+  an embedded demo. An iframe's own root background and scrollbar theme must match its app,
+  independently of the embedding document's color scheme.
+- `AppBar` renders the `app-bar.end` slot when mounted inside the BitaKit provider, including
+  Quick Search's default trigger. Account for that when adding a secondary host banner; do not
+  accidentally duplicate application controls or register another search Action. Provider
+  placement changes slot participation even when an AppBar's explicit props stay unchanged.
+- Standard trigger wrappers using `asChild` can overwrite a Button's `data-slot` with their
+  own marker. The central control finish targets `data-slot="button"`; preserve that marker
+  on a SheetTrigger wrapping Button when the button must retain its standard border, gradient
+  and inset/drop shadows. Do not imitate those effects with local per-button CSS.
+
 ## Package boundaries
 
 - `@bitakit/core` is headless: no React, no router, no vendor imports; presentation values
@@ -492,6 +512,15 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   Use Discovery's package stylesheet metadata and one root integration path. Do not mask
   a cascade defect with per-component imports or local overrides. For loading changes,
   check native menu padding, input layout and button contrast in development and production.
+- A deliberately light nested surface inside a dark host must rebind the central
+  `--control-surface` token as well as semantic colors. The dark root resolves that alias
+  before inheritance; changing only `--background` or `--card` leaves outline controls dark.
+  Keep the existing Button variants and control-depth implementation; scope the theme tokens
+  on the surface and verify closed, open, hover and focus states in the browser.
+- Default Radix tabs must not retain the line variant's invisible underline geometry:
+  opacity alone can still enlarge scrollHeight and create a vertical scrollbar. Hide that
+  pseudo-element for the default variant; check the rendered strip and keyboard focus at
+  desktop and phone widths.
 - Check installed/packed plugin discovery: its manifest must be accessible through the
   package export used by Discovery, and styles/theme metadata must actually be collected.
   A host's manual plugin composition can hide a skipped installed package.
@@ -573,6 +602,19 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   Keep public auth forms mounted during native session revalidation on browser focus.
   Put protected pending screens after public-route handling. Test Tab, visibility refresh,
   native account switching and organization changes without replacing upstream session state.
+- A framed live demo must request the current snapshot after parent listener registration
+  and frame load; a one-time unsolicited post can arrive before parent hydration. The demo
+  bridge answers through its existing public runtime reads, with origin/source checks on
+  both sides. Do not create a second settings owner to repair a missed initial report.
+- In a Next app with separate marketing and playground root route groups, the current CLI's
+  `rootLayouts` only checks the top-level layout paths. Provider/CSS diagnostics can therefore
+  miss the valid group roots. Inspect the owning group's imports and verify the actual app
+  route; never mount a second runtime on a marketing page just to satisfy this heuristic.
+  Record the diagnostic limitation instead of reporting Doctor as passed.
+- When a deployment builds local BitaKit workspaces, run installation from the repository
+  root with development dependencies included before building packages. An install scoped to
+  the host app can omit the shared package toolchain/types even though the app itself installs.
+  Configure the deployment's existing install/build commands; do not add host runtime wiring.
 - Doctor is the place for wiring checks (missing providers for `requires`, plugin dependency
   cycles, undeclared slots, unreachable pages); add a check when a confirmed integration
   mistake can be detected mechanically. `bitakit init` wires an existing Next or TanStack app.

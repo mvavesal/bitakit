@@ -1,4 +1,5 @@
 'use client';
+export type {} from './navigation.js';
 export { SettingsRoute, type SettingsRouteProps } from './components/settings-route.js';
 export { SettingsShell, type SettingsShellProps } from './components/settings-shell.js';
 export {
