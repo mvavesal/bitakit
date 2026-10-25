@@ -81,7 +81,7 @@
         "bitakit": { "files": 2, "lines": 79, "tokens": 683 }
       },
       {
-        "capability": "Buttons: states, confirm, toasts",
+        "capability": "UI actions: shared state, guards, confirmation, feedback",
         "usual": 1200,
         "bitakit": { "files": 4, "lines": 44, "tokens": 328 }
       },
@@ -91,22 +91,22 @@
         "bitakit": { "files": 1, "lines": 5, "tokens": 54 }
       },
       {
-        "capability": "Search dialog (Mod+K)",
+        "capability": "Search (Mod+K)",
         "usual": 1100,
         "bitakit": { "files": 0, "lines": 0, "tokens": 0 }
       },
       {
-        "capability": "Saved settings and their page",
+        "capability": "App settings and their pages",
         "usual": 2200,
         "bitakit": { "files": 1, "lines": 34, "tokens": 254 }
       },
       {
-        "capability": "Themes and theme switcher",
+        "capability": "Theming",
         "usual": 1500,
         "bitakit": { "files": 1, "lines": 28, "tokens": 400 }
       },
       {
-        "capability": "Sign-in layout, 404, error screen",
+        "capability": "Layouts and error screens",
         "usual": 900,
         "bitakit": { "files": 3, "lines": 74, "tokens": 526 }
       },

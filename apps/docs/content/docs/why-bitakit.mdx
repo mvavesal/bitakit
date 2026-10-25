@@ -3,10 +3,11 @@ title: Why BitaKit?
 description: Spend your tokens and time on features, not on the app around them. What BitaKit gives you, what it saves on a Todo app, and when it is not the right tool.
 ---
 
-Every app needs the same things around its features: a frame with navigation, a search dialog,
-buttons that show progress and confirm, settings that persist, themes, a sign-in layout, 404 and
-error screens. Usually you, or your coding agent, write them again for each app and touch them
-again for each feature.
+Every app needs the same infrastructure around its features: an app frame with navigation and
+search, central management of UI actions and their state across every control, guards and
+confirmation before operations run, interception of operations, app settings and plugin
+configuration that persist, theming, layouts and error screens. Usually you, or your coding agent,
+write it again for each app and touch it again for each feature.
 
 BitaKit is a composition layer on top of Next.js that ships those parts once, tested. Every
 feature is a plugin in its own folder that meets the rest only through explicit contracts. You
@@ -22,10 +23,19 @@ and your agent write the feature; the app around it is already there.
     the gap widens with every feature you add.
   </Card>
   <Card title="A complete app with little effort" href="#a-complete-app-that-stays-flexible">
-    One command gives you the frame, settings, themes and search. Everything stays configurable.
+    One command gives you the app frame, settings, theming and search. Everything stays
+    configurable.
+  </Card>
+  <Card title="Central UI action and state management" href="#one-action-model-for-the-whole-ui">
+    Define an operation once. Every control bound to it, in menus, toolbars, pages, search and
+    shortcuts, shares its state, guards, confirmation and feedback.
+  </Card>
+  <Card title="Guards and interception" href="#one-action-model-for-the-whole-ui">
+    Decide when an operation may run, and gate or observe operations you do not own, from your own
+    folder.
   </Card>
   <Card title="Anyone can extend your app" href="#anyone-can-extend-your-app">
-    A plugin adds pages, buttons, settings and UI in the places you offer, without editing your
+    A plugin adds pages, Actions, settings and UI in the places you offer, without editing your
     code.
   </Card>
   <Card title="Work together without conflicts" href="#work-together-without-conflicts">
@@ -41,20 +51,21 @@ and your agent write the feature; the app around it is already there.
 
 ## The same Todo app, two ways
 
-Take a Todo app with what users expect today: the list, buttons that show progress and ask before
-deleting, a frame with navigation, a Mod+K search dialog, saved settings with a settings page, themes,
-a sign-in layout and 404 and error screens.
+Take a Todo app with what users expect today: the list; operations whose state stays in sync
+everywhere they appear, with guards, a confirmation before deleting and feedback when they finish;
+an app frame with navigation; Mod+K search; app settings with their pages; theming; a sign-in
+layout and 404 and error screens.
 
 <Figure name="todo-comparison" />
 
-|                                             | Hand-written (estimate)                    | With BitaKit                               |
-| ------------------------------------------- | ------------------------------------------ | ------------------------------------------ |
-| Code your agent writes                      | ≈14,200 tokens                             | **2,245 tokens** (measured)                |
-| Agent session, reading and retries included | ≈710,000 tokens                            | **≈210,000 tokens**                        |
-| AI cost at Claude Opus 5.5 list prices      | ≈$4.00                                     | **≈$1.20**                                 |
-| A developer without an agent                | 2–3 days                                   | **2–4 hours**                              |
-| Shared files every new feature edits        | Menu, search dialog, settings page, routes | **None**                                   |
-| Infrastructure tests to write and maintain  | Settings, themes, search, dialogs, toasts  | **None**: the packages ship with 555 tests |
+|                                             | Hand-written (estimate)                     | With BitaKit                               |
+| ------------------------------------------- | ------------------------------------------- | ------------------------------------------ |
+| Code your agent writes                      | ≈14,200 tokens                              | **2,245 tokens** (measured)                |
+| Agent session, reading and retries included | ≈710,000 tokens                             | **≈210,000 tokens**                        |
+| AI cost at Claude Opus 5.5 list prices      | ≈$4.00                                      | **≈$1.20**                                 |
+| A developer without an agent                | 2–3 days                                    | **2–4 hours**                              |
+| Shared files every new feature edits        | Menu, search, settings pages, routes        | **None**                                   |
+| Infrastructure tests to write and maintain  | UI state, guards, settings, theming, search | **None**: the packages ship with 555 tests |
 
 That is the first app. The real difference comes after it.
 
@@ -112,25 +123,26 @@ contexts shows that models [grow less reliable as their input gets longer](https
 GitClear's analysis of changed code found that [copy-pasted code now exceeds moved, refactored code](https://www.gitclear.com/ai_assistant_code_quality_2025_research),
 and the Thoughtworks Technology Radar warns that agents [accelerate drift from the intended architecture](https://www.thoughtworks.com/radar/techniques/architecture-drift-reduction-with-llms)
 by copying whatever patterns they find. BitaKit answers each of these with a mechanism, not a
-convention someone has to remember:
+convention someone has to remember. [Goals and research](/docs/motivation) explains each goal
+with its sources.
 
-| Problem in a large app                                                                      | What BitaKit does                                                                                                                                       |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The agent has to read more and more of the codebase, and gets worse at it                   | A task fits in one plugin folder, its `AGENTS.md` and the contracts it uses. The skill opens its references only for the task at hand.                  |
-| Every feature brings its own toasts, confirm dialogs, stores and settings forms             | These exist once, in tested packages. An Action declares `confirm`, `success` and `enabled`; a setting is one line in `settings.ts`.                    |
-| Agents copy whatever pattern they find, so the architecture drifts                          | There is one shape per kind of thing (`defineAction`, `defineSettings`, slots). `npx bitakit add` writes it in the right place; types reject wrong IDs. |
-| Parallel developers and agents edit the same menu, routes and registries                    | There is no shared registry. Features meet only through services, events, slots and settings.                                                           |
-| Features reach into each other's internals and shared stores                                | Services have typed contracts (`provides`, `requires`); `npx bitakit doctor` names a contract nobody provides.                                          |
-| A rule over all operations (duplicates, permissions, tracing) is patched into every handler | An interceptor in its own folder gates or observes any Action or service call.                                                                          |
-| One broken component takes the whole page down                                              | `<PluginSlot>` renders each entry inside its own error boundary; the rest of the page keeps working.                                                    |
-| Vendor SDKs for auth, data or content spread through every feature                          | Integrations are plugins behind contracts, so features use `auth` or a data service, not the vendor's SDK.                                              |
-| Features look, behave and read differently                                                  | One frame, theme tokens and layouts for all; each plugin ships its own translations, merged by discovery.                                               |
-| Nobody knows any more what the app contains                                                 | `npx bitakit info --json` lists every plugin, Action, service, event, slot and setting; `npx bitakit slots` shows where UI can go.                      |
+| Problem in a large app                                                                         | What BitaKit does                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The agent has to read more and more of the codebase, and gets worse at it                      | A task fits in one plugin folder, its `AGENTS.md` and the contracts it uses. The skill opens its references only for the task at hand.                  |
+| Every feature reimplements UI state, guards, confirmation, feedback, stores and settings forms | These exist once, in tested packages. An Action declares `enabled`, `confirm` and `success`; a setting is one line in `settings.ts`.                    |
+| Agents copy whatever pattern they find, so the architecture drifts                             | There is one shape per kind of thing (`defineAction`, `defineSettings`, slots). `npx bitakit add` writes it in the right place; types reject wrong IDs. |
+| Parallel developers and agents edit the same menu, routes and registries                       | There is no shared registry. Features meet only through services, events, slots and settings.                                                           |
+| Features reach into each other's internals and shared stores                                   | Services have typed contracts (`provides`, `requires`); `npx bitakit doctor` names a contract nobody provides.                                          |
+| A rule over all operations (duplicates, permissions, tracing) is patched into every handler    | An interceptor in its own folder gates or observes any Action or service call.                                                                          |
+| One broken component takes the whole page down                                                 | `<PluginSlot>` renders each entry inside its own error boundary; the rest of the page keeps working.                                                    |
+| Vendor SDKs for auth, data or content spread through every feature                             | Integrations are plugins behind contracts, so features use `auth` or a data service, not the vendor's SDK.                                              |
+| Features look, behave and read differently                                                     | One frame, theme tokens and layouts for all; each plugin ships its own translations, merged by discovery.                                               |
+| Nobody knows any more what the app contains                                                    | `npx bitakit info --json` lists every plugin, Action, service, event, slot and setting; `npx bitakit slots` shows where UI can go.                      |
 
 ## A complete app that stays flexible
 
-One command creates a Next.js app with the frame, a settings area, light and dark themes, a
-Mod+K search dialog and, if you like, the Todo sample:
+One command creates a Next.js app with the app frame, a settings area, light and dark theming,
+Mod+K search and, if you like, the Todo sample:
 
 ```npm
 npm create @bitakit/app@latest my-app -- --framework next --sample --yes
@@ -140,6 +152,34 @@ None of it is a fixed template. Each part is a package with settings, slots and 
 screens, so you change it from your own files instead of forking it. Every plugin you add plugs
 into the same frame: one navigation Action puts its page in the menu and in search, and its
 `settings.ts` gets a settings page.
+
+## One action model for the whole UI
+
+Most UI work is not drawing a control. It is keeping operations and their state consistent:
+whether an operation is available, visible, running or done, whether it needs a confirmation, what
+the user sees when it succeeds or fails, and whether it may run at all. Hand-written, that state
+is copied into every menu entry, toolbar, page and shortcut that triggers the operation, and it
+drifts apart.
+
+In BitaKit an **Action** owns it once:
+
+| Concern                 | Declared once in the Action, applied everywhere                                                       |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| UI state                | `title`, `icon`, `enabled`, `visible`, recomputed when the services they read change                  |
+| Execution state         | Pending state and `concurrency`, shared by every bound control                                        |
+| Guards and confirmation | `enabled` and `visible` rules, `confirm` before the operation runs                                    |
+| Feedback                | `success` and `failure` messages                                                                      |
+| Placement               | `slots` puts it in menus and toolbars; pages bind it with `<Action>`; search finds navigation Actions |
+| Interception            | Interceptors in other folders gate or observe Actions and observe service calls                       |
+
+Every control bound to the Action, wherever it is, reads the same current state, so a rule
+changed in one file changes everywhere. App settings work the same way: declared once in
+`settings.ts`, persisted through one storage contract and given a generated page. Plugins read
+their configuration from `src/configs/<plugin>.ts`.
+
+<Figure name="action-loop" />
+
+See [Actions](/docs/concepts/actions) and [Run an operation](/docs/guides/run-an-operation).
 
 ## Anyone can extend your app
 
@@ -156,7 +196,7 @@ without editing it:
 | ---------- | -------------------------------------------------------------------------------- | ----: | -----: |
 | `notes`    | The feature: service, event, setting, two slots, page, search source             |    10 |  1,359 |
 | `activity` | A feed below the notes and a count in the header, from the `notes.changed` event |     3 |    357 |
-| `export`   | An "Export as Markdown" button in the notes toolbar                              |     1 |    207 |
+| `export`   | An "Export as Markdown" Action in the notes toolbar                              |     1 |    207 |
 | `guard`    | Skips duplicate notes and traces every notes call                                |     2 |    202 |
 
 <PluginSizes />
@@ -205,7 +245,7 @@ See [Layouts and screens](/docs/guides/layouts-and-screens) and
 ## Made for coding agents
 
 - **One place per task.** `AGENTS.md` maps each task to a path: a page goes to `ui/pages/`, a
-  button to `actions/`, a preference to `settings.ts`.
+  operation to `actions/`, a preference to `settings.ts`.
 - **Commands instead of guesses.** `npx bitakit add` creates the file in the right place,
   `npx bitakit info --json` lists every ID, `npx bitakit slots` shows where UI can go.
 - **Checked results.** Generated types and `doctor` turn a wrong name into an error with the fix,
@@ -224,17 +264,17 @@ the task at hand). See [Work with AI coding agents](/docs/guides/ai-agents).
 An app created with Shell, Settings and Quick Search runs on these packages. Read the token counts
 as sizes, not exact bills: other models' tokenizers count somewhat differently.
 
-| Package                                | Source files |      Lines |       Tokens |   Tests |
-| -------------------------------------- | -----------: | ---------: | -----------: | ------: |
-| Core (runtime, Actions, settings)      |           67 |      9,633 |       81,840 |     258 |
-| UI (React bindings, components)        |           73 |      5,933 |       49,614 |      90 |
-| Discovery (file conventions, types)    |           15 |      2,903 |       28,519 |       ¹ |
-| Next.js adapter                        |            9 |        112 |        1,020 |      31 |
-| Shell (frame, layouts, themes, toasts) |           34 |      4,495 |       43,377 |      48 |
-| App Preferences (Settings pages)       |           40 |      3,506 |       27,772 |      48 |
-| Quick Search                           |           18 |      1,420 |       11,230 |      16 |
-| CLI (add, doctor, slots, info)         |           15 |      4,187 |       41,544 |      64 |
-| **Total**                              |      **271** | **32,189** | **≈285,000** | **555** |
+| Package                                        | Source files |      Lines |       Tokens |   Tests |
+| ---------------------------------------------- | -----------: | ---------: | -----------: | ------: |
+| Core (runtime, Actions, settings)              |           67 |      9,633 |       81,840 |     258 |
+| UI (React bindings, components)                |           73 |      5,933 |       49,614 |      90 |
+| Discovery (file conventions, types)            |           15 |      2,903 |       28,519 |       ¹ |
+| Next.js adapter                                |            9 |        112 |        1,020 |      31 |
+| Shell (frame, layouts, theming, notifications) |           34 |      4,495 |       43,377 |      48 |
+| App Preferences (Settings pages)               |           40 |      3,506 |       27,772 |      48 |
+| Quick Search                                   |           18 |      1,420 |       11,230 |      16 |
+| CLI (add, doctor, slots, info)                 |           15 |      4,187 |       41,544 |      64 |
+| **Total**                                      |      **271** | **32,189** | **≈285,000** | **555** |
 
 ¹ Discovery's tests run in Core's suite.
 
@@ -261,5 +301,8 @@ rendering and deployment, and a plugin is plain TypeScript and React in your rep
   </Card>
   <Card title="Open the sample apps" href="/docs/examples">
     From a counter to four plugins working together.
+  </Card>
+  <Card title="Read the research" href="/docs/motivation">
+    The goals behind the design and the studies they rest on.
   </Card>
 </Cards>

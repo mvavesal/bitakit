@@ -1,6 +1,6 @@
 ---
 title: 8. Extend from a second plugin
-description: Add a History plugin that reacts to the Counter and adds a button to its toolbar, without editing the Counter.
+description: Add a History plugin that reacts to the Counter and adds an Action to its toolbar, without editing the Counter.
 ---
 
 Continue with [the Counter and its toolbar](/docs/concepts/slots). So far one plugin did
@@ -28,7 +28,7 @@ export default defineService(({ store, events }) => {
 The service is **`history.log`**. The listener belongs to it, so it ends when the History plugin
 stops. `data` is a `number`, the payload type the Counter declared.
 
-## 2. Add a button to the Counter's toolbar
+## 2. Add an Action to the Counter's toolbar
 
 Create `src/plugins/history/actions/clear.ts`:
 

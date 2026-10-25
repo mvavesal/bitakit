@@ -1,9 +1,9 @@
 ---
 title: Extend another plugin
-description: Add a button to another plugin's toolbar, a widget below its list or in the app header, from your own folder.
+description: Add an Action to another plugin's toolbar, a widget below its list or in the app header, from your own folder.
 ---
 
-**Goal:** a notes feature that other plugins extend, a button in its toolbar, a feed below
+**Goal:** a notes feature that other plugins extend, an Action in its toolbar, a feed below
 its list and a count in the header, while the notes folder stays unchanged after the first step.
 
 **You need** an app with Shell. The finished code is the [Workspace sample](/docs/examples#workspace),
@@ -73,7 +73,7 @@ From here on, the notes folder does not change.
 </Step>
 <Step>
 
-### Add a button to the toolbar (another plugin)
+### Add an Action to the toolbar (another plugin)
 
 The `export` plugin places its Action in `notes.toolbar`. `requires` turns a missing
 `notes.list` service into a clear startup error.

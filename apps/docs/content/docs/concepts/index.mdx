@@ -6,16 +6,16 @@ description: Build one feature, then choose the capabilities it needs.
 Start with a working app, then grow one **Counter** plugin. Each step adds just one idea.
 If you want the overview first, read [What is BitaKit?](/docs#what-is-bitakit).
 
-| Level        | Step                                                    | What you build                                                              |
-| ------------ | ------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Basic        | [1. Create an app](/docs/quickstart)                    | An application with BitaKit connected.                                      |
-| Basic        | [2. Add a page](/docs/concepts/plugins)                 | A Counter page from one file.                                               |
-| Basic        | [3. Add state](/docs/concepts/services)                 | One shared value and a method to change it.                                 |
-| Basic        | [4. Add a button](/docs/concepts/actions)               | An Action that increments the count.                                        |
-| Intermediate | [5. Add a preference](/docs/concepts/settings)          | A saved setting; App Preferences renders its page.                          |
-| Advanced     | [6. Announce what happened](/docs/concepts/events)      | A typed event other plugins can listen to.                                  |
-| Advanced     | [7. Add an extension point](/docs/concepts/slots)       | A toolbar other plugins can add buttons to.                                 |
-| Advanced     | [8. Extend from a second plugin](/docs/concepts/extend) | A second plugin that reacts and adds a button, without editing the Counter. |
+| Level        | Step                                                    | What you build                                                               |
+| ------------ | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Basic        | [1. Create an app](/docs/quickstart)                    | An application with BitaKit connected.                                       |
+| Basic        | [2. Add a page](/docs/concepts/plugins)                 | A Counter page from one file.                                                |
+| Basic        | [3. Add state](/docs/concepts/services)                 | One shared value and a method to change it.                                  |
+| Basic        | [4. Add an Action](/docs/concepts/actions)              | An Action that increments the count.                                         |
+| Intermediate | [5. Add a preference](/docs/concepts/settings)          | A saved setting; App Preferences renders its page.                           |
+| Advanced     | [6. Announce what happened](/docs/concepts/events)      | A typed event other plugins can listen to.                                   |
+| Advanced     | [7. Add an extension point](/docs/concepts/slots)       | A toolbar other plugins can add Actions to.                                  |
+| Advanced     | [8. Extend from a second plugin](/docs/concepts/extend) | A second plugin that reacts and adds an Action, without editing the Counter. |
 
 The Basic steps are a working feature. Settings come next; events and slots matter once other
 plugins should react to or extend your feature.
@@ -37,7 +37,7 @@ It shows how the layers fit together and links to the relevant step and state di
 | Slot    | Names a place in your UI where other plugins can add content     |
 
 ```text
-Button → Action → Service → Store
+Control → Action → Service → Store
                              ↓
                            Page
 ```

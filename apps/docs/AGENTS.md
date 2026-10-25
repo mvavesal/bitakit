@@ -21,7 +21,7 @@ between sections.
 
 | Section (sidebar)    | Kind                          | Where                                                                                       |
 | -------------------- | ----------------------------- | ------------------------------------------------------------------------------------------- |
-| Get started          | Explanation and first lessons | `index.mdx`, `why-bitakit.mdx`, `quickstart.mdx`, the Counter lessons in `concepts/` (`concepts/meta.json`), `examples.mdx` |
+| Get started          | Explanation and first lessons | `index.mdx`, `why-bitakit.mdx`, `motivation.mdx`, `quickstart.mdx`, the Counter lessons in `concepts/` (`concepts/meta.json`), `examples.mdx` |
 | How-to guides        | Recipes for one task          | `guides/*.mdx`; `guides/meta.json` also lists how-to pages kept elsewhere                   |
 | Concepts             | Explanation                   | `explanation/meta.json` lists pages in `concepts/`                                          |
 | Reference            | Lookup                        | `reference/*.mdx`, `cli.mdx`, `packages.mdx`, `plugins.mdx`, `integrations.mdx`             |
@@ -39,6 +39,11 @@ and `description` frontmatter.
   result), then options in a short table. Show complete files with a `title="src/..."` path.
 - **Explanation:** the problem first, then why the design solves it. State numbers only when
   they are measured (`npm run measure:onboarding` in the repository root) and say how.
+- **Research:** `motivation.mdx` ("Goals and research") collects the studies behind BitaKit's
+  goals. Add every new finding in that direction there, for or against a goal: one or two
+  sentences under the goal with a numbered reference, and the full reference (authors, linked
+  title, venue, date, what was measured) in its list. Other pages link to it instead of
+  repeating the evidence.
 - **Reference:** tables of properties and IDs; no narrative.
 
 ## Code in pages

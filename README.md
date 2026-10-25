@@ -41,7 +41,7 @@ cd my-app && npm run dev
 Open [localhost:3000](http://localhost:3000). There is no configuration to edit.
 
 **3. Add your first feature.** A folder under `src/plugins/` is a feature; each file's path is
-its ID. Three small files give a page, shared state and a button:
+its ID. Three small files give a page, shared state and an Action:
 
 ```text
 src/plugins/counter/
@@ -166,7 +166,7 @@ Every kind of change has exactly one place, so a person and a coding agent find 
 | Basic        | 1    | A new app                                | [Quickstart](apps/docs/content/docs/quickstart.mdx)      |
 | Basic        | 2    | The one-file Counter page                | [Plugins](apps/docs/content/docs/concepts/plugins.mdx)   |
 | Basic        | 3    | One value and one method                 | [Services](apps/docs/content/docs/concepts/services.mdx) |
-| Basic        | 4    | A button that increments it              | [Actions](apps/docs/content/docs/concepts/actions.mdx)   |
+| Basic        | 4    | An Action that increments it             | [Actions](apps/docs/content/docs/concepts/actions.mdx)   |
 | Intermediate | 5    | One saved preference                     | [Settings](apps/docs/content/docs/concepts/settings.mdx) |
 | Advanced     | 6    | An event other plugins can listen to     | [Events](apps/docs/content/docs/concepts/events.mdx)     |
 | Advanced     | 7    | A toolbar other plugins can extend       | [Slots](apps/docs/content/docs/concepts/slots.mdx)       |

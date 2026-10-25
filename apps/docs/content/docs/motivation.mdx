@@ -1,0 +1,161 @@
+---
+title: Goals and research
+description: The six goals behind BitaKit's design, the research and practice each one rests on, and how BitaKit meets it. With references.
+---
+
+BitaKit's design follows from a handful of problems that appear whenever an app grows, and more
+so when coding agents write much of it. This page states each goal, what research and practice
+say about the problem behind it, and the mechanism BitaKit uses. [Why BitaKit?](/docs/why-bitakit)
+shows what that saves in tokens and time.
+
+We add new findings in this direction as we find them, including findings that challenge a goal.
+The [references](#references) list every source with what it measured.
+
+## The goals
+
+| Goal                                                        | In one sentence                                                          |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [Small context](#1-keep-the-context-a-task-needs-small)     | Everything a task needs fits in one folder and a few contracts.          |
+| [Build once](#2-build-the-infrastructure-once)              | UI state, guards, interception, settings and theming exist once, tested. |
+| [No drift](#3-make-the-right-structure-the-easy-one)        | The right place and shape for code is the one the tools produce.         |
+| [Parallel work](#4-let-people-and-agents-work-in-parallel)  | People and agents own folders, not shared files.                         |
+| [Explicit contracts](#5-connect-features-through-contracts) | Features meet through declared services, events, slots and settings.     |
+| [Small, checked changes](#6-ship-small-checked-changes)     | Each change is local, typed, checked and isolated when it fails.         |
+
+## 1. Keep the context a task needs small
+
+**What research shows.** Language models get less reliable as their input grows. Chroma tested 18
+models on deliberately simple tasks and found that performance degrades with input length, often
+in non-uniform ways [[1]](#ref-1). Liu et al. found that models use information at the start and
+end of a long context better than information in the middle, even models built for long
+contexts [[2]](#ref-2). Anthropic's guidance for agents treats context as a finite resource with
+diminishing returns and recommends loading it just in time: keep paths and identifiers, and let
+the agent open what it needs as it goes [[3]](#ref-3).
+
+**What BitaKit does.** A feature is one folder, and the path is the ID: `notes/actions/add.ts` is
+the Action `notes.add`. A task usually needs that folder, its `AGENTS.md` and the contracts it
+uses, not the rest of the app. The generated rules are about 800 tokens; the BitaKit skill opens
+its focused references only for the task at hand; every package explains itself in its own
+`AGENTS.md`. `npx bitakit info --json` answers "what exists?" without reading source files.
+
+## 2. Build the infrastructure once
+
+**What research shows.** GitClear's analysis of changed code from 2020 to 2024 found that
+copy-pasted lines now exceed moved, refactored lines, and that duplicated blocks have grown
+several-fold as AI assistants spread [[4]](#ref-4). The data comes from a vendor and shows a
+correlation, but it matches what happens when every feature reimplements its own UI state,
+guards, confirmation, feedback, stores and settings forms.
+
+**What BitaKit does.** This infrastructure exists once, in packages covered by 555 tests.
+Actions are the central UI action and state management: an Action declares its availability,
+guards, confirmation, concurrency and feedback once, and every control bound to it, in menus,
+toolbars, pages, search and shortcuts, shows the same state. Interceptors gate or observe
+operations from their own folder. App settings are one `setting({ default })` each, persisted
+through one storage contract with a generated page; plugin configuration lives in
+`src/configs/`; theming is JSON; layouts and screens are files. Your agent writes the feature,
+not another copy of the infrastructure.
+
+## 3. Make the right structure the easy one
+
+**What research shows.** The Thoughtworks Technology Radar warns that coding agents can
+accelerate drift from the intended architecture, and that unchecked drift compounds because
+agents and people copy existing patterns, degraded ones included [[5]](#ref-5). Its suggested
+countermeasure combines deterministic checks with guidance for the model.
+
+**What BitaKit does.** There is one shape per kind of thing: `defineAction`, `defineService`,
+`defineSettings`, slots and events. `npx bitakit add` writes each in the right place. Discovery
+generates the types for every ID, so `npm run typecheck` rejects a wrong name, and
+`npx bitakit doctor` reports a slot or service that nobody provides. The structure is checked,
+not only described.
+
+## 4. Let people and agents work in parallel
+
+**What research and practice show.** Team Topologies argues that a team should own a part of the
+system that fits its cognitive load, and that each part needs a clear owner [[6]](#ref-6). The
+same holds for agents. Separate checkouts, such as git worktrees, keep agents from overwriting
+each other while they work, but two changes to the same file still meet at merge time.
+
+**What BitaKit does.** There is no route list, menu file or registry that every feature edits.
+Each feature lives in `src/plugins/<name>/`, a developer or an agent owns that folder, and
+extensions add UI to another plugin from their own folder. Two features rarely touch the same
+lines, so their pull requests rarely conflict.
+
+## 5. Connect features through contracts
+
+**What research shows.** Parnas showed in 1972 that the criteria for dividing a system into
+modules decide how flexible and understandable it is, and that a good module hides a design
+decision that is likely to change behind an interface [[7]](#ref-7). Shared state and direct
+imports into another module's internals do the opposite: they spread that decision through the
+app.
+
+**What BitaKit does.** Features meet only through declared contracts: a service with `provides`
+and `requires`, an event, a slot or a setting. The decision stays inside its plugin. The same
+holds for vendors: integrations such as Better Auth are plugins behind the `auth` contract, so
+features depend on the contract, not on the vendor's SDK.
+
+## 6. Ship small, checked changes
+
+**What research shows.** The 2024 DORA report found that more AI adoption went with an estimated
+7.2% drop in delivery stability and a 1.5% drop in throughput, and pointed back to the basics:
+small batch sizes and robust testing [[8]](#ref-8). In an early-2025 randomized trial by METR,
+experienced developers working in large repositories they knew well took 19% longer with AI
+tools, while believing they were about 20% faster [[9]](#ref-9). METR's 2026 follow-up considers
+that result historical: developers are probably sped up now, but measuring by how much has
+become hard [[10]](#ref-10). Both point the same way: speed has to be measured, not assumed.
+
+**What BitaKit does.** A feature is a small change in one folder, checked by generated types,
+`doctor` and the packages' own tests. When a plugin's component fails, `<PluginSlot>` contains the
+error to that entry and the rest of the page keeps working. Deleting a plugin folder removes the
+feature without editing anything else. The numbers on [Why BitaKit?](/docs/why-bitakit) say
+which ones are measured and which are estimates, and `npm run measure:onboarding` reproduces
+them.
+
+## References
+
+Last reviewed in October 2026. Vendor data is marked as such.
+
+1. <span id="ref-1" /> Kelly Hong, Anton Troynikov and Jeff Huber. [Context Rot: How Increasing
+   Input Tokens Impacts LLM Performance](https://www.trychroma.com/research/context-rot). Chroma
+   technical report, 14 July 2025. 18 models, controlled tasks; performance falls as input grows.
+   Vendor research.
+2. <span id="ref-2" /> Liu, Lin, Hewitt, Paranjape, Bevilacqua, Petroni and Liang. [Lost in the
+   Middle: How Language Models Use Long Contexts](https://arxiv.org/abs/2307.03172). Transactions of
+   the ACL 12 (2024), 157–173. Peer reviewed.
+3. <span id="ref-3" /> Anthropic. [Effective context engineering for AI
+   agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents). 29
+   September 2025. Practitioner guidance: context as a finite resource, just-in-time loading.
+4. <span id="ref-4" /> GitClear. [AI Copilot Code Quality: 2025 Look Back at 12 Months of
+   Data](https://www.gitclear.com/ai_assistant_code_quality_2025_research). 211 million changed
+   lines, 2020–2024. Vendor data, correlational.
+5. <span id="ref-5" /> Thoughtworks. [Architecture drift reduction with
+   LLMs](https://www.thoughtworks.com/radar/techniques/architecture-drift-reduction-with-llms).
+   Technology Radar, April 2026. Practitioner assessment.
+6. <span id="ref-6" /> Skelton and Pais. Team Topologies. IT Revolution, 2019. Summary of the
+   cognitive-load argument: [InfoQ, July
+   2019](https://www.infoq.com/news/2019/07/team-topologies-cognitive-loa/).
+7. <span id="ref-7" /> Parnas. [On the criteria to be used in decomposing systems into
+   modules](https://doi.org/10.1145/361598.361623). Communications of the ACM 15(12), 1972,
+   1053–1058. Peer reviewed.
+8. <span id="ref-8" /> Google Cloud DORA. [Announcing the 2024 DORA
+   report](https://cloud.google.com/blog/products/devops-sre/announcing-the-2024-dora-report). 23
+   October 2024. Survey-based estimates, correlational.
+9. <span id="ref-9" /> METR. [Measuring the impact of early-2025 AI on experienced open-source
+   developer
+   productivity](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/). 10 July
+   2025. Randomized controlled trial, 16 developers, 246 tasks. METR now calls these results
+   historical.
+10. <span id="ref-10" /> METR. [We are changing our developer productivity experiment
+    design](https://metr.org/blog/2026-02-24-uplift-update/). 24 February 2026. 57 developers, 800+
+    tasks; estimates point to a speedup, with selection effects that METR says make the data weak
+    evidence.
+
+## Add a source
+
+Found research that supports or challenges one of these goals? Add it in a pull request:
+
+1. Put the finding under the goal it concerns, in one or two sentences, with the reference
+   number. If it fits no goal, propose a new goal or say why it changes an existing one.
+2. Add the full reference to the list: authors, title with link, venue and date, and what was
+   measured.
+3. Prefer primary sources. Mark vendor data and correlational results, and keep findings that
+   speak against a goal.

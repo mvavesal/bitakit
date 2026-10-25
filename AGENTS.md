@@ -197,6 +197,12 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
   in `figures.json`. Do not add Mermaid, another renderer or hand-edited SVGs.
 - Numbers about BitaKit in the docs come from `npm run measure:onboarding`; rerun it and update
   the "Why BitaKit?" page when packages or samples change noticeably.
+- Research that supports or challenges BitaKit's goals (agent context, duplication, architecture
+  drift, parallel work, contracts, delivery stability) goes into
+  `apps/docs/content/docs/motivation.mdx` ("Goals and research") whenever we find it: the finding
+  under its goal and the full reference in the list. Prefer primary sources, mark vendor data and
+  correlational results, keep findings that speak against a goal, and replace results their own
+  authors have superseded.
 
 ## Slot render recovery
 

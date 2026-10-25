@@ -104,7 +104,7 @@ const capabilities = [
     files: ['todo/src/plugins/todos/services/list.ts', 'todo/src/plugins/todos/ui/pages/index.tsx'],
   },
   {
-    capability: 'Buttons: states, confirm, toasts',
+    capability: 'UI actions: shared state, guards, confirmation, feedback',
     usual: 1200,
     files: ['add', 'toggle', 'remove', 'clear-done'].map(
       (name) => `todo/src/plugins/todos/actions/${name}.ts`,
@@ -115,15 +115,15 @@ const capabilities = [
     usual: 2000,
     files: ['todo/src/plugins/todos/actions/open.ts'],
   },
-  { capability: 'Search dialog (Mod+K)', usual: 1100, files: [] },
+  { capability: 'Search (Mod+K)', usual: 1100, files: [] },
   {
-    capability: 'Saved settings and their page',
+    capability: 'App settings and their pages',
     usual: 2200,
     files: ['settings/src/plugins/greeting/settings.ts'],
   },
-  { capability: 'Themes and theme switcher', usual: 1500, files: ['theme/src/themes/sunset.json'] },
+  { capability: 'Theming', usual: 1500, files: ['theme/src/themes/sunset.json'] },
   {
-    capability: 'Sign-in layout, 404, error screen',
+    capability: 'Layouts and error screens',
     usual: 900,
     files: [
       'layouts/src/layouts/auth/split.tsx',
@@ -175,12 +175,8 @@ const growthAssumptions = {
   turns: 25,
   usualFeature: 3000,
   usualPattern: 3000,
-  // Frame and navigation, search dialog and settings page from the comparison above.
-  usualShared: [
-    'App frame and navigation',
-    'Search dialog (Mod+K)',
-    'Saved settings and their page',
-  ]
+  // App frame and navigation, search and app settings pages from the comparison above.
+  usualShared: ['App frame and navigation', 'Search (Mod+K)', 'App settings and their pages']
     .map((name) => pairs.find((row) => row.capability === name).usual)
     .reduce((sum, value) => sum + value, 0),
   usualSharedPerFeature: 500,
