@@ -4,7 +4,7 @@
 
 # BitaKit
 
-[Website](https://bitakit-tawny.vercel.app/) · [Documentation](https://mvavesal.github.io/bitakit/docs/)
+[Website](https://bitakit.app/) · [Documentation](https://mvavesal.github.io/bitakit/docs/)
 
 **BitaKit is a composition layer for building apps with AI agents.** Every feature is a
 self-contained plugin in its own folder, and features meet only through explicit contracts. A
