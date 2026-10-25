@@ -80,13 +80,11 @@ update them with the plugins.
   Capability cards remain stationary: the original Aceternity Spotlight fades in/out over 700ms
   with spaced, subdued warm-gold dots behind the content and a stronger gold outline/glow. Lazy-load WebGL, pause after fade-out and
   omit it for reduced motion; standard Card owns geometry and spacing.
-- The hero audience label uses the standard outline Badge. It and the six capability cards
-  share Magic UI's Border Beam mask/motion-path pattern, adapted to native CSS animation and
-  the existing gold tokens. Keep the 12s badge/18s card pace, pause offscreen and on hidden
-  pages, and use a static perimeter highlight for reduced motion. Decorative layers are
-  aria-hidden and pointer-events none. Never animate the card itself or brighten its dot layer.
+- The hero audience label is plain eyebrow text. Do not add rotating perimeter lights to
+  the label or capability cards. Preserve normal component corner rounding.
 - Marketing dividers around the evidence section, in its metric columns and above the footer
-  use one thin gold line that fades from its center to both ends, with a restrained halo.
+  use one thin, low-contrast blue-gray line from the shared border token that fades from its
+  center to both ends, without a glow or halo.
   Metric separators turn horizontal on phones. Keep this treatment out of inspector/app
   boundaries; do not add extra section lines.
 - The live preview uses light-neutral desktop window chrome with decorative, non-interactive
@@ -131,6 +129,8 @@ update them with the plugins.
   topic. Removed topic selections fall back to Plugins. The inspector is beside the
   app on desktop and in normal document flow above it on narrow screens. The iframe remains
   mounted while the real source is shown. Fumadocs owns the install command and package-manager tabs.
+  The install command's scoped Fumadocs color tokens inherit the site's existing palette;
+  preserve the standard component's controls, spacing and corner rounding.
 - Numbers come from `apps/docs/components/diagrams/measurements.json` (`npm run measure:onboarding`);
   always retain the measured/estimated qualification. Do not add invented performance claims.
 - The full-page demo uses the standard AppBar with the website card surface and gold separator and a native return link to `/#playground`; it is absent inside iframes. The single `View live` link above the preview opens it in the same tab. SettingsRoute sets `backHref="/dashboard"`, since `/` belongs to marketing. AppBar height offsets the existing fixed sidebar and settings viewport through central demo CSS.

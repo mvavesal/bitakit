@@ -36,6 +36,18 @@ a:focus-visible {
   width: min(100% - 5rem, 1280px);
   margin-inline: auto;
 }
+.create-command {
+  --color-fd-card: var(--card);
+  --color-fd-secondary: var(--muted);
+  --color-fd-secondary-foreground: var(--foreground);
+  --color-fd-foreground: var(--foreground);
+  --color-fd-muted-foreground: var(--muted-foreground);
+  --color-fd-primary: var(--site-emphasis);
+  --color-fd-accent: var(--accent);
+  --color-fd-accent-foreground: var(--accent-foreground);
+  --color-fd-border: var(--border);
+  --color-fd-ring: var(--ring);
+}
 .skip-link {
   position: fixed;
   top: -5rem;
@@ -459,10 +471,9 @@ h3 {
   background: linear-gradient(
     var(--divider-direction, 90deg),
     transparent,
-    color-mix(in srgb, var(--site-emphasis) 75%, var(--foreground)) 50%,
+    color-mix(in srgb, var(--border) 60%, transparent) 50%,
     transparent
   );
-  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--site-glow) 40%, transparent));
 }
 .evidence-section::before,
 .evidence-section::after {
@@ -744,27 +755,6 @@ h3 {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* Magic UI's masked motion path keeps the light on the perimeter, with no card movement. */
-.site-border-beam-light {
-  background: linear-gradient(to left, var(--site-emphasis), var(--site-glow), transparent);
-  offset-distance: 24%;
-  animation: site-border-beam var(--beam-duration) linear infinite;
-  animation-delay: var(--beam-delay);
-}
-@keyframes site-border-beam {
-  from {
-    offset-distance: 0%;
-  }
-  to {
-    offset-distance: 100%;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .site-border-beam-light {
-    animation: none !important;
   }
 }
 
