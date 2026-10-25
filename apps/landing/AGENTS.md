@@ -111,8 +111,11 @@ update them with the plugins.
 - The playground topic strip keeps Radix selection/keyboard behavior and one shared Motion
   layoutId indicator scoped by LayoutGroup. Gold/navy marks active; inactive text is muted.
   Reduced motion changes selection instantly. Never replace it with tab/icon hover lifts.
-  The playground topic strip has no scroll container. Desktop uses one row, phones use
-  two rows with visible labels. Verify scrollHeight equals clientHeight and focus is visible.
+  At 1024px and above, the topic strip uses one row with no scroll container. Below 1024px,
+  the existing standard Select and View live link share one row, with 44px touch targets.
+  Both controls use the same topics and parent selection; do not add a mobile state store.
+  Selecting the current topic after closing its inspector must reopen it. Verify keyboard
+  selection, visible focus and no page overflow at 375px, 390px, 784px and desktop widths.
 - The playground's five topics (Plugins, Themes, Layout, Language and Code) drive the same iframe
   bridge. App-specific settings stay in the real app's Settings pages, not an outer Settings
   topic. Removed topic selections fall back to Plugins. The inspector is beside the

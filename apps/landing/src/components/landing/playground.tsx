@@ -60,7 +60,7 @@ export function Playground({ code }: { code: PluginCode[] }) {
       <ContainerScroll
         titleComponent={
           <div className="playground-toolbar">
-            <TopicTabs active={topic} onChange={selectTopic} />
+            <TopicTabs active={topic} expanded={open} onChange={selectTopic} />
             <Button asChild variant="ghost" size="sm">
               <a href="/dashboard">
                 View live <ArrowUpRightIcon aria-hidden="true" data-icon="inline-end" />
