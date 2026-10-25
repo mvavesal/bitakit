@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/shell",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Application frame for BitaKit apps: navigation layouts, slots, appearance settings and notifications.",
   "type": "module",
   "sideEffects": [
