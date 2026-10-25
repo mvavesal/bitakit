@@ -3,6 +3,7 @@
 Owns the `/dashboard` page and the `dashboard.widgets`, `dashboard.stats` and `dashboard.toolbar` slots. `dashboard.open` contributes a navigation link to `shell.navigation`.
 
 Add widgets and toolbar Actions from the contributing feature folder. Keep this page generic; it renders the declared slots.
+Toolbar buttons use each Action's declared variant, defaulting to outline; slot order owns placement.
 
 The two wrapping flex containers own responsive sizing: equal growth per row with a 14rem
 stat basis and 16rem widget basis. A lone contribution fills the row; removed contributions
