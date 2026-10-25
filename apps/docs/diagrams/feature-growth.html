@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!-- Source of a BitaKit documentation diagram, drawn with the diagram-design skill (profile:
+     bitakit, system fonts). Edit this file, then run `npm run diagrams` to derive the dark
+     variant and export both SVGs. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The next feature, as the app grows</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #f6f8fa;
+      --color-ink: #122f4d;
+      --color-muted: #4b6279;
+      --color-accent: #9a6700;
+      --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', Georgia, serif;
+      --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400;
+      letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 760px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Estimate · BitaKit</p>
+    <h1>The next feature, as the app grows</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 760 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="feature-growth-title feature-growth-desc">
+        <title id="feature-growth-title">The next feature, as the app grows</title>
+        <desc id="feature-growth-desc">Estimated agent tokens to add one more feature, by how many features the app already has. Hand-written, the next feature costs more each time: 282K tokens for the first, 895K for the 50th, because shared menu, route, search and settings files grow. With BitaKit it stays at about 137K, since each feature is its own folder.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4b6279"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9a6700"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1f5fa8"/></marker></defs>
+        <rect width="100%" height="100%" fill="#f6f8fa"/>
+        <polygon points="83,267 186,230 299,189 413,148 526,107 640,66 640,315 526,315 413,315 299,315 186,315 83,315" fill="rgba(154,103,0,0.08)"/>
+        <line x1="72" y1="278" x2="640" y2="278" stroke="rgba(18,47,77,0.08)" stroke-width="0.8"/>
+        <text x="64" y="282" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">250K</text>
+        <line x1="72" y1="196" x2="640" y2="196" stroke="rgba(18,47,77,0.08)" stroke-width="0.8"/>
+        <text x="64" y="200" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">500K</text>
+        <line x1="72" y1="114" x2="640" y2="114" stroke="rgba(18,47,77,0.08)" stroke-width="0.8"/>
+        <text x="64" y="118" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">750K</text>
+        <line x1="72" y1="32" x2="640" y2="32" stroke="rgba(18,47,77,0.08)" stroke-width="0.8"/>
+        <text x="64" y="36" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">1M</text>
+        <text x="64" y="364" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="end">0</text>
+        <line x1="72" y1="360" x2="640" y2="360" stroke="rgba(18,47,77,0.25)" stroke-width="1"/>
+        <text x="83" y="380" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">1</text>
+        <text x="186" y="380" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">10</text>
+        <text x="299" y="380" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">20</text>
+        <text x="413" y="380" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">30</text>
+        <text x="526" y="380" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">40</text>
+        <text x="640" y="380" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle">50</text>
+        <text x="356.0" y="398" fill="#4b6279" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="middle" letter-spacing="0.14em">FEATURE NUMBER</text>
+        <text x="64" y="20" fill="#4b6279" font-size="8" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start" letter-spacing="0.14em">TOKENS PER FEATURE</text>
+        <polyline points="83,267 186,230 299,189 413,148 526,107 640,66" fill="none" stroke="#4b6279" stroke-width="1.6" stroke-linejoin="round"/>
+        <polyline points="83,315 186,315 299,315 413,315 526,315 640,315" fill="none" stroke="#9a6700" stroke-width="2.4" stroke-linejoin="round"/>
+        <circle cx="83" cy="267" r="3" fill="#f6f8fa" stroke="#4b6279" stroke-width="1.5"/>
+        <circle cx="83" cy="315" r="4" fill="#9a6700"/>
+        <circle cx="186" cy="230" r="3" fill="#f6f8fa" stroke="#4b6279" stroke-width="1.5"/>
+        <circle cx="186" cy="315" r="4" fill="#9a6700"/>
+        <circle cx="299" cy="189" r="3" fill="#f6f8fa" stroke="#4b6279" stroke-width="1.5"/>
+        <circle cx="299" cy="315" r="4" fill="#9a6700"/>
+        <circle cx="413" cy="148" r="3" fill="#f6f8fa" stroke="#4b6279" stroke-width="1.5"/>
+        <circle cx="413" cy="315" r="4" fill="#9a6700"/>
+        <circle cx="526" cy="107" r="3" fill="#f6f8fa" stroke="#4b6279" stroke-width="1.5"/>
+        <circle cx="526" cy="315" r="4" fill="#9a6700"/>
+        <circle cx="640" cy="66" r="3" fill="#f6f8fa" stroke="#4b6279" stroke-width="1.5"/>
+        <circle cx="640" cy="315" r="4" fill="#9a6700"/>
+        <text x="652" y="64" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">Hand-written</text>
+        <text x="652" y="80" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start">895K</text>
+        <text x="652" y="313" fill="#122f4d" font-size="12" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="start">BitaKit</text>
+        <text x="652" y="329" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start">137K</text>
+        <text x="91" y="257" fill="#4b6279" font-size="10" font-family="'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace" text-anchor="start">282K</text>
+        <text x="526" y="215" fill="#9a6700" font-size="11" font-family="'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif" font-weight="600" text-anchor="middle">Tokens saved on each feature</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

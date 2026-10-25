@@ -43,6 +43,16 @@
     "width": 940,
     "height": 288
   },
+  "feature-growth": {
+    "title": "The next feature, as the app grows",
+    "caption": "Estimated agent tokens to add one more feature. Hand-written, every feature edits shared files that the next one reads again, so each costs more. With BitaKit a feature is its own folder and the cost stays flat; the shaded band is the saving.",
+    "sources": [
+      "scripts/measure-onboarding.mjs",
+      "apps/docs/components/diagrams/measurements.json"
+    ],
+    "width": 760,
+    "height": 440
+  },
   "layers": {
     "title": "BitaKit is a composition layer",
     "caption": "Your framework keeps routing, rendering and deployment. BitaKit adds the contracts between features; every feature, yours or optional, is a plugin in its own folder.",
@@ -166,6 +176,16 @@
     ],
     "width": 896,
     "height": 248
+  },
+  "todo-comparison": {
+    "title": "The same Todo app, two ways",
+    "caption": "Tokens of code an agent writes for each capability, largest first. Grey: hand-written with standard libraries, our estimate. Amber: BitaKit, measured from the sample apps. Both leave out the framework scaffold.",
+    "sources": [
+      "scripts/measure-onboarding.mjs",
+      "apps/docs/components/diagrams/measurements.json"
+    ],
+    "width": 760,
+    "height": 464
   },
   "trusted-package-flow": {
     "title": "A trusted catalog becomes an active feature",

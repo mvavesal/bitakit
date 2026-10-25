@@ -58,12 +58,7 @@
       "tests": 64
     }
   ],
-  "total": {
-    "files": 271,
-    "lines": 32189,
-    "tokens": 284916,
-    "tests": 555
-  },
+  "total": { "files": 271, "lines": 32189, "tokens": 284916, "tests": 555 },
   "feature": {
     "plugins": ["todos", "activity"],
     "files": 11,
@@ -72,34 +67,127 @@
     "sharedFiles": 0
   },
   "workspace": [
-    {
-      "plugin": "activity",
-      "files": 3,
-      "lines": 40,
-      "tokens": 357
-    },
-    {
-      "plugin": "export",
-      "files": 1,
-      "lines": 22,
-      "tokens": 207
-    },
-    {
-      "plugin": "guard",
-      "files": 2,
-      "lines": 26,
-      "tokens": 202
-    },
-    {
-      "plugin": "notes",
-      "files": 10,
-      "lines": 166,
-      "tokens": 1359
-    }
+    { "plugin": "activity", "files": 3, "lines": 40, "tokens": 357 },
+    { "plugin": "export", "files": 1, "lines": 22, "tokens": 207 },
+    { "plugin": "guard", "files": 2, "lines": 26, "tokens": 202 },
+    { "plugin": "notes", "files": 10, "lines": 166, "tokens": 1359 }
   ],
-  "guide": {
-    "agentsMd": 822,
-    "skillEntry": 3044,
-    "skillReferences": 25178
+  "guide": { "agentsMd": 822, "skillEntry": 3044, "skillReferences": 25178 },
+  "comparison": {
+    "rows": [
+      {
+        "capability": "Todo feature (list, page)",
+        "usual": 1800,
+        "bitakit": { "files": 2, "lines": 79, "tokens": 683 }
+      },
+      {
+        "capability": "Buttons: states, confirm, toasts",
+        "usual": 1200,
+        "bitakit": { "files": 4, "lines": 44, "tokens": 328 }
+      },
+      {
+        "capability": "App frame and navigation",
+        "usual": 2000,
+        "bitakit": { "files": 1, "lines": 5, "tokens": 54 }
+      },
+      {
+        "capability": "Search dialog (Mod+K)",
+        "usual": 1100,
+        "bitakit": { "files": 0, "lines": 0, "tokens": 0 }
+      },
+      {
+        "capability": "Saved settings and their page",
+        "usual": 2200,
+        "bitakit": { "files": 1, "lines": 34, "tokens": 254 }
+      },
+      {
+        "capability": "Themes and theme switcher",
+        "usual": 1500,
+        "bitakit": { "files": 1, "lines": 28, "tokens": 400 }
+      },
+      {
+        "capability": "Sign-in layout, 404, error screen",
+        "usual": 900,
+        "bitakit": { "files": 3, "lines": 74, "tokens": 526 }
+      },
+      {
+        "capability": "Tests for that infrastructure",
+        "usual": 3500,
+        "bitakit": { "files": 0, "lines": 0, "tokens": 0 }
+      }
+    ],
+    "assumptions": {
+      "tokensPerCodeToken": 50,
+      "ruleTurns": 25,
+      "dollarsPerMillion": 5.6
+    },
+    "usual": { "code": 14200, "session": 710000, "dollars": 3.98 },
+    "bitakit": { "code": 2245, "session": 208900, "dollars": 1.17 }
+  },
+  "growth": {
+    "assumptions": {
+      "turns": 25,
+      "usualFeature": 3000,
+      "usualPattern": 3000,
+      "usualShared": 5300,
+      "usualSharedPerFeature": 500
+    },
+    "bitakitContext": 5497,
+    "rows": [
+      {
+        "feature": 1,
+        "usual": 282500,
+        "bitakit": 137425,
+        "usualTotal": 992500,
+        "bitakitTotal": 346325,
+        "usualDollars": 5.56,
+        "bitakitDollars": 1.94
+      },
+      {
+        "feature": 10,
+        "usual": 395000,
+        "bitakit": 137425,
+        "usualTotal": 4097500,
+        "bitakitTotal": 1583150,
+        "usualDollars": 22.95,
+        "bitakitDollars": 8.87
+      },
+      {
+        "feature": 20,
+        "usual": 520000,
+        "bitakit": 137425,
+        "usualTotal": 8735000,
+        "bitakitTotal": 2957400,
+        "usualDollars": 48.92,
+        "bitakitDollars": 16.56
+      },
+      {
+        "feature": 30,
+        "usual": 645000,
+        "bitakit": 137425,
+        "usualTotal": 14622500,
+        "bitakitTotal": 4331650,
+        "usualDollars": 81.89,
+        "bitakitDollars": 24.26
+      },
+      {
+        "feature": 40,
+        "usual": 770000,
+        "bitakit": 137425,
+        "usualTotal": 21760000,
+        "bitakitTotal": 5705900,
+        "usualDollars": 121.86,
+        "bitakitDollars": 31.95
+      },
+      {
+        "feature": 50,
+        "usual": 895000,
+        "bitakit": 137425,
+        "usualTotal": 30147500,
+        "bitakitTotal": 7080150,
+        "usualDollars": 168.83,
+        "bitakitDollars": 39.65
+      }
+    ]
   }
 }

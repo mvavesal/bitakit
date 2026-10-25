@@ -3,11 +3,13 @@
 // receives, how much code the generated Todo sample adds, and how much an agent reads to learn
 // the conventions. Tokens are counted with the open o200k tokenizer (gpt-tokenizer); other
 // models' tokenizers differ, so the counts are approximate, but every count uses the same one.
+// The "same Todo app, two ways" comparison pairs measured sample files with documented estimates.
 // Usage: node scripts/measure-onboarding.mjs [--json] [--write]
 // --write stores the result in apps/docs/components/diagrams/measurements.json for the docs charts.
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { countTokens } from 'gpt-tokenizer/encoding/o200k_base';
+import { format } from 'prettier';
 import { agentRules, bundledSkillFiles, sampleFiles } from '@bitakit/cli';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -90,6 +92,130 @@ const guide = {
     .reduce((sum, [, text]) => sum + countTokens(text), 0),
 };
 
+// The Todo app with settings, themes and layouts, two ways. The BitaKit column is measured from
+// the sample apps' own files. The usual column is an estimate, not a measurement: the same
+// capabilities hand-written on Next.js with standard libraries (shadcn/ui, next-themes, sonner,
+// cmdk and a persisted store). Both exclude the framework scaffold, which either way is generated.
+const examples = path.join(root, 'examples');
+const capabilities = [
+  {
+    capability: 'Todo feature (list, page)',
+    usual: 1800,
+    files: ['todo/src/plugins/todos/services/list.ts', 'todo/src/plugins/todos/ui/pages/index.tsx'],
+  },
+  {
+    capability: 'Buttons: states, confirm, toasts',
+    usual: 1200,
+    files: ['add', 'toggle', 'remove', 'clear-done'].map(
+      (name) => `todo/src/plugins/todos/actions/${name}.ts`,
+    ),
+  },
+  {
+    capability: 'App frame and navigation',
+    usual: 2000,
+    files: ['todo/src/plugins/todos/actions/open.ts'],
+  },
+  { capability: 'Search dialog (Mod+K)', usual: 1100, files: [] },
+  {
+    capability: 'Saved settings and their page',
+    usual: 2200,
+    files: ['settings/src/plugins/greeting/settings.ts'],
+  },
+  { capability: 'Themes and theme switcher', usual: 1500, files: ['theme/src/themes/sunset.json'] },
+  {
+    capability: 'Sign-in layout, 404, error screen',
+    usual: 900,
+    files: [
+      'layouts/src/layouts/auth/split.tsx',
+      'layouts/src/ui/slots/screen.not-found.tsx',
+      'layouts/src/ui/slots/screen.error.tsx',
+    ],
+  },
+  // BitaKit's packages ship with their tests; hand-written infrastructure needs its own.
+  { capability: 'Tests for that infrastructure', usual: 3500, files: [] },
+];
+// Rough assumptions, stated on the page: an agent session processes about 50 tokens for every
+// token of code it keeps (reading, context resent each turn, checks, retries); BitaKit's agent
+// also keeps AGENTS.md and the skill entry in context for about 25 turns; list price of Claude
+// Opus 5.5 with 90% input ($4 per million) and 10% output ($20 per million).
+const assumptions = {
+  tokensPerCodeToken: 50,
+  ruleTurns: 25,
+  dollarsPerMillion: 0.9 * 4 + 0.1 * 20,
+};
+const pairs = [];
+for (const { capability, usual, files: list } of capabilities)
+  pairs.push({
+    capability,
+    usual,
+    bitakit: measure(await read(list.map((file) => path.join(examples, file)))),
+  });
+const usualCode = pairs.reduce((sum, row) => sum + row.usual, 0);
+const bitakitCode = pairs.reduce((sum, row) => sum + row.bitakit.tokens, 0);
+const session = (code, rules) =>
+  code * assumptions.tokensPerCodeToken + rules * assumptions.ruleTurns;
+const dollars = (tokens) => Math.round((tokens / 1e6) * assumptions.dollarsPerMillion * 100) / 100;
+const usualSession = session(usualCode, 0);
+const bitakitSession = session(bitakitCode, guide.agentsMd + guide.skillEntry);
+const comparison = {
+  rows: pairs,
+  assumptions,
+  usual: { code: usualCode, session: usualSession, dollars: dollars(usualSession) },
+  bitakit: { code: bitakitCode, session: bitakitSession, dollars: dollars(bitakitSession) },
+};
+
+// How the cost of one more feature changes as the app grows. An agent session costs about
+// `turns` times what it keeps in context. BitaKit's context is measured and stays flat: the rules,
+// a complete feature (the Workspace notes plugin) and that plugin's AGENTS.md. The hand-written
+// context is an estimate: the feature with its tests, a similar feature read as the pattern to
+// copy, and the shared menu, route, search and settings files it edits, which every feature makes
+// longer. Turns are equal on both sides, although checks that name the fix usually shorten
+// BitaKit sessions.
+const growthAssumptions = {
+  turns: 25,
+  usualFeature: 3000,
+  usualPattern: 3000,
+  // Frame and navigation, search dialog and settings page from the comparison above.
+  usualShared: [
+    'App frame and navigation',
+    'Search dialog (Mod+K)',
+    'Saved settings and their page',
+  ]
+    .map((name) => pairs.find((row) => row.capability === name).usual)
+    .reduce((sum, value) => sum + value, 0),
+  usualSharedPerFeature: 500,
+};
+const notes = workspace.find((row) => row.plugin === 'notes');
+const notesGuide = countTokens(await readFile(path.join(pluginsDir, 'notes/AGENTS.md'), 'utf8'));
+const bitakitContext = guide.agentsMd + guide.skillEntry + notes.tokens + notesGuide;
+const usualContext = (n) =>
+  growthAssumptions.usualFeature +
+  growthAssumptions.usualPattern +
+  growthAssumptions.usualShared +
+  growthAssumptions.usualSharedPerFeature * (n - 1);
+const steps = [1, 10, 20, 30, 40, 50];
+let usualTotal = usualSession;
+let bitakitTotal = bitakitSession;
+const growthRows = [];
+for (let n = 1; n <= steps.at(-1); n++) {
+  const usual = usualContext(n) * growthAssumptions.turns;
+  const bitakit = bitakitContext * growthAssumptions.turns;
+  usualTotal += usual;
+  bitakitTotal += bitakit;
+  if (steps.includes(n))
+    growthRows.push({
+      feature: n,
+      usual,
+      bitakit,
+      // Including the first app from the comparison.
+      usualTotal,
+      bitakitTotal,
+      usualDollars: dollars(usualTotal),
+      bitakitDollars: dollars(bitakitTotal),
+    });
+}
+const growth = { assumptions: growthAssumptions, bitakitContext, rows: growthRows };
+
 const result = {
   tokenizer: 'o200k_base (gpt-tokenizer)',
   packages: rows,
@@ -97,12 +223,14 @@ const result = {
   feature,
   workspace,
   guide,
+  comparison,
+  growth,
 };
-if (process.argv.includes('--write'))
-  await writeFile(
-    path.join(root, 'apps/docs/components/diagrams/measurements.json'),
-    JSON.stringify(result, null, 2) + '\n',
-  );
+if (process.argv.includes('--write')) {
+  const target = path.join(root, 'apps/docs/components/diagrams/measurements.json');
+  // Formatted like every other tracked file, so `format:check` passes after a rewrite.
+  await writeFile(target, await format(JSON.stringify(result), { filepath: target }));
+}
 if (process.argv.includes('--json')) console.log(JSON.stringify(result, null, 2));
 else {
   const n = (value) => value.toLocaleString('en-US');
@@ -124,4 +252,24 @@ else {
     `Agent guide: AGENTS.md ${n(guide.agentsMd)} tokens, skill entry ${n(guide.skillEntry)}, ` +
       `references ${n(guide.skillReferences)} (read on demand).`,
   );
+  console.log(
+    '\n| Todo app capability | Usual (estimate) | BitaKit (measured) |\n| --- | --: | --: |',
+  );
+  for (const row of pairs)
+    console.log(`| ${row.capability} | ${n(row.usual)} | ${n(row.bitakit.tokens)} |`);
+  for (const [name, side] of [
+    ['Usual', comparison.usual],
+    ['BitaKit', comparison.bitakit],
+  ])
+    console.log(
+      `${name}: ${n(side.code)} code tokens, ≈${n(side.session)} session tokens, ≈$${side.dollars}.`,
+    );
+  console.log(
+    '\n| Feature | Usual next feature | BitaKit next feature | Usual so far | BitaKit so far |\n| --: | --: | --: | --: | --: |',
+  );
+  for (const row of growthRows)
+    console.log(
+      `| ${row.feature} | ${n(row.usual)} | ${n(row.bitakit)} | ${n(row.usualTotal)} ($${row.usualDollars}) | ` +
+        `${n(row.bitakitTotal)} ($${row.bitakitDollars}) |`,
+    );
 }
