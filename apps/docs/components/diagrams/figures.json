@@ -58,6 +58,7 @@
     "caption": "Your framework keeps routing, rendering and deployment. BitaKit adds the contracts between features; every feature, yours or optional, is a plugin in its own folder.",
     "sources": [
       "packages/core/src/runtime.ts",
+      "packages/core/src/interceptors/define.ts",
       "packages/discovery/src/generate.mjs",
       "packages/next/src/config.mjs"
     ],

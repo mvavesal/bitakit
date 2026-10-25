@@ -3,9 +3,15 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
 import { ShellThemeScript } from '@bitakit/shell';
 import { Providers } from '@/components/playground/providers';
+import { brandIcons } from '../../../../brand-icons';
 import './playground.css';
 
-export const metadata = { title: 'BitaKit playground', robots: { index: false } };
+export const metadata = {
+  title: 'BitaKit playground',
+  applicationName: 'BitaKit',
+  icons: brandIcons,
+  robots: { index: false },
+};
 
 /** The live BitaKit app the landing page frames. It has its own root layout and runtime. */
 export default async function PlaygroundLayout({ children }: { children: ReactNode }) {

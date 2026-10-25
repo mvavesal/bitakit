@@ -15,6 +15,10 @@ The developer handbook for BitaKit: a Fumadocs site (Next.js) whose pages are MD
 The shared website palette lives in `apps/brand-theme.css`; map Fumadocs' public color tokens
 without rebuilding its shell. Introduction owns the composition-layer overview and figure;
 Why BitaKit owns benefits, evidence, assumptions and tradeoffs, linking back for orientation.
+`apps/brand-icons.ts` owns browser/home-screen metadata for both sites. The supplied light/dark
+SVG marks stay unchanged in each app's `public/brand`; browser media selects the scheme.
+The transparent 192px fallback and 180px Apple PNGs are rendered from the light SVG with Sharp
+using contain sizing. Preserve full wordmarks in the navigation; do not add favicon observers.
 
 ## Structure (Diátaxis)
 

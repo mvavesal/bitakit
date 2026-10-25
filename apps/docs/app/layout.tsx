@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import { RootProvider } from 'fumadocs-ui/provider/next';
+import { brandIcons } from '../../brand-icons';
 import './global.css';
 
 export const metadata: Metadata = {
+  applicationName: 'BitaKit Docs',
+  icons: brandIcons,
   title: { default: 'BitaKit', template: '%s | BitaKit' },
   description: 'Build small host applications with independent BitaKit packages.',
 };
