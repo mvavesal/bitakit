@@ -21,7 +21,7 @@ export function CreateCommand() {
       defaultValue="npm"
       groupId="package-manager"
       persist
-      className="w-full max-w-xl text-left"
+      className="create-command w-full max-w-xl text-left"
     >
       <CodeBlockTabsList>
         {managers.map((manager) => (

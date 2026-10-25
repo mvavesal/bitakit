@@ -7,7 +7,6 @@ import CodeIcon from 'reicon-react/icons/Code';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@bitakit/ui/components';
 
 import { CardSpotlight } from '@/components/ui/card-spotlight';
-import { BorderBeam } from '@/components/ui/border-beam';
 
 const capabilities = [
   {
@@ -51,7 +50,7 @@ const capabilities = [
 export function Foundation() {
   return (
     <div className="capability-grid">
-      {capabilities.map(({ icon: Icon, title, text, example }, index) => (
+      {capabilities.map(({ icon: Icon, title, text, example }) => (
         <CardSpotlight key={title}>
           <CardHeader>
             <Icon aria-hidden="true" className="capability-icon" />
@@ -61,7 +60,6 @@ export function Foundation() {
           <CardContent>
             <p className="capability-example">{example}</p>
           </CardContent>
-          <BorderBeam delay={index * 3} />
         </CardSpotlight>
       ))}
     </div>

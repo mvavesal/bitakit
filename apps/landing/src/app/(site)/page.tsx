@@ -24,7 +24,6 @@ import { links } from '@/components/landing/links';
 import { Logo } from '@/components/landing/logo';
 import { Playground } from '@/components/landing/playground';
 import { StatRanking } from '@/components/landing/stat-ranking';
-import { BorderBeam } from '@/components/ui/border-beam';
 
 const { comparison, growth } = measurements;
 const last = growth.rows.at(-1)!;
@@ -58,10 +57,7 @@ export default async function Landing() {
           <div className="site-container hero-content">
             <div className="hero-intro">
               <div className="hero-eyebrow">
-                <Badge variant="outline" className="relative h-auto px-3 py-2">
-                  <span className="eyebrow">For humans & AI agents</span>
-                  <BorderBeam size={50} duration={12} />
-                </Badge>
+                <span className="eyebrow">For humans & AI agents</span>
               </div>
               <h1 id="hero-title">
                 Build ambitious apps.
