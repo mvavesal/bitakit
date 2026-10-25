@@ -34,7 +34,7 @@ export default function GalleryPage() {
           </ActionButton>
         ))}
         <Button asChild variant="ghost">
-          <a href="/settings/shell">Customize in Settings</a>
+          <a href="/settings/theme">Customize in Settings</a>
         </Button>
       </div>
       <Card>

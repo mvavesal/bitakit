@@ -77,7 +77,7 @@ export default function Checks() {
     <p>Isolated local test accounts. Data is temporary; no email is sent.</p>
     {auth.user ? <div className="flex flex-wrap gap-2"><UserButton /><OrganizationSwitcher aria-label="Switch organization" /></div> : <Auth view="signIn" />}
     <Link href="/settings/account/security">Security settings</Link>
-    <Link href="/settings/shell">Appearance settings</Link>
+    <Link href="/settings/theme">Appearance settings</Link>
     <button onClick={() => setShow(true)}>Load fixture plugin</button>
     {show && <Suspense fallback={<p>Loading plugin</p>}><Lazy /></Suspense>}
   </section>;
@@ -281,7 +281,7 @@ export async function verifyAuthStyles(page, url, artifacts, developmentTarget) 
   }
   await page.reload();
   await page.getByRole('heading', { name: 'Security', exact: true, level: 1 }).waitFor();
-  await page.goto(url + '/settings/shell');
+  await page.goto(url + '/settings/theme');
   await page.getByRole('radio', { name: 'Dark', exact: true }).click();
   await page
     .getByRole('radio', { name: 'Dark', exact: true })

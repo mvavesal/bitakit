@@ -143,8 +143,8 @@ test('the settings catalog labels the Themes and Layout pages from the Shell loc
         .filter((section) => section.category === 'appearance')
         .map(({ id, title, path }) => ({ id, title, path })),
       [
-        { id: 'shell', title: 'Themes', path: 'shell' },
-        { id: 'shell/layout', title: 'Layout', path: 'shell/layout' },
+        { id: 'shell', title: 'Themes', path: 'theme' },
+        { id: 'shell/layout', title: 'Layout', path: 'layout' },
       ],
     );
     assert.equal(

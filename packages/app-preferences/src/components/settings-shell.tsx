@@ -48,6 +48,7 @@ function Search() {
       clearLabel={messages('clearSearch')}
       value={query}
       onValueChange={setQuery}
+      shortcut
     />
   );
 }

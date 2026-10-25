@@ -750,7 +750,7 @@ copying it. Imports open as an unsaved
 personal draft with a fresh ID and save through `shell.saveThemeCopy`; no separate import store.
 The bundled array has an explicit `readonly ShellThemeInput[]` type: `satisfies` alone infers
 optional undefined token keys across heterogeneous palettes and breaks the service input type.
-Shell exposes Themes at `/settings/shell` and Layout at `/settings/shell/layout` in the same
+Shell exposes Themes at `/settings/theme` and Layout at `/settings/layout` in the same
 Appearance category; Layout reuses fields from the original Shell settings catalog.
 The live preview serves both selected themes and unsaved drafts. Its generated defaults reset
 optional effect tokens to CSS `initial`; scan multiline `var()` references as well, otherwise

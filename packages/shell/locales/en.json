@@ -188,7 +188,8 @@
         "sampleCheckbox": "Checkbox",
         "sampleRadioGroup": "Radio buttons",
         "sampleRadioOne": "Radio 1",
-        "sampleRadioTwo": "Radio 2"
+        "sampleRadioTwo": "Radio 2",
+        "tools": "Theme tools"
       }
     },
     "pages": {

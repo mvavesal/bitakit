@@ -73,6 +73,7 @@ export function shellPlugin(options: ShellOptions = {}) {
         pages: [
           {
             id: 'layout',
+            path: 'layout',
             title: 'Layout',
             description: 'Navigation, spacing and notification position.',
             icon: SidebarIcon,

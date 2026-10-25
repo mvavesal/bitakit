@@ -103,6 +103,6 @@ export function appearanceSettings(presets: readonly ShellPreset[]) {
         ],
       }),
     },
-    { title: 'Themes', icon: PaletteIcon, category: 'appearance', order: -5 },
+    { title: 'Themes', path: 'theme', icon: PaletteIcon, category: 'appearance', order: -5 },
   );
 }

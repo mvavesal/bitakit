@@ -13,8 +13,8 @@ It is a discovered plugin with the ID `shell`; create-app installs it by default
   `<ShellThemeScript />` in `<head>`. Do not add another frame or theme provider.
 - `src/configs/shell.ts` holds the options: `navigationSlot` (default `shell.navigation`),
   `themes` (extra theme objects) and `presets` (CSS presets). Unknown keys fail with their name.
-- Shell's settings render under Settings → Themes (`/settings/shell`) and Layout
-  (`/settings/shell/layout`) when `@bitakit/app-preferences` is installed.
+- Shell's settings render under Settings → Themes (`/settings/theme`) and Layout
+  (`/settings/layout`) when `@bitakit/app-preferences` is installed.
 
 ## What it provides
 
