@@ -149,6 +149,21 @@ update them with the plugins.
 - The app document owns its background, color-scheme and thin native scrollbar colors; never inherit the dark marketing track into a light iframe. Auto-hide follows browser/OS behavior.
 - Chart colors for the default app theme stay in `playground.css` (gold, slate, copper, sage, taupe); alternate themes can override them. Each plugin uses semantic chart tokens.
 - Code-tab folders and files are read from the real plugin directories. Its selector uses that loaded inventory; the bridge automatically includes new feature plugins while keeping foundation plugins protected and the original dependent startup order.
+- The Code viewer composes the existing shadcn SidebarProvider/Sidebar, ReUI Tree and the
+  local shadcn Resizable primitives. Sidebar owns its mobile Sheet, focus restoration and
+  open state; do not add a parallel mobile drawer. Disable the embedded sidebar shortcut.
+  Resizable owns desktop widths and collapse/expand restoration. Its panel's container
+  scopes Sidebar positioning and width to the code preview, never the desktop viewport.
+  The standard ghost icon-sm toggle uses the documented useSidebar binding and verified
+  Reicon SidebarLeft2/SidebarRight2 icons with Hide files/Show files labels and Tooltip.
+  The stock SidebarTrigger has fixed children, so this binding supplies the changing icon.
+  Native panel transitions reuse Sidebar's motion tokens, stop while its standard resize
+  separator is active, and respect the site's existing reduced-motion rule.
+  Selecting a mobile file closes Sidebar's Sheet. Folders start closed on load and plugin
+  changes; controlled Headless Tree expansion survives file selection and panel visibility
+  changes. Never expand selected-file ancestors automatically. Keep the title Files and
+  actual file/line totals in the compact muted footer. Theme colors come from the shared
+  site palette, including its sidebar token mappings. No extra persistence or URL state.
 - The marketing source example shows the complete `pipeline/actions/add.ts` file from that same
   inventory. Derive its filename label from the file and wrap long lines on narrow screens.
 - KPI tiles stay in `src/components/ui/stat-card.tsx`; marketing styles must not reach that document. All three stat plugins use the shared

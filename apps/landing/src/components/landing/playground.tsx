@@ -72,9 +72,7 @@ export function Playground({ code }: { code: PluginCode[] }) {
         <div className="playground-workspace" data-inspector={open || undefined}>
           <div className="playground-app">
             <MacWindow
-              title={
-                showingCode ? `src/plugins/${plugin}` : `playground${state?.path ?? '/dashboard'}`
-              }
+              title={showingCode ? 'Files' : `playground${state?.path ?? '/dashboard'}`}
               action={
                 <Button
                   ref={customize}
