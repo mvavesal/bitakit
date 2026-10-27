@@ -4,6 +4,11 @@
 
 # BitaKit
 
+[![Build](https://img.shields.io/github/actions/workflow/status/mvavesal/bitakit/release.yml?branch=main&label=build)](https://github.com/mvavesal/bitakit/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/%40bitakit%2Fcore?label=%40bitakit%2Fcore&color=EBB759)](https://www.npmjs.com/package/@bitakit/core)
+[![Node.js](https://img.shields.io/badge/node-%E2%89%A524-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-122F4D)](LICENSE)
+
 [Website](https://bitakit.app/) · [Documentation](https://mvavesal.github.io/bitakit/docs/)
 
 **BitaKit is an AI-friendly composition layer for building extensible apps—designed for
