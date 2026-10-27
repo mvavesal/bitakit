@@ -26,6 +26,16 @@ const appSettings: SettingsOf<typeof todos, ''> = {
   limit: 1,
   compact: false,
 };
+// Several of the options: a list of the option union.
+const channels = setting({
+  default: ['email'],
+  options: [{ value: 'email' }, { value: 'sms' }],
+});
+const chosen: ('email' | 'sms')[] = channels.default;
+// @ts-expect-error Each chosen value is one of the options.
+setting({ default: ['fax'], options: [{ value: 'email' }, { value: 'sms' }] });
+// A list of texts follows its default.
+const tags: string[] = setting({ default: ['a'], control: 'list' }).default;
 // @ts-expect-error The default must match the schema output.
 setting({ schema: { parse: (value: unknown) => Number(value) }, default: 'one' });
 declare module '../src/core.js' {

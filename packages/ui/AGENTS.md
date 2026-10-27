@@ -22,6 +22,11 @@ React bindings for the BitaKit runtime, plus the optional standard components
 | Translate in React              | `useTranslation()`                                                                    |
 | A contribution's props          | `SlotProps<'slot.id'>` → `{ payload, children }`                                      |
 
+A link Action inside a Radix menu item (`<DropdownMenuItem asChild><a {...linkProps()}>`)
+routes on the client and cancels the click, so the menu does not see a selection: control
+its `open` state and close it with `linkProps({ onExecuted: () => setOpen(false) })`.
+`StandardActionMenu` does this already.
+
 `PluginSlot`: `fallback` renders when nothing is placed and replaces a failing occupant of a
 `single` slot; `children` are passed to the occupant (a layout wraps the page).
 `useSlot(name).diagnostics` explains an empty outlet (`reason`, `excluded`, `candidates`).
@@ -32,6 +37,9 @@ Import standard components from `@bitakit/ui/components` (`Button`, `Input`, `Ca
 `Field`, `Badge`, `Skeleton`, `PageHeader`, `Dialog`, `DropdownMenu`, `Sheet`, ...). Style with
 the theme tokens (`text-muted-foreground`, `bg-card`) and layout utilities; no local colors,
 radii or a second component library.
+A selected choice (choice card, pressed toggle) uses the theme's one selected state,
+`bg-selected` and `border-selected-border` (`--selected`, `--selected-border`); an app theme
+changes those two tokens, never a component.
 
 ## Testing
 

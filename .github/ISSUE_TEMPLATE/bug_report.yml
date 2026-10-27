@@ -1,0 +1,39 @@
+name: Bug report
+description: Something in a @bitakit package does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Please search the open issues first. Security issues go to
+        [a private report](https://github.com/mvavesal/bitakit/security/advisories/new), not here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: >
+        Steps, or a link to a small repository that shows the problem. A fresh app from
+        `npm create @bitakit/app@latest` with one changed file is ideal.
+    validations:
+      required: true
+  - type: textarea
+    id: info
+    attributes:
+      label: Environment
+      description: Run `npx bitakit info --json` in your app and paste the output.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Errors and logs
+      description: Console or terminal output, if any.
+      render: text

@@ -226,6 +226,74 @@ test('service interceptors observe method calls by ID or alias without changing 
   assert.equal(log.length, before, 'observers stop with the runtime');
 });
 
+test('service hooks receive services, so an observer can record into its own service', async () => {
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'documents',
+        services: { store: defineService(() => ({ save: (title) => title })) },
+      }),
+      definePlugin({
+        id: 'logger',
+        services: {
+          log: defineService(() => {
+            const lines = [];
+            return { lines, record: (line) => void lines.push(line) };
+          }),
+        },
+        interceptors: [
+          defineInterceptor({
+            service: '*',
+            // Its own service is observed too; skipping it avoids recursion.
+            after: ({ service, method, services }) => {
+              if (service !== 'logger.log') services.logger.log.record(`${service}.${method}`);
+            },
+          }),
+        ],
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  try {
+    runtime.services.documents.store.save('Draft');
+    runtime.services.documents.store.save('Final');
+    assert.deepEqual(runtime.services.logger.log.lines, [
+      'documents.store.save',
+      'documents.store.save',
+    ]);
+  } finally {
+    await stop();
+  }
+});
+
+test('observed methods keep their own properties, such as a translator with has()', async () => {
+  const translate = (key) => `t:${key}`;
+  translate.has = (key) => key === 'known';
+  const calls = [];
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({ id: 'words', services: { i18n: defineService(() => ({ translate })) } }),
+      definePlugin({
+        id: 'watcher',
+        interceptors: [
+          defineInterceptor({ service: '*', after: ({ method }) => calls.push(method) }),
+        ],
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  try {
+    const wrapped = runtime.services.words.i18n.translate;
+    assert.notEqual(wrapped, translate, 'the method is observed');
+    assert.equal(wrapped('x'), 't:x');
+    assert.equal(wrapped.has('known'), true);
+    assert.equal(wrapped.has('missing'), false);
+    assert.deepEqual(calls, ['translate'], 'reading a property is not a call');
+  } finally {
+    await stop();
+  }
+});
+
 test('observer failures and frozen instances never change the service outcome; Promise identity is kept', async () => {
   const result = Promise.resolve(42);
   const source = Object.freeze({ read: () => result });

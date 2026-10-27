@@ -23,6 +23,8 @@ export const defaultMessages = {
   results: ({ count }) => (count === 1 ? '1 section found' : `${count} sections found`),
   unavailable: 'This settings page is not available.',
   noFields: 'This section has no settings.',
+  listAdd: 'Add',
+  listRemove: 'Remove {value}',
   saving: 'Saving…',
   readOnly: 'You cannot change this setting.',
   reset: 'Reset {label} to default',

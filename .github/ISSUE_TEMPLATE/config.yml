@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea
+    url: https://github.com/mvavesal/bitakit/discussions
+    about: Ask questions and discuss ideas before they become issues.
+  - name: Documentation
+    url: https://mvavesal.github.io/bitakit/docs/
+    about: Guides, concepts and the API reference.
+  - name: Security issue
+    url: https://github.com/mvavesal/bitakit/security/advisories/new
+    about: Report vulnerabilities privately, never in a public issue.

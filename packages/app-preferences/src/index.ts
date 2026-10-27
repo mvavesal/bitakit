@@ -21,6 +21,8 @@ export {
   TextControl,
   TextareaControl,
   NumberControl,
+  ListControl,
+  CheckboxesControl,
   controlFor,
   type SettingControlProps,
 } from './components/controls.js';

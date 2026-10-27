@@ -678,6 +678,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 - `linkProps({ href })` adapts a contextual URL through existing safe-link/disabled/native
   navigation behavior. Settings uses it for route-base and query preservation. Do not bind
   a displayed query URL while dispatching navigation to a different URL.
+- A link Action in a Radix menu item routes on the client and cancels its click, so Radix
+  never selects the item and the menu stays open. Menus control `open` and close it through
+  `linkProps({ onExecuted })`; `StandardActionMenu` does, with a jsdom regression test.
 - `bitakit build` includes `settings.ts`, custom/extra settings pages, page boundaries and
   slot predicates; derived SettingsMap types use the same file normalizers as app discovery.
 

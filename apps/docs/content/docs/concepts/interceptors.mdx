@@ -65,10 +65,13 @@ also selects a service-name prefix; omit `method` to include every public method
 | Prevent execution              | `before` returns `false`              | No                     |
 | Await `before`                 | Yes                                   | No                     |
 | Observe completion/failure     | `after` / `onError`                   | `after` / `onError`    |
+| Read other services            | `services`                            | `services`             |
 | Replace result or wrap retries | No                                    | No                     |
 | Internal service self-call     | Only the enclosing Action is observed | Bypasses service hooks |
 
-Do not mutate arguments or results inside observers. Service callback errors are isolated;
+Do not mutate arguments or results inside observers. A service hook can record into its own
+service through `services`, for example a logger with `service: '*'`; its own service is
+observed too, so skip that one to avoid recursion. Service callback errors are isolated;
 async callback results are ignored. Disposal disables observation and cleans up the owned instance.
 
 ## Matching, order and context

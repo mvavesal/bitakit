@@ -5,6 +5,10 @@ import { validateSync } from '../schema.js';
 
 /** Who a value belongs to: the signed-in user, the active organization, or this browser. */
 export type SettingScope = 'user' | 'organization' | 'device';
+/**
+ * How a generated settings page edits a value. `list` edits a list of short texts (add and
+ * remove); `checkboxes` chooses several of the options (a list default).
+ */
 export type SettingControl =
   | 'switch'
   | 'select'
@@ -12,13 +16,17 @@ export type SettingControl =
   | 'cards'
   | 'text'
   | 'textarea'
-  | 'number';
+  | 'number'
+  | 'list'
+  | 'checkboxes';
 export type SettingOption<T = unknown> = {
   readonly value: T;
   readonly label?: string;
   readonly description?: string;
   readonly icon?: PresentationType<'icon'>;
 };
+/** The value of one option: the setting's value, or one item of a list setting. */
+type OptionValue<T> = T extends readonly (infer Item)[] ? Item : T;
 declare const settingType: unique symbol;
 /** One declared setting. Values are read and written through `settings.<plugin>.<name>`. */
 export type SettingSpec<T = unknown> = {
@@ -31,7 +39,7 @@ export type SettingSpec<T = unknown> = {
   readonly description?: string;
   /** Presentation hint for generated settings pages; inferred from the value when omitted. */
   readonly control?: SettingControl;
-  readonly options?: readonly SettingOption<T>[];
+  readonly options?: readonly SettingOption<OptionValue<T>>[];
   readonly order?: number;
   readonly group?: string;
   /** Readable and writable, but left out of generated settings pages. */
@@ -45,7 +53,7 @@ type SettingInput<T> = {
   label?: string;
   description?: string;
   control?: SettingControl;
-  options?: readonly SettingOption<T>[];
+  options?: readonly SettingOption<OptionValue<T>>[];
   order?: number;
   group?: string;
   hidden?: boolean;
@@ -59,12 +67,25 @@ const controls: readonly SettingControl[] = [
   'text',
   'textarea',
   'number',
+  'list',
+  'checkboxes',
 ];
 
 /** `setting({ schema: z.number().min(1), default: 20 })`: the type follows the schema. */
 export function setting<S extends InputSchema<any>>(
   spec: Omit<SettingInput<SchemaOutput<S>>, 'schema'> & { schema: S },
 ): SettingSpec<SchemaOutput<S>>;
+/**
+ * `setting({ default: ['email'], options: [{ value: 'email' }, { value: 'sms' }] })`: several of
+ * the options, a list of the option union (shown as checkboxes).
+ */
+export function setting<const O extends readonly SettingOption<any>[]>(
+  spec: Omit<SettingInput<O[number]['value'][]>, 'schema' | 'options' | 'default'> & {
+    schema?: undefined;
+    default: readonly O[number]['value'][];
+    options: O;
+  },
+): SettingSpec<O[number]['value'][]>;
 /** `setting({ default: 'system', options: [{ value: 'light' }, ...] })`: the type is the option union. */
 export function setting<const O extends readonly SettingOption<any>[]>(
   spec: Omit<SettingInput<O[number]['value']>, 'schema' | 'options'> & {
@@ -171,12 +192,18 @@ export function parseSetting<T>(spec: SettingSpec<T>, value: unknown, key = 'set
     return checked.value;
   }
   if (spec.options) {
-    if (!spec.options.some((option) => Object.is(option.value, value)))
+    const accepts = (item: unknown) =>
+      spec.options!.some((option) => Object.is(option.value, item));
+    // A list default chooses several of the options.
+    const several = Array.isArray(spec.default);
+    if (several ? !Array.isArray(value) || !value.every(accepts) : !accepts(value))
       throw new Error(
-        `Setting "${key}" accepts ${spec.options.map((option) => show(option.value)).join(', ')}; got ${show(value)}.`,
+        `Setting "${key}" accepts ${several ? 'a list of ' : ''}${spec.options.map((option) => show(option.value)).join(', ')}; got ${show(value)}.`,
       );
     return value as T;
   }
+  if (Array.isArray(spec.default) && !Array.isArray(value))
+    throw new Error(`Setting "${key}" expects a list; got ${show(value)}.`);
   const expected = typeof spec.default;
   if (spec.default !== null && spec.default !== undefined && typeof value !== expected)
     throw new Error(

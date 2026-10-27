@@ -838,7 +838,11 @@ export class BitaKitRuntime implements ContributionHost {
             this.modules.find((module) => module.services.includes(definition as never))?.id ??
             this.appId,
         ),
-      serviceObserver(interceptors, (id) => this.aliasesOf(id)),
+      serviceObserver(
+        interceptors,
+        (id) => this.aliasesOf(id),
+        () => this.view,
+      ),
       this.events,
       {
         names: this.names,

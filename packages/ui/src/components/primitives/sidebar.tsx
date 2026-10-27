@@ -383,12 +383,19 @@ function SidebarContent({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
+/**
+ * A section of the sidebar. The header and footer already inset their content, so a group
+ * there drops its own padding and lines up with the groups in the content between them.
+ */
 function SidebarGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="sidebar-group"
       data-sidebar="group"
-      className={cn('relative flex w-full min-w-0 flex-col p-2', className)}
+      className={cn(
+        'relative flex w-full min-w-0 flex-col p-2 in-data-[slot=sidebar-footer]:p-0 in-data-[slot=sidebar-header]:p-0',
+        className,
+      )}
       {...props}
     />
   );
