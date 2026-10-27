@@ -94,6 +94,21 @@ test('setting() and defineSettings() validate declarations and defaults', async 
   };
   assert.throws(() => defineSettings({ n: setting({ schema, default: 0 }) }), /min 1/);
   assert.equal(parseSetting(setting({ schema, default: 1 }), 5), 5);
+  // A list default with options chooses several of them; a list without options is free text.
+  const channels = setting({
+    default: ['email'],
+    control: 'checkboxes',
+    options: [{ value: 'email' }, { value: 'sms' }],
+  });
+  assert.deepEqual(parseSetting(channels, ['sms', 'email']), ['sms', 'email']);
+  assert.throws(
+    () => parseSetting(channels, ['fax'], 'channels'),
+    /accepts a list of "email", "sms"; got \["fax"\]/,
+  );
+  assert.throws(() => parseSetting(channels, 'email', 'channels'), /accepts a list of/);
+  const tags = setting({ default: ['a'], control: 'list' });
+  assert.deepEqual(parseSetting(tags, ['a', 'b']), ['a', 'b']);
+  assert.throws(() => parseSetting(tags, { a: 1 }, 'tags'), /expects a list/);
   const asynchronous = { '~standard': { validate: async () => ({ value: 1 }) } };
   assert.throws(
     () => defineSettings({ n: setting({ schema: asynchronous, default: 1 }) }),

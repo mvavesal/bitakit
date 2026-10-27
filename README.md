@@ -233,7 +233,9 @@ search, short lessons and separate API references.
 
 ## Contributing
 
-Use the [contributor guide](apps/docs/content/docs/contributing.mdx) and the nearest `AGENTS.md`.
-Keep public examples small, tested and in English.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) to report a bug, propose a change or open a pull request,
+and the nearest `AGENTS.md` for the conventions of the folder you change. Everyone follows the
+[code of conduct](CODE_OF_CONDUCT.md); security issues go through [SECURITY.md](SECURITY.md).
+Decisions are made as described in [GOVERNANCE.md](GOVERNANCE.md).
 
 BitaKit is [MIT licensed](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md) for dependencies.

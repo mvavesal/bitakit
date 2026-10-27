@@ -68,8 +68,9 @@ export default defineSettings(
 - Fields render in a card; settings with a `group` get their own titled card. `hidden` settings
   stay off generated pages but keep working through `useSetting` and `<SettingField settingKey>`.
 - Controls follow `control`, otherwise the value: boolean → switch, options → select, number →
-  number, string → text. `radio`, `cards` and `textarea` are chosen explicitly. Other values
-  need a custom page.
+  number, string → text, a list → list (add and remove short texts), a list with options →
+  checkboxes (several of them). `radio`, `cards` and `textarea` are chosen explicitly. Other
+  values (objects) need a custom page.
 - Categories group the navigation: `general`, `appearance`, `account`, `organization`,
   `plugins`, `administration` in that order (`settingsCategories`); other categories follow by
   title. A section without a category is listed under `plugins`, the app under `general`.
@@ -208,7 +209,7 @@ server decides what is writable; the UI shows read-only settings as such.
 | `SettingsSectionPage({ section, showHeader? })`                           | Header, then the plugin's own page or the generated fields.                     |
 | `SettingsFields({ section?, fields?, exclude? })`                         | Generated fields in cards, grouped by `group`; empty state.                     |
 | `SettingField({ field } \| { settingKey })`                               | Label, description, control, saving state, inline error and reset.              |
-| `SwitchControl` … `NumberControl` (seven controls)                        | Standard controls: `(props: SettingControlProps<T>)`.                           |
+| `SwitchControl` … `CheckboxesControl` (nine controls)                     | Standard controls: `(props: SettingControlProps<T>)`.                           |
 | `controlFor(field)`                                                       | The control a field uses, or undefined.                                         |
 | `SettingsOverview({ basePath?, query?, showSearch? })`                    | Every page with its fields, searchable, with an empty state.                    |
 | `PluginsOverview()`                                                       | Installed plugins; one plugin's details and settings with `?plugin=<id>`.       |
@@ -217,8 +218,8 @@ server decides what is writable; the UI shows read-only settings as such.
 | `settingAnchor(key)`                                                      | A setting's anchor, `setting-<key>`: the id of its field.                       |
 | `SettingControlProps`, `SettingsCatalogSection`, `SettingsCatalogField`   | Types.                                                                          |
 
-The seven controls are `SwitchControl`, `SelectControl`, `RadioControl`, `CardsControl`,
-`TextControl`, `TextareaControl` and `NumberControl`. `embedded` on `SettingsShell` drops the
+The nine controls are `SwitchControl`, `SelectControl`, `RadioControl`, `CardsControl`,
+`TextControl`, `TextareaControl`, `NumberControl`, `ListControl` and `CheckboxesControl`. `embedded` on `SettingsShell` drops the
 back link and keeps the sidebar open on wide screens, for a host dialog.
 
 `@bitakit/app-preferences/foundation` (default export): `appPreferencesPlugin({ basePath?, groups?, slots?, searchShortcut? })`.

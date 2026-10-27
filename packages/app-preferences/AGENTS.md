@@ -30,8 +30,9 @@ export default defineSettings(
 
 `/settings/todos` now shows a number field. Read it with `useSetting('todos.pageSize')` in React
 and `settings.todos.pageSize.get()` in services and Actions. Controls follow `control` or the
-value: boolean → switch, `options` → select, number → number, string → text; `radio`, `cards`
-and `textarea` are explicit.
+value: boolean → switch, `options` → select, number → number, string → text, a list → `list`
+(add and remove short texts), a list with `options` → `checkboxes` (several of them); `radio`,
+`cards` and `textarea` are explicit. Only values no control fits (objects) need a custom page.
 
 ## Customize a page
 

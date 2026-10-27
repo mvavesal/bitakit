@@ -39,6 +39,8 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-selected: var(--selected);
+  --color-selected-border: var(--selected-border);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -82,6 +84,9 @@
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
+  /* One selected state for choice cards and toggles: a surface and its edge. */
+  --selected: var(--muted);
+  --selected-border: color-mix(in oklch, var(--primary) 45%, transparent);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -138,6 +143,8 @@
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
+  --selected: var(--muted);
+  --selected-border: color-mix(in oklch, var(--primary) 45%, transparent);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -207,6 +214,7 @@
       input[type='radio'],
       [data-slot='input'],
       [data-slot='input-group'],
+      [data-slot='select-trigger'],
       [data-slot='combobox-chips'],
       [data-slot='sidebar-input'],
       [data-slot='textarea'],

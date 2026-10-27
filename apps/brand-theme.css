@@ -1,5 +1,5 @@
 /* Logo palette: gold #EBB759 and navy #122F4D, verified in public/brand/bitakit-logo.svg. */
-/* Shared palette for landing, documentation and demo chrome; application themes stay independent. */
+/* Shared palette for the documentation and demo chrome (the landing page keeps a copy); application themes stay independent. */
 .site-theme {
   --theme-control-pressed-offset: 0px;
   --theme-control-pressed-scale: 1;
@@ -20,6 +20,9 @@
   --primary-foreground: #122f4d;
   --muted: #e9eff8;
   --muted-foreground: #52657f;
+  /* The one selected state (choice cards, toggles): the muted surface with a gold edge. */
+  --selected: var(--muted);
+  --selected-border: color-mix(in srgb, var(--primary) 70%, transparent);
   --secondary: #fbefd8;
   --secondary-foreground: #122f4d;
   --accent: #fbefd8;
@@ -51,12 +54,15 @@
   --foreground: #ffffff;
   --card: #141d2b;
   --card-foreground: var(--foreground);
-  --popover: #142a40;
+  /* The card surface: selected toggles and hovered items use --muted, which must differ. */
+  --popover: #141d2b;
   --popover-foreground: var(--foreground);
   --primary: #ebb759;
   --primary-foreground: #122f4d;
   --muted: #142a40;
   --muted-foreground: #c5cfdd;
+  --selected: var(--muted);
+  --selected-border: color-mix(in srgb, var(--primary) 55%, transparent);
   --secondary: var(--muted);
   --secondary-foreground: var(--foreground);
   --accent: #19344e;

@@ -13,11 +13,13 @@ function notify(callback: ((event: any) => unknown) | undefined, event: object) 
 
 /**
  * Wraps service instances whose ID or alias matches an interceptor's `service` target. All
- * container consumers receive the same wrapper; frozen instances are supported.
+ * container consumers receive the same wrapper; frozen instances are supported. `services`
+ * is read when a call happens, because the service tree exists only after the container does.
  */
 export function serviceObserver(
   interceptors: readonly InterceptorSpec[],
   namesOf: (id: string) => readonly string[],
+  services: () => unknown,
 ) {
   const entries = interceptors
     .filter(isServiceInterceptor)
@@ -51,7 +53,9 @@ export function serviceObserver(
           typeof key === 'string'
             ? selected.filter((entry) => entry.method === undefined || entry.method === key)
             : [];
-        const wrapped = (...args: unknown[]) => {
+        // A function Proxy keeps the method's own properties (for example `translate.has`);
+        // only the call itself is observed.
+        const call = (...args: unknown[]) => {
           const emit = (phase: 'before' | 'after' | 'onError', extra = {}) => {
             if (!active()) return;
             for (const entry of observers)
@@ -59,6 +63,7 @@ export function serviceObserver(
                 service: id,
                 method: key,
                 args: Object.freeze([...args]),
+                services: services(),
                 ...extra,
               });
           };
@@ -78,6 +83,9 @@ export function serviceObserver(
           } else emit('after', { result });
           return result;
         };
+        const wrapped = new Proxy(value, {
+          apply: (_method, _this, args: unknown[]) => call(...args),
+        });
         cache.set(key, { original: value, wrapped });
         return wrapped;
       },

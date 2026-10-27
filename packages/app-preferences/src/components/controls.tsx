@@ -3,20 +3,29 @@ import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent } f
 import type { SettingControl } from '@bitakit/core';
 import type { SettingsCatalogField, SettingsCatalogOption } from '@bitakit/ui';
 import {
+  Button,
+  Checkbox,
   Field,
   FieldContent,
   FieldDescription,
   FieldLabel,
   FieldTitle,
   Input,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemTitle,
   RadioGroup,
   RadioGroupItem,
 } from '@bitakit/ui/components';
+import PlusIcon from 'reicon-react/icons/Plus';
+import TrashIcon from 'reicon-react/icons/Trash';
 import { sameValue } from '../same.js';
 import { iconOf } from './icon.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.js';
 import { Switch } from './ui/switch.js';
 import { Textarea } from './ui/textarea.js';
+import { useMessages } from './use-messages.js';
 
 /**
  * What every setting control receives. Controls render a value and report a new one; values,
@@ -283,6 +292,119 @@ export function NumberControl({
   );
 }
 
+/** Several of the options, one checkbox each; the value lists the chosen ones in option order. */
+export function CheckboxesControl({
+  field,
+  id,
+  value,
+  onChange,
+  disabled,
+  describedBy,
+}: SettingControlProps<unknown>) {
+  const options = field.options ?? [];
+  const chosen = Array.isArray(value) ? value : [];
+  const has = (option: SettingsCatalogOption) =>
+    chosen.some((entry) => sameValue(entry, option.value));
+  return (
+    <div
+      id={id}
+      role="group"
+      aria-label={field.label}
+      aria-describedby={describedBy}
+      className="flex flex-col gap-3"
+    >
+      {options.map((option, index) => (
+        <Field key={index} orientation="horizontal" data-disabled={disabled || undefined}>
+          <Checkbox
+            id={`${id}-${index}`}
+            checked={has(option)}
+            disabled={disabled}
+            onCheckedChange={(on) =>
+              onChange(
+                options
+                  .filter((other) => (other === option ? on === true : has(other)))
+                  .map((other) => other.value),
+              )
+            }
+          />
+          <FieldLabel htmlFor={`${id}-${index}`} className="font-normal">
+            {option.label}
+          </FieldLabel>
+        </Field>
+      ))}
+    </div>
+  );
+}
+
+/** A list of short texts: each with a remove button, and a text box that adds one on Enter. */
+export function ListControl({
+  field,
+  id,
+  value,
+  onChange,
+  disabled,
+  describedBy,
+}: SettingControlProps<unknown>) {
+  const messages = useMessages();
+  const entries = Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+  const [draft, setDraft] = useState('');
+  const next = draft.trim();
+  const add = () => {
+    if (!next || entries.includes(next)) return;
+    onChange([...entries, next]);
+    setDraft('');
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      {entries.length > 0 && (
+        <ul aria-label={field.label} className="flex flex-col gap-2">
+          {entries.map((entry) => (
+            <li key={entry}>
+              <Item variant="outline" size="sm">
+                <ItemContent>
+                  <ItemTitle>{entry}</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={disabled}
+                    aria-label={messages('listRemove', { value: entry })}
+                    onClick={() => onChange(entries.filter((other) => other !== entry))}
+                  >
+                    <TrashIcon aria-hidden="true" />
+                  </Button>
+                </ItemActions>
+              </Item>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex items-center gap-2">
+        <Input
+          id={id}
+          value={draft}
+          disabled={disabled}
+          aria-describedby={describedBy}
+          onChange={(event: { target: { value: string } }) => setDraft(event.target.value)}
+          onKeyDown={(event: KeyboardEvent) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            add();
+          }}
+        />
+        <Button type="button" variant="outline" disabled={disabled || !next} onClick={add}>
+          <PlusIcon aria-hidden="true" data-icon="inline-start" />
+          {messages('listAdd')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const controls: Readonly<Record<SettingControl, ComponentType<SettingControlProps<any>>>> = {
   switch: SwitchControl,
   select: SelectControl,
@@ -291,11 +413,14 @@ const controls: Readonly<Record<SettingControl, ComponentType<SettingControlProp
   text: TextControl,
   textarea: TextareaControl,
   number: NumberControl,
+  list: ListControl,
+  checkboxes: CheckboxesControl,
 };
 /** Controls whose label names a group rather than one focusable element. */
 export const groupControls: ReadonlySet<ComponentType<SettingControlProps<any>>> = new Set([
   RadioControl,
   CardsControl,
+  CheckboxesControl,
 ]);
 /** Controls that keep their own edit draft; they receive confirmed values only. */
 export const draftControls: ReadonlySet<ComponentType<SettingControlProps<any>>> = new Set([
@@ -306,8 +431,9 @@ export const draftControls: ReadonlySet<ComponentType<SettingControlProps<any>>>
 
 /**
  * The control for a field: `spec.control` when declared, otherwise inferred from the value:
- * boolean → switch, options → select, number → number, string → text. Undefined when no
- * standard control fits; a custom settings page renders those.
+ * boolean → switch, a list with options → checkboxes, a list → list, options → select, number
+ * → number, string → text. Undefined when no standard control fits; a custom settings page
+ * renders those.
  */
 export function controlFor(
   field: SettingsCatalogField,
@@ -315,6 +441,7 @@ export function controlFor(
   const { spec } = field;
   if (spec.control) return controls[spec.control];
   if (typeof spec.default === 'boolean') return SwitchControl;
+  if (Array.isArray(spec.default)) return field.options?.length ? CheckboxesControl : ListControl;
   if (field.options?.length) return SelectControl;
   if (typeof spec.default === 'number') return NumberControl;
   if (typeof spec.default === 'string') return TextControl;

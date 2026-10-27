@@ -54,7 +54,7 @@ in a package, not in the app.
 - Verbindlich: Immer vorhandene zentrale UI-Komponenten und die zentralen Theme-Vorgaben verwenden. Karten, Rahmen, Radius, Abstände und Typografie dürfen keine lokalen/custom Stilabweichungen erhalten. Eigene visuelle Anpassungen nur auf ausdrücklichen Nutzerauftrag; autorisierte Anpassungen möglichst zentral umsetzen. Wenn die zentralen Komponenten nicht ausreichen, keine selbst erfundene visuelle Sonderlösung stillschweigend hinzufügen, sondern die konkrete Lücke benennen. Die Wiederverwendung vorhandener Komponenten erfordert keine erneute Bestätigung.
 
 - Use the official **Radix Vega** component sizes, spacing and typography as the base (shadcn style `radix-vega`). Prefer built-in `default`, `sm`, `lg`, `icon` variants over custom dimensions.
-- Preserve the intentional theme changes when updating registry components: central radius 0.875rem, XL Squircle surfaces and buttons, Medium round text inputs, XL round badges, functional circle exceptions, Reicon Outline and persistent light/dark theme.
+- Preserve the intentional theme changes when updating registry components: central radius 0.875rem, XL Squircle surfaces and buttons, Medium round text inputs and select triggers, one selected state (`--selected`, `--selected-border`), XL round badges, functional circle exceptions, Reicon Outline and persistent light/dark theme.
 - Inspect registry changes with the shadcn CLI dry-run/diff and merge them; do not replace customized components blindly. README records the current base and deviations.
 
 ## Settings and theme

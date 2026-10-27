@@ -53,6 +53,17 @@ const prefs = definePlugin({
     bio: setting({ default: '', label: 'Bio', control: 'textarea' }),
     pageSize: setting({ default: 20, label: 'Page size', schema: positive }),
     tags: setting({ default: ['a'], label: 'Tags', group: 'advanced' }),
+    // No standard control edits an object: a custom page would.
+    position: setting({ default: { x: 0, y: 0 }, label: 'Position', group: 'advanced' }),
+    channels: setting({
+      default: ['email'],
+      label: 'Channels',
+      options: [
+        { value: 'email', label: 'Email' },
+        { value: 'sms', label: 'SMS' },
+        { value: 'push', label: 'Push' },
+      ],
+    }),
     secret: setting({ default: 'hush', label: 'Secret', hidden: true }),
   }),
 });
@@ -207,9 +218,62 @@ test('controls are inferred from the value or chosen by spec.control', async () 
         name: 'TextControl',
         bio: 'TextareaControl',
         pageSize: 'NumberControl',
-        tags: undefined,
+        tags: 'ListControl',
+        position: undefined,
+        channels: 'CheckboxesControl',
       },
     );
+  } finally {
+    await view.unmount();
+  }
+});
+
+test('a list adds and removes short texts; checkboxes choose several options in their order', async () => {
+  const storage = controlledStorage();
+  const view = await renderApp(
+    h('div', null, [
+      h(SettingField, { key: 'tags', settingKey: 'prefs.tags' }),
+      h(SettingField, { key: 'channels', settingKey: 'prefs.channels' }),
+    ]),
+    { config, storage },
+  );
+  const { container } = view;
+  try {
+    const tags = container.querySelector('[data-setting="prefs.tags"]');
+    const input = tags.querySelector('input');
+    assert.equal(
+      text(tags.querySelector(`label[for="${input.id}"]`)),
+      'Tags',
+      'the label names the box',
+    );
+    await type(input, ' b ');
+    await press(input, 'Enter');
+    await act(tick);
+    assert.deepEqual(storage.data.get('prefs.tags'), ['a', 'b']);
+    assert.equal(input.value, '', 'the box empties after adding');
+    await type(input, 'a');
+    await press(input, 'Enter');
+    await act(tick);
+    assert.deepEqual(storage.data.get('prefs.tags'), ['a', 'b'], 'an entry is listed once');
+    await click(tags.querySelector('button[aria-label="Remove a"]'));
+    await act(tick);
+    assert.deepEqual(storage.data.get('prefs.tags'), ['b']);
+
+    const channels = container.querySelector('[data-setting="prefs.channels"] [role=group]');
+    assert.equal(channels.getAttribute('aria-label'), 'Channels');
+    const box = (label) =>
+      [...channels.querySelectorAll('[role=checkbox]')].find(
+        (node) => text(channels.querySelector(`label[for="${node.id}"]`)) === label,
+      );
+    assert.equal(box('Email').getAttribute('aria-checked'), 'true');
+    await click(box('Push'));
+    await act(tick);
+    await click(box('SMS'));
+    await act(tick);
+    assert.deepEqual(storage.data.get('prefs.channels'), ['email', 'sms', 'push'], 'option order');
+    await click(box('Email'));
+    await act(tick);
+    assert.deepEqual(storage.data.get('prefs.channels'), ['sms', 'push']);
   } finally {
     await view.unmount();
   }
@@ -332,7 +396,7 @@ test('SettingsFields renders one card, grouped cards, exclusions and an empty st
   try {
     const cards = view.container.querySelectorAll('[data-slot=card]');
     assert.equal(cards.length, 2, 'ungrouped fields, then one card per group');
-    assert.equal(cards[0].querySelectorAll('[data-setting]').length, 6);
+    assert.equal(cards[0].querySelectorAll('[data-setting]').length, 7);
     assert.equal(view.container.querySelector('[data-setting="prefs.bio"]'), null);
     assert.equal(text(view.container.querySelector('legend')), 'Advanced options');
     assert.ok(cards[1].querySelector('[data-setting="prefs.tags"]'));

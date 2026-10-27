@@ -27,7 +27,7 @@ available; Pages cannot run the former Accept-header or `.md` suffix proxy rewri
 
 Keep an established local preview URL stable when switching checkouts. Verify the process
 owning port 3002 before stopping a known docs development server, then run this workspace's
-dev command on the same port. Landing's existing `NEXT_PUBLIC_DOCS_URL` can point to that
+dev command on the same port. The landing page's `NEXT_PUBLIC_DOCS_URL` can point to that
 origin in its ignored `.env.local`. To build alongside the running preview, set
 `NEXT_BUILD_DIR=.next-build` so the production build does not overwrite the dev cache.
 

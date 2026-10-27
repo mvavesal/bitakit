@@ -38,10 +38,17 @@ type MethodOf<Name extends string, Key extends string> = Key extends keyof Servi
   ? Extract<ServiceOf<Name>[Key], (...args: any[]) => any>
   : (...args: any[]) => unknown;
 export type ServiceCall<Name extends string = string, Key extends string = string> = {
-  readonly service: Name;
+  /** The called service's ID; a glob or alias target still reports the actual ID. */
+  readonly service: string;
   readonly method: Key;
   readonly args: Readonly<Parameters<MethodOf<Name, Key>>>;
 };
+/**
+ * What a service hook receives besides the call: the services, as Action interceptors get them,
+ * so an observer can record into its own service. Calls to the observer's own service are
+ * observed too; skip them to avoid recursion.
+ */
+export type ServiceHookContext = { readonly services: Services };
 /** Observes one method or every public method of a service. Hooks never change the outcome. */
 export type ServiceInterceptorSpec<Name extends string = string, Key extends string = string> = {
   readonly kind?: 'interceptor';
@@ -51,11 +58,12 @@ export type ServiceInterceptorSpec<Name extends string = string, Key extends str
   scope?: never;
   requires?: never;
   order?: number;
-  before?(call: ServiceCall<Name, Key>): void;
+  before?(call: ServiceCall<Name, Key> & ServiceHookContext): void;
   after?(
-    call: ServiceCall<Name, Key> & { readonly result: Awaited<ReturnType<MethodOf<Name, Key>>> },
+    call: ServiceCall<Name, Key> &
+      ServiceHookContext & { readonly result: Awaited<ReturnType<MethodOf<Name, Key>>> },
   ): void;
-  onError?(call: ServiceCall<Name, Key> & { readonly error: unknown }): void;
+  onError?(call: ServiceCall<Name, Key> & ServiceHookContext & { readonly error: unknown }): void;
 };
 export type InterceptorSpec = (ActionInterceptorSpec | ServiceInterceptorSpec<any, any>) & {
   readonly kind: 'interceptor';

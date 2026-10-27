@@ -24,7 +24,8 @@ export function PageHeader({
     <header className={cn('flex shrink-0 flex-col gap-4', className)}>
       {before != null && <div>{before}</div>}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
+        {/* The title keeps a readable width; many trailing controls wrap instead of squeezing it. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:min-w-48">
           <h1
             id={titleId}
             className="flex flex-wrap items-center gap-3 text-3xl font-semibold tracking-tight [overflow-wrap:anywhere]"
@@ -36,7 +37,7 @@ export function PageHeader({
           )}
         </div>
         {trailing != null && (
-          <div className="flex max-w-full flex-wrap items-center gap-2 sm:ml-auto sm:shrink-0 sm:justify-end">
+          <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2 sm:ml-auto sm:justify-end">
             {trailing}
           </div>
         )}

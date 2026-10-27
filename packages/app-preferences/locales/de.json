@@ -20,6 +20,8 @@
       "results": "{count, plural, one {# Bereich gefunden} other {# Bereiche gefunden}}",
       "unavailable": "Diese Einstellungsseite ist nicht verfügbar.",
       "noFields": "Dieser Bereich enthält keine Einstellungen.",
+      "listAdd": "Hinzufügen",
+      "listRemove": "{value} entfernen",
       "saving": "Wird gespeichert …",
       "readOnly": "Du kannst diese Einstellung nicht ändern.",
       "reset": "{label} auf Standard zurücksetzen",

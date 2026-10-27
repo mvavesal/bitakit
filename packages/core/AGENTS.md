@@ -17,7 +17,7 @@ rarely call the runtime directly: files in `src/plugins/<id>/` are discovered, a
 | `events.ts`              | `defineEvents({ changed: event<T>() })`                        | `<plugin>.changed` |
 | `settings.ts`            | `defineSettings({ name: setting({ default }) }, page)`         | `<plugin>.<name>`  |
 | `slots/<name>.ts`        | `defineSlot({ accepts, policy?, payload? })`                   | `<plugin>.<name>`  |
-| `interceptors/<name>.ts` | `defineInterceptor({ action, before, after })`                 | —                  |
+| `interceptors/<name>.ts` | `defineInterceptor({ action or service, before, after })`      | —                  |
 | `configs/<name>.ts`      | `defineConfig({ defaults, schema? })`                          | `<plugin>.<name>`  |
 | `setup.ts`               | `Setup` function (`scope.slots.attach`, cleanup)               | —                  |
 

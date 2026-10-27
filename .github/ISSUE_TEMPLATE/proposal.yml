@@ -1,0 +1,38 @@
+name: Proposal
+description: Propose a new package, a public API change or an architecture change.
+labels: [proposal]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Changes to a public API or the architecture start here, before any code. A maintainer
+        records the decision in this issue. See [GOVERNANCE.md](https://github.com/mvavesal/bitakit/blob/main/GOVERNANCE.md).
+
+        BitaKit's design test: can a developer or an agent add a feature by changing only their
+        own feature folder? If not, the missing mechanism belongs in a package.
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: The problem, who has it and why the current packages do not solve it.
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Proposed design
+      description: >
+        The API or the structure you suggest, with an example of how an app or a plugin uses it.
+        Name the packages it touches.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility
+      description: Does it break existing apps or plugins? How would they migrate?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other designs you considered, including building it as a plugin of its own.

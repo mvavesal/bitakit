@@ -15,7 +15,8 @@ default. The finished code is the [Settings sample](/docs/examples#settings).
 ### Declare the settings
 
 One file per plugin. Each `setting()` needs a `default`; the control follows from it (a
-boolean is a switch, `options` a select) unless you set `control`.
+boolean is a switch, `options` a select, a list of texts an add-and-remove `list`, a list with
+`options` a set of `checkboxes`) unless you set `control`.
 
 ```ts title="src/plugins/greeting/settings.ts"
 import { defineSettings, setting } from '@bitakit/core';
