@@ -1,5 +1,14 @@
 # @bitakit/core
 
+## 0.2.7
+
+### Patch Changes
+
+- 9e26994: Settings can hold lists. `control: 'list'` (inferred for a list default) edits short texts with add and remove; `control: 'checkboxes'` (inferred for a list default with `options`) chooses several of the options. Core validates each chosen value against the options and types it as a list of the option union.
+- 9e26994: Service interceptor hooks receive `services`, as Action interceptors do, so an observer can record calls into its own service (for example a logger with `service: '*'`); skip the observer's own service to avoid recursion. A hook's `service` is now typed as `string`: with a glob or alias target it reports the actual service ID.
+
+  Observed service methods keep their own properties. Before, observing the translation service dropped `translate.has`, so every fallback text was looked up as a key and reported as missing.
+
 ## 0.2.6
 
 ### Patch Changes

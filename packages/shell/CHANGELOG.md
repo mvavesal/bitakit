@@ -1,5 +1,19 @@
 # @bitakit/shell
 
+## 0.2.8
+
+### Patch Changes
+
+- 9e26994: Add `--selected` and `--selected-border` theme tokens for one selected state (the muted surface with a primary-tinted edge by default); `FieldLabel` choice cards use them, and select triggers get the same round corners as text inputs. Shell's theme defaults and bundled themes define both tokens.
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+  - @bitakit/core@0.2.7
+  - @bitakit/ui@0.2.8
+
 ## 0.2.7
 
 ### Patch Changes
