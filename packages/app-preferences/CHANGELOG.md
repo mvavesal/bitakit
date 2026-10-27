@@ -1,5 +1,20 @@
 # @bitakit/app-preferences
 
+## 0.2.9
+
+### Patch Changes
+
+- 9e26994: Settings can hold lists. `control: 'list'` (inferred for a list default) edits short texts with add and remove; `control: 'checkboxes'` (inferred for a list default with `options`) chooses several of the options. Core validates each chosen value against the options and types it as a list of the option union.
+- 4c1db5a: Declare the existing Settings destination in the public ActionMap so strict generated apps can bind it directly in host-owned navigation placements.
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+  - @bitakit/core@0.2.7
+  - @bitakit/ui@0.2.8
+
 ## 0.2.8
 
 ### Patch Changes

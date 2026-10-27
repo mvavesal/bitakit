@@ -1,5 +1,17 @@
 # @bitakit/ui
 
+## 0.2.8
+
+### Patch Changes
+
+- 9e26994: `PageHeader` wraps its trailing controls instead of squeezing the title: with many toolbar Actions the title keeps at least 12rem and the buttons flow onto the next line.
+- 9e26994: Add `--selected` and `--selected-border` theme tokens for one selected state (the muted surface with a primary-tinted edge by default); `FieldLabel` choice cards use them, and select triggers get the same round corners as text inputs. Shell's theme defaults and bundled themes define both tokens.
+- 9e26994: A `SidebarGroup` in the sidebar's header or footer no longer adds its own padding to theirs, so a section contributed to `sidebar.header` or `sidebar.footer` lines up with the groups in the sidebar's content.
+- 9e26994: `StandardActionMenu` closes after a navigation item routes: the link cancels its click for client-side routing, so Radix never saw a selection and the menu stayed open over the new page.
+- Updated dependencies [9e26994]
+- Updated dependencies [9e26994]
+  - @bitakit/core@0.2.7
+
 ## 0.2.7
 
 ### Patch Changes
