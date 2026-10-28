@@ -183,6 +183,25 @@ const forms = async (page) => {
   await ticket.getByText('closed', { exact: true }).waitFor();
 };
 
+const customSettings = async (page) => {
+  await page.getByLabel('Preview').getByText('Ada Lovelace').waitFor();
+  const name = page.getByRole('textbox', { name: 'Display name' });
+  await name.fill('A');
+  await name.blur();
+  // The schema's message; nothing is saved.
+  await page.getByText('Use at least 2 characters.').waitFor();
+  await name.fill('Grace Hopper');
+  await name.blur();
+  await page.getByLabel('Preview').getByText('Grace Hopper').waitFor();
+};
+
+const profile = async (page) => {
+  // A fresh page load: the name comes back from the server.
+  await page.getByText('Grace Hopper').waitFor();
+  await page.getByRole('button', { name: 'Pause notifications' }).click();
+  await page.getByText('Notifications paused', { exact: true }).first().waitFor();
+};
+
 export const checks = {
   counter: {
     visits: [
@@ -256,6 +275,17 @@ export const checks = {
         'Forms in dialogs, checked by one schema in the browser and on the server.',
         forms,
       ],
+    ],
+  },
+  'custom-settings': {
+    visits: [
+      ['/', 'Custom settings example'],
+      [
+        '/settings/profile',
+        'Saved on the server in SQLite; the last group stays in this browser.',
+        customSettings,
+      ],
+      ['/profile', 'Every value here is a setting, saved on the server.', profile],
     ],
   },
 };
