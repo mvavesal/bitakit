@@ -205,9 +205,17 @@ export function adaptAction(
     ? async (context: ActionContext) => {
         const request = evaluate(definition.confirm!, context.input);
         if (!request) return undefined;
-        const accepted = await host.confirm(
-          typeof request === 'string' ? { title: request, description: '' } : request,
-        );
+        const { title, description, ...rest } =
+          typeof request === 'string' ? { title: request, description: '' } : request;
+        // Like an Action's title: the text itself as a catalog key, then `<id>.confirm.title`
+        // and `.description`, then the literal.
+        const text = (value: string, part: 'title' | 'description') =>
+          host.text(value, host.text(`${definition.id}.confirm.${part}`, value));
+        const accepted = await host.confirm({
+          ...rest,
+          title: text(title, 'title'),
+          description: description ? text(description, 'description') : description,
+        });
         return accepted ? undefined : CANCEL;
       }
     : undefined;
