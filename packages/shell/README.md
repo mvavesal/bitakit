@@ -76,8 +76,10 @@ options that no longer exist fail the same way.
 
 - **Sidebar**: the vertical navigation with the `sidebar.header` and `sidebar.footer` slots, a
   drawer below 768 px. Above the page, the top bar with the sidebar trigger and `header`.
-- **Navbar**: one bar with `brand` at the start, the navigation menu (entries wrap) and `account`
-  at the end.
+- **Navbar**: one bar with `brand` at the start, the navigation menu after it and `account` at
+  the end. The bar stays one row: from 768 px the links never wrap and scroll sideways when they
+  do not fit; below 768 px a menu button opens the same links in the Shell drawer (`drawerId`
+  `navigation`).
 
 Both layouts keep the page at the same position in the tree, so switching does not remount it
 or lose unsaved input. The top bar renders the `app-bar.end` slot in both layouts.

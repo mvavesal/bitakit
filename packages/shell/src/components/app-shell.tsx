@@ -6,11 +6,13 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useState,
   type ComponentType,
   type ElementType,
   type ReactNode,
 } from 'react';
 import { cn } from 'cn';
+import MenuIcon from 'reicon-react/icons/Menu';
 import type { BitaKitRuntime } from '@bitakit/core';
 import {
   useCurrentPage,
@@ -64,7 +66,10 @@ export type NavigationItemProps = {
   item: ActionControl;
   /** The action's href matches the current pathname. */
   active: boolean;
-  /** `sidebar`: inside `SidebarMenuItem`. `navbar`: inside `NavigationMenuItem`. */
+  /**
+   * `sidebar`: inside `SidebarMenuItem`. `navbar`: inside `NavigationMenuItem`, in the bar or,
+   * on phones, stacked in the navbar layout's drawer.
+   */
   layout: ShellLayout;
 };
 export type AppShellSidebarProps = {
@@ -276,6 +281,66 @@ function AppShellSidebar({ navigationSlot, header, footer }: AppShellSidebarProp
 }
 
 /**
+ * The navbar layout's links on phones (below `md`): a menu button that opens them in the Shell
+ * drawer, stacked. The drawer closes when the route changes.
+ */
+function NavbarMenu({
+  items,
+  isActive,
+}: {
+  items: readonly (ActionControl & { key: string })[];
+  isActive: (href: string | undefined) => boolean;
+}) {
+  const t = useTranslation();
+  const { pathname } = useBitaKitNavigation();
+  const Item = useContext(ShellContext).components.NavigationItem ?? NavigationItem;
+  // Open for one route only, so following a link closes it without an effect.
+  const [openAt, setOpenAt] = useState<string | undefined | null>(null);
+  return (
+    <span className="md:hidden">
+      <ShellDrawer
+        id="navigation"
+        side="start"
+        title={t('shell.ui.navigation', undefined, 'Main navigation')}
+        description={t(
+          'shell.ui.navigationDescription',
+          undefined,
+          'Links to the areas of this app.',
+        )}
+        open={openAt === pathname}
+        onOpenChange={(open) => setOpenAt(open ? pathname : null)}
+        trigger={
+          <Button
+            size="icon"
+            variant="ghost"
+            aria-label={t('shell.ui.toggle', undefined, 'Toggle navigation')}
+          >
+            <MenuIcon aria-hidden="true" />
+          </Button>
+        }
+      >
+        {/* The bar's own items, stacked: a vertical navigation menu with the navbar items, so a
+            custom NavigationItem shows the same links here as in the bar. */}
+        <NavigationMenu
+          orientation="vertical"
+          viewport={false}
+          aria-label={t('shell.ui.navigation', undefined, 'Main navigation')}
+          className="max-w-none items-stretch justify-start"
+        >
+          <NavigationMenuList className="flex-col items-start justify-start gap-1">
+            {items.map((item) => (
+              <NavigationMenuItem key={item.key}>
+                <Item item={item} active={isActive(item.href)} layout="navbar" />
+              </NavigationMenuItem>
+            ))}
+          </NavigationMenuList>
+        </NavigationMenu>
+      </ShellDrawer>
+    </span>
+  );
+}
+
+/**
  * The app bar. Sidebar layout: sidebar trigger and `header`. Navbar layout: `brand`, the
  * navigation menu and `end`. `AppBar` renders the `app-bar.end` slot in both layouts.
  */
@@ -311,21 +376,19 @@ function AppShellTopBar({ navigationSlot, brand, header, end }: AppShellTopBarPr
     <AppBar
       left={
         <>
+          {items.length ? <NavbarMenu items={items} isActive={navigation.isActive} /> : null}
           {brand}
           <PluginSlot name="shell.brand" />
           <PluginSlot name="shell.header.start" />
-        </>
-      }
-      center={
-        <>
-          <PluginSlot name="shell.header.center" />
+          {/* One row from md up: the links follow the brand, never wrap and scroll sideways
+              when they do not fit. Phones open the same links from NavbarMenu instead. */}
           {items.length ? (
             <NavigationMenu
               viewport={false}
               aria-label={t('shell.ui.navigation', undefined, 'Main navigation')}
-              className="min-w-0 max-w-full justify-start"
+              className="hidden min-w-0 flex-1 justify-start md:flex"
             >
-              <NavigationMenuList className="flex-wrap justify-start gap-1">
+              <NavigationMenuList className="flex-nowrap justify-start gap-1 overflow-x-auto">
                 {items.map((item) => (
                   <NavigationMenuItem key={item.key}>
                     <Item item={item} active={navigation.isActive(item.href)} layout="navbar" />
@@ -336,6 +399,7 @@ function AppShellTopBar({ navigationSlot, brand, header, end }: AppShellTopBarPr
           ) : null}
         </>
       }
+      center={<PluginSlot name="shell.header.center" />}
       right={
         <>
           <ShellToolbar />
