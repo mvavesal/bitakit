@@ -7,12 +7,17 @@ One page, six tabs, each showing `defineAction` options with plain components bo
 
 - `services/demo.ts` (`playground.demo`): `state` (`liked`, `results`), `toggleLike(name)`,
   `search(query)`, `unlikeAll()`.
-- `services/live.ts` (`playground.live`): `state` (places, title, tooltip, icon, enabled,
-  visible, confirm, slow, message; `initial` holds the start), `set(patch)`.
-- `playground.live` (`actions/live.ts`, input: `toolbar`, `navigation` or none): every field
-  reads `playground.live`; placed in `shell.toolbar` and `shell.navigation` and shown only in
-  the ticked places. Shortcut Alt+1. Its icon is `ui/live-icon.tsx`.
-- `playground.edit` (`actions/edit.ts`, input: a partial state): the one editor Action.
+- `live-action.ts` (not discovered): `liveAction(config)` builds one live Action from a
+  `LiveConfig` (number, places, title, tooltip, icon, enabled, visible, confirm, slow, message);
+  placed in `shell.toolbar` and `shell.navigation` (input: the place) and the
+  `playground.live` group, shown in the ticked places, shortcut Alt+number.
+- `ui/providers/live.tsx`: adds a plugin `live-<number>` with that Action through
+  `runtime.plugins.add`, removes and re-adds it after an edit, removes it with its
+  configuration.
+- `services/live.ts` (`playground.live`): `state.configs` (one to start), `add()`,
+  `remove(number)`, `set({ number, ...change })`; `capacity` (5).
+- `playground.live.add`, `playground.live.remove` (input: a number) and `playground.live.edit`
+  (input: a number and the change), the one editor Action.
 - Example Actions: `playground.open` (navigation), `hello`, `fail` (fails on purpose), `greet`
   (input: a name of 2+ letters), `slow`, `like` (input: a fruit; per-input), `search` (input:
   a query; latest), `reset` (asks first), `details` (dialog `ui/dialogs/details.tsx`),
@@ -22,7 +27,8 @@ One page, six tabs, each showing `defineAction` options with plain components bo
 
 ## Checks
 
-Tab 1: "Live action" is in the app bar; typing "Deploy" into **Title** renames it; ticking
-**Sidebar** and unticking **App bar** moves it there; with **Ask first** a click asks before running; unticking
-**Enabled** disables it. **Show source code** opens the highlighted files. Tab 3: **Greet** is disabled for "A" and
+Tab 1: "Action 1" is in the app bar; **Add action** adds "Action 2"; on its tab, typing
+"Deploy" renames it, ticking **Sidebar** and unticking **App bar** moves it, **Ask first** asks
+before running, unticking **Enabled** disables it and **Remove** takes it out everywhere.
+**Show source code** opens the highlighted files. Tab 3: **Greet** is disabled for "A" and
 greets "Ada". Tab 4: typing "apr" into **Search fruit** shows only Apricot.

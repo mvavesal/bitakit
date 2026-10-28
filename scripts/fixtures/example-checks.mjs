@@ -205,25 +205,30 @@ const profile = async (page) => {
 const playground = async (page) => {
   const tab = (name) => page.getByRole('tab', { name });
   const appBar = page.getByRole('group', { name: 'App actions' });
-  // 1 · Live action: every field reads the playground.live service; the editor changes it.
+  // 1 · Live action: Actions made while the app runs, each from its own configuration.
   const sidebar = page.locator('[data-slot=sidebar]');
-  await appBar.getByRole('button', { name: 'Live action' }).waitFor();
+  await appBar.getByRole('button', { name: 'Action 1' }).waitFor();
+  await page.getByRole('button', { name: 'Add action' }).click();
+  await appBar.getByRole('button', { name: 'Action 2' }).waitFor();
+  await page.getByRole('tab', { name: 'Action 2' }).click();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Deploy');
   await appBar.getByRole('button', { name: 'Deploy' }).waitFor();
-  // Both places at once, then only the sidebar.
+  // Both places at once, then only the sidebar; Action 1 stays where it was.
   await page.getByRole('checkbox', { name: 'Sidebar' }).click();
   await sidebar.getByRole('button', { name: 'Deploy' }).waitFor();
-  await appBar.getByRole('button', { name: 'Deploy' }).waitFor();
   await page.getByRole('checkbox', { name: 'App bar' }).click();
   await appBar.getByRole('button', { name: 'Deploy' }).waitFor({ state: 'detached' });
+  await appBar.getByRole('button', { name: 'Action 1' }).waitFor();
   await page.getByRole('textbox', { name: 'Message after a run' }).fill('Deployed!');
   await page.getByRole('checkbox', { name: 'Ask first' }).click();
   await sidebar.getByRole('button', { name: 'Deploy' }).click();
-  await page.getByRole('dialog').getByText('Run the live Action?').waitFor();
+  await page.getByRole('dialog').getByText('Run Deploy?').waitFor();
   await page.getByRole('button', { name: 'Confirm' }).click();
   await page.getByText('Deployed!').waitFor();
   await page.getByRole('checkbox', { name: 'Enabled' }).click();
   await sidebar.getByRole('button', { name: 'Deploy', disabled: true }).waitFor();
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  await sidebar.getByRole('button', { name: 'Deploy' }).waitFor({ state: 'detached' });
   await page.getByRole('button', { name: 'Show source code' }).click();
   await page.getByRole('dialog').locator('.shiki').first().waitFor();
   await page.getByRole('dialog').getByRole('tab', { name: 'Full sample' }).waitFor();

@@ -18,18 +18,21 @@ BitaKit skill next to `AGENTS.md`.
 
 ## Try it
 
-**1 · Live action** shows everything an Action can do on one Action. Pick where it shows (the
-app bar, the sidebar or both), type a title and tooltip, pick an icon, and tick Enabled, Visible,
-Ask first or Takes a second: every place follows as you type. Alt+1 runs it from anywhere.
+**1 · Live action** makes Actions while the app runs. It starts with "Action 1" in the app
+bar; **Add action** adds more, and the tabs under the buttons pick the one to change. Tick where
+it shows (the app bar, the sidebar or both), type a title and tooltip, pick an icon, and tick
+Enabled, Visible, Ask first or Takes a second: every place follows as you type. Alt+1, Alt+2…
+run them from anywhere.
 
-It is three short files:
+| File                    | What it is                                                                  |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `live-action.ts`        | The Action: `liveAction(config)` returns a `defineAction` with plain values |
+| `ui/providers/live.tsx` | Adds one Action per configuration to the app, replaces it after an edit     |
+| `services/live.ts`      | The configurations, with `add`, `remove` and `set`                          |
+| `actions/live/*.ts`     | Add action, Remove, and the one editor Action every control runs            |
 
-| File               | What it is                                                                  |
-| ------------------ | --------------------------------------------------------------------------- |
-| `services/live.ts` | The state: places, title, tooltip, icon and the switches, and `set()`       |
-| `actions/live.ts`  | The Action: every field reads that state; placed in the app bar and sidebar |
-| `actions/edit.ts`  | One editor Action: each control runs it with its change, `{ title }`        |
-
+Actions usually come from files. These are made at runtime: the provider asks the host runtime
+to add a small plugin with the Action (`runtime.plugins.add`), and to swap it after a change.
 Each placement passes its name as the input, and `visible` keeps the ticked ones. These are
 sample places: an Action shows in any slot that takes Actions once you list it in `slots`.
 
