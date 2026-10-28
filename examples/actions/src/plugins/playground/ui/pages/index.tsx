@@ -40,15 +40,8 @@ const examples: readonly Example[] = [
     title: 'Live action',
     about:
       'One Action with everything: where it shows, how it looks and how it behaves. Change it and every place follows at once.',
-    action: ['actions/-live.ts', 'ui/slots/sidebar.footer.tsx', 'actions/live/places.ts'],
-    files: [
-      'actions/live/first.ts',
-      'services/live.ts',
-      'actions/live/title.ts',
-      'actions/live/enable.ts',
-      'ui/examples/live.tsx',
-      'ui/live-actions.tsx',
-    ],
+    action: ['actions/live.ts', 'actions/edit.ts'],
+    files: ['services/live.ts', 'ui/live-icon.tsx', 'ui/examples/live.tsx'],
     docs: `${docs.actions}#properties-at-a-glance`,
     Body: LiveExample,
   },

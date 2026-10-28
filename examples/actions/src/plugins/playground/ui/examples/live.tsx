@@ -1,5 +1,5 @@
 'use client';
-import { Action, ActionShortcutLabel, useServiceState } from '@bitakit/ui';
+import { Action, ActionShortcutLabel, useAction, useServiceState } from '@bitakit/ui';
 import {
   Button,
   Checkbox,
@@ -9,6 +9,7 @@ import {
   FieldLabel,
   FieldLegend,
   FieldSet,
+  Input,
   Item,
   ItemContent,
   ItemDescription,
@@ -18,151 +19,177 @@ import {
   RadioGroupItem,
 } from '@bitakit/ui/components';
 import InfoIcon from 'reicon-react/icons/InfoCircle';
-import { CheckboxGroup } from '@/components/ui/checkbox-group';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TextField } from '@/components/ui/text-field';
-import { icons, places } from '../../services/live';
+import { initial, type Live } from '../../services/live';
 import { docs } from '../docs';
-import { LiveActions } from '../live-actions';
 import { glyphs } from '../live-icon';
 
-// Every control is a plain component inside <Action>: the Action gives it its value and runs
-// with the new one. Nothing here touches the live Actions; they read the same state.
+const icons = Object.keys(glyphs) as Live['icon'][];
+
+// The editor of the live Action. Each control runs one Action, playground.edit, with its change.
 export function LiveExample() {
-  const actions = useServiceState('playground.live', (state) => state.actions, []);
-  const selected = useServiceState('playground.live', (state) => state.selected, 0);
+  const live = useServiceState('playground.live', (state) => state, initial);
+  const edit = useAction('playground.edit');
+  const change = (patch: Partial<Live>) => void edit?.execute(patch);
   return (
     <FieldGroup>
       <Field orientation="horizontal" className="flex-wrap">
-        <LiveActions />
-        <Action id="playground.live.add">
-          <Button variant="outline" />
+        <Action id="playground.live">
+          <Button size="lg" />
         </Action>
-        <Action id="playground.live.remove">
-          <Button variant="ghost" />
-        </Action>
+        <FieldDescription>
+          {live.visible ? (
+            <>
+              Also in the {live.place === 'toolbar' ? 'app bar' : 'sidebar'}. Shortcut:{' '}
+              <ActionShortcutLabel keys="Alt+1" />.
+            </>
+          ) : (
+            'Hidden everywhere. Tick Visible to bring it back.'
+          )}
+        </FieldDescription>
       </Field>
-      {/* The tabs choose which live Action the editor below changes. */}
-      <Action id="playground.live.select" kind="choice">
-        <Tabs className="gap-6">
-          <TabsList
-            variant="line"
-            aria-label="Edit"
-            className="w-full justify-start rounded-none border-b"
+
+      <FieldSet>
+        <FieldLegend>Where it shows</FieldLegend>
+        <RadioGroup
+          aria-label="Where it shows"
+          className="flex flex-wrap gap-6"
+          value={live.place}
+          onValueChange={(place) => change({ place: place as Live['place'] })}
+        >
+          <Field orientation="horizontal" className="w-auto">
+            <RadioGroupItem value="toolbar" id="live-toolbar" />
+            <FieldLabel htmlFor="live-toolbar" className="font-normal">
+              App bar
+            </FieldLabel>
+          </Field>
+          <Field orientation="horizontal" className="w-auto">
+            <RadioGroupItem value="navigation" id="live-navigation" />
+            <FieldLabel htmlFor="live-navigation" className="font-normal">
+              Sidebar
+            </FieldLabel>
+          </Field>
+        </RadioGroup>
+        <Item variant="muted" size="sm">
+          <ItemMedia variant="icon">
+            <InfoIcon aria-hidden="true" />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle>Two sample places</ItemTitle>
+            <ItemDescription>
+              An Action shows in any slot that takes Actions: list it in its <code>slots</code>, as
+              actions/live.ts does with the app bar and the sidebar. Read more about{' '}
+              <a href={docs.slots} target="_blank" rel="noreferrer">
+                slots
+              </a>{' '}
+              and{' '}
+              <a href={`${docs.actions}#bindings`} target="_blank" rel="noreferrer">
+                binding Actions
+              </a>
+              .
+            </ItemDescription>
+          </ItemContent>
+        </Item>
+      </FieldSet>
+
+      <FieldSet>
+        <FieldLegend>How it looks</FieldLegend>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="live-title">Title</FieldLabel>
+            <Input
+              id="live-title"
+              value={live.title}
+              onChange={(event) => change({ title: event.target.value })}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="live-tooltip">Tooltip</FieldLabel>
+            <Input
+              id="live-tooltip"
+              value={live.tooltip}
+              placeholder="Empty: no tooltip"
+              onChange={(event) => change({ tooltip: event.target.value })}
+            />
+          </Field>
+        </div>
+        <Field>
+          <FieldLabel>Icon</FieldLabel>
+          <RadioGroup
+            aria-label="Icon"
+            className="flex flex-wrap gap-6"
+            value={live.icon}
+            onValueChange={(icon) => change({ icon: icon as Live['icon'] })}
           >
-            {actions.map((action, index) => (
-              <TabsTrigger key={index} value={String(index)} className="flex-none">
-                {action.title || `Action ${index + 1}`}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <TabsContent value={String(selected)}>
-            <FieldGroup>
-              <FieldSet>
-                <FieldLegend>Where it shows</FieldLegend>
-                <Action id="playground.live.places" kind="choice">
-                  <CheckboxGroup aria-label="Places" options={places} />
-                </Action>
-                <Item variant="muted" size="sm">
-                  <ItemMedia variant="icon">
-                    <InfoIcon aria-hidden="true" />
-                  </ItemMedia>
-                  <ItemContent>
-                    <ItemTitle>These are sample places</ItemTitle>
-                    <ItemDescription>
-                      An Action can show in any slot: Shell&apos;s, another plugin&apos;s or one you
-                      declare with defineSlot. List the slot in the Action&apos;s <code>slots</code>
-                      , as actions/-live.ts does. Read more about{' '}
-                      <a href={docs.slots} target="_blank" rel="noreferrer">
-                        slots
-                      </a>{' '}
-                      and{' '}
-                      <a href={`${docs.actions}#bindings`} target="_blank" rel="noreferrer">
-                        binding Actions
-                      </a>
-                      .
-                    </ItemDescription>
-                  </ItemContent>
-                </Item>
-              </FieldSet>
-
-              <FieldSet>
-                <FieldLegend>How it looks</FieldLegend>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <Field>
-                    <FieldLabel htmlFor="live-title">Title</FieldLabel>
-                    <Action id="playground.live.title" kind="choice">
-                      <TextField id="live-title" maxLength={24} />
-                    </Action>
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="live-tooltip">Tooltip</FieldLabel>
-                    <Action id="playground.live.tooltip" kind="choice">
-                      <TextField id="live-tooltip" maxLength={60} placeholder="Empty: no tooltip" />
-                    </Action>
-                  </Field>
-                </div>
-                <Field>
-                  <FieldLabel>Icon</FieldLabel>
-                  <Action id="playground.live.icon" kind="choice">
-                    <RadioGroup aria-label="Icon" className="flex flex-wrap gap-4">
-                      {icons.map((icon) => {
-                        const Glyph = glyphs[icon];
-                        return (
-                          <Field key={icon} orientation="horizontal" className="w-auto">
-                            <RadioGroupItem value={icon} id={`live-icon-${icon}`} />
-                            <FieldLabel htmlFor={`live-icon-${icon}`} className="font-normal">
-                              <Glyph aria-hidden="true" />
-                              {icon}
-                            </FieldLabel>
-                          </Field>
-                        );
-                      })}
-                    </RadioGroup>
-                  </Action>
+            {icons.map((icon) => {
+              const Glyph = glyphs[icon];
+              return (
+                <Field key={icon} orientation="horizontal" className="w-auto">
+                  <RadioGroupItem value={icon} id={`live-icon-${icon}`} />
+                  <FieldLabel htmlFor={`live-icon-${icon}`} className="font-normal">
+                    <Glyph aria-hidden="true" />
+                    {icon}
+                  </FieldLabel>
                 </Field>
-              </FieldSet>
+              );
+            })}
+          </RadioGroup>
+        </Field>
+      </FieldSet>
 
-              <FieldSet>
-                <FieldLegend>How it behaves</FieldLegend>
-                <div className="flex flex-wrap gap-x-8 gap-y-4">
-                  {(
-                    [
-                      ['playground.live.enable', 'live-enabled', 'Enabled'],
-                      ['playground.live.show', 'live-visible', 'Visible'],
-                      ['playground.live.confirm', 'live-confirm', 'Ask first'],
-                      ['playground.live.slow', 'live-slow', 'Takes a second'],
-                    ] as const
-                  ).map(([id, control, label]) => (
-                    <Field key={id} orientation="horizontal" className="w-auto">
-                      <Action id={id} kind="toggle">
-                        <Checkbox id={control} />
-                      </Action>
-                      <FieldLabel htmlFor={control} className="font-normal">
-                        {label}
-                      </FieldLabel>
-                    </Field>
-                  ))}
-                </div>
-                <Field>
-                  <FieldLabel htmlFor="live-message">Message after a run</FieldLabel>
-                  <Action id="playground.live.message" kind="choice">
-                    <TextField
-                      id="live-message"
-                      maxLength={60}
-                      placeholder="Empty: “<title> ran”"
-                    />
-                  </Action>
-                </Field>
-                <FieldDescription>
-                  Shortcut: <ActionShortcutLabel keys={`Alt+${selected + 1}`} /> runs it from
-                  anywhere, with the same rules as a click.
-                </FieldDescription>
-              </FieldSet>
-            </FieldGroup>
-          </TabsContent>
-        </Tabs>
-      </Action>
+      <FieldSet>
+        <FieldLegend>How it behaves</FieldLegend>
+        <div className="flex flex-wrap gap-x-8 gap-y-4">
+          <Field orientation="horizontal" className="w-auto">
+            <Checkbox
+              id="live-enabled"
+              checked={live.enabled}
+              onCheckedChange={(on) => change({ enabled: on === true })}
+            />
+            <FieldLabel htmlFor="live-enabled" className="font-normal">
+              Enabled
+            </FieldLabel>
+          </Field>
+          <Field orientation="horizontal" className="w-auto">
+            <Checkbox
+              id="live-visible"
+              checked={live.visible}
+              onCheckedChange={(on) => change({ visible: on === true })}
+            />
+            <FieldLabel htmlFor="live-visible" className="font-normal">
+              Visible
+            </FieldLabel>
+          </Field>
+          <Field orientation="horizontal" className="w-auto">
+            <Checkbox
+              id="live-confirm"
+              checked={live.confirm}
+              onCheckedChange={(on) => change({ confirm: on === true })}
+            />
+            <FieldLabel htmlFor="live-confirm" className="font-normal">
+              Ask first
+            </FieldLabel>
+          </Field>
+          <Field orientation="horizontal" className="w-auto">
+            <Checkbox
+              id="live-slow"
+              checked={live.slow}
+              onCheckedChange={(on) => change({ slow: on === true })}
+            />
+            <FieldLabel htmlFor="live-slow" className="font-normal">
+              Takes a second
+            </FieldLabel>
+          </Field>
+        </div>
+        <Field>
+          <FieldLabel htmlFor="live-message">Message after a run</FieldLabel>
+          <Input
+            id="live-message"
+            value={live.message}
+            placeholder="Empty: “The live Action ran”"
+            onChange={(event) => change({ message: event.target.value })}
+          />
+        </Field>
+      </FieldSet>
     </FieldGroup>
   );
 }

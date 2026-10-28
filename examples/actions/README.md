@@ -18,21 +18,20 @@ BitaKit skill next to `AGENTS.md`.
 
 ## Try it
 
-**1 · Live action** shows everything an Action can do on one Action. It starts with
-"Action 1" in the app bar; **Add action** adds up to three more, and the tabs under the
-buttons choose which one you edit:
+**1 · Live action** shows everything an Action can do on one Action. Pick where it shows (the
+app bar or the sidebar), type a title and tooltip, pick an icon, and tick Enabled, Visible,
+Ask first or Takes a second: every place follows as you type. Alt+1 runs it from anywhere.
 
-- **Where it shows**: tick App bar, Sidebar, Sidebar footer or Above the page. These are sample
-  places: an Action shows in any slot you list in its `slots`, Shell's, another plugin's or your
-  own (`defineSlot`).
-- **How it looks**: title, tooltip and icon change everywhere as you type.
-- **How it behaves**: Enabled, Visible, Ask first (`confirm`), Takes a second (a pending
-  state), the message after a run (`success`), and its shortcut, Alt+1 to Alt+4.
+It is three short files:
 
-The live Actions are four declared Actions (`actions/live/first.ts` to `fourth.ts`, built by
-`actions/-live.ts`). Each field is a function of its entry in `services/live.ts`, so the
-editor never touches an Action: its controls are Actions of three lines that change one field.
-Each place passes its name as input, and `visible` shows the Action where its entry lists it.
+| File               | What it is                                                                  |
+| ------------------ | --------------------------------------------------------------------------- |
+| `services/live.ts` | The state: place, title, tooltip, icon and the switches, and `set()`        |
+| `actions/live.ts`  | The Action: every field reads that state; placed in the app bar and sidebar |
+| `actions/edit.ts`  | One editor Action: each control runs it with its change, `{ title }`        |
+
+Each placement passes its name as the input, and `visible` keeps the chosen one. These are
+sample places: an Action shows in any slot that takes Actions once you list it in `slots`.
 
 | Tab                      | Shows                                                               |
 | ------------------------ | ------------------------------------------------------------------- |
@@ -48,18 +47,14 @@ appears in the browser console, so the Next.js dev indicator counts it as an iss
 
 ## How the controls bind
 
-| Control                   | Binding                                    | Example                  |
-| ------------------------- | ------------------------------------------ | ------------------------ |
-| A button                  | `<Action id><Button /></Action>`           | every tab                |
-| A button with an input    | `<Action id input={row}>`                  | 4 · While it runs        |
-| A checkbox (`checked`)    | `<Action id kind="toggle"><Checkbox />`    | 1 · Live action, Enabled |
-| A radio group (`value`)   | `<Action id kind="choice"><RadioGroup>`    | 1 · Live action, Icon    |
-| A checkbox list (`value`) | `<Action id kind="choice"><CheckboxGroup>` | 1 · Live action, Places  |
-| A text field (`value`)    | `<Action id kind="choice"><TextField>`     | 1 · Live action, Title   |
-| A placement (`slots`)     | `shell.toolbar`, `shell.navigation`        | 1 · Live action          |
-| A component slot          | `ui/slots/*.tsx` with `<Action input>`     | 1 · Live action          |
+| Control                       | Binding                                     | Example           |
+| ----------------------------- | ------------------------------------------- | ----------------- |
+| A button                      | `<Action id><Button /></Action>`            | every tab         |
+| A button with an input        | `<Action id input={row}>`                   | 4 · While it runs |
+| A custom control              | `useAction(id)` and `execute(value)`        | 1 · Live action   |
+| A placement (`slots`)         | `shell.toolbar`, `shell.navigation`         | 1 · Live action   |
+| A field that runs as you type | `<Action id input={query}>{(control) => …}` | 4 · While it runs |
 
-`CheckboxGroup` and `TextField` (`src/components/ui`) are small standard controls with
-`value` and `onValueChange`, the two props a `choice` binding passes. `Tabs` is shadcn's. The
-source drawer reads the plugin's files as text through `import.meta.glob` (the `?raw` rule is
-in `next.config.ts`) and highlights them with [shiki](https://shiki.style).
+`Tabs` is shadcn's. The source drawer reads the plugin's files as text through
+`import.meta.glob` (the `?raw` rule is in `next.config.ts`) and highlights them with
+[shiki](https://shiki.style).
