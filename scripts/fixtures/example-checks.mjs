@@ -240,6 +240,43 @@ const actions = async (page) => {
   await page.getByRole('button', { name: 'Click me' }).waitFor();
 };
 
+const customers = async (page) => {
+  const name = page.getByRole('textbox', { name: 'Customer name' });
+  const add = page.getByRole('button', { name: 'Add customer' });
+  await name.fill('Ada Corp');
+  await add.click();
+  await page.getByText('Ada Corp added').waitFor();
+  await name.fill('contoso');
+  await add.click();
+  await page.getByText('contoso is already a customer.').first().waitFor();
+  await page
+    .locator('[data-slot=item]')
+    .filter({ hasText: 'Northwind Traders' })
+    .getByRole('button', { name: 'Archive' })
+    .click();
+  await page.getByText('Customer archived').waitFor();
+  // Client navigation keeps the in-memory state the audit interceptors recorded.
+  await page.getByRole('link', { name: 'Audit log' }).click();
+  await page.getByText('customers.list.add("Ada Corp")').waitFor();
+  await page.getByText('customers.add ran with "Ada Corp"').waitFor();
+  await page.getByText('customers.add failed: contoso is already a customer.').waitFor();
+  await page.getByText('customers.archive ran with 1').waitFor();
+};
+
+const readOnly = async (page) => {
+  await page.getByRole('switch', { name: 'Read-only mode' }).click();
+  await page.getByRole('switch', { name: 'Read-only mode', checked: true }).waitFor();
+};
+
+const blocked = async (page) => {
+  const contoso = page.locator('[data-slot=item]').filter({ hasText: 'Contoso' });
+  await page.getByText('Read-only', { exact: true }).waitFor();
+  await contoso.getByRole('button', { name: 'Archive' }).click();
+  await page.getByText('Read-only · 1 blocked').waitFor();
+  // The gate skipped the run: Contoso is still active.
+  await contoso.getByRole('button', { name: 'Archive' }).waitFor();
+};
+
 export const checks = {
   counter: {
     visits: [
@@ -337,5 +374,23 @@ export const checks = {
     ],
     // playground.fail fails on purpose; the Action provider logs it.
     expected: /The server is taking a break/,
+  },
+  interceptors: {
+    visits: [
+      ['/', 'Interceptors example'],
+      [
+        '/customers',
+        'Two other plugins watch and gate these buttons without changing this folder.',
+        customers,
+      ],
+      ['/settings/guard', 'Read-only mode', readOnly],
+      [
+        '/customers',
+        'Two other plugins watch and gate these buttons without changing this folder.',
+        blocked,
+      ],
+    ],
+    // customers.add fails on purpose for a taken name; the Action provider logs it.
+    expected: /is already a customer/,
   },
 };
