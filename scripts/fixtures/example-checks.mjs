@@ -143,6 +143,24 @@ const crm = async (page) => {
   await page.getByText('2 new').waitFor();
 };
 
+const dashboard = async (page) => {
+  const count = page.getByLabel('Orders this month');
+  await count.waitFor();
+  const before = Number(await count.textContent());
+  const revenue = page.getByLabel('Revenue in six months');
+  const revenueBefore = await revenue.textContent();
+  await page.getByRole('button', { name: 'Record a sample order' }).click();
+  await page.getByText('Order recorded').waitFor();
+  await count.filter({ hasText: new RegExp(`^${before + 1}$`) }).waitFor();
+  // sales heard orders.created and reloaded its own numbers.
+  await page.waitForFunction(
+    (previous) =>
+      document.querySelector('[aria-label="Revenue in six months"]')?.textContent !== previous,
+    revenueBefore,
+  );
+  await page.getByLabel('Low stock').getByText('Backpack').waitFor();
+};
+
 export const checks = {
   counter: {
     visits: [
@@ -199,6 +217,13 @@ export const checks = {
       ['/', 'CRM example'],
       ['/companies/1', 'Northwind Traders', crm],
       ['/activity', 'Events from companies, contacts and deals.'],
+    ],
+  },
+  dashboard: {
+    visits: [
+      ['/', 'Dashboard example'],
+      ['/dashboard', "Each card is a plugin reading the shop's SQLite data.", dashboard],
+      ['/settings/inventory', 'Low stock below'],
     ],
   },
 };
