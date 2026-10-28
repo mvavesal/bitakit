@@ -1,7 +1,9 @@
 import { defineAction } from '@bitakit/core';
+import TrashIcon from 'reicon-react/icons/Trash';
 
 export default defineAction({
   title: 'Remove the selected',
-  enabled: ({ services }) => services.playground.live.selected() !== undefined,
+  icon: TrashIcon,
+  enabled: ({ services }) => services.playground.live.state.get().actions.length > 1,
   execute: ({ services }) => services.playground.live.remove(),
 });

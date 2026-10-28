@@ -21,8 +21,9 @@ BitaKit skill next to `AGENTS.md`.
 1. Open **Customers**, add "Ada Corp", then try "contoso": that name is taken, and the Action
    fails with the service's message.
 2. Archive Northwind Traders.
-3. Watch the **Audit log** panel below the list while you click: each Action, each service call
-   and the failure appear at once, newest first.
+3. Watch the **Audit log** on the right while you click: each Action, each service call and the
+   failure appear at once, newest first. The column stays in place while the page scrolls (on
+   a small screen it is a bar at the bottom).
 4. Settings → Guard → switch on **Read-only mode**.
 5. Back on **Customers**, press **Archive** or **Remove**: nothing changes, a message says
    "Read-only mode is on", and the header shows "Read-only · 1 blocked". Turn the mode off and
@@ -34,14 +35,16 @@ counts it as an issue.
 
 ## How it works
 
-| File                                                 | Kind                | What it does                                       |
-| ---------------------------------------------------- | ------------------- | -------------------------------------------------- |
-| `src/plugins/audit/interceptors/actions.ts`          | Action interceptor  | `action: 'customers.*'`: `after` and `onError` log |
-| `src/plugins/audit/interceptors/calls.ts`            | Service interceptor | `service: 'customers.list'`: logs each method call |
-| `src/plugins/audit/ui/slots/shell.content.after.tsx` | Slot                | The live panel below every page                    |
-| `src/plugins/guard/interceptors/read-only.ts`        | Action interceptor  | `before` returns `false` while the setting is on   |
-| `src/plugins/guard/settings.ts`                      | Setting             | `guard.readOnly`, read with `app.settings`         |
-| `src/plugins/guard/ui/slots/shell.header.end.tsx`    | Slot                | The header badge                                   |
+| File                                              | Kind                | What it does                                       |
+| ------------------------------------------------- | ------------------- | -------------------------------------------------- |
+| `src/plugins/audit/interceptors/actions.ts`       | Action interceptor  | `action: 'customers.*'`: `after` and `onError` log |
+| `src/plugins/audit/interceptors/calls.ts`         | Service interceptor | `service: 'customers.list'`: logs each method call |
+| `src/plugins/audit/ui/slots/aside.tsx`            | Slot contribution   | The live log, a table in the `aside` column        |
+| `src/slots/aside.ts`                              | Slot (the app's)    | A column for any plugin next to every page         |
+| `src/layouts/app.tsx`                             | Layout              | Shell's frame plus the `aside` column on the right |
+| `src/plugins/guard/interceptors/read-only.ts`     | Action interceptor  | `before` returns `false` while the setting is on   |
+| `src/plugins/guard/settings.ts`                   | Setting             | `guard.readOnly`, read with `app.settings`         |
+| `src/plugins/guard/ui/slots/shell.header.end.tsx` | Slot                | The header badge                                   |
 
 A plugin's interceptor only sees its own plugin's Actions until it sets `scope: 'global'`;
 service interceptors see every service. `before` returning `false` skips the run with the

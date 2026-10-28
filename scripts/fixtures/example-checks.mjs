@@ -207,7 +207,6 @@ const playground = async (page) => {
   const appBar = page.getByRole('group', { name: 'App actions' });
   const footer = page.locator('[data-sidebar=footer]');
   // 1 · Live action: every field is a function of state; the editor only changes the state.
-  await page.getByRole('button', { name: 'Add action' }).click();
   await appBar.getByRole('button', { name: 'Action 1' }).waitFor();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Deploy');
   await appBar.getByRole('button', { name: 'Deploy' }).waitFor();
@@ -215,12 +214,19 @@ const playground = async (page) => {
   await footer.getByRole('button', { name: 'Deploy' }).waitFor();
   await page.getByRole('checkbox', { name: 'App bar' }).click();
   await appBar.getByRole('button', { name: 'Deploy' }).waitFor({ state: 'detached' });
+  await page.getByRole('textbox', { name: 'Message after a run' }).fill('Deployed!');
+  await page.getByRole('checkbox', { name: 'Ask first' }).click();
+  await footer.getByRole('button', { name: 'Deploy' }).click();
+  await page.getByRole('dialog').getByText('Run Deploy?').waitFor();
+  await page.getByRole('button', { name: 'Confirm' }).click();
+  await page.getByText('Deployed!').waitFor();
   await page.getByRole('checkbox', { name: 'Enabled' }).click();
   await footer.getByRole('button', { name: 'Deploy', disabled: true }).waitFor();
   await page.getByRole('button', { name: 'Add action' }).click();
   await appBar.getByRole('button', { name: 'Action 2' }).waitFor();
-  await page.getByRole('button', { name: 'Code' }).click();
+  await page.getByRole('button', { name: 'Show source code' }).click();
   await page.getByRole('dialog').locator('.shiki').first().waitFor();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Full sample' }).waitFor();
   await page.keyboard.press('Escape');
   // 2 · Messages
   await tab('2 · Messages').click();
@@ -431,7 +437,7 @@ export const checks = {
       ['/', 'Actions example'],
       [
         '/playground',
-        'Six examples of defineAction. Each tab has a Code button with its files.',
+        'Six examples of defineAction. Each one can show its source code.',
         playground,
       ],
     ],

@@ -7,25 +7,30 @@ One page, six tabs, each showing `defineAction` options with plain components bo
 
 - `services/demo.ts` (`playground.demo`): `state` (`liked`, `results`), `toggleLike(name)`,
   `search(query)`, `unlikeAll()`.
-- `services/live.ts` (`playground.live`): `state` (`actions`, `selected`), `selected()`,
-  `add()`, `remove()`, `select(index)`, `update(patch)`; `places`, `icons`, `capacity` (4).
+- `services/live.ts` (`playground.live`): `state` (`actions`, `selected`; one Action to start),
+  `selected()`, `add()`, `remove()`, `select(index)`, `update(patch)`; `places`, `icons`,
+  `capacity` (4). An entry has places, title, tooltip, icon, enabled, visible, message,
+  confirm and slow.
 - Live Actions `playground.live.first` to `.fourth` (built by `actions/-live.ts`, input: a place
   or none): every field reads entry `n`; placed in `shell.toolbar`, `shell.navigation` and,
   through `ui/slots/sidebar.footer.tsx` and `ui/slots/shell.content.before.tsx`, in those
-  slots. Hidden until added; shown in a place only when the entry lists it.
-- Editor Actions `playground.live.add`, `.remove`, `.select`, `.places`, `.title`, `.tooltip`,
-  `.icon` (choices with `value`) and `.enable` (toggle).
+  slots. Hidden until added; shown in a place only when the entry lists it. Shortcut Alt+1 to
+  Alt+4; `confirm`, pending and `success` follow the entry.
+- Editor Actions `playground.live.add`, `.remove`, `.select` (bound to the editor's tabs),
+  `.places`, `.title`, `.tooltip`, `.icon`, `.message` (choices with `value`) and `.enable`,
+  `.show`, `.confirm`, `.slow` (toggles).
 - Example Actions: `playground.open` (navigation), `hello`, `fail` (fails on purpose), `greet`
   (input: a name of 2+ letters), `slow`, `like` (input: a fruit; per-input), `search` (input:
   a query; latest), `reset` (asks first), `details` (dialog `ui/dialogs/details.tsx`),
   `shortcut` (Mod+Shift+H), `docs` (external link), `copy` and `print` (group
   `playground.more`).
 - `actions/-wait.ts` and `actions/-live.ts` are helpers, not Actions: the `-` prefix keeps
-  discovery away from them. `ui/code.tsx` is the Code drawer.
+  discovery away from them. `ui/code.tsx` is the source drawer, `ui/docs.ts` the doc links.
 
 ## Checks
 
-Tab 1: **Add action** shows "Action 1" in the app bar; typing "Deploy" into **Title** renames it
-everywhere; ticking **Sidebar footer** and unticking **App bar** moves it; unticking **Enabled**
-disables it. **Code** opens the highlighted files. Tab 3: **Greet** is disabled for "A" and
+Tab 1: "Action 1" is in the app bar; typing "Deploy" into **Title** renames it everywhere;
+ticking **Sidebar footer** and unticking **App bar** moves it; unticking **Enabled** disables
+it; with **Ask first** a click asks before running. **Show source code** opens the highlighted
+files. Tab 3: **Greet** is disabled for "A" and
 greets "Ada". Tab 4: typing "apr" into **Search fruit** shows only Apricot.

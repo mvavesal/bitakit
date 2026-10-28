@@ -19,15 +19,34 @@ export type LiveAction = {
   tooltip: string;
   icon: Icon;
   enabled: boolean;
+  visible: boolean;
+  /** The message after a run; empty shows "<title> ran". */
+  message: string;
+  /** Ask before running. */
+  confirm: boolean;
+  /** Take a second, so the Action shows its pending state. */
+  slow: boolean;
 };
 
 /** As many live Actions as actions/live/ declares (first to fourth). */
 export const capacity = 4;
 
-// The live Actions you add in the first example, and which one you edit. The Actions in
-// actions/live/ read their entry here; the editor's Actions change the selected entry.
+const create = (n: number): LiveAction => ({
+  places: ['toolbar'],
+  title: `Action ${n + 1}`,
+  tooltip: '',
+  icon: icons[n % icons.length],
+  enabled: true,
+  visible: true,
+  message: '',
+  confirm: false,
+  slow: false,
+});
+
+// The live Actions of the first example (one to start with), and which one you edit. The
+// Actions in actions/live/ read their entry here; the editor's Actions change the selected one.
 export default defineService(({ store }) => {
-  const state = store({ actions: [] as LiveAction[], selected: 0 });
+  const state = store({ actions: [create(0)], selected: 0 });
   return {
     state,
     /** The entry being edited, if any. */
@@ -36,14 +55,7 @@ export default defineService(({ store }) => {
       state.set((current) => {
         const n = current.actions.length;
         if (n >= capacity) return current;
-        const action: LiveAction = {
-          places: ['toolbar'],
-          title: `Action ${n + 1}`,
-          tooltip: '',
-          icon: icons[n % icons.length],
-          enabled: true,
-        };
-        return { actions: [...current.actions, action], selected: n };
+        return { actions: [...current.actions, create(n)], selected: n };
       }),
     remove: () =>
       state.set((current) => {
