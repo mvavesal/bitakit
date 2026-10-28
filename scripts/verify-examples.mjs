@@ -18,8 +18,9 @@ const only = argv.includes('--only') ? argv[argv.indexOf('--only') + 1].split(',
 const keep = argv.includes('--keep');
 const work = await mkdtemp(path.join(tmpdir(), 'bitakit-examples-'));
 const packs = path.join(work, 'packs');
-// Local state a reader would not copy: installs, builds, agent skills installed per machine.
-const skipped = new Set(['node_modules', '.next', '.agents', '.claude', 'next-env.d.ts']);
+// Local state a reader would not copy: installs, builds, agent skills installed per machine and
+// the SQLite files samples create in data/ on first run.
+const skipped = new Set(['node_modules', '.next', '.agents', '.claude', 'next-env.d.ts', 'data']);
 
 const run = (command, args, cwd) =>
   execFileSync(command, args, {

@@ -101,6 +101,48 @@ const workspace = async (page) => {
   await page.getByRole('dialog').getByText('Write docs').first().waitFor();
 };
 
+const bookmarks = async (page) => {
+  const titles = page.locator('[data-slot=item-title]');
+  await titles.filter({ hasText: 'BitaKit documentation' }).waitFor();
+  const input = page.getByLabel('Link to save');
+  await input.fill('https://example.com');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await titles.first().filter({ hasText: 'example.com' }).waitFor();
+  // The server rejects a duplicate; the Action shows its message.
+  await input.fill('https://example.com');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByText('This link is already saved.').waitFor();
+  // SQLite keeps it across a reload.
+  await page.reload();
+  const saved = page.locator('[data-slot=item]').filter({ hasText: 'example.com' });
+  await saved.first().waitFor();
+  await saved.first().getByRole('button', { name: 'Delete' }).click();
+  await page.getByText('Bookmark deleted').waitFor();
+};
+
+const crm = async (page) => {
+  await page.getByText('Ada Lovelace').waitFor();
+  // The contacts plugin's card on the companies plugin's page.
+  await page.getByLabel('Contact name').fill('Edsger Dijkstra');
+  await page.getByLabel('Contact email').fill('edsger@northwind.example');
+  await page.getByRole('button', { name: 'Add contact' }).click();
+  await page.getByText('Edsger Dijkstra added').waitFor();
+  // activity heard contacts.added.
+  await page.getByText('1 new').waitFor();
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByRole('dialog').getByRole('combobox').fill('Edsger');
+  await page.getByRole('dialog').getByText('edsger@northwind.example').waitFor();
+  await page.keyboard.press('Escape');
+  await page.getByRole('link', { name: 'Deals', exact: true }).click();
+  const card = page.locator('[data-slot=card]').filter({ hasText: 'Support renewal' });
+  await card.getByRole('button', { name: 'Advance' }).click();
+  await page.getByRole('region', { name: 'Qualified' }).getByText('Support renewal').waitFor();
+  await card.getByRole('button', { name: 'Advance' }).click();
+  await card.getByRole('button', { name: 'Mark won' }).click();
+  await page.getByRole('region', { name: 'Won' }).getByText('Support renewal').waitFor();
+  await page.getByText('2 new').waitFor();
+};
+
 export const checks = {
   counter: {
     visits: [
@@ -144,6 +186,19 @@ export const checks = {
       ['/', 'Four plugins, four folders, no shared edits.'],
       ['/notes', 'Owned by the notes plugin; extended by three others.', workspace],
       ['/settings/notes', 'Newest notes first'],
+    ],
+  },
+  bookmarks: {
+    visits: [
+      ['/', 'Bookmarks example'],
+      ['/bookmarks', 'Saved in SQLite, loaded through an API route.', bookmarks],
+    ],
+  },
+  crm: {
+    visits: [
+      ['/', 'CRM example'],
+      ['/companies/1', 'Northwind Traders', crm],
+      ['/activity', 'Events from companies, contacts and deals.'],
     ],
   },
 };
