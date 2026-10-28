@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 import { Action, useServiceState, useSlot } from '@bitakit/ui';
 import {
   Button,
@@ -20,7 +19,8 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from '@bitakit/ui/components';
-import { icons } from '../services/live';
+import { icons, places } from '../services/live';
+import { Pill } from './groups';
 import { glyphs } from './live-icon';
 
 /**
@@ -28,17 +28,18 @@ import { glyphs } from './live-icon';
  * component; none of them knows where the live Action is shown.
  */
 export function LiveCard() {
-  const [title, setTitle] = useState('');
-  const [tooltip, setTooltip] = useState('');
   const current = useServiceState('playground.live', (state) => state, undefined);
   const samples = useSlot('playground.samples');
   return (
-    <Card className="md:col-span-2">
+    <Card id="example-1" className="md:col-span-2">
       <CardHeader>
+        <div>
+          <Pill n={1} group="live" />
+        </div>
         <CardTitle>One Action, every place</CardTitle>
         <CardDescription>
-          The live Action sits in the sidebar, in the app bar, in the More menu and here. Change it
-          below: each control is an Action that changes one field, and every place follows.
+          The live Action is here, in the More menu and in the place you pick below. Every control
+          is an Action that changes one field of its state, and every place follows as you type.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -47,48 +48,63 @@ export function LiveCard() {
             <Action id="playground.live.target">
               <Button size="lg" />
             </Action>
+            <Action id="playground.live.find">
+              <Button variant="outline" />
+            </Action>
             <FieldDescription>
               {current?.visible
                 ? `Clicked ${current.clicks} ${current.clicks === 1 ? 'time' : 'times'}`
                 : 'Hidden everywhere. Tick Visible to bring it back.'}
             </FieldDescription>
           </Field>
-          <form className="flex items-end gap-2" onSubmit={(event) => event.preventDefault()}>
+          {/* Each field is bound to its Action: `value` fills it and every keystroke runs it. */}
+          <div className="grid gap-4 md:grid-cols-2">
             <Field>
               <FieldLabel htmlFor="live-title">Title</FieldLabel>
-              <Input
-                id="live-title"
-                value={title}
-                placeholder={current?.title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
+              <Action id="playground.live.rename">
+                {(control) => (
+                  <Input
+                    id="live-title"
+                    maxLength={24}
+                    value={String(control.value ?? '')}
+                    onChange={(event) => void control.execute(event.target.value)}
+                  />
+                )}
+              </Action>
             </Field>
-            <Action
-              id="playground.live.rename"
-              input={title}
-              onExecuted={(result) => result.status === 'completed' && setTitle('')}
-            >
-              <Button type="submit" variant="outline" />
-            </Action>
-          </form>
-          <form className="flex items-end gap-2" onSubmit={(event) => event.preventDefault()}>
             <Field>
               <FieldLabel htmlFor="live-tooltip">Tooltip</FieldLabel>
-              <Input
-                id="live-tooltip"
-                value={tooltip}
-                placeholder="Empty removes it"
-                onChange={(event) => setTooltip(event.target.value)}
-              />
+              <Action id="playground.live.tooltip">
+                {(control) => (
+                  <Input
+                    id="live-tooltip"
+                    maxLength={60}
+                    placeholder="Empty removes it"
+                    value={String(control.value ?? '')}
+                    onChange={(event) => void control.execute(event.target.value)}
+                  />
+                )}
+              </Action>
             </Field>
-            <Action
-              id="playground.live.tooltip"
-              input={tooltip}
-              onExecuted={(result) => result.status === 'completed' && setTooltip('')}
-            >
-              <Button type="submit" variant="outline" />
+          </div>
+          <FieldSet>
+            <FieldLegend variant="label">Place</FieldLegend>
+            <FieldDescription>
+              Besides this card and the More menu. A message and a bouncing icon show where it went.
+            </FieldDescription>
+            <Action id="playground.live.place" kind="choice">
+              <RadioGroup aria-label="Place" className="flex flex-wrap gap-4">
+                {places.map((place) => (
+                  <Field key={place.value} orientation="horizontal" className="w-auto">
+                    <RadioGroupItem value={place.value} id={`live-place-${place.value}`} />
+                    <FieldLabel htmlFor={`live-place-${place.value}`} className="font-normal">
+                      {place.label}
+                    </FieldLabel>
+                  </Field>
+                ))}
+              </RadioGroup>
             </Action>
-          </form>
+          </FieldSet>
           <FieldSet>
             <FieldLegend variant="label">Icon</FieldLegend>
             <Action id="playground.live.icon" kind="choice">

@@ -203,22 +203,25 @@ const profile = async (page) => {
 };
 
 const liveAction = async (page) => {
-  const sidebar = page.locator('[data-slot=sidebar]');
   const appBar = page.getByRole('group', { name: 'App actions' });
-  await page.getByRole('textbox', { name: 'Title' }).fill('Ship it');
-  await page.getByRole('button', { name: 'Rename' }).click();
-  // One state, every place: the sidebar, the app bar and the card follow the rename.
-  await sidebar.getByRole('button', { name: 'Ship it' }).waitFor();
+  const footer = page.locator('[data-sidebar=footer]');
+  // The title field runs its Action on every keystroke; every place follows.
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Ship it');
   await appBar.getByRole('button', { name: 'Ship it' }).waitFor();
+  // A placement passes its place as input; `visible` shows the Action only there.
+  await page.getByRole('radio', { name: 'Sidebar footer' }).click();
+  await page.getByText('Look here: Sidebar footer').waitFor();
+  await footer.getByRole('button', { name: 'Ship it' }).waitFor();
+  await appBar.getByRole('button', { name: 'Ship it' }).waitFor({ state: 'detached' });
   await page.getByRole('checkbox', { name: 'Enabled' }).click();
-  await appBar.getByRole('button', { name: 'Ship it', disabled: true }).waitFor();
+  await footer.getByRole('button', { name: 'Ship it', disabled: true }).waitFor();
   const add = page.getByRole('button', { name: 'Add an item' });
   await add.click();
   await add.click();
-  await sidebar.getByText('Sample item 2').waitFor();
+  await page.locator('[data-slot=sidebar]').getByText('Sample item 2').waitFor();
   await page.getByRole('checkbox', { name: 'Visible' }).click();
   await page.getByText('Hidden everywhere.').waitFor();
-  await appBar.getByRole('button', { name: 'Ship it' }).waitFor({ state: 'detached' });
+  await footer.getByRole('button', { name: 'Ship it' }).waitFor({ state: 'detached' });
   await page.getByRole('button', { name: 'Reset', exact: true }).click();
   await appBar.getByRole('button', { name: 'Live action' }).waitFor();
 };

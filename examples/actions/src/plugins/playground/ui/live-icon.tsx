@@ -16,10 +16,17 @@ export const glyphs = {
 
 /**
  * The live Action's icon. An Action's `icon` is a component, not a function of the state, so
- * this component reads the state itself: every place that shows the Action redraws it.
+ * this component reads the state itself: every place that shows the Action redraws it. During
+ * a spotlight it bounces, so each place shows where the Action is.
  */
 export default function LiveIcon(props: { className?: string; 'aria-hidden'?: boolean | 'true' }) {
   const icon = useServiceState('playground.live', (state) => state.icon, 'star');
+  const spotlight = useServiceState('playground.live', (state) => state.spotlight, false);
   const Glyph = glyphs[icon];
-  return <Glyph {...props} />;
+  return (
+    <Glyph
+      {...props}
+      className={spotlight ? `${props.className ?? ''} animate-bounce` : props.className}
+    />
+  );
 }

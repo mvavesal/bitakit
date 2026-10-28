@@ -24,13 +24,24 @@ import {
   RadioGroupItem,
   buttonVariants,
 } from '@bitakit/ui/components';
+import { GroupPills, Pill, type Group } from '../groups';
 import { LiveCard } from '../live-card';
 
 /** One card per Action option: what it does, the file that shows it and the live control. */
-function Example(props: { title: string; file: string; children: ReactNode; about: string }) {
+function Example(props: {
+  n: number;
+  group: Group;
+  title: string;
+  file: string;
+  children: ReactNode;
+  about: string;
+}) {
   return (
-    <Card>
+    <Card id={`example-${props.n}`}>
       <CardHeader>
+        <div>
+          <Pill n={props.n} group={props.group} />
+        </div>
         <CardTitle>{props.title}</CardTitle>
         <CardDescription>{props.about}</CardDescription>
       </CardHeader>
@@ -59,10 +70,13 @@ export default function PlaygroundPage() {
         title="Actions playground"
         subtitle="Every option of defineAction, one card each. Open the file under a card to see how."
       />
+      <GroupPills />
       <div className="grid gap-4 md:grid-cols-2">
         <LiveCard />
 
         <Example
+          n={2}
+          group="basics"
           title="Run and confirm"
           file="actions/hello.ts"
           about="execute runs, success shows a message."
@@ -73,6 +87,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={3}
+          group="basics"
           title="Input with a schema"
           file="actions/greet.ts"
           about="The button stays disabled until the name has two letters."
@@ -90,6 +106,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={4}
+          group="basics"
           title="A title from a service"
           file="actions/count.ts"
           about="The title reads the counter, so it changes after each click."
@@ -100,6 +118,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={5}
+          group="basics"
           title="Visible when"
           file="actions/unlocked.ts"
           about="Hidden until the counter above reaches 3."
@@ -110,6 +130,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={6}
+          group="running"
           title="Pending state"
           file="actions/slow.ts"
           about="A promise keeps the button busy; clicks while it runs are skipped."
@@ -120,6 +142,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={7}
+          group="running"
           title="Asks first"
           file="actions/reset.ts"
           about="confirm opens a dialog; declining cancels the run."
@@ -130,6 +154,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={8}
+          group="running"
           title="When it fails"
           file="actions/fail.ts"
           about="A throw becomes an error message worded by failure."
@@ -140,6 +166,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={9}
+          group="running"
           title="A dialog"
           file="actions/details.ts"
           about="dialog opens a component in the host's dialog instead of execute."
@@ -150,6 +178,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={10}
+          group="concurrency"
           title="One state per row"
           file="actions/like.ts"
           about="per-input: each row has its own pending state and title."
@@ -173,6 +203,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={11}
+          group="concurrency"
           title="Only the latest run"
           file="actions/search.ts"
           about="latest: typing aborts the previous search, only the last one lands."
@@ -198,6 +230,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={12}
+          group="controls"
           title="A toggle"
           file="actions/favorite.ts"
           about="checked reads the state; the checkbox passes the new value."
@@ -213,6 +247,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={13}
+          group="controls"
           title="A choice"
           file="actions/sort.ts"
           about="value reads the selection; the radio group passes the new one."
@@ -236,6 +272,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={14}
+          group="controls"
           title="A keyboard shortcut"
           file="actions/shortcut.ts"
           about="Press the keys anywhere in the app; the button runs the same Action."
@@ -249,6 +287,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={15}
+          group="controls"
           title="A link"
           file="actions/docs.ts"
           about="href turns the Action into a real link; it renders as an anchor."
@@ -259,6 +299,8 @@ export default function PlaygroundPage() {
         </Example>
 
         <Example
+          n={16}
+          group="controls"
           title="A group in a menu"
           file="actions/copy.ts, actions/print.ts"
           about="ActionMenu lists every Action in the playground.more group."

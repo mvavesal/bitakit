@@ -1,9 +1,8 @@
 import { defineAction } from '@bitakit/core';
-import { z } from 'zod';
 
-// An empty tooltip removes it.
-export default defineAction({
-  title: 'Set tooltip',
-  input: z.string().trim().max(60),
-  execute: ({ input, services }) => services.playground.live.set({ tooltip: input }),
+// Bound to the tooltip field like the title; an empty tooltip removes it.
+export default defineAction<string>({
+  title: 'Tooltip',
+  value: ({ services }) => services.playground.live.state.get().tooltip,
+  execute: ({ input, services }) => services.playground.live.set({ tooltip: input.slice(0, 60) }),
 });

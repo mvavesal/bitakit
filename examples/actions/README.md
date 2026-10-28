@@ -1,9 +1,9 @@
 # Actions: every option on one page
 
-A playground for `defineAction`. The first card shows one Action in four places at once; each
-card after it shows one option of an Action: what it does, the file that declares it and a live
-control bound to it. Open the file under a card next to the page and change it; the page
-updates as you save.
+A playground for `defineAction`, sixteen numbered examples in five colored groups. The first
+card moves one Action around the app while you change it; each card after it shows one option
+of an Action: what it does, the file that declares it and a live control bound to it. Open the
+file under a card next to the page and change it; the page updates as you save.
 
 ## Run it
 
@@ -18,18 +18,22 @@ BitaKit skill next to `AGENTS.md`.
 
 ## Try it
 
-Start with **One Action, every place**. The live Action is in the sidebar, in the app bar, in
-the More menu and in the card itself:
+Start with **One Action, every place** (example 1). The live Action is in the card, in the
+More menu and in the place you pick, at first the right side of the app bar:
 
-1. Rename it, give it a tooltip and pick another icon: all four places change together.
-2. Untick **Enabled**, then **Visible**: it turns grey, then disappears, everywhere.
-3. Press **Add an item** twice: two sample Actions appear in the sidebar and in the card.
+1. Type a new title and tooltip, and pick another icon: every place changes as you type.
+2. Pick another **Place**, for example the sidebar footer. A message names it and the icon
+   bounces there for three seconds; **Show me where** does the same without moving it.
+3. Untick **Enabled**, then **Visible**: it turns grey, then disappears, everywhere.
+4. Press **Add an item** twice: two sample Actions appear in the sidebar and in the card.
 
 None of these controls touches the live Action. Each is an Action of a few lines that changes
-one field of `services/live.ts`, and the live Action's `title`, `tooltip`, `enabled` and
-`visible` are functions of that state, so every place that shows it updates by itself. An
-Action's `icon` is a component, not a function of the state, so `ui/live-icon.tsx` reads the
-state and draws the chosen icon.
+one field of `services/live.ts`, bound to a plain field, radio group, checkbox or button. The
+live Action's `title`, `tooltip`, `enabled` and `visible` are functions of that state, so every
+place that shows it updates by itself. Each placement passes its place as the input, and
+`visible` shows the Action only where the state says; the card and the More menu pass no input
+and always show it. An Action's `icon` is a component, not a function of the state, so
+`ui/live-icon.tsx` reads the state, draws the chosen icon and bounces during the spotlight.
 
 Then the other cards:
 
@@ -49,26 +53,32 @@ appears in the browser console, so the Next.js dev indicator counts it as an iss
 
 All files are in `src/plugins/playground/`.
 
-| Option                     | File                                            | Bound with                                     |
-| -------------------------- | ----------------------------------------------- | ---------------------------------------------- |
-| Every presentation field   | `actions/live/target.ts`                        | four places, no own code                       |
-| `slots` (placement)        | `actions/live/target.ts`, `actions/sample/*.ts` | `shell.toolbar`, `shell.navigation`, `useSlot` |
-| `execute`, `success`       | `actions/hello.ts`                              | `<Action><Button /></Action>`                  |
-| `input` (a zod schema)     | `actions/greet.ts`                              | `<Action input={name}>`                        |
-| `title` from a service     | `actions/count.ts`                              | `<Action>`                                     |
-| `visible`                  | `actions/unlocked.ts`                           | `<Action>`                                     |
-| A promise and `pending`    | `actions/slow.ts`                               | `<Action pending="…">`                         |
-| `confirm`, `variant`       | `actions/reset.ts`                              | `<Action>`                                     |
-| `failure`                  | `actions/fail.ts`                               | `<Action>`                                     |
-| `dialog`                   | `actions/details.ts`                            | `<Action>`                                     |
-| `concurrency: 'per-input'` | `actions/like.ts`                               | `<Action input={row}>` per row                 |
-| `concurrency: 'latest'`    | `actions/search.ts`                             | `control.execute(query)`                       |
-| `checked`                  | `actions/favorite.ts`                           | `<Action kind="toggle">`                       |
-| `value`                    | `actions/sort.ts`                               | `<Action kind="choice">`                       |
-| `shortcut`                 | `actions/shortcut.ts`                           | `<ActionShortcutLabel>`                        |
-| `href`                     | `actions/docs.ts`, `actions/open.ts`            | `<Action>` around an `<a>`                     |
-| `groups`                   | `actions/copy.ts`, `actions/print.ts`           | `<ActionMenu group>`                           |
+| Option                     | File                                                | Bound with                          |
+| -------------------------- | --------------------------------------------------- | ----------------------------------- |
+| Every presentation field   | `actions/live/target.ts`                            | every place at once, no own code    |
+| `slots` with an `input`    | `actions/live/target.ts`                            | `shell.toolbar`, `shell.navigation` |
+| A component slot           | `ui/slots/*.tsx`, `ui/live-place.tsx`               | `<Action input={place}>`            |
+| A text field               | `actions/live/rename.ts`, `actions/live/tooltip.ts` | `control.value`, `control.execute`  |
+| Placed in an own slot      | `actions/sample/*.ts`, `slots/samples.ts`           | `useSlot('playground.samples')`     |
+| `execute`, `success`       | `actions/hello.ts`                                  | `<Action><Button /></Action>`       |
+| `input` (a zod schema)     | `actions/greet.ts`                                  | `<Action input={name}>`             |
+| `title` from a service     | `actions/count.ts`                                  | `<Action>`                          |
+| `visible`                  | `actions/unlocked.ts`                               | `<Action>`                          |
+| A promise and `pending`    | `actions/slow.ts`                                   | `<Action pending="…">`              |
+| `confirm`, `variant`       | `actions/reset.ts`                                  | `<Action>`                          |
+| `failure`                  | `actions/fail.ts`                                   | `<Action>`                          |
+| `dialog`                   | `actions/details.ts`                                | `<Action>`                          |
+| `concurrency: 'per-input'` | `actions/like.ts`                                   | `<Action input={row}>` per row      |
+| `concurrency: 'latest'`    | `actions/search.ts`                                 | `control.execute(query)`            |
+| `checked`                  | `actions/favorite.ts`                               | `<Action kind="toggle">`            |
+| `value`                    | `actions/sort.ts`                                   | `<Action kind="choice">`            |
+| `shortcut`                 | `actions/shortcut.ts`                               | `<ActionShortcutLabel>`             |
+| `href`                     | `actions/docs.ts`, `actions/open.ts`                | `<Action>` around an `<a>`          |
+| `groups`                   | `actions/copy.ts`, `actions/print.ts`               | `<ActionMenu group>`                |
 
 The state the Actions read and change is one service, `services/demo.ts`; the page reads it
 with `useServiceState('playground.demo', ...)`. The page itself, `ui/pages/index.tsx`, never
 writes `disabled`, `onClick` or a loading flag: those come from the Action it binds.
+
+The colored pills come from `ui/groups.tsx`. The theme's own colors are neutral, so the tints
+are set there, in one place, to tell the groups apart.
