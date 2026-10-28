@@ -1,0 +1,37 @@
+{
+  "tasks": {
+    "open": {
+      "title": "Aufgaben"
+    },
+    "add": {
+      "title": "Aufgabe hinzufügen",
+      "success": "„{title}“ hinzugefügt"
+    },
+    "complete": {
+      "title": "Erledigt"
+    },
+    "reopen": {
+      "title": "Wieder öffnen"
+    },
+    "clear": {
+      "title": "Erledigte löschen",
+      "success": "Erledigte Aufgaben gelöscht"
+    },
+    "settings": {
+      "title": "Aufgaben",
+      "showAdded": {
+        "label": "Zeigen, wann eine Aufgabe dazukam",
+        "description": "Die Uhrzeit steht neben jeder Aufgabe."
+      }
+    },
+    "page": {
+      "title": "Aufgaben",
+      "remaining": "{count, plural, =0 {Nichts mehr zu tun} one {# Aufgabe offen} other {# Aufgaben offen}}",
+      "newTask": "Neue Aufgabe",
+      "placeholder": "Was steht an?",
+      "added": "Hinzugefügt um {time}",
+      "done": "erledigt",
+      "empty": "Noch keine Aufgaben. Füge oben die erste hinzu."
+    }
+  }
+}

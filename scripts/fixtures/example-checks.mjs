@@ -293,6 +293,30 @@ const handbook = async (page) => {
   await page.getByText('The handbook moved to its own app.').waitFor();
 };
 
+const tasksInEnglish = async (page) => {
+  await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
+  await page.getByRole('button', { name: 'Add task' }).click();
+  await page.getByText('Added "Buy milk"').waitFor();
+  await page.getByText('1 task left').waitFor();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByText('Nothing left to do').waitFor();
+};
+
+const chooseGerman = async (page) => {
+  await page.getByRole('combobox', { name: 'Language' }).click();
+  await page.getByRole('option', { name: 'Deutsch' }).click();
+  // Settings switches without a reload.
+  await page.getByText('Zurück zur App').waitFor();
+};
+
+const tasksInGerman = async (page) => {
+  await page.getByRole('textbox', { name: 'Neue Aufgabe' }).fill('Milch kaufen');
+  await page.getByRole('button', { name: 'Aufgabe hinzufügen' }).click();
+  await page.getByText('„Milch kaufen“ hinzugefügt').waitFor();
+  await page.getByText('1 Aufgabe offen').waitFor();
+  await page.getByRole('link', { name: 'Aufgaben' }).waitFor();
+};
+
 export const checks = {
   counter: {
     visits: [
@@ -413,6 +437,16 @@ export const checks = {
     visits: [
       ['/', 'Custom layout example'],
       ['/handbook', 'How we work, one chapter per topic.', handbook],
+    ],
+  },
+  i18n: {
+    visits: [
+      ['/', 'Switch the language under Settings → Language; every text follows.'],
+      ['/tasks', 'No tasks yet. Add the first one above.', tasksInEnglish],
+      ['/settings/language', 'Choose your interface language.', chooseGerman],
+      // A new page load: the server reads the cookie and renders German.
+      ['/tasks', 'Noch keine Aufgaben. Füge oben die erste hinzu.', tasksInGerman],
+      ['/settings/tasks', 'Zeigen, wann eine Aufgabe dazukam'],
     ],
   },
 };

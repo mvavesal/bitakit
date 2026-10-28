@@ -1,0 +1,37 @@
+{
+  "tasks": {
+    "open": {
+      "title": "Tasks"
+    },
+    "add": {
+      "title": "Add task",
+      "success": "Added \"{title}\""
+    },
+    "complete": {
+      "title": "Done"
+    },
+    "reopen": {
+      "title": "Reopen"
+    },
+    "clear": {
+      "title": "Clear completed",
+      "success": "Completed tasks cleared"
+    },
+    "settings": {
+      "title": "Tasks",
+      "showAdded": {
+        "label": "Show when a task was added",
+        "description": "The time appears next to each task."
+      }
+    },
+    "page": {
+      "title": "Tasks",
+      "remaining": "{count, plural, =0 {Nothing left to do} one {# task left} other {# tasks left}}",
+      "newTask": "New task",
+      "placeholder": "What needs doing?",
+      "added": "Added at {time}",
+      "done": "done",
+      "empty": "No tasks yet. Add the first one above."
+    }
+  }
+}
