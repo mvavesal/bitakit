@@ -23,8 +23,9 @@ BitaKit skill next to `AGENTS.md`.
 2. Archive Northwind Traders.
 3. Open **Audit log**: each Action, each service call and the failure, newest first.
 4. Settings → Guard → switch on **Read-only mode**.
-5. Back on **Customers**, press **Archive** or **Remove**: nothing changes, and the header shows
-   "Read-only · 1 blocked". Turn the mode off and the buttons work again.
+5. Back on **Customers**, press **Archive** or **Remove**: nothing changes, a message says
+   "Read-only mode is on", and the header shows "Read-only · 1 blocked". Turn the mode off and
+   the buttons work again.
 
 The customers live in memory, so a reload starts over; the read-only setting stays in this
 browser. A failed Action also appears in the browser console, so the Next.js dev indicator

@@ -272,6 +272,7 @@ const blocked = async (page) => {
   const contoso = page.locator('[data-slot=item]').filter({ hasText: 'Contoso' });
   await page.getByText('Read-only', { exact: true }).waitFor();
   await contoso.getByRole('button', { name: 'Archive' }).click();
+  await page.getByText('Read-only mode is on').waitFor();
   await page.getByText('Read-only · 1 blocked').waitFor();
   // The gate skipped the run: Contoso is still active.
   await contoso.getByRole('button', { name: 'Archive' }).waitFor();
