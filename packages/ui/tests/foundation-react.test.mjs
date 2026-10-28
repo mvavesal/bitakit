@@ -896,6 +896,50 @@ test('translation hook reacts to translation service updates, interpolates and p
   plugin.update(makeTranslator('Later'));
 });
 
+test('translated text hydrates without a mismatch when the runtime translated before the route hydrated', async () => {
+  const { renderToString } = await import('react-dom/server');
+  const { hydrateRoot } = await import('react-dom/client');
+  const { createRuntime } = await import('@bitakit/core');
+  // The internal context stands in for a provider whose runtime is already running.
+  const { BitaKitContext } = await import('../dist/providers/foundation-context.js');
+  const translator = (key, values) => (key === 'greeting' ? `Hallo ${values.name}` : key);
+  translator.has = (key) => key === 'greeting';
+  function Greeting() {
+    const t = useTranslation();
+    return h('output', null, t('greeting', { name: 'Ada' }, 'Hello Ada'));
+  }
+  const tree = (runtime) =>
+    h(
+      BitaKitContext.Provider,
+      { value: { runtime, ui: testUI, labels: {}, notify() {} } },
+      h(Greeting),
+    );
+  // The server never starts the runtime, so it renders the fallback.
+  const html = renderToString(
+    tree(createRuntime({ plugins: [createTranslationPlugin(translator)] })),
+  );
+  assert.equal(html, '<output>Hello Ada</output>');
+  // A lazily hydrated route meets a client runtime that already translates.
+  const runtime = createRuntime({ plugins: [createTranslationPlugin(translator)] });
+  const stop = runtime.mount();
+  await runtime.ready;
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  document.body.append(container);
+  const errors = [];
+  let root;
+  await act(async () => {
+    root = hydrateRoot(container, tree(runtime), {
+      onRecoverableError: (error) => errors.push(error),
+    });
+  });
+  assert.deepEqual(errors, []);
+  assert.equal(container.textContent, 'Hallo Ada', 'the translation follows right after hydration');
+  await act(async () => root.unmount());
+  container.remove();
+  await stop();
+});
+
 test('group headings use the title the app gave a group ID, even from an untitled snapshot group', async () => {
   // The plain name registers first, so this action's snapshot holds an untitled group object.
   const plugins = [
