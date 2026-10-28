@@ -19,18 +19,18 @@ BitaKit skill next to `AGENTS.md`.
 ## Try it
 
 **1 · Live action** shows everything an Action can do on one Action. Pick where it shows (the
-app bar or the sidebar), type a title and tooltip, pick an icon, and tick Enabled, Visible,
+app bar, the sidebar or both), type a title and tooltip, pick an icon, and tick Enabled, Visible,
 Ask first or Takes a second: every place follows as you type. Alt+1 runs it from anywhere.
 
 It is three short files:
 
 | File               | What it is                                                                  |
 | ------------------ | --------------------------------------------------------------------------- |
-| `services/live.ts` | The state: place, title, tooltip, icon and the switches, and `set()`        |
+| `services/live.ts` | The state: places, title, tooltip, icon and the switches, and `set()`       |
 | `actions/live.ts`  | The Action: every field reads that state; placed in the app bar and sidebar |
 | `actions/edit.ts`  | One editor Action: each control runs it with its change, `{ title }`        |
 
-Each placement passes its name as the input, and `visible` keeps the chosen one. These are
+Each placement passes its name as the input, and `visible` keeps the ticked ones. These are
 sample places: an Action shows in any slot that takes Actions once you list it in `slots`.
 
 | Tab                      | Shows                                                               |

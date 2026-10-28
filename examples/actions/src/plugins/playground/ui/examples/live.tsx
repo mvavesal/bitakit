@@ -19,7 +19,7 @@ import {
   RadioGroupItem,
 } from '@bitakit/ui/components';
 import InfoIcon from 'reicon-react/icons/InfoCircle';
-import { initial, type Live } from '../../services/live';
+import { initial, type Live, type Place } from '../../services/live';
 import { docs } from '../docs';
 import { glyphs } from '../live-icon';
 
@@ -30,6 +30,9 @@ export function LiveExample() {
   const live = useServiceState('playground.live', (state) => state, initial);
   const edit = useAction('playground.edit');
   const change = (patch: Partial<Live>) => void edit?.execute(patch);
+  // Ticking a place adds it to the list, unticking removes it.
+  const place = (name: Place, on: boolean) =>
+    change({ places: on ? [...live.places, name] : live.places.filter((item) => item !== name) });
   return (
     <FieldGroup>
       <Field orientation="horizontal" className="flex-wrap">
@@ -39,8 +42,7 @@ export function LiveExample() {
         <FieldDescription>
           {live.visible ? (
             <>
-              Also in the {live.place === 'toolbar' ? 'app bar' : 'sidebar'}. Shortcut:{' '}
-              <ActionShortcutLabel keys="Alt+1" />.
+              Shortcut: <ActionShortcutLabel keys="Alt+1" />.
             </>
           ) : (
             'Hidden everywhere. Tick Visible to bring it back.'
@@ -50,25 +52,28 @@ export function LiveExample() {
 
       <FieldSet>
         <FieldLegend>Where it shows</FieldLegend>
-        <RadioGroup
-          aria-label="Where it shows"
-          className="flex flex-wrap gap-6"
-          value={live.place}
-          onValueChange={(place) => change({ place: place as Live['place'] })}
-        >
+        <div className="flex flex-wrap gap-x-8 gap-y-4">
           <Field orientation="horizontal" className="w-auto">
-            <RadioGroupItem value="toolbar" id="live-toolbar" />
+            <Checkbox
+              id="live-toolbar"
+              checked={live.places.includes('toolbar')}
+              onCheckedChange={(on) => place('toolbar', on === true)}
+            />
             <FieldLabel htmlFor="live-toolbar" className="font-normal">
               App bar
             </FieldLabel>
           </Field>
           <Field orientation="horizontal" className="w-auto">
-            <RadioGroupItem value="navigation" id="live-navigation" />
+            <Checkbox
+              id="live-navigation"
+              checked={live.places.includes('navigation')}
+              onCheckedChange={(on) => place('navigation', on === true)}
+            />
             <FieldLabel htmlFor="live-navigation" className="font-normal">
               Sidebar
             </FieldLabel>
           </Field>
-        </RadioGroup>
+        </div>
         <Item variant="muted" size="sm">
           <ItemMedia variant="icon">
             <InfoIcon aria-hidden="true" />

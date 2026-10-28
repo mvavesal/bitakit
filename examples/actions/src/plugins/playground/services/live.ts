@@ -1,8 +1,10 @@
 import { defineService } from '@bitakit/core';
 
+export type Place = 'toolbar' | 'navigation';
+
 export type Live = {
-  /** Where the Action shows: the app bar or the sidebar. */
-  place: 'toolbar' | 'navigation';
+  /** Where the Action shows: the app bar, the sidebar, or both. */
+  places: Place[];
   title: string;
   tooltip: string;
   icon: 'star' | 'heart' | 'rocket' | 'bell';
@@ -17,7 +19,7 @@ export type Live = {
 };
 
 export const initial: Live = {
-  place: 'toolbar',
+  places: ['toolbar'],
   title: 'Live action',
   tooltip: '',
   icon: 'star',

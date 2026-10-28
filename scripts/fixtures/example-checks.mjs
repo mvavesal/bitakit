@@ -210,8 +210,11 @@ const playground = async (page) => {
   await appBar.getByRole('button', { name: 'Live action' }).waitFor();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Deploy');
   await appBar.getByRole('button', { name: 'Deploy' }).waitFor();
-  await page.getByRole('radio', { name: 'Sidebar' }).click();
+  // Both places at once, then only the sidebar.
+  await page.getByRole('checkbox', { name: 'Sidebar' }).click();
   await sidebar.getByRole('button', { name: 'Deploy' }).waitFor();
+  await appBar.getByRole('button', { name: 'Deploy' }).waitFor();
+  await page.getByRole('checkbox', { name: 'App bar' }).click();
   await appBar.getByRole('button', { name: 'Deploy' }).waitFor({ state: 'detached' });
   await page.getByRole('textbox', { name: 'Message after a run' }).fill('Deployed!');
   await page.getByRole('checkbox', { name: 'Ask first' }).click();
