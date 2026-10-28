@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
         loaders: ['@tailwindcss/turbopack'],
         as: '*.css',
       },
+      // `?raw` imports return a file's text: the playground's code drawer shows its own files.
+      '*.ts': { condition: { query: '?raw' }, type: 'text' },
+      '*.tsx': { condition: { query: '?raw' }, type: 'text' },
     },
   },
 };

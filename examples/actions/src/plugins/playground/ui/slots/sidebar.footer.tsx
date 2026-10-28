@@ -1,7 +1,7 @@
 'use client';
-import { LivePlace } from '../live-place';
+import { LiveActions } from '../live-actions';
 
-// The live Action, when the live card places it here.
-export default function LiveSidebarFooter() {
-  return <LivePlace place="sidebar-footer" />;
+// The live Actions that list "Sidebar footer" among their places.
+export default function LiveInSidebarFooter() {
+  return <LiveActions place="sidebar-footer" />;
 }

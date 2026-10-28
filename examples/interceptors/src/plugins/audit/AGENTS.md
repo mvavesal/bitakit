@@ -9,9 +9,10 @@ Records what happens to the customers plugin, through interceptors only.
 - `interceptors/actions.ts`: every `customers.*` Action (`scope: 'global'`); `after` records
   completed runs, `onError` failed ones.
 - `interceptors/calls.ts`: every method call on `customers.list`.
-- Actions: `audit.open` (navigation), `audit.clear` (enabled while the log has entries).
+- `ui/slots/shell.content.after.tsx`: the live panel below every page (the newest 8 entries).
+- Actions: `audit.clear` (enabled while the log has entries).
 
 ## Checks
 
-After adding a customer, `/audit` (reached through the navigation, so the in-memory state stays)
-lists `customers.list.add("…")` and `customers.add ran with "…"`.
+After adding a customer on `/customers`, the panel below the list shows
+`customers.list.add("…")` and `customers.add ran with "…"` without leaving the page.

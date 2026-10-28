@@ -202,34 +202,34 @@ const profile = async (page) => {
   await page.getByText('Notifications paused', { exact: true }).first().waitFor();
 };
 
-const liveAction = async (page) => {
+const playground = async (page) => {
+  const tab = (name) => page.getByRole('tab', { name });
   const appBar = page.getByRole('group', { name: 'App actions' });
   const footer = page.locator('[data-sidebar=footer]');
-  // The title field runs its Action on every keystroke; every place follows.
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Ship it');
-  await appBar.getByRole('button', { name: 'Ship it' }).waitFor();
-  // A placement passes its place as input; `visible` shows the Action only there.
-  await page.getByRole('radio', { name: 'Sidebar footer' }).click();
-  await page.getByText('Look here: Sidebar footer').waitFor();
-  await footer.getByRole('button', { name: 'Ship it' }).waitFor();
-  await appBar.getByRole('button', { name: 'Ship it' }).waitFor({ state: 'detached' });
+  // 1 · Live action: every field is a function of state; the editor only changes the state.
+  await page.getByRole('button', { name: 'Add action' }).click();
+  await appBar.getByRole('button', { name: 'Action 1' }).waitFor();
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Deploy');
+  await appBar.getByRole('button', { name: 'Deploy' }).waitFor();
+  await page.getByRole('checkbox', { name: 'Sidebar footer' }).click();
+  await footer.getByRole('button', { name: 'Deploy' }).waitFor();
+  await page.getByRole('checkbox', { name: 'App bar' }).click();
+  await appBar.getByRole('button', { name: 'Deploy' }).waitFor({ state: 'detached' });
   await page.getByRole('checkbox', { name: 'Enabled' }).click();
-  await footer.getByRole('button', { name: 'Ship it', disabled: true }).waitFor();
-  const add = page.getByRole('button', { name: 'Add an item' });
-  await add.click();
-  await add.click();
-  await page.locator('[data-slot=sidebar]').getByText('Sample item 2').waitFor();
-  await page.getByRole('checkbox', { name: 'Visible' }).click();
-  await page.getByText('Hidden everywhere.').waitFor();
-  await footer.getByRole('button', { name: 'Ship it' }).waitFor({ state: 'detached' });
-  await page.getByRole('button', { name: 'Reset', exact: true }).click();
-  await appBar.getByRole('button', { name: 'Live action' }).waitFor();
-};
-
-const actions = async (page) => {
+  await footer.getByRole('button', { name: 'Deploy', disabled: true }).waitFor();
+  await page.getByRole('button', { name: 'Add action' }).click();
+  await appBar.getByRole('button', { name: 'Action 2' }).waitFor();
+  await page.getByRole('button', { name: 'Code' }).click();
+  await page.getByRole('dialog').locator('.shiki').first().waitFor();
+  await page.keyboard.press('Escape');
+  // 2 · Messages
+  await tab('2 · Messages').click();
   await page.getByRole('button', { name: 'Say hello' }).click();
   await page.getByText('Hello from an Action!').waitFor();
-  // The input schema keeps Greet disabled until the name is valid.
+  await page.getByRole('button', { name: 'Try something risky' }).click();
+  await page.getByText('That failed: The server is taking a break.').first().waitFor();
+  // 3 · Input: the schema keeps Greet disabled until the name is valid.
+  await tab('3 · Input').click();
   const name = page.getByRole('textbox', { name: 'Your name' });
   const greet = page.getByRole('button', { name: 'Greet' });
   await name.fill('A');
@@ -237,31 +237,28 @@ const actions = async (page) => {
   await name.fill('Ada');
   await greet.click();
   await page.getByText('Nice to meet you, Ada!').waitFor();
-  const count = page.getByRole('button', { name: /^Click/ });
-  for (let click = 0; click < 3; click++) await count.click();
-  await page.getByRole('button', { name: 'Clicked 3 times' }).waitFor();
-  await page.getByRole('button', { name: 'Secret button' }).waitFor();
+  // 4 · While it runs
+  await tab('4 · While it runs').click();
   const apple = page.locator('[data-slot=item]').filter({ hasText: 'Apple' });
   await apple.getByRole('button', { name: 'Like' }).click();
   await apple.getByText('Liked').waitFor();
   // Each keystroke starts a search; the superseded ones stop without an error.
-  await page.getByRole('textbox', { name: 'Search fruit' }).pressSequentially('apr', { delay: 50 });
+  await page.getByRole('textbox', { name: /Search fruit|latest/ }).pressSequentially('apr', {
+    delay: 50,
+  });
   await page.getByText('Apricot', { exact: true }).waitFor();
-  await page.getByRole('checkbox', { name: 'Favorite' }).click();
-  await page.getByRole('checkbox', { name: 'Favorite', checked: true }).waitFor();
-  await page.getByRole('radio', { name: 'Name' }).click();
-  await page.getByRole('radio', { name: 'Name', checked: true }).waitFor();
+  // 5 · Confirm and dialog
+  await tab('5 · Confirm and dialog').click();
+  await page.getByRole('button', { name: 'Open a dialog' }).click();
+  await page.getByRole('dialog').getByText('you like 1 fruit').waitFor();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Unlike everything' }).click();
+  await page.getByRole('button', { name: 'Confirm' }).click();
+  await page.getByText('All likes removed').waitFor();
+  // 6 · Shortcut, link, menu
+  await tab('6 · Shortcut, link, menu').click();
   await page.keyboard.press('ControlOrMeta+Shift+h');
   await page.getByText('You pressed the shortcut').waitFor();
-  await page.getByRole('button', { name: 'Open a dialog' }).click();
-  await page.getByRole('dialog').getByText('the counter is at 3').waitFor();
-  await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: 'Try something risky' }).click();
-  await page.getByText('That failed: The server is taking a break.').first().waitFor();
-  await page.getByRole('button', { name: 'Reset the playground' }).click();
-  await page.getByRole('button', { name: 'Confirm' }).click();
-  await page.getByText('Playground reset').waitFor();
-  await page.getByRole('button', { name: 'Click me' }).waitFor();
 };
 
 const customers = async (page) => {
@@ -279,12 +276,12 @@ const customers = async (page) => {
     .getByRole('button', { name: 'Archive' })
     .click();
   await page.getByText('Customer archived').waitFor();
-  // Client navigation keeps the in-memory state the audit interceptors recorded.
-  await page.getByRole('link', { name: 'Audit log' }).click();
-  await page.getByText('customers.list.add("Ada Corp")').waitFor();
-  await page.getByText('customers.add ran with "Ada Corp"').waitFor();
-  await page.getByText('customers.add failed: contoso is already a customer.').waitFor();
-  await page.getByText('customers.archive ran with 1').waitFor();
+  // The audit plugin's panel below the page shows what its interceptors recorded, live.
+  const audit = page.getByLabel('Audit log');
+  await audit.getByText('customers.list.add("Ada Corp")').waitFor();
+  await audit.getByText('customers.add ran with "Ada Corp"').waitFor();
+  await audit.getByText('customers.add failed: contoso is already a customer.').waitFor();
+  await audit.getByText('customers.archive ran with 1').waitFor();
 };
 
 const readOnly = async (page) => {
@@ -434,13 +431,8 @@ export const checks = {
       ['/', 'Actions example'],
       [
         '/playground',
-        'Every option of defineAction, one card each. Open the file under a card to see how.',
-        actions,
-      ],
-      [
-        '/playground',
-        'Every option of defineAction, one card each. Open the file under a card to see how.',
-        liveAction,
+        'Six examples of defineAction. Each tab has a Code button with its files.',
+        playground,
       ],
     ],
     // playground.fail fails on purpose; the Action provider logs it.
