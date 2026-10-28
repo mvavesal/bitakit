@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemorySettingsStorage, createRuntime } from '@bitakit/core';
+import { readFileSync } from 'node:fs';
 import { languagePreferences } from '../dist/preferences.js';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -62,5 +63,18 @@ test('language uses confirmed persistence, rejects failures, resets and keeps ot
     );
   } finally {
     stop();
+  }
+});
+
+test('the catalogs translate the language page under the keys Settings reads', () => {
+  // Settings resolves `<plugin>.settings.title`, `.description` and `.<name>.label`.
+  for (const locale of ['en', 'de']) {
+    const catalog = JSON.parse(
+      readFileSync(new URL(`../locales/${locale}.json`, import.meta.url), 'utf8'),
+    );
+    const page = catalog.language.settings;
+    assert.equal(typeof page.title, 'string', `${locale}: language.settings.title`);
+    assert.equal(typeof page.description, 'string', `${locale}: language.settings.description`);
+    assert.equal(typeof page.locale.label, 'string', `${locale}: language.settings.locale.label`);
   }
 });
