@@ -140,6 +140,44 @@ test('exclusive skips while running; per-input tracks each input; latest aborts 
   }
 });
 
+test('a latest run that rejects because a newer run aborted it is cancelled, not failed', async () => {
+  const failed = [];
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'demo',
+        actions: {
+          search: defineAction({
+            concurrency: 'latest',
+            // Like fetch(url, { signal }): rejects as soon as the signal aborts.
+            execute: ({ input, signal }) =>
+              new Promise((resolve, reject) => {
+                signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+                setTimeout(() => resolve(input), 10);
+              }),
+          }),
+        },
+      }),
+    ],
+  });
+  const { actions } = runtime;
+  const stop = runtime.mount();
+  const off = actions.subscribeExecution((event) => {
+    if (event.phase === 'failed') failed.push(event.error);
+  });
+  try {
+    const stale = actions.execute('demo.search', 'a');
+    const fresh = actions.execute('demo.search', 'ap');
+    assert.deepEqual(await stale, { status: 'skipped', reason: 'cancelled' });
+    assert.deepEqual(await fresh, { status: 'completed', value: 'ap' });
+    assert.deepEqual(failed, [], 'the aborted run reports no failure');
+    assert.equal(actions.get('demo.search').status, ActionStatus.Succeeded);
+  } finally {
+    off();
+    stop();
+  }
+});
+
 test('the execution signal aborts when the registration is disposed; late results do not touch state', async () => {
   let signal;
   const gate = deferred();
