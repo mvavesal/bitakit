@@ -161,6 +161,28 @@ const dashboard = async (page) => {
   await page.getByLabel('Low stock').getByText('Backpack').waitFor();
 };
 
+const forms = async (page) => {
+  await page.getByText('Cannot sign in on mobile').waitFor();
+  await page.getByRole('button', { name: 'New ticket' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Create ticket' }).click();
+  // The shared schema's messages, one per field.
+  await dialog.getByText('Use at least 5 characters.').waitFor();
+  await dialog.getByText('Describe the problem in at least 20 characters.').waitFor();
+  await dialog.getByLabel('Title').fill('Export button missing');
+  await dialog.getByLabel('Your email').fill('alan@example.com');
+  await dialog.getByRole('radio', { name: 'High' }).click();
+  await dialog.getByLabel('What happened?').fill('The CSV export button disappeared.');
+  await dialog.getByRole('button', { name: 'Create ticket' }).click();
+  await page.getByText('Ticket created').waitFor();
+  await dialog.waitFor({ state: 'detached' });
+  const ticket = page.locator('[data-slot=item]').filter({ hasText: 'Export button missing' });
+  await ticket.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Confirm' }).click();
+  await page.getByText('Ticket closed').waitFor();
+  await ticket.getByText('closed', { exact: true }).waitFor();
+};
+
 export const checks = {
   counter: {
     visits: [
@@ -224,6 +246,16 @@ export const checks = {
       ['/', 'Dashboard example'],
       ['/dashboard', "Each card is a plugin reading the shop's SQLite data.", dashboard],
       ['/settings/inventory', 'Low stock below'],
+    ],
+  },
+  forms: {
+    visits: [
+      ['/', 'Forms example'],
+      [
+        '/tickets',
+        'Forms in dialogs, checked by one schema in the browser and on the server.',
+        forms,
+      ],
     ],
   },
 };
