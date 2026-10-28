@@ -367,6 +367,8 @@ export const checks = {
       ['/', 'Bookmarks example'],
       ['/bookmarks', 'Saved in SQLite, loaded through an API route.', bookmarks],
     ],
+    // The duplicate link is rejected on purpose: the 409 response and the logged failure.
+    expected: /409 \(Conflict\)|This link is already saved/,
   },
   crm: {
     visits: [
