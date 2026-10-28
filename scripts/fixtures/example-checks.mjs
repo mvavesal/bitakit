@@ -202,6 +202,27 @@ const profile = async (page) => {
   await page.getByText('Notifications paused', { exact: true }).first().waitFor();
 };
 
+const liveAction = async (page) => {
+  const sidebar = page.locator('[data-slot=sidebar]');
+  const appBar = page.getByRole('group', { name: 'App actions' });
+  await page.getByRole('textbox', { name: 'Title' }).fill('Ship it');
+  await page.getByRole('button', { name: 'Rename' }).click();
+  // One state, every place: the sidebar, the app bar and the card follow the rename.
+  await sidebar.getByRole('button', { name: 'Ship it' }).waitFor();
+  await appBar.getByRole('button', { name: 'Ship it' }).waitFor();
+  await page.getByRole('checkbox', { name: 'Enabled' }).click();
+  await appBar.getByRole('button', { name: 'Ship it', disabled: true }).waitFor();
+  const add = page.getByRole('button', { name: 'Add an item' });
+  await add.click();
+  await add.click();
+  await sidebar.getByText('Sample item 2').waitFor();
+  await page.getByRole('checkbox', { name: 'Visible' }).click();
+  await page.getByText('Hidden everywhere.').waitFor();
+  await appBar.getByRole('button', { name: 'Ship it' }).waitFor({ state: 'detached' });
+  await page.getByRole('button', { name: 'Reset', exact: true }).click();
+  await appBar.getByRole('button', { name: 'Live action' }).waitFor();
+};
+
 const actions = async (page) => {
   await page.getByRole('button', { name: 'Say hello' }).click();
   await page.getByText('Hello from an Action!').waitFor();
@@ -233,7 +254,7 @@ const actions = async (page) => {
   await page.getByRole('dialog').getByText('the counter is at 3').waitFor();
   await page.getByRole('button', { name: 'Done' }).click();
   await page.getByRole('button', { name: 'Try something risky' }).click();
-  await page.getByText('That failed: The server is taking a break.').waitFor();
+  await page.getByText('That failed: The server is taking a break.').first().waitFor();
   await page.getByRole('button', { name: 'Reset the playground' }).click();
   await page.getByRole('button', { name: 'Confirm' }).click();
   await page.getByText('Playground reset').waitFor();
@@ -412,6 +433,11 @@ export const checks = {
         '/playground',
         'Every option of defineAction, one card each. Open the file under a card to see how.',
         actions,
+      ],
+      [
+        '/playground',
+        'Every option of defineAction, one card each. Open the file under a card to see how.',
+        liveAction,
       ],
     ],
     // playground.fail fails on purpose; the Action provider logs it.

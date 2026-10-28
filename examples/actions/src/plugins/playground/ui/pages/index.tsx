@@ -24,6 +24,7 @@ import {
   RadioGroupItem,
   buttonVariants,
 } from '@bitakit/ui/components';
+import { LiveCard } from '../live-card';
 
 /** One card per Action option: what it does, the file that shows it and the live control. */
 function Example(props: { title: string; file: string; children: ReactNode; about: string }) {
@@ -59,6 +60,8 @@ export default function PlaygroundPage() {
         subtitle="Every option of defineAction, one card each. Open the file under a card to see how."
       />
       <div className="grid gap-4 md:grid-cols-2">
+        <LiveCard />
+
         <Example
           title="Run and confirm"
           file="actions/hello.ts"

@@ -1,8 +1,9 @@
 # Actions: every option on one page
 
-A playground for `defineAction`. Each card on the page shows one option of an Action: what it
-does, the file that declares it and a live control bound to it. Open the file under a card next
-to the page and change it; the page updates as you save.
+A playground for `defineAction`. The first card shows one Action in four places at once; each
+card after it shows one option of an Action: what it does, the file that declares it and a live
+control bound to it. Open the file under a card next to the page and change it; the page
+updates as you save.
 
 ## Run it
 
@@ -16,6 +17,21 @@ terminal prints. Coding agent? Run `npx bitakit init --update-agent-files` once 
 BitaKit skill next to `AGENTS.md`.
 
 ## Try it
+
+Start with **One Action, every place**. The live Action is in the sidebar, in the app bar, in
+the More menu and in the card itself:
+
+1. Rename it, give it a tooltip and pick another icon: all four places change together.
+2. Untick **Enabled**, then **Visible**: it turns grey, then disappears, everywhere.
+3. Press **Add an item** twice: two sample Actions appear in the sidebar and in the card.
+
+None of these controls touches the live Action. Each is an Action of a few lines that changes
+one field of `services/live.ts`, and the live Action's `title`, `tooltip`, `enabled` and
+`visible` are functions of that state, so every place that shows it updates by itself. An
+Action's `icon` is a component, not a function of the state, so `ui/live-icon.tsx` reads the
+state and draws the chosen icon.
+
+Then the other cards:
 
 1. Open **Playground** and press **Say hello**: the message comes from `success`.
 2. Type one letter into **Your name**: **Greet** stays disabled until the schema accepts the
@@ -33,23 +49,25 @@ appears in the browser console, so the Next.js dev indicator counts it as an iss
 
 All files are in `src/plugins/playground/`.
 
-| Option                     | File                                  | Bound with                     |
-| -------------------------- | ------------------------------------- | ------------------------------ |
-| `execute`, `success`       | `actions/hello.ts`                    | `<Action><Button /></Action>`  |
-| `input` (a zod schema)     | `actions/greet.ts`                    | `<Action input={name}>`        |
-| `title` from a service     | `actions/count.ts`                    | `<Action>`                     |
-| `visible`                  | `actions/unlocked.ts`                 | `<Action>`                     |
-| A promise and `pending`    | `actions/slow.ts`                     | `<Action pending="…">`         |
-| `confirm`, `variant`       | `actions/reset.ts`                    | `<Action>`                     |
-| `failure`                  | `actions/fail.ts`                     | `<Action>`                     |
-| `dialog`                   | `actions/details.ts`                  | `<Action>`                     |
-| `concurrency: 'per-input'` | `actions/like.ts`                     | `<Action input={row}>` per row |
-| `concurrency: 'latest'`    | `actions/search.ts`                   | `control.execute(query)`       |
-| `checked`                  | `actions/favorite.ts`                 | `<Action kind="toggle">`       |
-| `value`                    | `actions/sort.ts`                     | `<Action kind="choice">`       |
-| `shortcut`                 | `actions/shortcut.ts`                 | `<ActionShortcutLabel>`        |
-| `href`                     | `actions/docs.ts`, `actions/open.ts`  | `<Action>` around an `<a>`     |
-| `groups`                   | `actions/copy.ts`, `actions/print.ts` | `<ActionMenu group>`           |
+| Option                     | File                                            | Bound with                                     |
+| -------------------------- | ----------------------------------------------- | ---------------------------------------------- |
+| Every presentation field   | `actions/live/target.ts`                        | four places, no own code                       |
+| `slots` (placement)        | `actions/live/target.ts`, `actions/sample/*.ts` | `shell.toolbar`, `shell.navigation`, `useSlot` |
+| `execute`, `success`       | `actions/hello.ts`                              | `<Action><Button /></Action>`                  |
+| `input` (a zod schema)     | `actions/greet.ts`                              | `<Action input={name}>`                        |
+| `title` from a service     | `actions/count.ts`                              | `<Action>`                                     |
+| `visible`                  | `actions/unlocked.ts`                           | `<Action>`                                     |
+| A promise and `pending`    | `actions/slow.ts`                               | `<Action pending="…">`                         |
+| `confirm`, `variant`       | `actions/reset.ts`                              | `<Action>`                                     |
+| `failure`                  | `actions/fail.ts`                               | `<Action>`                                     |
+| `dialog`                   | `actions/details.ts`                            | `<Action>`                                     |
+| `concurrency: 'per-input'` | `actions/like.ts`                               | `<Action input={row}>` per row                 |
+| `concurrency: 'latest'`    | `actions/search.ts`                             | `control.execute(query)`                       |
+| `checked`                  | `actions/favorite.ts`                           | `<Action kind="toggle">`                       |
+| `value`                    | `actions/sort.ts`                               | `<Action kind="choice">`                       |
+| `shortcut`                 | `actions/shortcut.ts`                           | `<ActionShortcutLabel>`                        |
+| `href`                     | `actions/docs.ts`, `actions/open.ts`            | `<Action>` around an `<a>`                     |
+| `groups`                   | `actions/copy.ts`, `actions/print.ts`           | `<ActionMenu group>`                           |
 
 The state the Actions read and change is one service, `services/demo.ts`; the page reads it
 with `useServiceState('playground.demo', ...)`. The page itself, `ui/pages/index.tsx`, never

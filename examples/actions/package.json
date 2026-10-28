@@ -18,7 +18,8 @@
     "@bitakit/app-preferences": "^0.2.0",
     "@bitakit/shell": "^0.2.6",
     "@bitakit/quick-search": "^0.2.0",
-    "zod": "^4"
+    "zod": "^4",
+    "reicon-react": "1.2.5"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
