@@ -202,6 +202,44 @@ const profile = async (page) => {
   await page.getByText('Notifications paused', { exact: true }).first().waitFor();
 };
 
+const actions = async (page) => {
+  await page.getByRole('button', { name: 'Say hello' }).click();
+  await page.getByText('Hello from an Action!').waitFor();
+  // The input schema keeps Greet disabled until the name is valid.
+  const name = page.getByRole('textbox', { name: 'Your name' });
+  const greet = page.getByRole('button', { name: 'Greet' });
+  await name.fill('A');
+  if (await greet.isEnabled()) throw new Error('Greet ran with an invalid name.');
+  await name.fill('Ada');
+  await greet.click();
+  await page.getByText('Nice to meet you, Ada!').waitFor();
+  const count = page.getByRole('button', { name: /^Click/ });
+  for (let click = 0; click < 3; click++) await count.click();
+  await page.getByRole('button', { name: 'Clicked 3 times' }).waitFor();
+  await page.getByRole('button', { name: 'Secret button' }).waitFor();
+  const apple = page.locator('[data-slot=item]').filter({ hasText: 'Apple' });
+  await apple.getByRole('button', { name: 'Like' }).click();
+  await apple.getByText('Liked').waitFor();
+  // Each keystroke starts a search; the superseded ones stop without an error.
+  await page.getByRole('textbox', { name: 'Search fruit' }).pressSequentially('apr', { delay: 50 });
+  await page.getByText('Apricot', { exact: true }).waitFor();
+  await page.getByRole('checkbox', { name: 'Favorite' }).click();
+  await page.getByRole('checkbox', { name: 'Favorite', checked: true }).waitFor();
+  await page.getByRole('radio', { name: 'Name' }).click();
+  await page.getByRole('radio', { name: 'Name', checked: true }).waitFor();
+  await page.keyboard.press('ControlOrMeta+Shift+h');
+  await page.getByText('You pressed the shortcut').waitFor();
+  await page.getByRole('button', { name: 'Open a dialog' }).click();
+  await page.getByRole('dialog').getByText('the counter is at 3').waitFor();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Try something risky' }).click();
+  await page.getByText('That failed: The server is taking a break.').waitFor();
+  await page.getByRole('button', { name: 'Reset the playground' }).click();
+  await page.getByRole('button', { name: 'Confirm' }).click();
+  await page.getByText('Playground reset').waitFor();
+  await page.getByRole('button', { name: 'Click me' }).waitFor();
+};
+
 export const checks = {
   counter: {
     visits: [
@@ -287,5 +325,17 @@ export const checks = {
       ],
       ['/profile', 'Every value here is a setting, saved on the server.', profile],
     ],
+  },
+  actions: {
+    visits: [
+      ['/', 'Actions example'],
+      [
+        '/playground',
+        'Every option of defineAction, one card each. Open the file under a card to see how.',
+        actions,
+      ],
+    ],
+    // playground.fail fails on purpose; the Action provider logs it.
+    expected: /The server is taking a break/,
   },
 };
