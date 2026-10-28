@@ -277,6 +277,21 @@ const blocked = async (page) => {
   await contoso.getByRole('button', { name: 'Archive' }).waitFor();
 };
 
+const handbook = async (page) => {
+  // The app's own frame: the navigation is in the top bar and Shell's sidebar is gone.
+  const navigation = page.getByRole('navigation', { name: 'Main navigation' });
+  await navigation.getByRole('link', { name: 'Changelog' }).waitFor();
+  if (await page.locator('[data-slot=sidebar]').count())
+    throw new Error("Shell's sidebar rendered instead of src/layouts/app.tsx.");
+  // The status plugin's widgets appear in the slots this frame renders.
+  await page.getByText('v2.4', { exact: true }).waitFor();
+  await page.getByText('All systems normal').waitFor();
+  await page.getByRole('link', { name: /Working hours/ }).click();
+  await page.getByText('Core hours are 10:00 to 15:00').waitFor();
+  await navigation.getByRole('link', { name: 'Changelog' }).click();
+  await page.getByText('The handbook moved to its own app.').waitFor();
+};
+
 export const checks = {
   counter: {
     visits: [
@@ -392,5 +407,11 @@ export const checks = {
     ],
     // customers.add fails on purpose for a taken name; the Action provider logs it.
     expected: /is already a customer/,
+  },
+  'custom-layout': {
+    visits: [
+      ['/', 'Custom layout example'],
+      ['/handbook', 'How we work, one chapter per topic.', handbook],
+    ],
   },
 };
