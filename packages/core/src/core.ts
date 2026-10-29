@@ -150,7 +150,26 @@ export {
 } from './pages.js';
 export { destinationMetadata, type Destination, type DestinationKind } from './destinations.js';
 export * from './actions/core.js';
-export { pluginMetadata } from './metadata.js';
+export {
+  pluginMetadata,
+  projectPluginMetadata,
+  packageMetadataSources,
+  type PluginMetadataSources,
+} from './metadata.js';
+export {
+  withPluginOrigin,
+  pluginOrigin as getPluginOrigin,
+  pluginMembership,
+  groupPlugins,
+} from './inspection/plugin-origin.js';
+export type {
+  PluginOrigin,
+  PluginOriginRecord,
+  PackageIdentity,
+  PluginBundle,
+  PluginMembership,
+  PluginGroup,
+} from './inspection/plugin-origin.js';
 export * from './discovered.js';
 export type {
   PresentationTypes,

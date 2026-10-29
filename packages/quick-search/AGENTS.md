@@ -79,3 +79,6 @@ export default setup;
 ## More
 
 README sections: Add a source, Preferences and history, External component CSS.
+
+The built `foundation.slots.json` also records the static runtime ID `quick-search`. Discovery
+uses that generated evidence for binding checks; npm scope does not imply bundle membership.

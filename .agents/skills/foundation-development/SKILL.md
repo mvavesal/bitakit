@@ -729,24 +729,34 @@ there is no tag registry. Multiple selected tags match any selected label and co
 tags remain visible when no tag is selected. Names, descriptions and tags participate in text search.
 
 Declare metadata in `definePlugin({ metadata: { tags, coverImage } })`, local
-`plugin.config.ts` metadata, or the package.json `tags` / `coverImage` fields consumed by
-`bitakit build`. Discovery and package builds preserve both fields. Covers are optional;
+`plugin.config.ts` metadata, or package.json `bitakit.tags` / `bitakit.coverImage` with top-level legacy fallbacks. Discovery and package builds preserve both fields. Covers are optional;
 missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback).
 
-App Preferences uses the standard table and Radix ScrollArea in its owning visual package.
-Search and page headings stay outside the scroll viewport. The same ScrollArea is exported
-for composition; table scrolling is owned by that viewport rather than a nested native
-scroll container. Preserve the theme focus token and Radix data-orientation selectors when
-updating registry components. No app CSS is needed.
+App Preferences uses central Card/Item/Badge primitives and Radix ScrollArea, with no pagination.
+`pluginView` (flat by default, or grouped) and `pluginBundle` join search/tag/status in nuqs.
+Grouping uses Core's `groupPlugins` and inventory membership; repeated rows share the existing
+runtime toggle and the total counts distinct plugins. Keep central spacing, focus and theme tokens.
 
-- Plugin catalog pagination uses nuqs `pluginPage` and `pluginPageSize` (5/10/20/50,
-  default 10). Reset the page when search/tags/page size change, clamp stale page links,
-  and retain page state through detail/back navigation. Keep pagination outside the scroll
-  viewport. Match the existing Members filter buttons, including the dropdown chevron.
-- Keep focus rings outside clipping ancestors. Align the catalog's table outer cells with
-  its search and heading; retain inner column spacing and a small scroll focus gutter.
-  Verify computed padding after rebuilding packages: a stale development CSS cache can
-  retain removed styles or omit newly generated utilities.
+Package descriptive fields come from package.json; `bitakit.title`, `tags` and `coverImage` win
+per field over valid legacy metadata. Local plugin.config metadata keeps its old precedence.
+`projectPluginMetadata` (Zod shapes) is the shared pure projection; keywords stay separate from tags.
+Application translations overlay canonical title, legacy name, package name, then runtime ID.
+Host provenance uses `withPluginOrigin` and `getPluginOrigin`, bound to definition objects, never
+parallel ID arrays. Internal copies preserve it; unrecorded replacements are unknown. Membership
+is derived for local/app modules, declared for memberOf IDs, general for exactly ['*'], otherwise
+unspecified. Full package/bundle names compare lowercase; runtime IDs, versions and paths do not.
+Known bundle labels come only from host `bundles`; unresolved claims stay visible.
+
+Installed static IDs come from bitakit.id or the version-1 sidecar's additive pluginId. Contradictory
+IDs fail before entry import; old sidecars without an ID do not override a manifest ID. Never
+predict an installed ID from its package name. The one historical packagePluginId build rule lives
+in Discovery and is shared by CLI and Core testing. Traversal keys resolved physical manifests,
+not names, and generated nested imports follow the same dependency edge. Known startup collisions
+fail generation; optional complete catalog pluginIds sets fail before a new load. Multi-plugin
+manual loaders and post-load checks remain supported. Info/Doctor skip package entry and discovery
+hook execution; Doctor still audits styles. Upgrade Core and Discovery together. This adds no
+installer, admission policy, alias history or automatic dependency inference.
+
 
 - Protected organization settings must wait for an installed auth contract and render an
   actionable sign-in state when it settles without a user; never infer perpetual loading

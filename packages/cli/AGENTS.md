@@ -35,3 +35,11 @@ contracts and checks there and update them with the code; shared rules stay in t
 - `bitakit migrate` is the 0.1 upgrade; do not run it to tidy a current project.
 - Install printed Playwright or test dependencies only within the user's authorized scope;
   obtain missing approval without requesting an authorization already given again.
+
+## Passive package inspection
+
+Info and Doctor read package metadata and static IDs without executing package entries or
+discovery hooks. Info JSON adds provenance, package identity, parent, descriptive metadata and
+membership to the version-1 inventory. Optional metadata problems warn; contradictory static
+IDs and conflicting startup IDs are errors. `bitakit build` adds `pluginId` to its version-1
+sidecar, and keeps npm identity separate from the display title (`bitakit.title`).

@@ -16,3 +16,4 @@ export {
 export { describeDefinitions } from './definition-info.mjs';
 
 export { navigationPlacement } from './navigation-placement.mjs';
+export { packagePluginId, pluginIdentityConflicts } from './package-identity.mjs';

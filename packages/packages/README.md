@@ -96,3 +96,11 @@ owned by the adapter are released; the platform still controls its module cache.
 See the [plugin manager guide](../../apps/docs/content/docs/plugin-management.mdx#what-can-change-live) for supported
 plugin shapes and restart-required cases. Ordinary provider/config changes still use the
 existing host composition replacement mechanism.
+
+## Static identity and provenance
+
+Catalog names compare lowercase with scopes preserved. A catalog entry may declare the complete
+`pluginIds` set; known collisions fail before any new load and returned IDs must match. Legacy
+loaders without that set retain post-load validation and may still return multiple plugins.
+Each loaded definition receives package provenance while retaining a generated loader's membership
+and canonical metadata. See the [identity reference](../../apps/docs/content/docs/reference/plugin-metadata.mdx).

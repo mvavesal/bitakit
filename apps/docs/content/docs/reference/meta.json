@@ -5,6 +5,7 @@
     "services",
     "slots",
     "settings",
+    "plugin-metadata",
     "quick-search",
     "theming",
     "layouts",

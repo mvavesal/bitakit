@@ -7,6 +7,13 @@ import { installedContributions } from './packages.mjs';
 import { detectFramework, loadDiscoveryConfig } from './generate.mjs';
 import { describeDefinitions } from './definition-info.mjs';
 import { layoutEntries } from './layouts.mjs';
+import {
+  readPackage,
+  readApplicationPackage,
+  packageOrigin,
+  applicationBundles,
+  folderMetadata,
+} from './plugin-metadata.mjs';
 
 const kinds = [
   'actions',
@@ -78,7 +85,10 @@ async function contributionsOf(
  * contribution files, installed plugin packages, package styles and the warnings generation
  * would print. Contribution modules are never executed.
  */
-export async function describeBitaKit(root) {
+export async function describeBitaKit(
+  root,
+  { packageMetadataOnly = false, auditPackageStyles = !packageMetadataOnly } = {},
+) {
   root = await realpath(root);
   const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false });
   const relative = (file) => path.relative(root, file).split(path.sep).join('/');
@@ -103,12 +113,22 @@ export async function describeBitaKit(root) {
         throw error;
       });
   const appManifest = await load(path.join(appRoot, 'plugin.config.ts'));
+  const appPackage = await readApplicationPackage(appRoot, root);
+  const bundleContext = applicationBundles(appPackage, config.bundles, warnings);
   const appFiles = (await files(appRoot, moduleRoots)).filter(
     (file) => !/[\\/]bitakit\.gen\./.test(file),
   );
   const app = {
     id: appManifest.id ?? 'app',
     directory: relative(appRoot),
+    origin: packageOrigin('local', appPackage, warnings, 'package.json'),
+    metadata: folderMetadata(
+      'local',
+      appPackage,
+      appManifest.metadata,
+      warnings,
+      'application metadata',
+    ),
     ...(await contributionsOf(appRoot, appFiles, relative, warnings, root, { app: true })),
   };
   const plugins = [];
@@ -126,9 +146,31 @@ export async function describeBitaKit(root) {
     const manifest = await manifestOf(entry);
     const own = await files(base, new Set([...moduleRoots].filter((item) => item !== base)));
     const parent = manifest.parent ?? idByDirectory.get(parentDirectory(base, moduleRoots));
+    const packageInfo =
+      (await readPackage(base)) ??
+      (entry.id ? await readPackage(path.dirname(base)) : undefined) ??
+      {};
+    const origin = packageOrigin(
+      entry.id ? 'included' : 'local',
+      packageInfo,
+      warnings,
+      `${relative(base)}/package.json`,
+    );
+    if (!entry.id && (manifest.memberOf !== undefined || manifest.metadata?.memberOf !== undefined))
+      warnings.push(
+        `Membership in local plugin "${manifest.id}" is derived from the application; ignoring its memberOf declaration.`,
+      );
     plugins.push({
       id: manifest.id,
       directory: relative(base),
+      origin,
+      metadata: folderMetadata(
+        origin.kind,
+        packageInfo,
+        manifest.metadata,
+        warnings,
+        `${relative(base)}/plugin.config.ts`,
+      ),
       ...(parent ? { parent } : {}),
       // The parent is a lifecycle dependency, as at runtime.
       dependencies: [...new Set([...(manifest.dependencies ?? []), ...(parent ? [parent] : [])])],
@@ -139,7 +181,11 @@ export async function describeBitaKit(root) {
       })),
     });
   }
-  const installed = await installedContributions(root, config.packages, jiti);
+  const installed = await installedContributions(root, config.packages, jiti, {
+    metadataOnly: packageMetadataOnly,
+    auditStyles: auditPackageStyles,
+  });
+  warnings.push(...(installed.warnings ?? []));
   const rootManifest = await readFile(path.join(root, 'package.json'), 'utf8').then(
     JSON.parse,
     () => ({}),
@@ -167,6 +213,8 @@ export async function describeBitaKit(root) {
   }
   return {
     root,
+    ...bundleContext,
+    packagePlugins: installed.pluginPackages ?? {},
     framework: config.framework ?? detectFramework(rootManifest),
     pluginsDirectory: relative(directory),
     appDirectory: relative(appRoot),
@@ -174,10 +222,14 @@ export async function describeBitaKit(root) {
     plugins,
     packages: installed.plugins,
     catalogPackages: installed.plugins.filter((entry) =>
-      config.catalog?.includes(installed.pluginPackages?.[entry]?.name),
+      (config.catalog ?? []).some(
+        (name) => name.toLowerCase() === installed.pluginPackages?.[entry]?.name,
+      ),
     ),
     installedPackages: installed.packages,
-    styles: installed.styles ?? [],
+    styles: (installed.styles ?? []).map((value) =>
+      path.isAbsolute(value) ? relative(value) : value,
+    ),
     slotDeclarations,
     unresolvedSlots,
     /** Slot names layouts render: `@bitakit/ui`'s app bar, package manifests and `bitakit.config.ts`. */

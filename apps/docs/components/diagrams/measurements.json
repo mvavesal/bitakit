@@ -3,23 +3,23 @@
   "packages": [
     {
       "package": "@bitakit/core",
-      "files": 67,
-      "lines": 9633,
-      "tokens": 81840,
-      "tests": 258
+      "files": 68,
+      "lines": 10021,
+      "tokens": 85321,
+      "tests": 264
     },
     {
       "package": "@bitakit/ui",
       "files": 73,
-      "lines": 5933,
-      "tokens": 49614,
-      "tests": 90
+      "lines": 5950,
+      "tokens": 49768,
+      "tests": 91
     },
     {
       "package": "@bitakit/discovery",
-      "files": 15,
-      "lines": 2903,
-      "tokens": 28519,
+      "files": 17,
+      "lines": 3242,
+      "tokens": 31547,
       "tests": 0
     },
     {
@@ -32,16 +32,16 @@
     {
       "package": "@bitakit/shell",
       "files": 34,
-      "lines": 4495,
-      "tokens": 43377,
+      "lines": 4548,
+      "tokens": 43814,
       "tests": 48
     },
     {
       "package": "@bitakit/app-preferences",
-      "files": 40,
-      "lines": 3506,
-      "tokens": 27772,
-      "tests": 48
+      "files": 41,
+      "lines": 3847,
+      "tokens": 30567,
+      "tests": 52
     },
     {
       "package": "@bitakit/quick-search",
@@ -53,12 +53,12 @@
     {
       "package": "@bitakit/cli",
       "files": 15,
-      "lines": 4187,
-      "tokens": 41544,
-      "tests": 64
+      "lines": 4242,
+      "tokens": 42113,
+      "tests": 69
     }
   ],
-  "total": { "files": 271, "lines": 32189, "tokens": 284916, "tests": 555 },
+  "total": { "files": 275, "lines": 33382, "tokens": 295380, "tests": 571 },
   "feature": {
     "plugins": ["todos", "activity"],
     "files": 11,
@@ -72,7 +72,7 @@
     { "plugin": "guard", "files": 2, "lines": 26, "tokens": 202 },
     { "plugin": "notes", "files": 10, "lines": 166, "tokens": 1359 }
   ],
-  "guide": { "agentsMd": 822, "skillEntry": 3044, "skillReferences": 25178 },
+  "guide": { "agentsMd": 822, "skillEntry": 3044, "skillReferences": 25330 },
   "comparison": {
     "rows": [
       {

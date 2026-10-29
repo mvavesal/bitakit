@@ -1,0 +1,120 @@
+---
+title: Plugin identity and metadata
+description: Package identity, static runtime binding, provenance, descriptive fields and bundle grouping.
+---
+
+These additive APIs describe the **0.2 checkout**. Upgrade Core together with Discovery and
+CLI; the [local package setup](/docs/local-development) tests unpublished packages together.
+Existing plugin definitions and manual catalog loaders remain supported.
+
+## Identity
+
+| Value         | Meaning                                                       | Comparison                                       |
+| ------------- | ------------------------------------------------------------- | ------------------------------------------------ |
+| Package name  | Complete npm identity, including scope                        | Lowercase; `@Acme/Notes` and `@acme/notes` match |
+| Version       | Installed package version                                     | Preserved exactly                                |
+| Runtime ID    | Existing plugin namespace for Actions, services and lifecycle | Unchanged; never renamed from a package name     |
+| Bundle ID     | Application grouping identity                                 | Lowercase npm name syntax                        |
+| Display title | Human-facing label                                            | Authored case preserved                          |
+
+The application bundle is `package.json` → `bitakit.bundle`, falling back to the nearest
+owning application package's `name`. Changing its description, version or label does not change
+that identity. Scopes, paths, URLs and versions are never stripped or lowercased together.
+
+Installed single-plugin entries obtain their static runtime ID from `bitakit.id` or the
+additive `pluginId` field in `<entry>.slots.json` version 1. If both exist they must agree.
+The legacy `foundation` block is used only when `bitakit` is absent. Older sidecars remain
+valid; without either authoritative ID, inspection reports `pluginId: null`.
+
+Generation rejects known collisions before importing startup plugin entries. The loaded
+factory must return the declared ID. Errors name the conflicting package and IDs. Discovery
+retains distinct physical package copies by dependency edge; it does not discard a second
+version by name. `packagePluginId(name)` from `@bitakit/discovery` predicts the historical
+ID for a package's own build only. The CLI retains its existing re-export.
+
+## Authored metadata
+
+| Source                                | Fields                                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Standard `package.json`               | `version`, `description`, `author`, `license`, `homepage`, `bugs`, `repository`, `keywords` |
+| `package.json` → `bitakit`            | `title`, `tags`, `coverImage`, `memberOf`, application `bundle`, single-entry `id`          |
+| Local `plugin.config.ts` → `metadata` | Existing `name`, `description`, `tags`, `coverImage` and other `PluginMetadata` fields      |
+| `bitakit.config.ts` → `bundles`       | Known bundle declarations: `[{ id, label? }]`                                               |
+
+Package and included-folder canonical fields take precedence independently. Missing or
+malformed optional fields use valid legacy plugin metadata, then legacy package fields such
+as top-level `tags` and `coverImage`. Local plugin configuration keeps its existing precedence.
+An explicit empty tags array clears tags. npm keywords remain separate; neither tags nor
+keywords imply membership, permissions or dependencies.
+
+The Plugins page displays the application's `plugins.<id>.name` translation, then canonical
+`title`, legacy `metadata.name`, the full package name, and finally the runtime ID. A new
+`bitakit build` no longer copies npm identity into `metadata.name`. Legacy code titles and
+React icons still work; icons are not serialized into inventories.
+
+`projectPluginMetadata(canonical, ...legacy)` returns `{ metadata, warnings }` without I/O.
+`packageMetadataSources(packageJson)` supplies its canonical and legacy package inputs.
+Optional shapes use Zod; this is not a package admission, license or compatibility check.
+`pluginMetadata(source)` remains a public-field projection helper.
+
+## Provenance and membership
+
+Discovery binds host evidence to each definition. It is not accepted from arbitrary fields
+in that plugin's own metadata. An unrecorded replacement stays `unknown`, even if it reuses an
+old ID. Internal configuration copies and disable/enable retain their binding.
+
+| Origin or declaration                                   | Membership state | Group                |
+| ------------------------------------------------------- | ---------------- | -------------------- |
+| App module or discovered local plugin                   | `derived`        | This application     |
+| Package/included plugin with `memberOf: ['@acme/app']`  | `declared`       | Each declared bundle |
+| Package/included plugin with `memberOf: ['*']`          | `general`        | General purpose      |
+| Missing, empty, malformed or mixed wildcard declaration | `unspecified`    | Not assigned         |
+| Unrecorded definition                                   | `unspecified`    | Not assigned         |
+
+Unknown bundle references stay visible with their raw canonical ID and an unresolved label.
+Only the current bundle and the host's `bundles` declarations resolve labels. Sharing an npm
+scope or workspace never implies application membership. A local `memberOf` claim is ignored
+with a warning. Raw valid declarations retain their spelling; effective references are
+lowercase and deduplicated. Membership never changes parent ownership, dependencies or startup.
+
+Trusted manual hosts may call `withPluginOrigin(plugin, record)` to return a fresh definition
+with `kind`, `package: { name, version }`, optional `memberOf`, optional authoritative
+`pluginId`, and optional `metadata: { canonical, legacy }`. An ID mismatch throws before
+registration. `getPluginOrigin(plugin)` reads the associated record; it does not infer one.
+This API records attribution within trusted code; it is not an authorization boundary.
+
+`pluginMembership(record, { application?, bundle?, knownBundles? })` and
+`groupPlugins(entries, bundle?)` are pure shared projections. Each entry has `{ id, membership }`.
+Groups contain the original entries, ordered as application, known bundles, unresolved bundles,
+general and unspecified. Repeated appearances use the same runtime ID and shared toggle.
+
+## Inspection and presentation
+
+`inspectRuntime`, `useRuntimeInventory` and `bitakit info --json` keep the version-1 envelope.
+Additive fields include `origin`, `application`, `parent`, `package`, `declaredMembership`,
+`membership`, and descriptive metadata. Unavailable values remain null. Runtime conflicts
+between loaded legacy and canonical metadata are reported in `metadataWarnings` when present.
+
+`describeBitaKit(root, { packageMetadataOnly: true })` and CLI info do not execute package
+entries or discovery hooks. Doctor uses that passive path while retaining its stylesheet audit
+(`auditPackageStyles: true`). Host configuration remains trusted executable configuration.
+Optional metadata problems produce warnings; contradictory IDs and existing execution errors
+remain errors. Static tools cannot inspect legacy values available only inside executable code.
+
+App Preferences defaults to the flat list. Grouped view shows section counts and a distinct
+plugin total. Search and filters include unspecified plugins. URL state uses `pluginView`
+(`flat` or `grouped`), `pluginBundle` (`all`, `application`, `general`, `unspecified` or
+`bundle:<id>`), plus the existing `pluginSearch`, repeated `pluginTag` and `pluginStatus`.
+Detail/back navigation preserves them. There is no pagination.
+
+## Trusted catalog
+
+`PackageCatalog` entries may add `pluginIds: readonly string[]` with the complete static set.
+`createPackageHost` checks those IDs against retained runtime definitions and other selected
+packages before invoking new loaders, then verifies the returned set. Omit `pluginIds` for a
+legacy loader whose full set is unavailable; its post-load duplicate checks remain in force.
+Manual loaders may still return several definitions, each with its own ID and package binding.
+Catalog names and selections compare lowercase; conflicting catalog keys are rejected.
+
+The catalog still contains one pinned version per package per host build. This feature adds
+no network lookup, runtime download, installer, marketplace admission or former-ID aliasing.

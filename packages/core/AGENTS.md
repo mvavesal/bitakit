@@ -44,3 +44,13 @@ one plugin under Node (no browser); `plugin.execute(id, input)` resolves to the 
   `app.has(name)` for optional ones.
 - Only the declaring plugin emits its events; others listen.
 - `enabled`, `visible` and interceptors are client rules; authorize on the server.
+
+## Plugin identity and inspection
+
+Discovery records provenance on definitions. `withPluginOrigin(plugin, record)` is the trusted
+host API; `getPluginOrigin` reads it. Replacing a definition without a record leaves it unknown.
+`pluginMembership` and `groupPlugins` are pure grouping projections; membership never changes
+execution or access. `inspectRuntime` adds origin, package, parent and membership to its existing
+version-1 inventory. Package/bundle names compare lowercase with scopes preserved; runtime IDs
+stay unchanged. `projectPluginMetadata` shares canonical-first package metadata and legacy
+fallback; `packageMetadataSources` extracts public package fields without I/O.

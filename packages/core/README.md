@@ -62,6 +62,13 @@ Plugins are trusted application code. Core is not a sandbox, package installer o
 marketplace. Services own state and resources; the host owns routing, persistence providers
 and server authorization.
 
+## Metadata and provenance
+
+`src/metadata.ts` owns the pure public-field projection shared by build tools and runtime.
+`src/inspection/plugin-origin.ts` binds host evidence to definitions and projects membership
+and groups; `src/inspection/inventory.ts` supplies serializable static/live inspection.
+See the [identity and metadata reference](../../apps/docs/content/docs/reference/plugin-metadata.mdx).
+
 ## License
 
 [MIT](https://github.com/mvavesal/bitakit/blob/main/LICENSE). Third-party dependencies retain

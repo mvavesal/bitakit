@@ -35,6 +35,9 @@ export async function writeProjectFiles(root, files) {
  * Raise an entry when a template starts using a newer API; drop entries at a new release line.
  */
 export const minimumVersions = {
+  // Discovery binds provenance through Core; keep the generated API and runtime together.
+  core: '0.2.8',
+  discovery: '0.2.5',
   // 0.2.5: not-found.tsx renders `<AppShell layout="error">` and error pages Shell's screens.
   // 0.2.6: Shell declares HeroUI's peers, which Yarn does not install by itself.
   shell: '0.2.6',
@@ -64,7 +67,7 @@ export async function configureProject(
   project.devDependencies = {
     ...project.devDependencies,
     '@bitakit/cli': bitakitRange,
-    '@bitakit/discovery': bitakitRange,
+    '@bitakit/discovery': packageRange('discovery'),
     ...devDependencies,
   };
   Object.assign((project.scripts ??= {}), scripts);

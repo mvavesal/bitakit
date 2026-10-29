@@ -98,7 +98,7 @@ test('build writes the plugin types, the compiled sources and the dist/plugin en
   );
   assert.match(
     entry,
-    /metadata: \{"name":"@acme\/bitakit-notes","version":"0\.1\.0","coverImage":"\/notes\.png","tags":\["productivity"\]\},/,
+    /metadata: \{"version":"0\.1\.0","coverImage":"\/notes\.png","tags":\["productivity"\]\},/,
   );
   assert.match(entry, /dependencies: \["shell"\],/);
   assert.match(
@@ -213,6 +213,7 @@ test('packaged slot definitions retain runtime ownership, payload types and deri
   const info = JSON.parse(await readFile(path.join(root, 'dist/plugin.slots.json'), 'utf8'));
   assert.deepEqual(info, {
     version: 1,
+    pluginId: 'toolbar',
     definitions: [
       {
         id: 'toolbar.header.end',

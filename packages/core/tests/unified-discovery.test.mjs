@@ -769,7 +769,6 @@ test('plugin roots, IDs, inclusion and overrides follow bitakit.config.ts', asyn
       ['library', 'notes'],
     );
     assert.deepEqual(config.plugins[1].metadata, {
-      name: '@acme/notes',
       version: '1.2.3',
       description: 'Shared notes',
       tags: ['productivity'],
@@ -879,7 +878,7 @@ test('the app module namespaces its contributions, declares events and selects i
     const source = await readFile(result.generated, 'utf8');
     assert.match(
       source,
-      /appId: "app",\s+metadata: \{"name":"Demo app"\},\s+dependencies: \["shell"\],/,
+      /appId: "app",\s+\.\.\.\{"knownBundles":\[\]\},\s+metadata: \{"name":"Demo app"\},\s+dependencies: \["shell"\],/,
     );
     assert.match(
       source,
@@ -1088,6 +1087,8 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
     const description = await describeBitaKit(root);
     assert.deepEqual(Object.keys(description), [
       'root',
+      'knownBundles',
+      'packagePlugins',
       'framework',
       'pluginsDirectory',
       'appDirectory',
@@ -1111,6 +1112,8 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
     assert.deepEqual(description.app, {
       id: 'app',
       directory: 'src',
+      origin: { kind: 'local', package: null, memberOf: null },
+      metadata: {},
       actions: [{ path: 'refresh', file: 'src/actions/refresh.ts' }],
       services: [{ path: 'logging', file: 'src/services/logging.ts' }],
       pages: [{ path: '', file: 'src/ui/pages/index.tsx' }],
@@ -1127,6 +1130,8 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
       {
         id: 'todos',
         directory: 'src/plugins/todos',
+        origin: { kind: 'local', package: null, memberOf: null },
+        metadata: {},
         dependencies: ['shell'],
         enabled: false,
         actions: [

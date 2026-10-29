@@ -265,17 +265,17 @@ the task at hand). See [Work with AI coding agents](/docs/guides/ai-agents).
 An app created with Shell, Settings and Quick Search runs on these packages. Read the token counts
 as sizes, not exact bills: other models' tokenizers count somewhat differently.
 
-| Package                                        | Source files |      Lines |       Tokens |   Tests |
-| ---------------------------------------------- | -----------: | ---------: | -----------: | ------: |
-| Core (runtime, Actions, settings)              |           67 |      9,633 |       81,840 |     258 |
-| UI (React bindings, components)                |           73 |      5,933 |       49,614 |      90 |
-| Discovery (file conventions, types)            |           15 |      2,903 |       28,519 |       ¹ |
-| Next.js adapter                                |            9 |        112 |        1,020 |      31 |
-| Shell (frame, layouts, theming, notifications) |           34 |      4,495 |       43,377 |      48 |
-| App Preferences (Settings pages)               |           40 |      3,506 |       27,772 |      48 |
-| Quick Search                                   |           18 |      1,420 |       11,230 |      16 |
-| CLI (add, doctor, slots, info)                 |           15 |      4,187 |       41,544 |      64 |
-| **Total**                                      |      **271** | **32,189** | **≈285,000** | **555** |
+| Package | Source files | Lines | Tokens | Tests |
+| --- | ---: | ---: | ---: | ---: |
+| Core (runtime, Actions, settings) | 68 | 10,021 | 85,321 | 264 |
+| UI (React bindings, components) | 73 | 5,950 | 49,768 | 91 |
+| Discovery (file conventions, types) | 17 | 3,242 | 31,547 | ¹ |
+| Next.js adapter | 9 | 112 | 1,020 | 31 |
+| Shell (frame, layouts, theming, notifications) | 34 | 4,548 | 43,814 | 48 |
+| App Preferences (Settings pages) | 41 | 3,847 | 30,567 | 52 |
+| Quick Search | 18 | 1,420 | 11,230 | 16 |
+| CLI (add, doctor, slots, info) | 15 | 4,242 | 42,113 | 69 |
+| **Total** | **275** | **33,382** | **295,380** | **571** |
 
 ¹ Discovery's tests run in Core's suite.
 

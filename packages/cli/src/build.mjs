@@ -3,6 +3,7 @@ import { cp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describeModule, describeDefinitions, validatePackageStyles } from '@bitakit/discovery';
+import { packageMetadataSources, projectPluginMetadata } from '@bitakit/core';
 import { findProject } from './project.mjs';
 
 const quote = JSON.stringify;
@@ -78,6 +79,7 @@ export async function buildPlugin({ cwd, check = false } = {}) {
     JSON.stringify(
       {
         version: 1,
+        pluginId: id,
         definitions: slotInfo.definitions.map((item) => ({
           ...item,
           file: source(item.file),
@@ -174,19 +176,9 @@ function entry(id, module, manifest, metadata, local) {
       const name = load(item.file);
       return `discoveredFile(${name}, ${quote(item.path)}, ${quote(path.relative(module.directory, item.file).split(path.sep).join('/'))})`;
     });
-  const info = {};
-  for (const key of [
-    'name',
-    'version',
-    'description',
-    'author',
-    'homepage',
-    'bugs',
-    'license',
-    'coverImage',
-    'tags',
-  ])
-    if (manifest[key] !== undefined) info[key] = manifest[key];
+  const sources = packageMetadataSources(manifest);
+  const { metadata: info, warnings } = projectPluginMetadata(sources.canonical, sources.legacy);
+  for (const warning of warnings) console.warn(`[bitakit] ${warning}`);
   const services = discovered(module.services);
   const settings = discovered(module.settings);
   const settingsPage = module.settingsPage

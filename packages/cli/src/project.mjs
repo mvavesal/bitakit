@@ -1,6 +1,7 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { loadDiscoveryConfig } from '@bitakit/discovery';
+import { loadDiscoveryConfig, packagePluginId } from '@bitakit/discovery';
+export { packagePluginId } from '@bitakit/discovery';
 
 /** The nearest package.json above `cwd`: the project root and its manifest, without reading any configuration. */
 export async function findProjectRoot(cwd = process.cwd()) {
@@ -79,17 +80,6 @@ async function describeProject(root, manifest) {
     pluginsDirectory: path.resolve(root, config.plugins?.directory ?? './src/plugins'),
     appDirectory: path.resolve(root, config.directory ?? './src'),
   };
-}
-
-/** `@acme/bitakit-notes` → `notes`; the package manifest may set `bitakit.id` explicitly. */
-export function packagePluginId(name = '') {
-  return (
-    name
-      .replace(/^@[^/]+\//, '')
-      .replace(/^bitakit-(plugin-)?/, '')
-      .replace(/-plugin$/, '')
-      .replace(/[^a-z0-9-]/g, '-') || 'plugin'
-  );
 }
 
 export async function exists(file) {

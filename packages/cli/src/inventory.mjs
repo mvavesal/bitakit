@@ -1,7 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
-import { createInventory } from '@bitakit/core';
+import {
+  createInventory,
+  pluginMembership,
+  inventoryMetadata,
+  projectPluginMetadata,
+} from '@bitakit/core';
 import { describeDefinitions } from '@bitakit/discovery';
 
 const kinds = {
@@ -105,22 +110,46 @@ export async function inspectionFromDescription(description) {
     plugins.push({
       id: module.id,
       pluginId: module.id,
+      application: app,
+      origin: module.origin?.kind ?? 'unknown',
+      parent: module.parent ?? null,
+      package: module.origin?.package ?? null,
+      declaredMembership: module.origin?.memberOf ?? null,
+      membership: pluginMembership(module.origin, {
+        application: app,
+        bundle: description.bundle,
+        knownBundles: description.knownBundles,
+      }),
       enabled: module.enabled ?? true,
       source: { kind: 'file', path: module.directory },
-      metadata: {},
+      metadata: inventoryMetadata(module.metadata),
       dependencies: module.dependencies ?? [],
       declarations,
     });
   }
-  for (const specifier of description.packages)
+  for (const specifier of description.packages) {
+    const record = description.packagePlugins?.[specifier];
     plugins.push({
       id: specifier,
-      pluginId: null,
+      pluginId: record?.pluginId ?? null,
+      application: false,
+      origin: record?.origin?.kind ?? 'unknown',
+      parent: null,
+      package: record?.origin?.package ?? null,
+      declaredMembership: record?.origin?.memberOf ?? null,
+      membership: pluginMembership(record?.origin, {
+        bundle: description.bundle,
+        knownBundles: description.knownBundles,
+      }),
       enabled: description.catalogPackages?.includes(specifier) ? null : true,
       source: { kind: 'package', path: specifier },
-      metadata: {},
+      metadata: inventoryMetadata(
+        projectPluginMetadata(record?.origin.metadata?.canonical, record?.origin.metadata?.legacy)
+          .metadata,
+      ),
       dependencies: null,
       declarations: null,
     });
+  }
   return createInventory(plugins);
 }

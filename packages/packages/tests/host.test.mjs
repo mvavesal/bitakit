@@ -213,3 +213,75 @@ test('a failed loader is retryable and shutdown during loading prevents activati
   assert.equal((await addition).status, 'blocked');
   assert.equal(runtime.config.plugins.length, 0);
 });
+
+test('canonical package selection checks all known IDs before importing and binds multi-plugin loaders individually', async (t) => {
+  let imports = 0;
+  const { runtime, packages } = await host(t, {
+    '@ACME/One': {
+      version: '1.0.0',
+      pluginIds: ['collision'],
+      load: async () => {
+        imports++;
+        return [plugin('collision')];
+      },
+    },
+    '@other/two': {
+      version: '1.0.0',
+      pluginIds: ['collision'],
+      load: async () => {
+        imports++;
+        return [plugin('collision')];
+      },
+    },
+    legacy: { version: '1.0.0', load: async () => [plugin('first'), plugin('second')] },
+  });
+  assert.equal(
+    (await packages.reconcile(request('A', '@acme/ONE', '@OTHER/two'))).status,
+    'blocked',
+  );
+  assert.equal(imports, 0);
+  assert.equal((await packages.reconcile(request('A', '@acme/one'))).status, 'applied');
+  assert.equal(imports, 1);
+  assert.equal((await packages.reconcile(request('A', '@ACME/ONE', 'legacy'))).status, 'applied');
+  const { inspectRuntime } = await import('@bitakit/core');
+  for (const id of ['first', 'second']) {
+    const entry = inspectRuntime(runtime).static.plugins.find((plugin) => plugin.id === id);
+    assert.equal(entry.package.name, 'legacy');
+    assert.equal(entry.origin, 'package');
+  }
+  assert.throws(
+    () =>
+      createPackageHost({
+        runtime,
+        catalog: {
+          DUPLICATE: { version: '1', load: async () => [] },
+          duplicate: { version: '1', load: async () => [] },
+        },
+      }),
+    /Duplicate catalog package identity/,
+  );
+});
+
+test('catalog static identity conflicts with startup plugins before loading and validates loaded sets', async (t) => {
+  let imports = 0;
+  const { packages } = await host(
+    t,
+    {
+      collision: {
+        version: '1.0.0',
+        pluginIds: ['keeper'],
+        load: async () => {
+          imports++;
+          return [plugin('keeper')];
+        },
+      },
+      mismatch: { version: '1.0.0', pluginIds: ['expected'], load: async () => [plugin('actual')] },
+    },
+    [plugin('keeper')],
+  );
+  assert.equal((await packages.reconcile(request('A', 'collision'))).status, 'blocked');
+  assert.equal(imports, 0);
+  const failed = await packages.reconcile(request('A', 'mismatch'));
+  assert.equal(failed.status, 'failed');
+  assert.match(failed.reasons.join(' '), /mismatch.*expected.*actual/);
+});

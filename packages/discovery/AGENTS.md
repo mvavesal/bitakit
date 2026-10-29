@@ -39,3 +39,18 @@ export default defineBitaKit({
 
 - Never edit `src/bitakit.gen.*`; change source files and run `npm run typecheck`.
 - `npx bitakit info --json` and `npx bitakit slots --json` show what discovery found.
+
+## Package metadata and grouping
+
+Keep descriptive package fields in package.json. `bitakit.title`, `tags` and `coverImage` are
+canonical; top-level legacy tags/images and plugin code remain fallbacks. Local plugin metadata
+stays in `plugin.config.ts`. `bitakit.memberOf: ['*']` declares general purpose; explicit bundle
+IDs declare membership. Missing membership is unspecified. Local membership is derived from
+the application's `bitakit.bundle` or package name. `bundles: [{ id, label? }]` in host config
+labels known external bundles. Names compare lowercase without dropping scopes.
+
+Use `bitakit.id` or a rebuilt entry's sidecar to expose its static runtime ID. Contradictory
+manifest/sidecar IDs and known active collisions fail before entry import. Legacy entries with
+no static ID remain supported. `describeBitaKit(root, { packageMetadataOnly: true })` skips
+package discovery hooks and stylesheet auditing; `auditPackageStyles: true` retains the audit.
+No package entry is executed. Upgrade Core and Discovery together.

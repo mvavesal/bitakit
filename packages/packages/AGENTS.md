@@ -32,3 +32,11 @@ await packages.reconcile({
   may enable; a client scope string proves nothing.
 - One adapter per runtime; do not change the same plugins through Core directly as well.
 - Only trusted, build-included packages: nothing is downloaded at runtime.
+
+## Identity checks
+
+Catalog names and requested names compare lowercase, preserving full npm scopes. Duplicate
+canonical catalog keys fail. An optional `pluginIds` array declares the complete static set:
+collisions are rejected before new loaders run, and loaded IDs must match. Omit it when a
+legacy loader's set is unknown. Multi-plugin loaders still work; each definition receives its
+own package binding. Provenance supplied by a generated loader is retained.

@@ -7,6 +7,7 @@ import {
   describeDefinitions,
   cssImports,
   navigationPlacement,
+  pluginIdentityConflicts,
 } from '@bitakit/discovery';
 import { checkAgentFiles } from './doctor-agent-files.mjs';
 import { exists, findProject } from './project.mjs';
@@ -60,11 +61,40 @@ export async function doctor({ cwd } = {}) {
   }
   let description;
   try {
-    description = await describeBitaKit(project.root);
+    description = await describeBitaKit(project.root, {
+      packageMetadataOnly: true,
+      auditPackageStyles: true,
+    });
   } catch (error) {
     results.push({ status: 'error', title: 'Discovery failed', details: [error.message] });
     return { project, results };
   }
+  const identityConflicts = pluginIdentityConflicts([
+    { id: description.app.id, source: 'application' },
+    ...description.plugins
+      .filter((plugin) => plugin.enabled)
+      .map((plugin) => ({ id: plugin.id, source: plugin.directory })),
+    ...Object.entries(description.packagePlugins ?? {})
+      .filter(([entry]) => !description.catalogPackages.includes(entry))
+      .map(([entry, record]) => ({
+        id: record.pluginId,
+        source: `${record.name}@${record.version} (${entry})`,
+      })),
+  ]);
+  if (identityConflicts.length)
+    results.push({
+      status: 'error',
+      title: 'Conflicting static plugin IDs',
+      details: identityConflicts,
+    });
+  const metadataWarnings = description.warnings.filter(isMetadataWarning);
+  if (metadataWarnings.length)
+    results.push({
+      status: 'warn',
+      title: 'Plugin metadata',
+      details: [...new Set(metadataWarnings)],
+      fix: 'Correct the optional declaration at its source. Local membership is derived; canonical descriptive fields take precedence.',
+    });
   results.push(...(await checkWiring(project)));
   const modules = [
     { ...description.app, isApp: true },
@@ -845,10 +875,14 @@ async function checkStyles(project, description) {
   };
 }
 /** Discovery warnings are either deprecations that migrate fixes, or files it skips. */
+const isMetadataWarning = (warning) =>
+  /metadata|memberOf|bundle|Membership in local plugin/.test(warning);
 const isDeprecation = (warning) => warning.includes('bitakit migrate');
 const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 function checkIgnored(description) {
-  const ignored = description.warnings.filter((warning) => !isDeprecation(warning));
+  const ignored = description.warnings.filter(
+    (warning) => !isDeprecation(warning) && !isMetadataWarning(warning),
+  );
   if (!ignored.length)
     return { status: 'ok', title: 'Every contribution file has a default export' };
   return {

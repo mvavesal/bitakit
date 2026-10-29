@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { packagePluginId, pluginFiles, titleOf } from '@bitakit/cli';
-import { bitakitRange, writeProjectFiles } from './project-files.mjs';
+import { bitakitRange, packageRange, writeProjectFiles } from './project-files.mjs';
 import { useLocalPackages } from './create-app.mjs';
 
 /**
@@ -40,8 +40,8 @@ export async function createPluginPackage(plan, { run, createApp, packagesDir })
     // React is added below with the playground's exact version, so both share one copy.
     devDependencies: {
       '@bitakit/cli': bitakitRange,
-      '@bitakit/core': bitakitRange,
-      '@bitakit/discovery': bitakitRange,
+      '@bitakit/core': packageRange('core'),
+      '@bitakit/discovery': packageRange('discovery'),
       '@bitakit/ui': bitakitRange,
       '@types/react': '^19',
       typescript: '^5',

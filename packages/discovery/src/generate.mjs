@@ -3,10 +3,18 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createJiti } from 'jiti';
 import { files, discoverEntries, contributionKindSpecs } from './entries.mjs';
+import { pluginIdentityConflicts } from './package-identity.mjs';
 import { installedContributions } from './packages.mjs';
 import { parentDirectory, pluginManifests } from './modules.mjs';
 import { stylePrelude } from './styles.mjs';
 import { layoutEntries } from './layouts.mjs';
+import {
+  readPackage,
+  readApplicationPackage,
+  packageOrigin,
+  applicationBundles,
+  folderMetadata,
+} from './plugin-metadata.mjs';
 
 const quote = JSON.stringify;
 /** Single-quoted module specifiers, matching the style of hand-written imports. */
@@ -86,6 +94,9 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     JSON.parse,
     () => ({}),
   );
+  warnings.push(...(installed.warnings ?? []));
+  const appPackage = await readApplicationPackage(appRoot, root);
+  const bundleContext = applicationBundles(appPackage, config.bundles, warnings);
   const framework = config.framework ?? detectFramework(rootManifest);
   const output = appRoot;
   await mkdir(output, { recursive: true });
@@ -379,32 +390,30 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     const parent = manifest.parent ?? idByDirectory.get(parentDirectory(base, moduleRoots));
     const enabled =
       config.plugins?.overrides?.[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true;
-    const readPackage = (folder) =>
-      readFile(path.join(folder, 'package.json'), 'utf8')
-        .then(JSON.parse)
-        .catch((error) => {
-          if (error.code === 'ENOENT') return undefined;
-          throw error;
-        });
     const packageInfo =
       (await readPackage(base)) ??
       (module.id ? await readPackage(path.dirname(base)) : undefined) ??
       {};
-    const metadata = {};
-    for (const key of [
-      'name',
-      'version',
-      'description',
-      'author',
-      'homepage',
-      'bugs',
-      'license',
-      'coverImage',
-      'tags',
-    ]) {
-      const value = manifest.metadata?.[key] ?? packageInfo[key];
-      if (value !== undefined) metadata[key] = value;
-    }
+    const origin = packageOrigin(
+      module.id ? 'included' : 'local',
+      packageInfo,
+      warnings,
+      `${relativeTo(base)}/package.json`,
+    );
+    if (
+      !module.id &&
+      (manifest.memberOf !== undefined || manifest.metadata?.memberOf !== undefined)
+    )
+      warnings.push(
+        `Membership in local plugin "${manifest.id}" is derived from the application; ignoring its memberOf declaration.`,
+      );
+    const metadata = folderMetadata(
+      origin.kind,
+      packageInfo,
+      manifest.metadata,
+      warnings,
+      `${relativeTo(base)}/plugin.config.ts`,
+    );
     const resolveEntry = async (name, fallback) => {
       const override = manifest.entries?.[name];
       if (override === false) return [];
@@ -481,7 +490,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       manifest.id,
     );
     definitions.push(
-      `{ id: ${quote(manifest.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}metadata: ${quote(metadata)}, dependencies: ${quote(manifest.dependencies ?? [])}, events: ${events}, settings: ${settings}, actions: ${actions}, services: ${services}, slots: ${slotDefinitions}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${pluginSettingsPage ? `, settings: ${pluginSettingsPage}` : ''} }, setup: ${setup}, contributions: ${pluginContributions} }`,
+      `withPluginOrigin({ id: ${quote(manifest.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}metadata: ${quote(metadata)}, dependencies: ${quote(manifest.dependencies ?? [])}, events: ${events}, settings: ${settings}, actions: ${actions}, services: ${services}, slots: ${slotDefinitions}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${pluginSettingsPage ? `, settings: ${pluginSettingsPage}` : ''} }, setup: ${setup}, contributions: ${pluginContributions} }, ${quote(origin)})`,
     );
     for (const file of await resolveEntry('locales', 'locales')) {
       if (!file.endsWith('.json')) continue;
@@ -496,7 +505,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
   }
 
   // Installed packages.
-  const catalog = new Set(config.catalog ?? []);
+  const catalog = new Set((config.catalog ?? []).map((name) => name.toLowerCase()));
   for (const name of catalog) {
     const entries = installed.plugins.filter(
       (entry) => installed.pluginPackages?.[entry]?.name === name,
@@ -505,12 +514,32 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       throw new Error(
         `Catalog package "${name}" must be an installed, enabled BitaKit plugin package.`,
       );
+    if (entries.length > 1)
+      throw new Error(
+        `Catalog package "${name}" resolves to multiple installed copies; select one version per build.`,
+      );
     if (entries.some((entry) => installed.configurations?.[entry]))
       throw new Error(
         `Catalog package "${name}" needs host configuration and must remain in the startup composition.`,
       );
   }
   const isLazy = (entry) => catalog.has(installed.pluginPackages?.[entry]?.name);
+  const conflicts = pluginIdentityConflicts([
+    ...[...enabledModuleIds].map((id) => ({ id, source: `local module "${id}"` })),
+    ...installed.plugins
+      .filter((entry) => !isLazy(entry))
+      .map((entry) => ({
+        id: installed.pluginPackages[entry].pluginId,
+        source: `package "${installed.pluginPackages[entry].name}@${installed.pluginPackages[entry].version}" (${entry})`,
+      })),
+  ]);
+  if (conflicts.length) throw new Error(conflicts.join('\n'));
+  const packageImport = (entry) => {
+    const source = installed.imports?.[entry] ?? entry;
+    return path.isAbsolute(source)
+      ? './' + path.relative(output, source).split(path.sep).join('/')
+      : source;
+  };
   const catalogSource = catalog.size
     ? `
 /** Trusted, build-included packages. Adding catalog entries requires a new build. */
@@ -518,10 +547,10 @@ export const packageCatalog = {
 ${installed.plugins
   .filter(isLazy)
   .map((entry) => {
-    const { name, version } = installed.pluginPackages[entry];
+    const { name, version, origin, pluginId } = installed.pluginPackages[entry];
     const dependencies = installed.dependencies?.[entry];
-    const call = `(await import(${specifier(entry)})).default()`;
-    return `  ${quote(name)}: { version: ${quote(version)}, load: async () => [${dependencies?.length ? `withDependencies(${call}, ${quote(dependencies)})` : call}] },`;
+    const call = `(await import(${specifier(packageImport(entry))})).default()`;
+    return `  ${quote(name)}: { version: ${quote(version)}, ${pluginId ? `pluginIds: [${quote(pluginId)}], ` : ''}load: async () => [withPluginOrigin(${dependencies?.length ? `withDependencies(${call}, ${quote(dependencies)})` : call}, ${quote(origin)})] },`;
   })
   .join('\n')}
 } as const;
@@ -530,7 +559,7 @@ ${installed.plugins
   const configured = Object.keys(installed.configurations ?? {}).length > 0;
   const packageImports = installed.plugins.map(
     (entry, index) =>
-      `import ${isLazy(entry) ? 'type ' : ''}packagePlugin${index} from ${specifier(entry)};`,
+      `import ${isLazy(entry) ? 'type ' : ''}packagePlugin${index} from ${specifier(packageImport(entry))};`,
   );
   const appThemes = [];
   if (installed.configurations && Object.values(installed.configurations).includes('shell')) {
@@ -556,7 +585,10 @@ ${installed.plugins
     const call = `packagePlugin${index}(${argument})`;
     // Manifest `dependencies` join the ones the plugin declares itself.
     const dependencies = installed.dependencies?.[entry];
-    return dependencies?.length ? `withDependencies(${call}, ${quote(dependencies)})` : call;
+    const definition = dependencies?.length
+      ? `withDependencies(${call}, ${quote(dependencies)})`
+      : call;
+    return `withPluginOrigin(${definition}, ${quote(installed.pluginPackages[entry].origin)})`;
   });
   const dependent = installed.plugins.some((entry) => installed.dependencies?.[entry]?.length);
   const configOverrides = Object.fromEntries(
@@ -619,6 +651,7 @@ ${installed.plugins
 ${provider ? "'use client';\n" : ''}import {
 ${usesFiles ? '  discoveredFile,\n' : ''}  discoverActions,
   discoverServices,
+  withPluginOrigin,
   discoverSlots,
   discoverInterceptors,
   discoverConfig,
@@ -666,7 +699,8 @@ export function createBitaKitConfig() {
   const configOverrides: Record<string, Record<string, unknown>> = ${quote(configOverrides)};
 ${configured ? `  const options = new ConfigService([{ id: ${quote(appId)}, config: appConfig }], { [${quote(appId)}]: configOverrides[${quote(appId)}] ?? {} }).plugin(${quote(appId)});\n` : ''}  return {
     appId: ${quote(appId)},
-    metadata: ${quote(appManifest.metadata ?? {})},
+    ...${quote(bundleContext)},
+    metadata: ${quote(folderMetadata('local', appPackage, appManifest.metadata, warnings, 'application metadata'))},
     dependencies: ${quote(appManifest.dependencies ?? [])},
     groups: ${quote(config.groups ?? [])},
     actionOverrides: ${quote((config.actions && config.actions.overrides) || {})},
@@ -717,7 +751,7 @@ export function BitaKitProvider(props: Omit<ComponentProps<typeof BitaKitRuntime
   await removeGenerated(path.join(output, `bitakit.gen.${extension === 'tsx' ? 'ts' : 'tsx'}`));
   await writeChanged(
     path.join(output, 'bitakit.gen.css'),
-    `/* ${generatedHeader.slice(3)} Styles of installed packages, theme last. */\n${stylePrelude}\n${(installed.styles ?? []).map((specifier) => `@import ${quote(specifier)};`).join('\n')}\n`,
+    `/* ${generatedHeader.slice(3)} Styles of installed packages, theme last. */\n${stylePrelude}\n${(installed.styles ?? []).map((specifier) => `@import ${quote(path.isAbsolute(specifier) ? './' + path.relative(output, specifier).split(path.sep).join('/') : specifier)};`).join('\n')}\n`,
   );
   const messagesFile = path.join(output, 'bitakit.gen.messages.json');
   if (Object.keys(allMessages).length)
