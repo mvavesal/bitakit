@@ -57,3 +57,15 @@ fallback; `projectPluginMetadataSources([{ value, location }, ...])` uses the sa
 with ordered sources and diagnostic labels. `packageMetadataSources` extracts public package
 fields without I/O. Included folder bindings preserve existing plugin metadata before package
 fallbacks. `metadata.name` remains supported; package identity is recorded independently.
+
+### Complete cohort replacement
+
+Host-only `runtime.plugins.replace(ids, nextPlugins, { expectedRevision?, preserve? })` validates
+an entire proposed composition before stopping any old owner. `plugins.preview({ operation:
+'replace', ids, plugins, ...options })` uses the same planner. Supply every owned descendant;
+external dependents and outside ID collisions are refused. Empty old/new sets support addition
+or removal. Providers, foundational services and other composition restrictions still return
+`restart-required`. Cleanup is awaited; failed cleanup blocks reuse. A startup failure can leave
+candidate definitions installed with failed lifecycle state; this API does not silently roll
+back. Optional `@bitakit/packages` coordinates artifact recovery. Core never downloads or
+persists code, and `reconcilePlugins` retains its existing narrower compatibility contract.

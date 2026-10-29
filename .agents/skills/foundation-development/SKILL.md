@@ -345,7 +345,24 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   unloadable; overlapping plugin IDs are rejected. One package version per host build.
   Discovery `catalog` generates literal lazy public-entry imports and static type-only imports
   in the config module, keeps CSS eager and excludes catalog entries from startup. Configured
-  host packages remain eager. A new catalog/version needs a deployment. No remote code/sandbox.
+  host packages remain eager. A new catalog/version needs a deployment. Dynamic mode is an explicit separate option:
+  `createPackageHost({ runtime, dynamic: { provider, journal, dataCompatibility: 'unchanged',
+  health? } })`. It shares Core lifecycle ownership, uses complete static ID preflight, records
+  durable intent before switching and restores the previous cohort after startup/health failure.
+  `recover()` restores committed active bytes or an interrupted operation's predecessor on a
+  fresh runtime. `packages.dispose()` releases the session resources while preserving durable
+  selection; an empty reconcile explicitly uninstalls. Failed cleanup/recovery blocks reuse. Core's `plugins.replace(ids, definitions,
+  options?)` and `preview({ operation: 'replace', ids, plugins })` use the same existing planner,
+  validate before teardown and refuse outside dependents/incomplete descendants. Catalog APIs
+  remain unchanged; `reconcilePlugins` keeps its narrower compatibility contract.
+  Optional `@bitakit/packages/server` uses standard npm installation with scripts disabled,
+  esbuild/Rollup artifacts and SQLite compare-and-swap; browser delivery uses the standard
+  SystemJS registry with actual host namespaces and SRI for JS/CSS. Keep Node imports in the
+  server entry. Core has no fetch/build/persistence code. One coordinator/session per journal
+  key; no distributed rollout or arbitrary data rollback. Source/transport authorization stays
+  host-owned. Retain artifact bytes and private lock/toolchain evidence; no automatic GC.
+  Check peer ranges only for modules actually bundled, using real paths so macOS /var symlinks
+  cannot skip compatibility checks. Host-external packages must not impose a second copy's peers.
 - `isReady()`/`app.ready`/`useBitaKitReady()` retain completed initial startup through targeted
   updates and become false on shutdown. Owner queries use `isReady(pluginId)` or
   `useBitaKitReady(pluginId)`; service hooks and `app.has` check service plus owner readiness.

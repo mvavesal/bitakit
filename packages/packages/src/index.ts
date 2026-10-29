@@ -1,3 +1,6 @@
+import { createDynamicPackageHost, type DynamicPackageOptions } from './dynamic-host.js';
+export type { DynamicPackageOptions } from './dynamic-host.js';
+export type * from './artifacts.js';
 import {
   withPluginOrigin,
   getPluginOrigin,
@@ -18,7 +21,7 @@ export type PackageCatalog = Readonly<
     }>
   >
 >;
-export type PackageSelection = Readonly<{ name: string; version: string }>;
+export type PackageSelection = Readonly<{ name: string; version: string; artifact?: string }>;
 export type PackageRequest = Readonly<{
   /** An opaque host generation key, not a user-supplied identity or an authorization grant. */
   scope: string;
@@ -38,10 +41,19 @@ const stale = Symbol('superseded package request');
  * Feed an already-authorized active package selection from outside plugin hooks/Actions.
  * Callers must finish a scope switch before revealing that scope's UI. No records are persisted.
  */
-export function createPackageHost(options: { runtime: BitaKitRuntime; catalog: PackageCatalog }) {
+export function createPackageHost(options: {
+  runtime: BitaKitRuntime;
+  catalog?: PackageCatalog;
+  dynamic?: DynamicPackageOptions;
+}) {
+  if (options.dynamic) {
+    if (options.catalog)
+      throw new Error('Choose the build catalog or an artifact provider for this host.');
+    return createDynamicPackageHost(options.runtime, options.dynamic);
+  }
   const { runtime } = options;
   const catalog: Record<string, PackageCatalog[string]> = Object.create(null);
-  for (const [name, entry] of Object.entries(options.catalog)) {
+  for (const [name, entry] of Object.entries(options.catalog ?? {})) {
     const canonical = name.toLowerCase();
     if (Object.hasOwn(catalog, canonical))
       throw new Error(`Duplicate catalog package identity "${canonical}".`);
@@ -241,5 +253,10 @@ export function createPackageHost(options: { runtime: BitaKitRuntime; catalog: P
     tail = work.catch(() => {});
     return work;
   }
-  return Object.freeze({ reconcile, get });
+  return Object.freeze({
+    reconcile,
+    get,
+    recover: async () => result('applied'),
+    dispose: () => reconcile({ scope: scope ?? '', packages: [] }),
+  });
 }

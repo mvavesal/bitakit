@@ -65,3 +65,7 @@ keep package specifiers. Nested custom bundler conditions are not inferred. Hist
 runtime IDs, including numeric-leading build IDs, remain valid static evidence.
 `metadataWarnings` and `packageWarnings` are classified subsets of description `warnings`;
 never infer a category from a filename or warning text.
+
+Runtime artifact preparation may reuse `resolvePluginEntry(specifier, manifestFile)` for the
+existing browser/import resolution and `staticPluginId(name, metadata, sidecar)` for manifest/
+sidecar agreement. Both are static checks; neither evaluates plugin code or installs packages.

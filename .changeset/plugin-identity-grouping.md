@@ -25,3 +25,10 @@ warnings in their contribution check regardless of filenames.
 Installed package manifest fields take precedence over conflicting in-code descriptive fields;
 legacy names and executable icons remain supported. Such loaded conflicts produce metadata
 warnings. Local and included folder declarations retain their previous precedence.
+
+Add opt-in runtime artifact installation and recovery without changing build-pinned catalogs.
+Core previews and replaces complete owned cohorts using its existing lifecycle planner. The
+optional Packages server entry reuses npm, esbuild, Rollup and SQLite; the browser entry shares
+actual host namespaces through SystemJS with JS/CSS integrity. Record durable activation intent,
+retain previous artifacts and recover interrupted updates or failed startup/host health checks.
+Data migrations, multi-browser rollout and authorization transports remain host-owned.

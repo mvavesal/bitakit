@@ -148,7 +148,10 @@ Bei Architektur- oder API-Änderungen und neuen bestätigten Integrationsfehlern
 - Explicit host `runtime.reconcilePlugins(nextPlugins)` supports compatible already-loaded
   definitions; retain unchanged references and await its result. For that method, membership,
   identity and provider changes require composition replacement. Use host-only runtime.plugins
-  add/remove/enable/disable for supported structural membership, with explicit dependent policy. Failed cleanup blocks reuse. Never invoke and await
+  add/remove/enable/disable for supported structural membership, with explicit dependent policy.
+  `plugins.replace(ids, definitions)` validates a complete cohort before teardown and refuses
+  external dependents; its preview uses the same planner. Package recovery belongs to the
+  optional package host, not Core. Failed cleanup blocks reuse. Never invoke and await
   updates from affected owned work. Provider config changes and file HMR are separate paths.
 - Read shared inventory through Core `inspectRuntime`/`observeRuntimeInventory`, UI
   `useRuntimeInventory`, or CLI `info --json`. Version 1 separates static/live data and preserves

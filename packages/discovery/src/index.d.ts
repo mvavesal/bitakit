@@ -262,3 +262,12 @@ export function packagePluginId(name?: string): string;
 export function pluginIdentityConflicts(
   records: readonly { id?: string | null; source: string }[],
 ): string[];
+
+/** Resolve a selected package client entry with browser/import export conditions. */
+export function resolvePluginEntry(specifier: string, manifestFile: string): string;
+/** Check the existing manifest/sidecar binding without executing the package. */
+export function staticPluginId(
+  name: string,
+  metadata: { id?: unknown },
+  sidecar?: unknown,
+): string | null;

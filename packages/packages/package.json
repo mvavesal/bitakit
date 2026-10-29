@@ -2,7 +2,7 @@
   "name": "@bitakit/packages",
   "version": "0.2.4",
   "type": "module",
-  "description": "Optional trusted package catalog adapter for a running BitaKit host.",
+  "description": "Optional trusted package catalogs and recoverable runtime package activation for BitaKit.",
   "sideEffects": false,
   "files": [
     "dist",
@@ -15,6 +15,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
     }
   },
   "scripts": {
@@ -23,10 +31,19 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.6"
+    "@bitakit/core": "^0.2.6",
+    "semver": "^7.8.5",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "@types/node": "^24.13.5",
+    "@types/npm-package-arg": "^6.1.4",
+    "@types/semver": "^7.8.0",
+    "esbuild": "^0.28.2",
+    "npm-package-arg": "^14.0.0",
+    "rollup": "^4.66.0",
+    "typescript": "^5.9.3",
+    "@bitakit/discovery": "^0.2.4"
   },
   "license": "MIT",
   "repository": {
@@ -43,5 +60,25 @@
     "composition",
     "plugins",
     "catalog"
-  ]
+  ],
+  "peerDependencies": {
+    "esbuild": "^0.28.2",
+    "rollup": "^4.66.0",
+    "npm-package-arg": "^14.0.0",
+    "@bitakit/discovery": "^0.2.4"
+  },
+  "peerDependenciesMeta": {
+    "esbuild": {
+      "optional": true
+    },
+    "rollup": {
+      "optional": true
+    },
+    "npm-package-arg": {
+      "optional": true
+    },
+    "@bitakit/discovery": {
+      "optional": true
+    }
+  }
 }
