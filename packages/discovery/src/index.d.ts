@@ -166,7 +166,13 @@ export type BitaKitDescription = {
   packagePlugins?: Readonly<
     Record<
       string,
-      { name: string; version?: string; pluginId?: string | null; origin: PluginOriginRecord }
+      {
+        name: string;
+        version?: string;
+        pluginId?: string | null;
+        selected?: boolean;
+        origin: PluginOriginRecord;
+      }
     >
   >;
   framework: 'next' | 'tanstack' | 'none';
@@ -180,7 +186,7 @@ export type BitaKitDescription = {
     parent?: string;
     enabled: boolean;
   })[];
-  /** Plugin entry specifiers of installed opt-in packages. */
+  /** All discovered physical plugin copies; packagePlugins.selected identifies build selection. */
   packages: string[];
   /** Included in the build, with activation chosen later by host management. */
   catalogPackages: string[];
@@ -200,6 +206,9 @@ export type BitaKitDescription = {
   /** `choose` of bitakit.config.ts: the occupant the app picks for each `single` slot. */
   choose: Readonly<Record<string, string>>;
   warnings: string[];
+  /** Subsets classified by their producer, independent of filenames or message wording. */
+  metadataWarnings?: string[];
+  packageWarnings?: string[];
 };
 export type PluginOriginRecord = {
   kind: 'local' | 'included' | 'package';

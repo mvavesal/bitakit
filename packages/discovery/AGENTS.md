@@ -43,8 +43,8 @@ export default defineBitaKit({
 ## Package metadata and grouping
 
 Keep descriptive package fields in package.json. `bitakit.title`, `tags` and `coverImage` are
-canonical; top-level legacy tags/images and plugin code remain fallbacks. Local plugin metadata
-stays in `plugin.config.ts`. `bitakit.memberOf: ['*']` declares general purpose; explicit bundle
+canonical for installed packages; top-level legacy tags/images and plugin code remain fallbacks.
+Local and included folders preserve their `plugin.config.ts` metadata precedence. `bitakit.memberOf: ['*']` declares general purpose; explicit bundle
 IDs declare membership. Missing membership is unspecified. Local membership is derived from
 the application's `bitakit.bundle` or package name. `bundles: [{ id, label? }]` in host config
 labels known external bundles. Names compare lowercase without dropping scopes.
@@ -54,3 +54,14 @@ manifest/sidecar IDs and known active collisions fail before entry import. Legac
 no static ID remain supported. `describeBitaKit(root, { packageMetadataOnly: true })` skips
 package discovery hooks and stylesheet auditing; `auditPackageStyles: true` retains the audit.
 No package entry is executed. Upgrade Core and Discovery together.
+
+Physical copies stay in inspection; `packagePlugins[entry].selected` identifies build selection.
+Selection preserves the first lowercase package name reached from sorted root dependencies,
+then breadth-first dependencies of selected packages. Unselected copies and dependencies only
+reachable through them do not activate plugins, hooks, styles or slots. CLI inventory marks them
+`enabled: false`; catalog entries remain `enabled: null` until runtime activation is known.
+Nested selected entries resolve browser/import exports at their dependency edge; direct entries
+keep package specifiers. Nested custom bundler conditions are not inferred. Historical nonempty
+runtime IDs, including numeric-leading build IDs, remain valid static evidence.
+`metadataWarnings` and `packageWarnings` are classified subsets of description `warnings`;
+never infer a category from a filename or warning text.

@@ -178,7 +178,9 @@ function entry(id, module, manifest, metadata, local) {
     });
   const sources = packageMetadataSources(manifest);
   const { metadata: info, warnings } = projectPluginMetadata(sources.canonical, sources.legacy);
-  for (const warning of warnings) console.warn(`[bitakit] ${warning}`);
+  // Preserve the historical public name fallback; full package identity is recorded separately.
+  if (info.name === undefined && typeof manifest.name === 'string') info.name = manifest.name;
+  for (const warning of warnings) console.warn(`[bitakit] package.json: ${warning}`);
   const services = discovered(module.services);
   const settings = discovered(module.settings);
   const settingsPage = module.settingsPage

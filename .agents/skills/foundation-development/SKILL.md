@@ -738,8 +738,12 @@ Grouping uses Core's `groupPlugins` and inventory membership; repeated rows shar
 runtime toggle and the total counts distinct plugins. Keep central spacing, focus and theme tokens.
 
 Package descriptive fields come from package.json; `bitakit.title`, `tags` and `coverImage` win
-per field over valid legacy metadata. Local plugin.config metadata keeps its old precedence.
+per field over valid legacy metadata for installed packages. Local and explicitly included
+plugin.config metadata keeps its old precedence; package fields fill gaps. Builds retain the
+npm-name fallback in metadata.name for existing consumers.
 `projectPluginMetadata` (Zod shapes) is the shared pure projection; keywords stay separate from tags.
+`projectPluginMetadataSources` labels ordered inputs with concrete source locations. Metadata and
+package warnings are classified by their producers, never by regex matches against filenames.
 Application translations overlay canonical title, legacy name, package name, then runtime ID.
 Host provenance uses `withPluginOrigin` and `getPluginOrigin`, bound to definition objects, never
 parallel ID arrays. Internal copies preserve it; unrecorded replacements are unknown. Membership
@@ -750,12 +754,25 @@ Known bundle labels come only from host `bundles`; unresolved claims stay visibl
 Installed static IDs come from bitakit.id or the version-1 sidecar's additive pluginId. Contradictory
 IDs fail before entry import; old sidecars without an ID do not override a manifest ID. Never
 predict an installed ID from its package name. The one historical packagePluginId build rule lives
-in Discovery and is shared by CLI and Core testing. Traversal keys resolved physical manifests,
-not names, and generated nested imports follow the same dependency edge. Known startup collisions
+in Discovery and is shared by CLI and Core testing. Static evidence accepts the runtime's
+nonempty string ID contract, including numeric-leading build IDs. Inventory keys resolved physical
+manifests; activation preserves the first lowercase name in sorted breadth-first traversal from
+root dependencies, following only selected packages. Unselected copies and their exclusive
+dependencies contribute no plugins, hooks, styles or slots. CLI inventory marks them disabled;
+Doctor reports selection separately. Nested selected client imports use enhanced-resolve's
+browser/import conditions at the owning edge; direct entries remain host-resolved package imports.
+Custom bundler conditions are not inferred for nested entries. Known startup collisions
 fail generation; optional complete catalog pluginIds sets fail before a new load. Multi-plugin
 manual loaders and post-load checks remain supported. Info/Doctor skip package entry and discovery
 hook execution; Doctor still audits styles. Upgrade Core and Discovery together. This adds no
 installer, admission policy, alias history or automatic dependency inference.
+
+Package-discovery compatibility checks must compare activation before and after a change, not
+just inventory records: include duplicate physical versions with both known and unknown static
+IDs, and preserve the bundler's browser/import conditions for nested package entries. Verify that
+every ID emitted by the existing package build remains readable by static discovery. Diagnostic
+checks must cover local metadata precedence and concrete source attribution; a filename containing
+`metadata` or `bundle` must not change a warning's category or recommended repair.
 
 
 - Protected organization settings must wait for an installed auth contract and render an

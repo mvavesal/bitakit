@@ -93,6 +93,7 @@ export async function describeBitaKit(
   const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false });
   const relative = (file) => path.relative(root, file).split(path.sep).join('/');
   const warnings = [];
+  const metadataWarnings = [];
   const { config } = await loadDiscoveryConfig(root, jiti);
   const directory = path.resolve(root, config.plugins?.directory ?? './src/plugins');
   const appRoot = path.resolve(root, config.directory ?? './src');
@@ -113,21 +114,25 @@ export async function describeBitaKit(
         throw error;
       });
   const appManifest = await load(path.join(appRoot, 'plugin.config.ts'));
-  const appPackage = await readApplicationPackage(appRoot, root);
-  const bundleContext = applicationBundles(appPackage, config.bundles, warnings);
+  const { manifest: appPackage, file: appPackageFile } = await readApplicationPackage(
+    appRoot,
+    root,
+  );
+  const bundleContext = applicationBundles(appPackage, config.bundles, metadataWarnings);
   const appFiles = (await files(appRoot, moduleRoots)).filter(
     (file) => !/[\\/]bitakit\.gen\./.test(file),
   );
   const app = {
     id: appManifest.id ?? 'app',
     directory: relative(appRoot),
-    origin: packageOrigin('local', appPackage, warnings, 'package.json'),
+    origin: packageOrigin('local', appPackage, metadataWarnings, relative(appPackageFile)),
     metadata: folderMetadata(
       'local',
       appPackage,
       appManifest.metadata,
-      warnings,
-      'application metadata',
+      metadataWarnings,
+      relative(path.join(appRoot, 'plugin.config.ts')),
+      relative(appPackageFile),
     ),
     ...(await contributionsOf(appRoot, appFiles, relative, warnings, root, { app: true })),
   };
@@ -146,18 +151,19 @@ export async function describeBitaKit(
     const manifest = await manifestOf(entry);
     const own = await files(base, new Set([...moduleRoots].filter((item) => item !== base)));
     const parent = manifest.parent ?? idByDirectory.get(parentDirectory(base, moduleRoots));
-    const packageInfo =
-      (await readPackage(base)) ??
-      (entry.id ? await readPackage(path.dirname(base)) : undefined) ??
-      {};
+    const { manifest: packageInfo, file: packageFile } = (await readPackage(base)) ??
+      (entry.id ? await readPackage(path.dirname(base)) : undefined) ?? {
+        manifest: {},
+        file: path.join(base, 'package.json'),
+      };
     const origin = packageOrigin(
       entry.id ? 'included' : 'local',
       packageInfo,
-      warnings,
-      `${relative(base)}/package.json`,
+      metadataWarnings,
+      relative(packageFile),
     );
     if (!entry.id && (manifest.memberOf !== undefined || manifest.metadata?.memberOf !== undefined))
-      warnings.push(
+      metadataWarnings.push(
         `Membership in local plugin "${manifest.id}" is derived from the application; ignoring its memberOf declaration.`,
       );
     plugins.push({
@@ -168,8 +174,9 @@ export async function describeBitaKit(
         origin.kind,
         packageInfo,
         manifest.metadata,
-        warnings,
+        metadataWarnings,
         `${relative(base)}/plugin.config.ts`,
+        relative(packageFile),
       ),
       ...(parent ? { parent } : {}),
       // The parent is a lifecycle dependency, as at runtime.
@@ -185,7 +192,9 @@ export async function describeBitaKit(
     metadataOnly: packageMetadataOnly,
     auditStyles: auditPackageStyles,
   });
-  warnings.push(...(installed.warnings ?? []));
+  metadataWarnings.push(...(installed.metadataWarnings ?? []));
+  const packageWarnings = installed.packageWarnings ?? [];
+  warnings.push(...metadataWarnings, ...packageWarnings);
   const rootManifest = await readFile(path.join(root, 'package.json'), 'utf8').then(
     JSON.parse,
     () => ({}),
@@ -220,7 +229,7 @@ export async function describeBitaKit(
     appDirectory: relative(appRoot),
     app,
     plugins,
-    packages: installed.plugins,
+    packages: installed.allPlugins ?? installed.plugins,
     catalogPackages: installed.plugins.filter((entry) =>
       (config.catalog ?? []).some(
         (name) => name.toLowerCase() === installed.pluginPackages?.[entry]?.name,
@@ -243,6 +252,8 @@ export async function describeBitaKit(
     /** `choose` of bitakit.config.ts: the occupant the app picks for each `single` slot. */
     choose: config.choose ?? {},
     warnings,
+    metadataWarnings,
+    packageWarnings,
   };
 }
 

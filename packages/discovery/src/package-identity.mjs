@@ -17,7 +17,7 @@ export function staticPluginId(name, metadata, sidecar) {
     ['manifest', manifestId],
     ['sidecar', sidecarId],
   ])
-    if (id !== undefined && (typeof id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(id)))
+    if (id !== undefined && (typeof id !== 'string' || !id))
       throw new Error(`Invalid static plugin ID in the ${source} of package "${name}".`);
   if (manifestId !== undefined && sidecarId !== undefined && manifestId !== sidecarId)
     throw new Error(

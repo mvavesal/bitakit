@@ -769,6 +769,7 @@ test('plugin roots, IDs, inclusion and overrides follow bitakit.config.ts', asyn
       ['library', 'notes'],
     );
     assert.deepEqual(config.plugins[1].metadata, {
+      name: '@acme/notes',
       version: '1.2.3',
       description: 'Shared notes',
       tags: ['productivity'],
@@ -1103,6 +1104,8 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
       'slots',
       'choose',
       'warnings',
+      'metadataWarnings',
+      'packageWarnings',
     ]);
     assert.equal(description.root, root);
     assert.deepEqual(description.choose, {});

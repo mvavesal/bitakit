@@ -153,6 +153,7 @@ export * from './actions/core.js';
 export {
   pluginMetadata,
   projectPluginMetadata,
+  projectPluginMetadataSources,
   packageMetadataSources,
   type PluginMetadataSources,
 } from './metadata.js';

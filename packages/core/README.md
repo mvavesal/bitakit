@@ -65,6 +65,9 @@ and server authorization.
 ## Metadata and provenance
 
 `src/metadata.ts` owns the pure public-field projection shared by build tools and runtime.
+`projectPluginMetadataSources` accepts ordered `{ value, location }` sources so tools can name
+actual diagnostic sources without changing the field validators. Included folder provenance
+bindings preserve existing plugin metadata before package fallbacks.
 `src/inspection/plugin-origin.ts` binds host evidence to definitions and projects membership
 and groups; `src/inspection/inventory.ts` supplies serializable static/live inspection.
 See the [identity and metadata reference](../../apps/docs/content/docs/reference/plugin-metadata.mdx).

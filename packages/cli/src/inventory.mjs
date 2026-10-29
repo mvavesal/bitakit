@@ -141,7 +141,12 @@ export async function inspectionFromDescription(description) {
         bundle: description.bundle,
         knownBundles: description.knownBundles,
       }),
-      enabled: description.catalogPackages?.includes(specifier) ? null : true,
+      enabled:
+        record?.selected === false
+          ? false
+          : description.catalogPackages?.includes(specifier)
+            ? null
+            : true,
       source: { kind: 'package', path: specifier },
       metadata: inventoryMetadata(
         projectPluginMetadata(record?.origin.metadata?.canonical, record?.origin.metadata?.legacy)

@@ -1,6 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { packageMetadataSources, projectPluginMetadata } from '@bitakit/core';
+import {
+  packageMetadataSources,
+  projectPluginMetadata,
+  projectPluginMetadataSources,
+} from '@bitakit/core';
 import validatePackageName from 'validate-npm-package-name';
 
 /** Canonical identity preserves the complete scope and uses npm's name rules, not a new grammar. */
@@ -11,8 +15,9 @@ export function canonicalPackageName(value) {
 }
 
 export async function readPackage(folder) {
-  return readFile(path.join(folder, 'package.json'), 'utf8')
-    .then(JSON.parse)
+  const file = path.join(folder, 'package.json');
+  return readFile(file, 'utf8')
+    .then((source) => ({ manifest: JSON.parse(source), file }))
     .catch((error) => {
       if (error.code === 'ENOENT') return undefined;
       throw error;
@@ -23,11 +28,12 @@ export async function readPackage(folder) {
 export async function readApplicationPackage(directory, root) {
   const relative = path.relative(root, directory);
   if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
-    return (await readPackage(root)) ?? {};
+    return (await readPackage(root)) ?? { manifest: {}, file: path.join(root, 'package.json') };
   for (let folder = directory; ; folder = path.dirname(folder)) {
     const manifest = await readPackage(folder);
     if (manifest) return manifest;
-    if (folder === root || path.dirname(folder) === folder) return {};
+    if (folder === root || path.dirname(folder) === folder)
+      return { manifest: {}, file: path.join(root, 'package.json') };
   }
 }
 
@@ -36,8 +42,11 @@ export function packageOrigin(kind, manifest = {}, warnings = [], location = 'pa
   const name = canonicalPackageName(manifest.name);
   const metadata = manifest.bitakit ?? manifest.foundation ?? {};
   const sources = packageMetadataSources(manifest);
-  const projected = projectPluginMetadata(sources.canonical, sources.legacy);
-  warnings.push(...projected.warnings.map((message) => `${location}: ${message}`));
+  const projected = projectPluginMetadataSources([
+    { value: sources.canonical, location },
+    { value: sources.legacy, location: `${location} legacy fields` },
+  ]);
+  warnings.push(...projected.warnings);
   let memberOf = metadata.memberOf;
   if (
     memberOf !== undefined &&
@@ -98,26 +107,27 @@ export function applicationBundles(manifest, declarations, warnings = []) {
   };
 }
 
-/** Local declarations retain their historical precedence; included folders use package data. */
+/** Folder declarations, including explicitly included folders, retain historical precedence. */
 export function folderMetadata(
   kind,
   manifest,
   legacy,
   warnings = [],
   location = 'plugin.config.ts',
+  packageLocation = 'package.json',
 ) {
   const sources = packageMetadataSources(manifest);
-  const result =
-    kind === 'local'
-      ? projectPluginMetadata(legacy, {
-          ...sources.legacy,
-          ...sources.canonical,
-          title: undefined,
-          name: manifest.name,
-        })
-      : projectPluginMetadata(sources.canonical, legacy, sources.legacy);
-  warnings.push(
-    ...result.warnings.map((message) => `${location} and associated package.json: ${message}`),
-  );
+  const result = projectPluginMetadataSources([
+    { value: legacy, location },
+    {
+      value: { ...sources.canonical, ...(kind === 'local' ? { title: undefined } : {}) },
+      location: packageLocation,
+    },
+    { value: sources.legacy, location: `${packageLocation} legacy fields` },
+  ]);
+  // Package identity is a compatibility fallback, not a competing authored display name.
+  if (result.metadata.name === undefined && typeof manifest.name === 'string')
+    result.metadata.name = manifest.name;
+  warnings.push(...result.warnings);
   return result.metadata;
 }

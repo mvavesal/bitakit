@@ -34,41 +34,52 @@ export type PluginMetadataSources = Readonly<{
 /** One pure projection for build, discovery and runtime. Invalid optional values fall back per
  * field; executable icons and arbitrary package fields never enter the serializable result. */
 export function projectPluginMetadata(canonical: unknown = {}, ...legacy: unknown[]) {
+  return projectPluginMetadataSources([
+    { value: canonical, location: 'canonical metadata' },
+    ...legacy.map((value) => ({ value, location: 'legacy metadata' })),
+  ]);
+}
+
+/** Projects ordered sources with truthful diagnostic labels. The first valid field wins. */
+export function projectPluginMetadataSources(
+  sources: readonly { value: unknown; location: string }[],
+) {
   const metadata: PluginMetadata = {};
   const warnings: string[] = [];
-  const read = (source: unknown, key: keyof typeof fields, location: string) => {
-    if (!source || typeof source !== 'object') return undefined;
-    const value = (source as Record<string, unknown>)[key];
-    if (value === undefined) return undefined;
-    const parsed = fields[key].safeParse(value);
-    if (parsed.success) return parsed.data;
-    warnings.push(
-      `Invalid optional metadata.${key} in ${location}; using the next available source.`,
-    );
-    return undefined;
-  };
+  const owners = new Map<keyof typeof fields, number>();
   for (const key of Object.keys(fields) as (keyof typeof fields)[]) {
-    const primary = read(canonical, key, 'canonical metadata');
-    const fallback = legacy
-      .map((source) => read(source, key, 'legacy metadata'))
-      .find((value) => value !== undefined);
-    if (
-      primary !== undefined &&
-      fallback !== undefined &&
-      JSON.stringify(primary) !== JSON.stringify(fallback)
-    )
-      warnings.push(
-        `Conflicting metadata.${key}: canonical metadata takes precedence over legacy metadata.`,
-      );
-    const value = primary ?? fallback;
-    if (value !== undefined) Object.assign(metadata, { [key]: value });
+    for (const [index, { value: source, location }] of sources.entries()) {
+      if (!source || typeof source !== 'object') continue;
+      const value = (source as Record<string, unknown>)[key];
+      if (value === undefined) continue;
+      const parsed = fields[key].safeParse(value);
+      if (!parsed.success) {
+        warnings.push(
+          `Invalid optional metadata.${key} in ${location}; using the next available source.`,
+        );
+        continue;
+      }
+      const owner = owners.get(key);
+      if (owner === undefined) {
+        Object.assign(metadata, { [key]: parsed.data });
+        owners.set(key, index);
+      } else if (JSON.stringify(metadata[key]) !== JSON.stringify(parsed.data)) {
+        warnings.push(
+          `Conflicting metadata.${key}: ${sources[owner].location} takes precedence over ${location}.`,
+        );
+      }
+    }
   }
-  const legacyName = legacy
-    .map((source) => read(source, 'name', 'legacy metadata'))
-    .find((value) => value !== undefined);
-  if (metadata.title !== undefined && legacyName !== undefined && metadata.title !== legacyName)
+  const titleOwner = owners.get('title');
+  const nameOwner = owners.get('name');
+  if (
+    titleOwner !== undefined &&
+    nameOwner !== undefined &&
+    titleOwner < nameOwner &&
+    metadata.title !== metadata.name
+  )
     warnings.push(
-      'Conflicting display title: package.json bitakit.title takes precedence over legacy metadata.name.',
+      `Conflicting display title: metadata.title in ${sources[titleOwner].location} takes precedence over metadata.name in ${sources[nameOwner].location}.`,
     );
   return { metadata, warnings: [...new Set(warnings)] };
 }

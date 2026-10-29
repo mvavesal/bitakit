@@ -95,7 +95,10 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     () => ({}),
   );
   warnings.push(...(installed.warnings ?? []));
-  const appPackage = await readApplicationPackage(appRoot, root);
+  const { manifest: appPackage, file: appPackageFile } = await readApplicationPackage(
+    appRoot,
+    root,
+  );
   const bundleContext = applicationBundles(appPackage, config.bundles, warnings);
   const framework = config.framework ?? detectFramework(rootManifest);
   const output = appRoot;
@@ -390,15 +393,16 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     const parent = manifest.parent ?? idByDirectory.get(parentDirectory(base, moduleRoots));
     const enabled =
       config.plugins?.overrides?.[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true;
-    const packageInfo =
-      (await readPackage(base)) ??
-      (module.id ? await readPackage(path.dirname(base)) : undefined) ??
-      {};
+    const { manifest: packageInfo, file: packageFile } = (await readPackage(base)) ??
+      (module.id ? await readPackage(path.dirname(base)) : undefined) ?? {
+        manifest: {},
+        file: path.join(base, 'package.json'),
+      };
     const origin = packageOrigin(
       module.id ? 'included' : 'local',
       packageInfo,
       warnings,
-      `${relativeTo(base)}/package.json`,
+      relativeTo(packageFile),
     );
     if (
       !module.id &&
@@ -413,6 +417,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       manifest.metadata,
       warnings,
       `${relativeTo(base)}/plugin.config.ts`,
+      relativeTo(packageFile),
     );
     const resolveEntry = async (name, fallback) => {
       const override = manifest.entries?.[name];
@@ -700,7 +705,7 @@ export function createBitaKitConfig() {
 ${configured ? `  const options = new ConfigService([{ id: ${quote(appId)}, config: appConfig }], { [${quote(appId)}]: configOverrides[${quote(appId)}] ?? {} }).plugin(${quote(appId)});\n` : ''}  return {
     appId: ${quote(appId)},
     ...${quote(bundleContext)},
-    metadata: ${quote(folderMetadata('local', appPackage, appManifest.metadata, warnings, 'application metadata'))},
+    metadata: ${quote(folderMetadata('local', appPackage, appManifest.metadata, warnings, relativeTo(path.join(appRoot, 'plugin.config.ts')), relativeTo(appPackageFile)))},
     dependencies: ${quote(appManifest.dependencies ?? [])},
     groups: ${quote(config.groups ?? [])},
     actionOverrides: ${quote((config.actions && config.actions.overrides) || {})},

@@ -53,4 +53,7 @@ host API; `getPluginOrigin` reads it. Replacing a definition without a record le
 execution or access. `inspectRuntime` adds origin, package, parent and membership to its existing
 version-1 inventory. Package/bundle names compare lowercase with scopes preserved; runtime IDs
 stay unchanged. `projectPluginMetadata` shares canonical-first package metadata and legacy
-fallback; `packageMetadataSources` extracts public package fields without I/O.
+fallback; `projectPluginMetadataSources([{ value, location }, ...])` uses the same projection
+with ordered sources and diagnostic labels. `packageMetadataSources` extracts public package
+fields without I/O. Included folder bindings preserve existing plugin metadata before package
+fallbacks. `metadata.name` remains supported; package identity is recorded independently.

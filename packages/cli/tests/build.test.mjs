@@ -98,7 +98,7 @@ test('build writes the plugin types, the compiled sources and the dist/plugin en
   );
   assert.match(
     entry,
-    /metadata: \{"version":"0\.1\.0","coverImage":"\/notes\.png","tags":\["productivity"\]\},/,
+    /metadata: \{"version":"0\.1\.0","coverImage":"\/notes\.png","tags":\["productivity"\],"name":"@acme\/bitakit-notes"\},/,
   );
   assert.match(entry, /dependencies: \["shell"\],/);
   assert.match(
@@ -305,4 +305,42 @@ test('packaged settings and custom pages retain their normalizers, access bounda
   assert.equal(plugin.ui.settings.pages[0].id, 'history');
   assert.equal(plugin.ui.slots[0].when({ payload: { pageId: 'preferences' } }), true);
   assert.equal(plugin.ui.slots[0].when({ payload: { pageId: 'elsewhere' } }), false);
+});
+
+test('a numeric-leading historical build ID remains discoverable and metadata.name stays compatible', async (t) => {
+  const root = await project(
+    {
+      'package.json': {
+        name: '@acme/2fa',
+        version: '1.0.0',
+        type: 'module',
+        exports: { './package.json': './package.json', './plugin': './dist/plugin.js' },
+        bitakit: { plugin: './plugin' },
+      },
+      'tsconfig.json': tsconfig,
+      'src/setup.ts': 'export default () => {};',
+    },
+    t,
+  );
+  await toolchain(root);
+  const built = await buildPlugin({ cwd: root });
+  assert.equal(built.id, '2fa');
+  const plugin = (await import(path.join(root, 'dist/plugin.js'))).default();
+  assert.equal(plugin.metadata.name, '@acme/2fa');
+  const app = await project(
+    {
+      'package.json': { name: 'host', dependencies: { '@acme/2fa': '1' } },
+      'src/plugin.config.ts': 'export default {};',
+    },
+    t,
+  );
+  const { mkdir, symlink } = await import('node:fs/promises');
+  await mkdir(path.join(app, 'node_modules/@acme'), { recursive: true });
+  await symlink(root, path.join(app, 'node_modules/@acme/2fa'), 'dir');
+  const { describeBitaKit, generateBitaKit } = await import('@bitakit/discovery');
+  const description = await describeBitaKit(app, { packageMetadataOnly: true });
+  assert.equal(description.packagePlugins['@acme/2fa/plugin'].pluginId, '2fa');
+  await generateBitaKit(app, { quiet: true });
+  const { resolveBitaKitConfig } = await import('@bitakit/core');
+  assert.doesNotThrow(() => resolveBitaKitConfig({ plugins: [plugin] }));
 });

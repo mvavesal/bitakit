@@ -1,4 +1,8 @@
-import { projectPluginMetadata, type PluginMetadataSources } from '../metadata.js';
+import {
+  projectPluginMetadata,
+  projectPluginMetadataSources,
+  type PluginMetadataSources,
+} from '../metadata.js';
 import type { Plugin } from '../definitions.js';
 
 export type PluginOrigin = 'local' | 'included' | 'package' | 'unknown';
@@ -37,8 +41,14 @@ export function withPluginOrigin<T extends Plugin>(plugin: T, record: PluginOrig
     throw new Error(
       `Package "${record.package?.name ?? 'unknown'}" declares plugin ID "${record.pluginId}" but loaded "${plugin.id}".`,
     );
+  const packageLocation = `package "${record.package?.name ?? 'unknown'}" manifest`;
+  const declared = { value: plugin.metadata, location: `plugin "${plugin.id}" metadata` };
+  const canonical = { value: record.metadata?.canonical, location: packageLocation };
   const projected = record.metadata
-    ? projectPluginMetadata(record.metadata.canonical, plugin.metadata, record.metadata.legacy)
+    ? projectPluginMetadataSources([
+        ...(record.kind === 'included' ? [declared, canonical] : [canonical, declared]),
+        { value: record.metadata.legacy, location: `${packageLocation} legacy fields` },
+      ])
     : undefined;
   const definition = {
     ...plugin,

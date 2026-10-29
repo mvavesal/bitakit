@@ -75,7 +75,10 @@ export async function doctor({ cwd } = {}) {
       .filter((plugin) => plugin.enabled)
       .map((plugin) => ({ id: plugin.id, source: plugin.directory })),
     ...Object.entries(description.packagePlugins ?? {})
-      .filter(([entry]) => !description.catalogPackages.includes(entry))
+      .filter(
+        ([entry, record]) =>
+          record.selected !== false && !description.catalogPackages.includes(entry),
+      )
       .map(([entry, record]) => ({
         id: record.pluginId,
         source: `${record.name}@${record.version} (${entry})`,
@@ -87,13 +90,19 @@ export async function doctor({ cwd } = {}) {
       title: 'Conflicting static plugin IDs',
       details: identityConflicts,
     });
-  const metadataWarnings = description.warnings.filter(isMetadataWarning);
+  const metadataWarnings = description.metadataWarnings ?? [];
   if (metadataWarnings.length)
     results.push({
       status: 'warn',
       title: 'Plugin metadata',
       details: [...new Set(metadataWarnings)],
-      fix: 'Correct the optional declaration at its source. Local membership is derived; canonical descriptive fields take precedence.',
+      fix: 'Correct the optional declaration at its source. Local membership is derived; folder declarations retain precedence over package fallbacks.',
+    });
+  if (description.packageWarnings?.length)
+    results.push({
+      status: 'warn',
+      title: 'Installed package copies',
+      details: description.packageWarnings,
     });
   results.push(...(await checkWiring(project)));
   const modules = [
@@ -874,14 +883,16 @@ async function checkStyles(project, description) {
     fix: `Add this line after @import 'tailwindcss'; in ${target}:\n\n@import '${relative.split(path.sep).join('/')}';`,
   };
 }
-/** Discovery warnings are either deprecations that migrate fixes, or files it skips. */
-const isMetadataWarning = (warning) =>
-  /metadata|memberOf|bundle|Membership in local plugin/.test(warning);
+/** Metadata/package categories come from their producers, never filenames in warning text. */
 const isDeprecation = (warning) => warning.includes('bitakit migrate');
 const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 function checkIgnored(description) {
+  const classified = new Set([
+    ...(description.metadataWarnings ?? []),
+    ...(description.packageWarnings ?? []),
+  ]);
   const ignored = description.warnings.filter(
-    (warning) => !isDeprecation(warning) && !isMetadataWarning(warning),
+    (warning) => !isDeprecation(warning) && !classified.has(warning),
   );
   if (!ignored.length)
     return { status: 'ok', title: 'Every contribution file has a default export' };

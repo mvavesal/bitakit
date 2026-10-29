@@ -169,3 +169,18 @@ test('authoritative package binding rejects mismatches and projects canonical me
   assert.deepEqual(invalid.metadata, { description: 'Legacy', tags: ['legacy'] });
   assert.equal(invalid.warnings.length, 2);
 });
+
+test('included folder metadata keeps its existing precedence through host provenance binding', () => {
+  const definition = definePlugin({
+    id: 'included',
+    metadata: { name: 'Existing name', description: 'Existing description' },
+  });
+  const plugin = withPluginOrigin(definition, {
+    kind: 'included',
+    package: { name: 'included-package', version: '1' },
+    metadata: { canonical: { description: 'Package description', keywords: ['new'] } },
+  });
+  assert.equal(plugin.metadata.name, 'Existing name');
+  assert.equal(plugin.metadata.description, 'Existing description');
+  assert.deepEqual(plugin.metadata.keywords, ['new']);
+});

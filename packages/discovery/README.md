@@ -182,3 +182,10 @@ manifest block or the entry sidecar; older entries may have unavailable IDs. See
 [identity and metadata reference](../../apps/docs/content/docs/reference/plugin-metadata.mdx)
 for canonical fields, membership, passive inspection and compatibility rules. Upgrade Core with
 Discovery: generated code uses Core's host provenance API.
+
+Inspection retains every physical plugin copy, while activation preserves the first package
+name reached by sorted breadth-first traversal. Only selected copies contribute hooks/styles
+and transitive activation. Nested selected client entries resolve browser/import conditions
+through their owning dependency edge, using enhanced-resolve; direct imports remain package
+specifiers. See `packagePlugins[entry].selected` and the classified description warnings.
+Local and included folder metadata retain their existing declaration precedence.

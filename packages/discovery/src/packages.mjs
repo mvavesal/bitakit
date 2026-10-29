@@ -1,7 +1,7 @@
 import { readFile, realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { validatePackageStyles, resolveStylesheet } from './styles.mjs';
+import { validatePackageStyles, resolveStylesheet, resolvePluginEntry } from './styles.mjs';
 import { staticPluginId } from './package-identity.mjs';
 import { packageOrigin } from './plugin-metadata.mjs';
 
@@ -44,19 +44,28 @@ export async function installedContributions(
   const slots = [];
   const slotDeclarations = [];
   const unresolvedSlots = [];
-  const warnings = [];
+  const metadataWarnings = [];
+  const packageWarnings = [];
   const visited = new Set();
+  const selectedNames = new Map();
+  const consideredNames = new Set();
+  // Finish the legacy breadth-first selection before inspecting inactive dependency trees.
+  // An inventory-only edge must never claim a package before an eligible edge reaches it.
+  const inventoryQueue = [];
   const queue = Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies })
     .sort()
     .map((name) => ({ name, from: manifestFile }));
-  while (queue.length) {
-    const { name, from } = queue.shift();
+  while (queue.length || inventoryQueue.length) {
+    const eligible = queue.length > 0;
+    const { name, from } = (eligible ? queue : inventoryQueue).shift();
     if (
       Object.entries(selection ?? {}).some(
         ([key, enabled]) => key.toLowerCase() === name.toLowerCase() && enabled === false,
       )
     )
       continue;
+    const firstEligible = eligible && !consideredNames.has(name.toLowerCase());
+    if (eligible) consideredNames.add(name.toLowerCase());
     let file;
     try {
       file = createRequire(from).resolve(`${name}/package.json`);
@@ -69,10 +78,11 @@ export async function installedContributions(
             .catch((failure) => {
               if (failure.code !== 'ENOENT') throw failure;
             });
-          if (candidate?.bitakit || candidate?.foundation)
-            throw new Error(
-              `BitaKit package "${name}" cannot expose its discovery metadata. Export "./package.json" from its package.json (${error.code}).`,
-            );
+          if (candidate?.bitakit || candidate?.foundation) {
+            const message = `BitaKit package "${name}" cannot expose its discovery metadata. Export "./package.json" from its package.json (${error.code}).`;
+            if (firstEligible) throw new Error(message);
+            packageWarnings.push(message);
+          }
           if (candidate) break;
         }
         continue;
@@ -91,7 +101,19 @@ export async function installedContributions(
     const location = path.relative(root, file).split(path.sep).join('/');
     const metadata = installed.bitakit ?? installed.foundation;
     if (!metadata) continue;
-    if (!packages.includes(name)) packages.push(name);
+    const canonicalName = (installed.name ?? name).toLowerCase();
+    const selected = firstEligible && !selectedNames.has(canonicalName);
+    if (selected) {
+      selectedNames.set(
+        canonicalName,
+        `${canonicalName}@${installed.version ?? '?'} (${location})`,
+      );
+      if (!packages.includes(name)) packages.push(name);
+    } else {
+      packageWarnings.push(
+        `Not selected for activation: ${canonicalName}@${installed.version ?? '?'} (${location}). ${selectedNames.has(canonicalName) ? `Using ${selectedNames.get(canonicalName)}.` : 'Only reachable through an unselected package copy.'}`,
+      );
+    }
     const specifier = (entry) => {
       if (
         typeof entry !== 'string' ||
@@ -103,49 +125,64 @@ export async function installedContributions(
     };
     const list = (value) => (value === undefined ? [] : Array.isArray(value) ? value : [value]);
     if (metadata.plugin) {
-      const publicEntry = specifier(metadata.plugin);
-      const plugin = direct ? publicEntry : `${name}@${installed.version ?? '?'}:${location}`;
-      plugins.push(plugin);
+      let publicEntry;
+      try {
+        publicEntry = specifier(metadata.plugin);
+      } catch (error) {
+        if (selected) throw error;
+        packageWarnings.push(`${location}: ${error.message}`);
+      }
+      const plugin =
+        direct && publicEntry ? publicEntry : `${name}@${installed.version ?? '?'}:${location}`;
+      if (selected) plugins.push(plugin);
       pluginPackages[plugin] = {
-        name: (installed.name ?? name).toLowerCase(),
+        name: canonicalName,
         version: installed.version,
-        origin: packageOrigin('package', installed, warnings, `${name}/package.json`),
+        selected,
+        origin: packageOrigin('package', installed, metadataWarnings, location),
       };
       // `bitakit build` emits this optional, derived sidecar. Never execute a client entry in Node.
       let entryFile;
       try {
-        entryFile = createRequire(from).resolve(publicEntry);
-      } catch (error) {
-        if (!['MODULE_NOT_FOUND', 'ERR_PACKAGE_PATH_NOT_EXPORTED'].includes(error.code))
-          throw error;
-      }
+        if (publicEntry) entryFile = resolvePluginEntry(publicEntry, from);
+      } catch {}
       imports[plugin] = direct ? publicEntry : entryFile;
-      if (!direct && !entryFile)
+      if (selected && !direct && !entryFile)
         throw new Error(`Cannot resolve BitaKit entry "${publicEntry}" from ${location}.`);
       const slotInfo =
         entryFile && /\.[cm]?[jt]sx?$/.test(entryFile)
           ? await readFile(entryFile.replace(/\.[cm]?[jt]sx?$/, '.slots.json'), 'utf8')
               .then(JSON.parse)
               .catch((error) => {
-                if (error.code !== 'ENOENT') throw error;
+                if (error.code === 'ENOENT') return;
+                if (selected) throw error;
+                packageWarnings.push(
+                  `Cannot read static plugin evidence for ${location}: ${error.message}`,
+                );
               })
           : undefined;
-      const pluginId = staticPluginId(
-        `${installed.name ?? name}@${installed.version ?? '?'}`,
-        metadata,
-        slotInfo,
-      );
+      let pluginId = null;
+      try {
+        pluginId = staticPluginId(
+          `${installed.name ?? name}@${installed.version ?? '?'} (${location})`,
+          metadata,
+          slotInfo,
+        );
+      } catch (error) {
+        if (selected) throw error;
+        packageWarnings.push(error.message);
+      }
       pluginPackages[plugin].pluginId = pluginId;
       pluginPackages[plugin].origin.pluginId = pluginId;
-      if (slotInfo?.version === 1) {
+      if (selected && slotInfo?.version === 1) {
         slotDeclarations.push(
           ...slotInfo.definitions.map((item) => ({ ...item, file: `${name}/${item.file}` })),
         );
         unresolvedSlots.push(...slotInfo.unresolved.map((file) => `${name}/${file}`));
       }
-      if (metadata.configuration) configurations[plugin] = metadata.configuration;
+      if (selected && metadata.configuration) configurations[plugin] = metadata.configuration;
       // Plugin IDs the package plugin depends on at runtime; the generator adds them to the plugin.
-      const ids = list(metadata.dependencies);
+      const ids = selected ? list(metadata.dependencies) : [];
       for (const id of ids)
         if (typeof id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(id))
           throw new Error(
@@ -153,25 +190,26 @@ export async function installedContributions(
           );
       if (ids.length) dependencies[plugin] = [...new Set(ids)];
     }
-    stylesheets.push({
-      name,
-      manifestFile: file,
-      manifest: installed,
-      direct,
-      dependencies: Object.keys({
-        ...installed.dependencies,
-        ...installed.peerDependencies,
-      }).sort(),
-      styles: list(metadata.styles).map(specifier),
-      theme: list(metadata.theme).map(specifier),
-    });
+    if (selected)
+      stylesheets.push({
+        name,
+        manifestFile: file,
+        manifest: installed,
+        direct,
+        dependencies: Object.keys({
+          ...installed.dependencies,
+          ...installed.peerDependencies,
+        }),
+        styles: list(metadata.styles).map(specifier),
+        theme: list(metadata.theme).map(specifier),
+      });
     // Layout packages declare the slots they render, so SlotMap and doctor know them.
-    for (const slot of list(metadata.slots)) {
+    for (const slot of selected ? list(metadata.slots) : []) {
       if (typeof slot !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$/.test(slot))
         throw new Error(`Invalid slot name in the bitakit manifest of package "${name}".`);
       if (!slots.includes(slot)) slots.push(slot);
     }
-    if (metadata.discovery && !metadataOnly) {
+    if (selected && metadata.discovery && !metadataOnly) {
       const discover = await jiti.import(
         createRequire(from).resolve(specifier(metadata.discovery)),
         { default: true },
@@ -183,11 +221,12 @@ export async function installedContributions(
       ...installed.dependencies,
       ...installed.peerDependencies,
     }).sort())
-      queue.push({ name: dependency, from: file });
+      (selected ? queue : inventoryQueue).push({ name: dependency, from: file });
   }
   const styleSources = auditStyles ? await validatePackageStyles(stylesheets) : [];
   return {
     plugins,
+    allPlugins: Object.keys(pluginPackages),
     pluginPackages,
     imports,
     kinds,
@@ -199,23 +238,22 @@ export async function installedContributions(
     slots,
     slotDeclarations,
     unresolvedSlots,
-    warnings,
+    warnings: [...metadataWarnings, ...packageWarnings],
+    metadataWarnings,
+    packageWarnings,
   };
 }
 
 /** Package styles after the styles of the packages they depend on; theme files come last. */
 function orderStyles(packages) {
-  const byFile = new Map(packages.map((entry) => [entry.manifestFile, entry]));
+  const byName = new Map(packages.map((entry) => [entry.name.toLowerCase(), entry]));
   const ordered = [];
   const visit = (entry, trail = new Set()) => {
     if (ordered.includes(entry) || trail.has(entry)) return;
     trail.add(entry);
     for (const dependency of entry.dependencies) {
-      let file;
-      try {
-        file = createRequire(entry.manifestFile).resolve(`${dependency}/package.json`);
-      } catch {}
-      if (byFile.has(file)) visit(byFile.get(file), trail);
+      const selected = byName.get(dependency.toLowerCase());
+      if (selected) visit(selected, trail);
     }
     ordered.push(entry);
   };
