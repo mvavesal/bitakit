@@ -133,6 +133,7 @@ export async function describeBitaKit(
       metadataWarnings,
       relative(path.join(appRoot, 'plugin.config.ts')),
       relative(appPackageFile),
+      { application: true },
     ),
     ...(await contributionsOf(appRoot, appFiles, relative, warnings, root, { app: true })),
   };
@@ -231,8 +232,11 @@ export async function describeBitaKit(
     plugins,
     packages: installed.allPlugins ?? installed.plugins,
     catalogPackages: installed.plugins.filter((entry) =>
-      (config.catalog ?? []).some(
-        (name) => name.toLowerCase() === installed.pluginPackages?.[entry]?.name,
+      (config.catalog ?? []).some((name) =>
+        [
+          installed.pluginPackages?.[entry]?.name,
+          installed.pluginPackages?.[entry]?.dependencyName,
+        ].includes(name.toLowerCase()),
       ),
     ),
     installedPackages: installed.packages,

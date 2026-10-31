@@ -313,9 +313,10 @@ program
       const title =
         plugin.source.kind === 'package' ? `Package "${plugin.id}"` : `Plugin "${plugin.id}"`;
       console.log(
-        `\n${styleText('bold', title)}${plugin.enabled === false ? ' (disabled)' : ''} ${styleText('dim', plugin.source.path ?? '')}`,
+        `\n${styleText('bold', title)}${plugin.selected === false ? ' (not selected)' : plugin.enabled === false ? ' (disabled)' : ''} ${styleText('dim', plugin.source.path ?? '')}`,
       );
       console.log(`  origin: ${plugin.origin ?? 'unknown'}`);
+      console.log(`  plugin ID: ${plugin.pluginId ?? 'unavailable'}`);
       if (plugin.package)
         console.log(
           `  package: ${plugin.package.name}${plugin.package.version ? `@${plugin.package.version}` : ''}`,
@@ -336,6 +337,10 @@ program
               .join(', ')}`,
           );
     }
+    if (inventory.diagnostics.identityConflicts.length)
+      console.log(`\n${styleText('yellow', 'Static plugin ID conflicts:')}`);
+    for (const conflict of inventory.diagnostics.identityConflicts)
+      console.log(`  ${styleText('yellow', conflict)}`);
     console.log('\nLive state: unavailable (static discovery).');
     if (description.warnings.length) {
       console.log(

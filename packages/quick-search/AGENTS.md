@@ -82,3 +82,5 @@ README sections: Add a source, Preferences and history, External component CSS.
 
 The built `foundation.slots.json` also records the static runtime ID `quick-search`. Discovery
 uses that generated evidence for binding checks; npm scope does not imply bundle membership.
+
+Page/settings result details use the host plugin-name translation, then canonical metadata.title, legacy metadata.name and the plugin ID. This only changes labels, not destination ownership or navigation.

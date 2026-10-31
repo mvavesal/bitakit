@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useSyncExternalStore, type ElementType, type ReactNode } from 'react';
-import type { BitaKitEvent, BitaKitRuntime } from '@bitakit/core';
+import { pluginDisplayTitle, type BitaKitEvent, type BitaKitRuntime } from '@bitakit/core';
 import type { InventoryPlugin } from '@bitakit/core';
 import { useBitaKit, useBitaKitNavigation, useRuntimeInventory } from '@bitakit/ui';
 import { useActions } from '@bitakit/ui/actions';
@@ -34,7 +34,7 @@ export function Inspector({ plugin, stalledAfterMs = 10000 }: InspectorProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={module.metadata?.name ?? plugin}
+        title={pluginDisplayTitle(module.metadata, module.package?.name ?? plugin)}
         subtitle={module.metadata?.description ?? 'Live view of this plugin in the running app.'}
         trailing={
           <>

@@ -164,7 +164,7 @@ test('migrate --dry-run only lists the changes; migrate applies them once and th
   const text = await bitakit(root, 'info');
   assert.match(
     text.stdout,
-    /Plugin "todos" src\/plugins\/todos\n  origin: local\n  membership: derived \(legacy\)\n  service: todos\.todos\n  action: todos\.add, todos\.open\n  page: \/todos\n/,
+    /Plugin "todos" src\/plugins\/todos\n  origin: local\n  plugin ID: todos\n  membership: derived \(legacy\)\n  service: todos\.todos\n  action: todos\.add, todos\.open\n  page: \/todos\n/,
   );
 });
 

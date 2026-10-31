@@ -46,3 +46,7 @@ unselected copies have `enabled: false` and Doctor reports their selection separ
 sidecar, accepts historical nonempty runtime IDs (including numeric-leading IDs), and retains
 its npm-name fallback in `metadata.name`. New display titles use `bitakit.title`. Metadata
 warnings identify their actual sources; ignored-file warnings stay in the contribution check.
+Info text includes runtime plugin IDs and labels unselected physical copies separately from
+disabled plugins. JSON includes `selected` and `diagnostics.identityConflicts`; Info and Doctor
+use the same passive startup collision evidence. Unknown package versions are never printed
+as JavaScript undefined. Inventory record keys can change when packages are hoisted differently.

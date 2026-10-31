@@ -168,6 +168,8 @@ export type BitaKitDescription = {
       string,
       {
         name: string;
+        /** Lowercase dependency key; may be an npm alias for the canonical package name. */
+        dependencyName?: string;
         version?: string;
         pluginId?: string | null;
         selected?: boolean;

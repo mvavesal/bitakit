@@ -7,7 +7,26 @@ import {
   inventoryMetadata,
   projectPluginMetadata,
 } from '@bitakit/core';
-import { describeDefinitions } from '@bitakit/discovery';
+import { describeDefinitions, pluginIdentityConflicts } from '@bitakit/discovery';
+
+/** The same authoritative startup-ID evidence for passive info and doctor; never imports code. */
+export function identityConflictsFromDescription(description) {
+  return pluginIdentityConflicts([
+    { id: description.app.id, source: 'application' },
+    ...description.plugins
+      .filter((plugin) => plugin.enabled)
+      .map((plugin) => ({ id: plugin.id, source: plugin.directory })),
+    ...Object.entries(description.packagePlugins ?? {})
+      .filter(
+        ([entry, record]) =>
+          record.selected !== false && !description.catalogPackages?.includes(entry),
+      )
+      .map(([entry, record]) => ({
+        id: record.pluginId,
+        source: `${record.name}@${record.version ?? '?'} (${entry})`,
+      })),
+  ]);
+}
 
 const kinds = {
   services: 'service',
@@ -121,6 +140,7 @@ export async function inspectionFromDescription(description) {
         knownBundles: description.knownBundles,
       }),
       enabled: module.enabled ?? true,
+      selected: null,
       source: { kind: 'file', path: module.directory },
       metadata: inventoryMetadata(module.metadata),
       dependencies: module.dependencies ?? [],
@@ -133,6 +153,7 @@ export async function inspectionFromDescription(description) {
       id: specifier,
       pluginId: record?.pluginId ?? null,
       application: false,
+      selected: record?.selected ?? null,
       origin: record?.origin?.kind ?? 'unknown',
       parent: null,
       package: record?.origin?.package ?? null,
@@ -156,5 +177,8 @@ export async function inspectionFromDescription(description) {
       declarations: null,
     });
   }
-  return createInventory(plugins);
+  return {
+    ...createInventory(plugins),
+    diagnostics: { identityConflicts: identityConflictsFromDescription(description) },
+  };
 }

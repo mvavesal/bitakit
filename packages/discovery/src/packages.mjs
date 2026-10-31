@@ -73,13 +73,18 @@ export async function installedContributions(
       if (error.code === 'MODULE_NOT_FOUND' || error.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
         // Inspect only to diagnose an inaccessible opt-in manifest, never to bypass exports.
         for (const directory of createRequire(from).resolve.paths(name) ?? []) {
-          const candidate = await readFile(path.join(directory, name, 'package.json'), 'utf8')
+          const candidateFile = path.join(directory, name, 'package.json');
+          const candidate = await readFile(candidateFile, 'utf8')
             .then(JSON.parse)
             .catch((failure) => {
               if (failure.code !== 'ENOENT') throw failure;
             });
           if (candidate?.bitakit || candidate?.foundation) {
-            const message = `BitaKit package "${name}" cannot expose its discovery metadata. Export "./package.json" from its package.json (${error.code}).`;
+            const resolved = await realpath(candidateFile);
+            if (visited.has(resolved)) break;
+            visited.add(resolved);
+            const location = path.relative(root, resolved).split(path.sep).join('/');
+            const message = `BitaKit package "${name}" (${location}) cannot expose its discovery metadata. Export "./package.json" from its package.json (${error.code}).`;
             if (firstEligible) throw new Error(message);
             packageWarnings.push(message);
           }
@@ -111,7 +116,7 @@ export async function installedContributions(
       if (!packages.includes(name)) packages.push(name);
     } else {
       packageWarnings.push(
-        `Not selected for activation: ${canonicalName}@${installed.version ?? '?'} (${location}). ${selectedNames.has(canonicalName) ? `Using ${selectedNames.get(canonicalName)}.` : 'Only reachable through an unselected package copy.'}`,
+        `Not selected for activation: ${canonicalName}@${installed.version ?? '?'} (${location}). ${selectedNames.has(canonicalName) ? `Using ${selectedNames.get(canonicalName)}.` : eligible ? `The dependency name "${name}" was already considered earlier in activation traversal.` : 'Only reachable through an unselected package copy.'}`,
       );
     }
     const specifier = (entry) => {
@@ -137,6 +142,7 @@ export async function installedContributions(
       if (selected) plugins.push(plugin);
       pluginPackages[plugin] = {
         name: canonicalName,
+        dependencyName: name.toLowerCase(),
         version: installed.version,
         selected,
         origin: packageOrigin('package', installed, metadataWarnings, location),

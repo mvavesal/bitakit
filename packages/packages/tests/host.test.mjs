@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRuntime, definePlugin, defineService, defineAction } from '@bitakit/core';
+import {
+  createRuntime,
+  definePlugin,
+  defineService,
+  defineAction,
+  withPluginOrigin,
+  getPluginOrigin,
+} from '@bitakit/core';
 import { createPackageHost } from '../dist/index.js';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -35,6 +42,24 @@ async function host(t, catalog, plugins = []) {
   t.after(() => stop().catch(() => {}));
   return { runtime, packages: createPackageHost({ runtime, catalog }) };
 }
+
+test('catalog aliases preserve canonical provenance and warnings from a prebound loader', async (t) => {
+  const definition = withPluginOrigin(
+    definePlugin({ id: 'notes', metadata: { description: 'Legacy' } }),
+    {
+      kind: 'package',
+      package: { name: '@acme/notes', version: '1.0.0' },
+      metadata: { canonical: { description: 'Published' } },
+    },
+  );
+  const { runtime, packages } = await host(t, {
+    notes: { version: '1.0.0', load: async () => [definition] },
+  });
+  assert.equal((await packages.reconcile(request('A', 'notes'))).status, 'applied');
+  const origin = getPluginOrigin(runtime.config.plugins.find((p) => p.id === 'notes'));
+  assert.equal(origin.package.name, '@acme/notes');
+  assert.deepEqual(origin.metadataWarnings, getPluginOrigin(definition).metadataWarnings);
+});
 
 test('a trusted selection loads multiple plugins together and preserves an unrelated store', async (t) => {
   let loads = 0;

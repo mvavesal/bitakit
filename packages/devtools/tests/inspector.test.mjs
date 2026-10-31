@@ -34,7 +34,7 @@ const labels = {
 
 const notes = {
   id: 'notes',
-  metadata: { name: 'Notes', version: '1.2.3' },
+  metadata: { title: 'Notes', name: '@acme/notes', version: '1.2.3' },
   services: [
     // services.notes.notes: a plugin's services live under its own namespace.
     defineService(

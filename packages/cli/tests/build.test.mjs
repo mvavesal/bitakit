@@ -30,6 +30,34 @@ async function toolchain(root) {
   await link(root, 'typescript', 'node_modules/typescript');
 }
 
+test('build conflict diagnostics name the actual canonical and legacy manifest keys', async (t) => {
+  const root = await project(
+    {
+      'package.json': {
+        name: 'diagnostic-plugin',
+        version: '1.0.0',
+        type: 'module',
+        bitakit: { plugin: './plugin', tags: ['canonical'] },
+        tags: ['legacy'],
+      },
+      'tsconfig.json': tsconfig,
+      'src/setup.ts': 'export default () => {};',
+    },
+    t,
+  );
+  await toolchain(root);
+  const warnings = [];
+  const original = console.warn;
+  console.warn = (value) => warnings.push(value);
+  try {
+    await buildPlugin({ cwd: root });
+  } finally {
+    console.warn = original;
+  }
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /package.json bitakit.tags takes precedence over package.json tags/);
+});
+
 test('build writes the plugin types, the compiled sources and the dist/plugin entry', async (t) => {
   const root = await project(
     {

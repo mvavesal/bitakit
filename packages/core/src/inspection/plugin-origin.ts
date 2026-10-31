@@ -20,6 +20,8 @@ export type PluginOriginRecord = Readonly<{
   pluginId?: string | null;
   /** Sanitized, statically available package sources; never executable UI metadata. */
   metadata?: PluginMetadataSources;
+  /** Manifest path used by the host's static diagnostics, when known. */
+  metadataLocation?: string;
   metadataWarnings?: readonly string[];
 }>;
 export type PluginBundle = Readonly<{ id: string; label?: string }>;
@@ -41,15 +43,26 @@ export function withPluginOrigin<T extends Plugin>(plugin: T, record: PluginOrig
     throw new Error(
       `Package "${record.package?.name ?? 'unknown'}" declares plugin ID "${record.pluginId}" but loaded "${plugin.id}".`,
     );
-  const packageLocation = `package "${record.package?.name ?? 'unknown'}" manifest`;
+  const packageLocation =
+    record.metadataLocation ?? `package "${record.package?.name ?? 'unknown'}" manifest`;
   const declared = { value: plugin.metadata, location: `plugin "${plugin.id}" metadata` };
   const canonical = { value: record.metadata?.canonical, location: packageLocation };
   const projected = record.metadata
-    ? projectPluginMetadataSources([
-        ...(record.kind === 'included' ? [declared, canonical] : [canonical, declared]),
-        { value: record.metadata.legacy, location: `${packageLocation} legacy fields` },
-      ])
+    ? projectPluginMetadataSources(
+        [
+          ...(record.kind === 'included' ? [declared, canonical] : [canonical, declared]),
+          { value: record.metadata.legacy, location: `${packageLocation} legacy fields` },
+        ],
+        { packageName: record.package?.name },
+      )
     : undefined;
+  const warnings = [
+    ...new Set([
+      ...(origins.get(plugin)?.metadataWarnings ?? []),
+      ...(record.metadataWarnings ?? []),
+      ...(projected?.warnings ?? []),
+    ]),
+  ];
   const definition = {
     ...plugin,
     ...(projected ? { metadata: { ...plugin.metadata, ...projected.metadata } } : {}),
@@ -66,9 +79,8 @@ export function withPluginOrigin<T extends Plugin>(plugin: T, record: PluginOrig
             }),
           }
         : {}),
-      ...(projected?.warnings.length
-        ? { metadataWarnings: Object.freeze(projected.warnings) }
-        : {}),
+      ...(record.metadataLocation ? { metadataLocation: record.metadataLocation } : {}),
+      ...(warnings.length ? { metadataWarnings: Object.freeze(warnings) } : {}),
       ...(record.pluginId == null ? {} : { pluginId: record.pluginId }),
       package: record.package
         ? Object.freeze({

@@ -59,7 +59,9 @@ Physical copies stay in inspection; `packagePlugins[entry].selected` identifies 
 Selection preserves the first lowercase package name reached from sorted root dependencies,
 then breadth-first dependencies of selected packages. Unselected copies and dependencies only
 reachable through them do not activate plugins, hooks, styles or slots. CLI inventory marks them
-`enabled: false`; catalog entries remain `enabled: null` until runtime activation is known.
+`enabled: false` and `selected: false`; info distinguishes them from disabled local plugins.
+Catalog entries remain `enabled: null` until runtime activation is known. Physical inventory
+keys can change with hoisting; use package identity or pluginId for logical identity.
 Nested selected entries resolve browser/import exports at their dependency edge; direct entries
 keep package specifiers. Nested custom bundler conditions are not inferred. Historical nonempty
 runtime IDs, including numeric-leading build IDs, remain valid static evidence.
@@ -69,3 +71,10 @@ never infer a category from a filename or warning text.
 Runtime artifact preparation may reuse `resolvePluginEntry(specifier, manifestFile)` for the
 existing browser/import resolution and `staticPluginId(name, metadata, sidecar)` for manifest/
 sidecar agreement. Both are static checks; neither evaluates plugin code or installs packages.
+
+Catalog selection accepts a dependency alias or its canonical package name. Generated catalog
+keys retain the selected spelling; listing both names loads the definition only once. Provenance
+always retains the canonical package name. Nested TypeScript source entries use extensionless
+generated imports. Code and CSS follow the selected physical copy, which may differ from the
+hoisted version older bare imports accidentally executed. The app module does not acquire its
+npm name as a display label; its existing default/explicit labels remain intact.

@@ -13,7 +13,7 @@ import appPreferencesPlugin from '../dist/foundation.js';
 const Icon = () => null;
 const todos = definePlugin({
   id: 'todos',
-  metadata: { name: 'Todos', description: 'Task lists.', icon: Icon },
+  metadata: { title: 'Todos', name: '@acme/todos', description: 'Task lists.', icon: Icon },
   settings: defineSettings(
     { pageSize: setting({ default: 20 }) },
     { title: 'Tasks', category: 'content', order: 5, icon: Icon, shortcut: 'Alt+Shift+T' },

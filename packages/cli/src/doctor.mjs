@@ -7,12 +7,12 @@ import {
   describeDefinitions,
   cssImports,
   navigationPlacement,
-  pluginIdentityConflicts,
 } from '@bitakit/discovery';
 import { checkAgentFiles } from './doctor-agent-files.mjs';
 import { exists, findProject } from './project.mjs';
 import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
 import { describeSlots } from './slots.mjs';
+import { identityConflictsFromDescription } from './inventory.mjs';
 
 /**
  * Checks a project for the problems that most often break a BitaKit app: mixed package
@@ -69,21 +69,7 @@ export async function doctor({ cwd } = {}) {
     results.push({ status: 'error', title: 'Discovery failed', details: [error.message] });
     return { project, results };
   }
-  const identityConflicts = pluginIdentityConflicts([
-    { id: description.app.id, source: 'application' },
-    ...description.plugins
-      .filter((plugin) => plugin.enabled)
-      .map((plugin) => ({ id: plugin.id, source: plugin.directory })),
-    ...Object.entries(description.packagePlugins ?? {})
-      .filter(
-        ([entry, record]) =>
-          record.selected !== false && !description.catalogPackages.includes(entry),
-      )
-      .map(([entry, record]) => ({
-        id: record.pluginId,
-        source: `${record.name}@${record.version} (${entry})`,
-      })),
-  ]);
+  const identityConflicts = identityConflictsFromDescription(description);
   if (identityConflicts.length)
     results.push({
       status: 'error',

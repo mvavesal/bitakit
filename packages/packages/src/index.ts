@@ -188,7 +188,10 @@ export function createPackageHost(options: {
                 withPluginOrigin(plugin, {
                   ...getPluginOrigin(plugin),
                   kind: 'package',
-                  package: { name: selection.name, version: selection.version },
+                  package: {
+                    name: getPluginOrigin(plugin)?.package?.name ?? selection.name,
+                    version: selection.version,
+                  },
                 }),
               ),
             };

@@ -31,6 +31,21 @@ export type PluginMetadataSources = Readonly<{
   legacy?: PluginMetadata;
 }>;
 
+/** Shared display fallback; callers apply translations and explicit section labels first. */
+export function pluginDisplayTitle(
+  metadata: Pick<PluginMetadata, 'title' | 'name'> | undefined,
+  fallback: string,
+): string;
+export function pluginDisplayTitle(
+  metadata: Pick<PluginMetadata, 'title' | 'name'> | undefined,
+): string | undefined;
+export function pluginDisplayTitle(
+  metadata: Pick<PluginMetadata, 'title' | 'name'> | undefined,
+  fallback?: string,
+) {
+  return metadata?.title ?? metadata?.name ?? fallback;
+}
+
 /** One pure projection for build, discovery and runtime. Invalid optional values fall back per
  * field; executable icons and arbitrary package fields never enter the serializable result. */
 export function projectPluginMetadata(canonical: unknown = {}, ...legacy: unknown[]) {
@@ -43,6 +58,7 @@ export function projectPluginMetadata(canonical: unknown = {}, ...legacy: unknow
 /** Projects ordered sources with truthful diagnostic labels. The first valid field wins. */
 export function projectPluginMetadataSources(
   sources: readonly { value: unknown; location: string }[],
+  { packageName }: { packageName?: string } = {},
 ) {
   const metadata: PluginMetadata = {};
   const warnings: string[] = [];
@@ -75,7 +91,8 @@ export function projectPluginMetadataSources(
   if (
     titleOwner !== undefined &&
     nameOwner !== undefined &&
-    titleOwner < nameOwner &&
+    titleOwner !== nameOwner &&
+    !(packageName && metadata.name?.toLowerCase() === packageName.toLowerCase()) &&
     metadata.title !== metadata.name
   )
     warnings.push(

@@ -39,6 +39,7 @@ export async function readApplicationPackage(directory, root) {
 
 /** Passive host evidence only. Optional metadata problems are warnings, never loader errors. */
 export function packageOrigin(kind, manifest = {}, warnings = [], location = 'package.json') {
+  const warningStart = warnings.length;
   const name = canonicalPackageName(manifest.name);
   const metadata = manifest.bitakit ?? manifest.foundation ?? {};
   const sources = packageMetadataSources(manifest);
@@ -46,7 +47,9 @@ export function packageOrigin(kind, manifest = {}, warnings = [], location = 'pa
     { value: sources.canonical, location },
     { value: sources.legacy, location: `${location} legacy fields` },
   ]);
-  warnings.push(...projected.warnings);
+  // Folder callers project their declaration and manifest together, with folder precedence.
+  // Reporting the package-only projection there would name a winner that is not used.
+  if (kind === 'package') warnings.push(...projected.warnings);
   let memberOf = metadata.memberOf;
   if (
     memberOf !== undefined &&
@@ -61,6 +64,8 @@ export function packageOrigin(kind, manifest = {}, warnings = [], location = 'pa
   }
   return {
     kind,
+    ...(kind === 'local' ? {} : { metadataLocation: location }),
+    ...(warnings.length > warningStart ? { metadataWarnings: warnings.slice(warningStart) } : {}),
     ...(kind === 'local'
       ? {}
       : {
@@ -115,18 +120,22 @@ export function folderMetadata(
   warnings = [],
   location = 'plugin.config.ts',
   packageLocation = 'package.json',
+  { application = false } = {},
 ) {
   const sources = packageMetadataSources(manifest);
-  const result = projectPluginMetadataSources([
-    { value: legacy, location },
-    {
-      value: { ...sources.canonical, ...(kind === 'local' ? { title: undefined } : {}) },
-      location: packageLocation,
-    },
-    { value: sources.legacy, location: `${packageLocation} legacy fields` },
-  ]);
+  const result = projectPluginMetadataSources(
+    [
+      { value: legacy, location },
+      {
+        value: { ...sources.canonical, ...(kind === 'local' ? { title: undefined } : {}) },
+        location: packageLocation,
+      },
+      { value: sources.legacy, location: `${packageLocation} legacy fields` },
+    ],
+    { packageName: manifest.name },
+  );
   // Package identity is a compatibility fallback, not a competing authored display name.
-  if (result.metadata.name === undefined && typeof manifest.name === 'string')
+  if (!application && result.metadata.name === undefined && typeof manifest.name === 'string')
     result.metadata.name = manifest.name;
   warnings.push(...result.warnings);
   return result.metadata;

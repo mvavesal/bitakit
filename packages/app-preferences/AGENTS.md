@@ -87,3 +87,5 @@ Configure bundles in the host and membership in package.json, never a second UI 
 share one plugin and toggle; the total counts distinct plugins. Missing membership means
 Not assigned, never General purpose. Titles resolve app translation, canonical title, legacy
 name, package name, then runtime ID.
+
+Plugin list, navigation and generated settings labels share Core display-title precedence. Translations and explicit settings section titles remain authoritative; grouping never changes the label policy or runtime identity.

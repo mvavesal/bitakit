@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
-import { createRuntime, resolveBitaKitConfig } from '@bitakit/core';
+import { createRuntime, resolveBitaKitConfig, getPluginOrigin } from '@bitakit/core';
+import { createPackageHost } from '@bitakit/packages';
 import { doctor } from '../src/doctor.mjs';
 import { link } from './helpers.mjs';
 import { describeBitaKit, generateBitaKit } from '@bitakit/discovery';
@@ -86,6 +89,178 @@ test('passive info reads package and folder membership without executing package
     assert.equal(JSON.stringify(inventory).includes(root), false);
     assert.ok(first.warnings.some((warning) => warning.includes('ignoring its memberOf')));
     await assert.rejects(generateBitaKit(root), /discovery hook executed/);
+  }));
+
+test('app labels stay unset while included-folder diagnostics project the actual winning source once', async () =>
+  fixture(async (root, put) => {
+    await put('package.json', { name: 'acme-portal' });
+    await put('src/plugin.config.ts', 'export default {};');
+    await link(root, '@bitakit/core', 'packages/core');
+    await put('bitakit.config.ts', "export default {plugins:{include:{notes:'./included'}}};");
+    await put('included/package.json', {
+      name: 'notes',
+      tags: ['legacy'],
+      bitakit: { tags: ['canonical'] },
+    });
+    await put('included/plugin.config.ts', "export default {metadata:{tags:['folder']}};");
+    const description = await describeBitaKit(root);
+    assert.equal(description.app.metadata.name, undefined);
+    assert.deepEqual(description.plugins[0].metadata.tags, ['folder']);
+    assert.equal(new Set(description.metadataWarnings).size, description.metadataWarnings.length);
+    assert.equal(description.metadataWarnings.length, 2);
+    assert.ok(
+      description.metadataWarnings.every((w) =>
+        w.includes('included/plugin.config.ts takes precedence'),
+      ),
+    );
+    assert.equal((await generatedConfig(root)).metadata.name, undefined);
+  }));
+
+test('generated npm alias catalog loads once and preserves the real package identity', async () =>
+  fixture(async (root, put) => {
+    await put('package.json', {
+      name: 'host',
+      type: 'module',
+      dependencies: { notes: 'npm:@acme/notes@1.0.0' },
+    });
+    await put('src/plugin.config.ts', 'export default {};');
+    await put('bitakit.config.ts', "export default {catalog:['notes','@acme/notes']};");
+    await installedPackage(put, 'node_modules/notes', { name: '@acme/notes', id: 'notes' });
+    await put('node_modules/notes/plugin.js', "export default () => ({id:'notes'});");
+    await link(root, '@bitakit/core', 'packages/core');
+    const description = await describeBitaKit(root, { packageMetadataOnly: true });
+    assert.deepEqual(description.catalogPackages, ['notes/plugin']);
+    await generatedConfig(root);
+    const { createBitaKitConfig, packageCatalog } = await import(
+      `${pathToFileURL(path.join(root, 'generated-test.mjs')).href}?alias`
+    );
+    assert.deepEqual(Object.keys(packageCatalog), ['notes']);
+    const runtime = createRuntime(createBitaKitConfig());
+    const stop = runtime.mount();
+    await runtime.ready;
+    try {
+      assert.equal(runtime.config.plugins.length, 0);
+      const host = createPackageHost({ runtime, catalog: packageCatalog });
+      assert.equal(
+        (await host.reconcile({ scope: 'test', packages: [{ name: 'notes', version: '1.0.0' }] }))
+          .status,
+        'applied',
+      );
+      assert.equal(getPluginOrigin(runtime.config.plugins[0]).package.name, '@acme/notes');
+    } finally {
+      await stop();
+    }
+  }));
+
+test('nested TypeScript source entries typecheck and execute the selected copy', async () =>
+  fixture(async (root, put) => {
+    await put('package.json', { name: 'host', type: 'module', dependencies: { parent: '1' } });
+    await put('src/plugin.config.ts', 'export default {};');
+    await link(root, '@bitakit/core', 'packages/core');
+    await installedPackage(put, 'node_modules/parent', {
+      name: 'parent',
+      id: 'parent',
+      dependencies: { source: '1' },
+    });
+    await put('node_modules/parent/plugin.js', "export default () => ({id:'parent'});");
+    await put('node_modules/parent/node_modules/source/package.json', {
+      name: 'source',
+      version: '1.0.0',
+      type: 'module',
+      exports: { './package.json': './package.json', './plugin': './plugin.tsx' },
+      bitakit: { plugin: './plugin', id: 'source' },
+    });
+    await put(
+      'node_modules/parent/node_modules/source/plugin.tsx',
+      "export default () => ({id:'source',metadata:{name:'Nested'}});",
+    );
+    const config = await generatedConfig(root);
+    assert.equal(config.plugins.find((p) => p.id === 'source').metadata.name, 'Nested');
+    const generated = await readFile(path.join(root, 'src/bitakit.gen.ts'), 'utf8');
+    const line = generated
+      .split('\n')
+      .find(
+        (line) => line.startsWith('import packagePlugin') && line.includes('node_modules/source/'),
+      );
+    assert.ok(line);
+    await put('src/source-import.ts', line + '\nexport {};');
+    const require = createRequire(import.meta.url);
+    execFileSync(
+      process.execPath,
+      [
+        require.resolve('typescript/bin/tsc'),
+        '--noEmit',
+        '--skipLibCheck',
+        '--moduleResolution',
+        'bundler',
+        '--module',
+        'esnext',
+        '--target',
+        'es2022',
+        '--jsx',
+        'react-jsx',
+        'src/source-import.ts',
+      ],
+      { cwd: root, stdio: 'pipe' },
+    );
+  }));
+
+test('info reports collisions and runtime IDs without inventing missing package versions', async () =>
+  fixture(async (root, put) => {
+    await put('package.json', { name: 'host', dependencies: { one: '*', two: '*' } });
+    await put('src/plugin.config.ts', 'export default {};');
+    for (const name of ['one', 'two']) {
+      await installedPackage(put, `node_modules/${name}`, { name, id: 'same' });
+      const file = `node_modules/${name}/package.json`;
+      const manifest = JSON.parse(await readFile(path.join(root, file), 'utf8'));
+      delete manifest.version;
+      await put(file, manifest);
+    }
+    const cli = path.resolve(import.meta.dirname, '../src/cli.mjs');
+    const text = execFileSync(process.execPath, [cli, 'info'], { cwd: root, encoding: 'utf8' });
+    assert.match(text, /plugin ID: same/);
+    assert.match(text, /Plugin ID "same" conflicts/);
+    assert.match(
+      text,
+      /Static plugin ID conflicts:\n\s+Plugin ID "same" conflicts[^\n]*\n\nLive state:/,
+    );
+    assert.doesNotMatch(text, /@undefined/);
+    const json = JSON.parse(
+      execFileSync(process.execPath, [cli, 'info', '--json'], { cwd: root, encoding: 'utf8' }),
+    );
+    assert.equal(json.diagnostics.identityConflicts.length, 1);
+    await assert.rejects(
+      generateBitaKit(root),
+      (error) => error.message.includes('conflicts') && !error.message.includes('@undefined'),
+    );
+  }));
+
+test('missing-export diagnostics deduplicate one physical manifest and identify its location', async () =>
+  fixture(async (root, put) => {
+    await put('package.json', { name: 'host', dependencies: { a: '1', b: '1', hidden: '1' } });
+    await put('src/plugin.config.ts', 'export default {};');
+    for (const name of ['a', 'b'])
+      await installedPackage(put, `node_modules/${name}`, { name, dependencies: { hidden: '1' } });
+    await put('node_modules/hidden/package.json', {
+      name: 'hidden',
+      exports: { './package.json': './package.json' },
+    });
+    await put('node_modules/a/node_modules/hidden/package.json', {
+      name: 'hidden',
+      exports: {},
+      bitakit: { plugin: './plugin' },
+    });
+    await mkdir(path.join(root, 'node_modules/b/node_modules'), { recursive: true });
+    await symlink(
+      path.join(root, 'node_modules/a/node_modules/hidden'),
+      path.join(root, 'node_modules/b/node_modules/hidden'),
+    );
+    const description = await describeBitaKit(root, { packageMetadataOnly: true });
+    assert.equal(description.packageWarnings.length, 1);
+    assert.match(
+      description.packageWarnings[0],
+      /node_modules\/a\/node_modules\/hidden\/package.json/,
+    );
   }));
 
 test('optional malformed metadata warns without inventing membership or changing IDs', () => {
@@ -243,6 +418,16 @@ for (const binding of ['unknown', 'same', 'distinct'])
       );
       const inventory = (await inspectionFromDescription(description)).static.plugins;
       assert.equal(inventory.find((record) => record.package?.version === '2.0.0').enabled, false);
+      assert.equal(inventory.find((record) => record.package?.version === '2.0.0').selected, false);
+      if (binding === 'same') {
+        const text = execFileSync(
+          process.execPath,
+          [path.resolve(import.meta.dirname, '../src/cli.mjs'), 'info'],
+          { cwd: root, encoding: 'utf8' },
+        );
+        assert.match(text, /\(not selected\)/);
+        assert.doesNotMatch(text, /\(disabled\)/);
+      }
       assert.equal(inventory.find((record) => record.package?.name === 'ghost').enabled, false);
       const config = await generatedConfig(root);
       assert.deepEqual(
@@ -471,5 +656,9 @@ test('a root package without opt-in metadata does not activate its nested namesa
     assert.equal(
       Object.values(description.packagePlugins).find((record) => record.name === 'shared').selected,
       false,
+    );
+    assert.ok(description.packageWarnings.some((w) => w.includes('already considered earlier')));
+    assert.ok(
+      description.packageWarnings.every((w) => !w.includes('Only reachable through an unselected')),
     );
   }));

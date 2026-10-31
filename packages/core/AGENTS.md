@@ -57,6 +57,14 @@ fallback; `projectPluginMetadataSources([{ value, location }, ...])` uses the sa
 with ordered sources and diagnostic labels. `packageMetadataSources` extracts public package
 fields without I/O. Included folder bindings preserve existing plugin metadata before package
 fallbacks. `metadata.name` remains supported; package identity is recorded independently.
+`pluginDisplayTitle(metadata, fallback?)` shares title-before-name selection; consumers apply
+translations and explicit settings section labels first. `projectPluginMetadataSources` accepts
+`{ packageName }` to distinguish the generated identity fallback from an authored display name.
+Origin records may carry `metadataLocation` for diagnostics. Rebinding a definition retains
+existing `metadataWarnings`. The runtime's application module has local origin; unknown
+replacement plugins remain unknown. Static inventory may include `selected` and
+`diagnostics.identityConflicts`; physical record keys are not portable package identities.
+The optional `@bitakit/core/testing` entry requires Discovery 0.2.5 or later.
 
 ### Complete cohort replacement
 

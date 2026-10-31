@@ -3,7 +3,7 @@ import { cp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describeModule, describeDefinitions, validatePackageStyles } from '@bitakit/discovery';
-import { packageMetadataSources, projectPluginMetadata } from '@bitakit/core';
+import { packageMetadataSources, projectPluginMetadataSources } from '@bitakit/core';
 import { findProject } from './project.mjs';
 
 const quote = JSON.stringify;
@@ -177,7 +177,16 @@ function entry(id, module, manifest, metadata, local) {
       return `discoveredFile(${name}, ${quote(item.path)}, ${quote(path.relative(module.directory, item.file).split(path.sep).join('/'))})`;
     });
   const sources = packageMetadataSources(manifest);
-  const { metadata: info, warnings } = projectPluginMetadata(sources.canonical, sources.legacy);
+  const { metadata: info, warnings } = projectPluginMetadataSources([
+    ...Object.entries(sources.canonical).map(([key, value]) => ({
+      value: { [key]: value },
+      location: `package.json ${['title', 'tags', 'coverImage'].includes(key) ? `${manifest.bitakit ? 'bitakit' : 'foundation'}.` : ''}${key}`,
+    })),
+    ...Object.entries(sources.legacy).map(([key, value]) => ({
+      value: { [key]: value },
+      location: `package.json ${key}`,
+    })),
+  ]);
   // Preserve the historical public name fallback; full package identity is recorded separately.
   if (info.name === undefined && typeof manifest.name === 'string') info.name = manifest.name;
   for (const warning of warnings) console.warn(`[bitakit] package.json: ${warning}`);

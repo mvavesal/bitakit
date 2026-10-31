@@ -44,10 +44,12 @@ export type InventoryMetadata = Readonly<
   > & { author?: string; support?: string }
 >;
 export type InventoryPlugin = Readonly<{
-  /** Stable inventory key; an unresolved package uses its export specifier. */
+  /** Inventory key within this installation; physical package keys may change with hoisting. */
   id: string;
   pluginId: string | null;
   enabled: boolean | null;
+  /** Static activation selection, separate from runtime enablement; null means not applicable. */
+  selected?: boolean | null;
   source: Readonly<{ kind: 'runtime' | 'file' | 'package'; path: string | null }>;
   metadata: InventoryMetadata;
   dependencies: readonly string[] | null;
@@ -94,6 +96,8 @@ export type InventoryLive = Readonly<{
 export type RuntimeInventory = Readonly<{
   version: 1;
   static: Readonly<{ plugins: readonly InventoryPlugin[] }>;
+  /** Optional passive-tooling diagnostics, without executing package code. */
+  diagnostics?: Readonly<{ identityConflicts: readonly string[] }>;
   /** Null means there is no running process to inspect, never an empty/healthy runtime. */
   live: InventoryLive | null;
 }>;
@@ -152,7 +156,7 @@ export function inspectRuntime(runtime: BitaKitRuntime): RuntimeInventory {
     const source = pluginOrigin(runtime.config.plugins?.find((plugin) => plugin.id === id));
     return {
       application,
-      origin: source?.kind ?? ('unknown' as const),
+      origin: source?.kind ?? (application ? ('local' as const) : ('unknown' as const)),
       ...(source?.metadataWarnings?.length ? { metadataWarnings: source.metadataWarnings } : {}),
       parent: parent ?? null,
       package: source?.package ?? null,

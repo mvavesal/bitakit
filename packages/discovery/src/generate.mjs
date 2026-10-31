@@ -511,9 +511,13 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
 
   // Installed packages.
   const catalog = new Set((config.catalog ?? []).map((name) => name.toLowerCase()));
+  const catalogEntries = new Map();
   for (const name of catalog) {
-    const entries = installed.plugins.filter(
-      (entry) => installed.pluginPackages?.[entry]?.name === name,
+    const entries = installed.plugins.filter((entry) =>
+      [
+        installed.pluginPackages?.[entry]?.name,
+        installed.pluginPackages?.[entry]?.dependencyName,
+      ].includes(name),
     );
     if (!entries.length)
       throw new Error(
@@ -527,22 +531,30 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       throw new Error(
         `Catalog package "${name}" needs host configuration and must remain in the startup composition.`,
       );
+    // Catalog keys retain the host's dependency alias; provenance keeps the canonical identity.
+    // Listing both names must not cause the same definition to activate twice.
+    if (!catalogEntries.has(entries[0])) catalogEntries.set(entries[0], name);
   }
-  const isLazy = (entry) => catalog.has(installed.pluginPackages?.[entry]?.name);
+  const isLazy = (entry) => catalogEntries.has(entry);
   const conflicts = pluginIdentityConflicts([
     ...[...enabledModuleIds].map((id) => ({ id, source: `local module "${id}"` })),
     ...installed.plugins
       .filter((entry) => !isLazy(entry))
       .map((entry) => ({
         id: installed.pluginPackages[entry].pluginId,
-        source: `package "${installed.pluginPackages[entry].name}@${installed.pluginPackages[entry].version}" (${entry})`,
+        source: `package "${installed.pluginPackages[entry].name}@${installed.pluginPackages[entry].version ?? '?'}" (${entry})`,
       })),
   ]);
   if (conflicts.length) throw new Error(conflicts.join('\n'));
   const packageImport = (entry) => {
     const source = installed.imports?.[entry] ?? entry;
     return path.isAbsolute(source)
-      ? './' + path.relative(output, source).split(path.sep).join('/')
+      ? './' +
+          path
+            .relative(output, source)
+            .split(path.sep)
+            .join('/')
+            .replace(/\.tsx?$/, '')
       : source;
   };
   const catalogSource = catalog.size
@@ -552,10 +564,10 @@ export const packageCatalog = {
 ${installed.plugins
   .filter(isLazy)
   .map((entry) => {
-    const { name, version, origin, pluginId } = installed.pluginPackages[entry];
+    const { version, origin, pluginId } = installed.pluginPackages[entry];
     const dependencies = installed.dependencies?.[entry];
     const call = `(await import(${specifier(packageImport(entry))})).default()`;
-    return `  ${quote(name)}: { version: ${quote(version)}, ${pluginId ? `pluginIds: [${quote(pluginId)}], ` : ''}load: async () => [withPluginOrigin(${dependencies?.length ? `withDependencies(${call}, ${quote(dependencies)})` : call}, ${quote(origin)})] },`;
+    return `  ${quote(catalogEntries.get(entry))}: { version: ${quote(version)}, ${pluginId ? `pluginIds: [${quote(pluginId)}], ` : ''}load: async () => [withPluginOrigin(${dependencies?.length ? `withDependencies(${call}, ${quote(dependencies)})` : call}, ${quote(origin)})] },`;
   })
   .join('\n')}
 } as const;
@@ -705,7 +717,7 @@ export function createBitaKitConfig() {
 ${configured ? `  const options = new ConfigService([{ id: ${quote(appId)}, config: appConfig }], { [${quote(appId)}]: configOverrides[${quote(appId)}] ?? {} }).plugin(${quote(appId)});\n` : ''}  return {
     appId: ${quote(appId)},
     ...${quote(bundleContext)},
-    metadata: ${quote(folderMetadata('local', appPackage, appManifest.metadata, warnings, relativeTo(path.join(appRoot, 'plugin.config.ts')), relativeTo(appPackageFile)))},
+    metadata: ${quote(folderMetadata('local', appPackage, appManifest.metadata, warnings, relativeTo(path.join(appRoot, 'plugin.config.ts')), relativeTo(appPackageFile), { application: true }))},
     dependencies: ${quote(appManifest.dependencies ?? [])},
     groups: ${quote(config.groups ?? [])},
     actionOverrides: ${quote((config.actions && config.actions.overrides) || {})},

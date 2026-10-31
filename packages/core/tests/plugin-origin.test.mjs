@@ -8,6 +8,8 @@ import {
   pluginMembership,
   groupPlugins,
   resolveBitaKitConfig,
+  getPluginOrigin,
+  projectPluginMetadataSources,
 } from '../dist/core.js';
 
 const bound = (id, kind, memberOf) => withPluginOrigin(definePlugin({ id }), { kind, memberOf });
@@ -35,6 +37,7 @@ test('host provenance groups plugins without trusting self-claims or changing ru
   try {
     const entries = inspectRuntime(runtime).static.plugins;
     assert.equal(entries[0].application, true);
+    assert.equal(entries[0].origin, 'local');
     assert.equal(entries[0].membership.state, 'derived');
     const byId = Object.fromEntries(entries.map((entry) => [entry.id, entry]));
     assert.deepEqual(byId.local.membership, {
@@ -183,4 +186,56 @@ test('included folder metadata keeps its existing precedence through host proven
   assert.equal(plugin.metadata.name, 'Existing name');
   assert.equal(plugin.metadata.description, 'Existing description');
   assert.deepEqual(plugin.metadata.keywords, ['new']);
+});
+
+test('binding distinguishes generated package names from authored display names and retains evidence', () => {
+  const record = {
+    kind: 'package',
+    package: { name: '@acme/notes', version: '1' },
+    metadata: { canonical: { title: 'Notes', description: 'Published' } },
+    metadataLocation: 'node_modules/@acme/notes/package.json',
+  };
+  const clean = withPluginOrigin(
+    definePlugin({
+      id: 'notes',
+      metadata: {
+        name: '@acme/notes',
+        title: 'Notes',
+        description: 'Published',
+      },
+    }),
+    record,
+  );
+  assert.equal(getPluginOrigin(clean).metadataWarnings, undefined);
+  const authored = withPluginOrigin(
+    definePlugin({
+      id: 'notes',
+      metadata: {
+        name: 'Old notes',
+        description: 'Old description',
+      },
+    }),
+    record,
+  );
+  const warnings = getPluginOrigin(authored).metadataWarnings;
+  assert.equal(warnings.length, 2);
+  assert.ok(warnings.every((w) => w.includes(record.metadataLocation)));
+  const rebound = withPluginOrigin(authored, getPluginOrigin(authored));
+  assert.deepEqual(getPluginOrigin(rebound).metadataWarnings, warnings);
+  assert.deepEqual(
+    getPluginOrigin(withPluginOrigin(rebound, getPluginOrigin(rebound))).metadataWarnings,
+    warnings,
+  );
+});
+
+test('included folder display-name disagreement warns even when the title source comes later', () => {
+  const result = projectPluginMetadataSources([
+    { value: { name: 'Folder name' }, location: 'included/plugin.config.ts' },
+    { value: { title: 'Package title' }, location: 'included/package.json' },
+  ]);
+  assert.equal(result.warnings.length, 1);
+  assert.match(
+    result.warnings[0],
+    /display title.*included\/package.json.*included\/plugin.config.ts/,
+  );
 });

@@ -152,6 +152,7 @@ export { destinationMetadata, type Destination, type DestinationKind } from './d
 export * from './actions/core.js';
 export {
   pluginMetadata,
+  pluginDisplayTitle,
   projectPluginMetadata,
   projectPluginMetadataSources,
   packageMetadataSources,

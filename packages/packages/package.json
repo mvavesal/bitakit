@@ -65,7 +65,7 @@
     "esbuild": "^0.28.2",
     "rollup": "^4.66.0",
     "npm-package-arg": "^14.0.0",
-    "@bitakit/discovery": "^0.2.4"
+    "@bitakit/discovery": "^0.2.5"
   },
   "peerDependenciesMeta": {
     "esbuild": {

@@ -10,6 +10,8 @@ readiness. Optional browser/server entries add artifact delivery, npm installati
 ## Use it
 
 1. Install the plugin package and list it in `bitakit.config.ts`: `catalog: ['notes-plugin']`.
+   An npm dependency alias is also accepted; catalog activation retains the package's canonical
+   provenance and any metadata warnings recorded by its generated loader.
    Discovery then emits `packageCatalog` in `src/bitakit.gen.config.ts` and leaves the package
    out of the initial composition.
 2. In host management code (not in plugin hooks, Actions or disposers):
@@ -64,6 +66,7 @@ signal? })` prepares immutable artifacts. Scripts stay disabled. Source entries 
 - SQLite journals use compare-and-swap. There is no multi-client rollout, automatic GC, schema
   migration or arbitrary data snapshot. Never describe code rollback as database restoration.
 - Serve declared artifact files only; private installation evidence contains lock/source details.
+  The optional Node installer requires Discovery 0.2.5 or later for its static entry/ID helpers.
   Keep active, previous and unfinished-recovery artifacts. Read README for limits and transport.
 
 On session shutdown, await `packages.dispose()` outside owned work (or after a successful

@@ -599,12 +599,25 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `npm run verify:generated` (packed packages, every generated shape, install, types, build,
   browser smoke), `bitakit doctor` in generated apps, `npm run build:docs` for the docs site.
   Run the checks relevant to the change; do not rerun green suites without new changes.
+- When adding cross-package imports, verify the exports of the oldest accepted published
+  dependency, including optional peers used by testing/server entries. Workspace linking can
+  hide missing exports; Changesets does not necessarily raise a still-compatible peer minimum.
+- Package discovery checks include npm dependency aliases, nested TypeScript source entries,
+  and the version of code and CSS actually loaded. Metadata checks cover app-label fallbacks,
+  every title consumer, and warnings retained when an already-bound definition is rebound.
+  Compare CLI and runtime inspection without treating physical record keys as logical identity.
 - Release: a change to a published package's shipped content adds a changeset (`npm run changeset`);
   `release.yml` on `main` opens the "Version packages" pull request and, once it is merged,
   publishes through npm trusted publishing. Generated apps depend on the release line
   (`^0.2.0`), so create-app may be released alone; a template that uses a newer API raises that
   package in create-app's `minimumVersions` (pnpm 11 skips releases younger than a day, and old
   lockfiles keep old patches). Never bump versions or publish by hand.
+  A new peer minimum may target the same pending release when the supplying package has a
+  changeset; the version guard verifies the actual Changesets plan through directly declared
+  read/config/pre/assemble libraries. Do not use `changeset status` in a history-independent
+  guard: it also compares against the base Git branch. Verify source archives and shallow,
+  detached PR checkouts without local branches. Keep local development
+  dependencies compatible with the workspace and verify installation from a release preview.
 - create-app installs with the package manager in `npm_config_user_agent` (`--package-manager`
   overrides); plugin packages stay npm workspaces. Yarn 1 runs the bin named after the package,
   hence the `create-app` bin beside `create-bitakit-app`. A package that depends on a library
@@ -761,7 +774,11 @@ npm-name fallback in metadata.name for existing consumers.
 `projectPluginMetadata` (Zod shapes) is the shared pure projection; keywords stay separate from tags.
 `projectPluginMetadataSources` labels ordered inputs with concrete source locations. Metadata and
 package warnings are classified by their producers, never by regex matches against filenames.
-Application translations overlay canonical title, legacy name, package name, then runtime ID.
+Use Core's `pluginDisplayTitle(metadata, fallback?)` for canonical title before legacy name;
+consumers apply application translations and explicit settings section labels first. The app's
+npm identity does not replace its default display label. Generated package-name fallbacks are
+identity, not authored title conflicts. Rebinding preserves prior metadata warnings and their
+manifest locations; folder diagnostics project all sources once in their effective order.
 Host provenance uses `withPluginOrigin` and `getPluginOrigin`, bound to definition objects, never
 parallel ID arrays. Internal copies preserve it; unrecorded replacements are unknown. Membership
 is derived for local/app modules, declared for memberOf IDs, general for exactly ['*'], otherwise
@@ -775,10 +792,13 @@ in Discovery and is shared by CLI and Core testing. Static evidence accepts the 
 nonempty string ID contract, including numeric-leading build IDs. Inventory keys resolved physical
 manifests; activation preserves the first lowercase name in sorted breadth-first traversal from
 root dependencies, following only selected packages. Unselected copies and their exclusive
-dependencies contribute no plugins, hooks, styles or slots. CLI inventory marks them disabled;
-Doctor reports selection separately. Nested selected client imports use enhanced-resolve's
+dependencies contribute no plugins, hooks, styles or slots. CLI inventory exposes selected:false
+separately from enablement; Info and Doctor report selection and static ID conflicts. Physical
+record keys may change with hoisting. Nested selected client imports use enhanced-resolve's
 browser/import conditions at the owning edge; direct entries remain host-resolved package imports.
-Custom bundler conditions are not inferred for nested entries. Known startup collisions
+Custom bundler conditions are not inferred for nested entries. Nested TS/TSX imports omit source extensions; code
+and CSS both follow the selected physical copy. Catalog selection accepts dependency aliases
+and canonical package names while retaining canonical provenance. Known startup collisions
 fail generation; optional complete catalog pluginIds sets fail before a new load. Multi-plugin
 manual loaders and post-load checks remain supported. Info/Doctor skip package entry and discovery
 hook execution; Doctor still audits styles. Upgrade Core and Discovery together. This adds no

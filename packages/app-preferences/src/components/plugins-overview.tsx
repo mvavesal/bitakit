@@ -9,6 +9,7 @@ import {
 } from 'nuqs';
 import {
   safeHref,
+  pluginDisplayTitle,
   pluginMembership,
   groupPlugins,
   type PluginMembership,
@@ -117,7 +118,7 @@ function usePlugins(): readonly PluginEntry[] {
           name: t(
             `plugins.${module.id}.name`,
             undefined,
-            meta?.title ?? meta?.name ?? module.package?.name ?? module.id,
+            pluginDisplayTitle(meta, module.package?.name ?? module.id),
           ),
           description:
             t(`plugins.${module.id}.description`, undefined, meta?.description ?? '') || undefined,

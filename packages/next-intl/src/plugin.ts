@@ -13,7 +13,8 @@ export function nextIntlPlugin() {
     id: 'next-intl',
     metadata: {
       name: 'next-intl',
-      description: 'Translations and message catalogs from next-intl.',
+      description:
+        'BitaKit plugin for next-intl: translations and a typed interface-language setting.',
     },
     services: {
       translation: defineService(() => bridge.service, { provides: translationService }),
