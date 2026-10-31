@@ -1,5 +1,6 @@
 import {
   fallbackTitle,
+  pluginDisplayTitle,
   resolveText,
   type PluginMetadata,
   type PluginSettingsPage,
@@ -100,7 +101,7 @@ export function settingsCatalog(
         path: section?.path ?? (app ? 'general' : module.id),
         app,
         title:
-          text(`${prefix}.settings.title`, section?.title ?? module.metadata?.name) ??
+          text(`${prefix}.settings.title`, section?.title ?? pluginDisplayTitle(module.metadata)) ??
           (app ? 'General' : fallbackTitle({ id: module.id })),
         description: text(`${prefix}.settings.description`, section?.description),
         icon: section?.icon ?? module.metadata?.icon,

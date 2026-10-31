@@ -38,10 +38,11 @@
     "dev": "tsc -p tsconfig.json --watch"
   },
   "dependencies": {
+    "zod": "^4.6.7",
     "zustand": "^5.0.0"
   },
   "peerDependencies": {
-    "@bitakit/discovery": "^0.2.2",
+    "@bitakit/discovery": "^0.2.5",
     "jiti": "^2.7.0"
   },
   "peerDependenciesMeta": {

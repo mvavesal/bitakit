@@ -86,3 +86,6 @@ Users also download and import theme files on the Themes page.
 ## More
 
 README sections: AppShell, Slots, Appearance settings, Theme files, Notifications, Page states.
+
+The built `foundation.slots.json` also records the static runtime ID `shell`. Discovery uses
+that generated evidence for binding checks; it does not derive membership from the npm scope.

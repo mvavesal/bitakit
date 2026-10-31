@@ -161,6 +161,11 @@ const scriptResolver = (kind) =>
 
 const scriptResolvers = { import: scriptResolver('import'), require: scriptResolver('require') };
 
+/** Resolve a client plugin through its owning dependency edge using browser/ESM conditions. */
+export function resolvePluginEntry(specifier, manifestFile) {
+  return scriptResolvers.import(path.dirname(manifestFile), specifier);
+}
+
 /** Audit literal runtime imports, including external vendor dependencies. */
 async function validateScriptStyles(entry, sources) {
   const seen = new Set();

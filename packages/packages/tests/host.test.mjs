@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRuntime, definePlugin, defineService, defineAction } from '@bitakit/core';
+import {
+  createRuntime,
+  definePlugin,
+  defineService,
+  defineAction,
+  withPluginOrigin,
+  getPluginOrigin,
+} from '@bitakit/core';
 import { createPackageHost } from '../dist/index.js';
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -35,6 +42,24 @@ async function host(t, catalog, plugins = []) {
   t.after(() => stop().catch(() => {}));
   return { runtime, packages: createPackageHost({ runtime, catalog }) };
 }
+
+test('catalog aliases preserve canonical provenance and warnings from a prebound loader', async (t) => {
+  const definition = withPluginOrigin(
+    definePlugin({ id: 'notes', metadata: { description: 'Legacy' } }),
+    {
+      kind: 'package',
+      package: { name: '@acme/notes', version: '1.0.0' },
+      metadata: { canonical: { description: 'Published' } },
+    },
+  );
+  const { runtime, packages } = await host(t, {
+    notes: { version: '1.0.0', load: async () => [definition] },
+  });
+  assert.equal((await packages.reconcile(request('A', 'notes'))).status, 'applied');
+  const origin = getPluginOrigin(runtime.config.plugins.find((p) => p.id === 'notes'));
+  assert.equal(origin.package.name, '@acme/notes');
+  assert.deepEqual(origin.metadataWarnings, getPluginOrigin(definition).metadataWarnings);
+});
 
 test('a trusted selection loads multiple plugins together and preserves an unrelated store', async (t) => {
   let loads = 0;
@@ -212,4 +237,76 @@ test('a failed loader is retryable and shutdown during loading prevents activati
   gate.resolve();
   assert.equal((await addition).status, 'blocked');
   assert.equal(runtime.config.plugins.length, 0);
+});
+
+test('canonical package selection checks all known IDs before importing and binds multi-plugin loaders individually', async (t) => {
+  let imports = 0;
+  const { runtime, packages } = await host(t, {
+    '@ACME/One': {
+      version: '1.0.0',
+      pluginIds: ['collision'],
+      load: async () => {
+        imports++;
+        return [plugin('collision')];
+      },
+    },
+    '@other/two': {
+      version: '1.0.0',
+      pluginIds: ['collision'],
+      load: async () => {
+        imports++;
+        return [plugin('collision')];
+      },
+    },
+    legacy: { version: '1.0.0', load: async () => [plugin('first'), plugin('second')] },
+  });
+  assert.equal(
+    (await packages.reconcile(request('A', '@acme/ONE', '@OTHER/two'))).status,
+    'blocked',
+  );
+  assert.equal(imports, 0);
+  assert.equal((await packages.reconcile(request('A', '@acme/one'))).status, 'applied');
+  assert.equal(imports, 1);
+  assert.equal((await packages.reconcile(request('A', '@ACME/ONE', 'legacy'))).status, 'applied');
+  const { inspectRuntime } = await import('@bitakit/core');
+  for (const id of ['first', 'second']) {
+    const entry = inspectRuntime(runtime).static.plugins.find((plugin) => plugin.id === id);
+    assert.equal(entry.package.name, 'legacy');
+    assert.equal(entry.origin, 'package');
+  }
+  assert.throws(
+    () =>
+      createPackageHost({
+        runtime,
+        catalog: {
+          DUPLICATE: { version: '1', load: async () => [] },
+          duplicate: { version: '1', load: async () => [] },
+        },
+      }),
+    /Duplicate catalog package identity/,
+  );
+});
+
+test('catalog static identity conflicts with startup plugins before loading and validates loaded sets', async (t) => {
+  let imports = 0;
+  const { packages } = await host(
+    t,
+    {
+      collision: {
+        version: '1.0.0',
+        pluginIds: ['keeper'],
+        load: async () => {
+          imports++;
+          return [plugin('keeper')];
+        },
+      },
+      mismatch: { version: '1.0.0', pluginIds: ['expected'], load: async () => [plugin('actual')] },
+    },
+    [plugin('keeper')],
+  );
+  assert.equal((await packages.reconcile(request('A', 'collision'))).status, 'blocked');
+  assert.equal(imports, 0);
+  const failed = await packages.reconcile(request('A', 'mismatch'));
+  assert.equal(failed.status, 'failed');
+  assert.match(failed.reasons.join(' '), /mismatch.*expected.*actual/);
 });

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createJiti } from 'jiti';
-import { describeModule } from '@bitakit/discovery';
+import { describeModule, packagePluginId } from '@bitakit/discovery';
 import {
   createRuntime,
   discoverActions,
@@ -23,14 +23,7 @@ async function packageId(directory) {
       .then(JSON.parse)
       .catch(() => undefined);
     if (manifest)
-      return (
-        manifest.bitakit?.id ??
-        manifest.foundation?.id ??
-        (manifest.name ?? '')
-          .replace(/^@[^/]+\//, '')
-          .replace(/^bitakit-(plugin-)?/, '')
-          .replace(/-plugin$/, '')
-      );
+      return (manifest.bitakit ?? manifest.foundation)?.id ?? packagePluginId(manifest.name);
     if (path.dirname(folder) === folder) return undefined;
   }
 }

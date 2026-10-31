@@ -23,6 +23,13 @@ export type PluginToggleRequest = PluginChangeOptions &
     | Readonly<{ operation: 'enable'; id: string }>
     | Readonly<{ operation: 'disable'; id: string; dependents: 'stop' | 'refuse' }>
   );
+/** Complete owned cohort replacement. External dependents must be updated separately. */
+export type PluginReplacementRequest = PluginChangeOptions &
+  Readonly<{
+    operation: 'replace';
+    ids: readonly string[];
+    plugins: readonly Plugin[];
+  }>;
 export type PluginChangeReason =
   | 'busy'
   | 'cleanup-failed'

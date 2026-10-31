@@ -23,7 +23,9 @@
     "postcss": "^8.5.28",
     "postcss-selector-parser": "^7.1.6",
     "postcss-value-parser": "^4.2.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "validate-npm-package-name": "^7.0.2",
+    "@bitakit/core": "^0.2.7"
   },
   "license": "MIT",
   "repository": {

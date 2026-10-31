@@ -473,7 +473,7 @@ test('plugins included from outside the project are generated and reported for t
       const result = await generate();
       assert.deepEqual(result.included, [external]);
       const code = await output();
-      assert.match(code, /id: "notes", metadata: \{"name":"notes-plugin","version":"0\.1\.0"\}/);
+      assert.match(code, /id: "notes", metadata: \{"version":"0\.1\.0","name":"notes-plugin"\}/);
       assert.match(code, /actions: discoverActions\(\[file\d+\], "notes"\)/);
       await put(
         'bitakit.config.ts',
@@ -532,7 +532,7 @@ test('catalog packages use lazy imports with static types and keep the generated
     assert.match(code, /import type packagePlugin0 from 'notes-plugin\/plugin'/);
     assert.match(
       code,
-      /packageCatalog = \{[\s\S]*"notes-plugin": \{ version: "1.2.3", load: async \(\) => \[\(await import\('notes-plugin\/plugin'\)\).default\(\)\]/,
+      /packageCatalog = \{[\s\S]*"notes-plugin": \{ version: "1.2.3", load: async \(\) => \[withPluginOrigin\(\(await import\('notes-plugin\/plugin'\)\).default\(\),/,
     );
     assert.doesNotMatch(code, /packagePlugin0\(\)/);
     assert.match(code, /ReturnType<typeof packagePlugin0>/);

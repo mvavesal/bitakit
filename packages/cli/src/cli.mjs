@@ -303,7 +303,7 @@ program
   .action(async (options) => {
     const project = await findProject();
     if (project.kind !== 'app') throw new Error('Run "bitakit info" inside an app.');
-    const description = await describeBitaKit(project.root);
+    const description = await describeBitaKit(project.root, { packageMetadataOnly: true });
     const inventory = await inspectionFromDescription(description);
     if (options.json) {
       console.log(JSON.stringify(inventory, null, 2));
@@ -313,8 +313,19 @@ program
       const title =
         plugin.source.kind === 'package' ? `Package "${plugin.id}"` : `Plugin "${plugin.id}"`;
       console.log(
-        `\n${styleText('bold', title)}${plugin.enabled === false ? ' (disabled)' : ''} ${styleText('dim', plugin.source.path ?? '')}`,
+        `\n${styleText('bold', title)}${plugin.selected === false ? ' (not selected)' : plugin.enabled === false ? ' (disabled)' : ''} ${styleText('dim', plugin.source.path ?? '')}`,
       );
+      console.log(`  origin: ${plugin.origin ?? 'unknown'}`);
+      console.log(`  plugin ID: ${plugin.pluginId ?? 'unavailable'}`);
+      if (plugin.package)
+        console.log(
+          `  package: ${plugin.package.name}${plugin.package.version ? `@${plugin.package.version}` : ''}`,
+        );
+      if (plugin.parent) console.log(`  parent: ${plugin.parent}`);
+      if (plugin.membership)
+        console.log(
+          `  membership: ${plugin.membership.state}${plugin.membership.bundles.length ? ` (${plugin.membership.bundles.map((entry) => `${entry.id}${entry.resolved ? '' : ' [unresolved]'}`).join(', ')})` : ''}`,
+        );
       if (plugin.declarations === null)
         console.log('  declarations: unavailable (static package entry)');
       else
@@ -326,6 +337,10 @@ program
               .join(', ')}`,
           );
     }
+    if (inventory.diagnostics.identityConflicts.length)
+      console.log(`\n${styleText('yellow', 'Static plugin ID conflicts:')}`);
+    for (const conflict of inventory.diagnostics.identityConflicts)
+      console.log(`  ${styleText('yellow', conflict)}`);
     console.log('\nLive state: unavailable (static discovery).');
     if (description.warnings.length) {
       console.log(

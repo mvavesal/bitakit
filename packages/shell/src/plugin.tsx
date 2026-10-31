@@ -48,7 +48,8 @@ export function shellPlugin(options: ShellOptions = {}) {
       tags: ['system', 'design'],
       icon: LayoutIcon,
       name: 'App Shell',
-      description: 'Application frame, navigation layouts, appearance and notifications.',
+      description:
+        'Application frame for BitaKit apps: navigation layouts, slots, appearance settings and notifications.',
     },
     config: { navigationSlot },
     slots: shellSlots,

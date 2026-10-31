@@ -345,7 +345,24 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   unloadable; overlapping plugin IDs are rejected. One package version per host build.
   Discovery `catalog` generates literal lazy public-entry imports and static type-only imports
   in the config module, keeps CSS eager and excludes catalog entries from startup. Configured
-  host packages remain eager. A new catalog/version needs a deployment. No remote code/sandbox.
+  host packages remain eager. A new catalog/version needs a deployment. Dynamic mode is an explicit separate option:
+  `createPackageHost({ runtime, dynamic: { provider, journal, dataCompatibility: 'unchanged',
+  health? } })`. It shares Core lifecycle ownership, uses complete static ID preflight, records
+  durable intent before switching and restores the previous cohort after startup/health failure.
+  `recover()` restores committed active bytes or an interrupted operation's predecessor on a
+  fresh runtime. `packages.dispose()` releases the session resources while preserving durable
+  selection; an empty reconcile explicitly uninstalls. Failed cleanup/recovery blocks reuse. Core's `plugins.replace(ids, definitions,
+  options?)` and `preview({ operation: 'replace', ids, plugins })` use the same existing planner,
+  validate before teardown and refuse outside dependents/incomplete descendants. Catalog APIs
+  remain unchanged; `reconcilePlugins` keeps its narrower compatibility contract.
+  Optional `@bitakit/packages/server` uses standard npm installation with scripts disabled,
+  esbuild/Rollup artifacts and SQLite compare-and-swap; browser delivery uses the standard
+  SystemJS registry with actual host namespaces and SRI for JS/CSS. Keep Node imports in the
+  server entry. Core has no fetch/build/persistence code. One coordinator/session per journal
+  key; no distributed rollout or arbitrary data rollback. Source/transport authorization stays
+  host-owned. Retain artifact bytes and private lock/toolchain evidence; no automatic GC.
+  Check peer ranges only for modules actually bundled, using real paths so macOS /var symlinks
+  cannot skip compatibility checks. Host-external packages must not impose a second copy's peers.
 - `isReady()`/`app.ready`/`useBitaKitReady()` retain completed initial startup through targeted
   updates and become false on shutdown. Owner queries use `isReady(pluginId)` or
   `useBitaKitReady(pluginId)`; service hooks and `app.has` check service plus owner readiness.
@@ -582,12 +599,25 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `npm run verify:generated` (packed packages, every generated shape, install, types, build,
   browser smoke), `bitakit doctor` in generated apps, `npm run build:docs` for the docs site.
   Run the checks relevant to the change; do not rerun green suites without new changes.
+- When adding cross-package imports, verify the exports of the oldest accepted published
+  dependency, including optional peers used by testing/server entries. Workspace linking can
+  hide missing exports; Changesets does not necessarily raise a still-compatible peer minimum.
+- Package discovery checks include npm dependency aliases, nested TypeScript source entries,
+  and the version of code and CSS actually loaded. Metadata checks cover app-label fallbacks,
+  every title consumer, and warnings retained when an already-bound definition is rebound.
+  Compare CLI and runtime inspection without treating physical record keys as logical identity.
 - Release: a change to a published package's shipped content adds a changeset (`npm run changeset`);
   `release.yml` on `main` opens the "Version packages" pull request and, once it is merged,
   publishes through npm trusted publishing. Generated apps depend on the release line
   (`^0.2.0`), so create-app may be released alone; a template that uses a newer API raises that
   package in create-app's `minimumVersions` (pnpm 11 skips releases younger than a day, and old
   lockfiles keep old patches). Never bump versions or publish by hand.
+  A new peer minimum may target the same pending release when the supplying package has a
+  changeset; the version guard verifies the actual Changesets plan through directly declared
+  read/config/pre/assemble libraries. Do not use `changeset status` in a history-independent
+  guard: it also compares against the base Git branch. Verify source archives and shallow,
+  detached PR checkouts without local branches. Keep local development
+  dependencies compatible with the workspace and verify installation from a release preview.
 - create-app installs with the package manager in `npm_config_user_agent` (`--package-manager`
   overrides); plugin packages stay npm workspaces. Yarn 1 runs the bin named after the package,
   hence the `create-app` bin beside `create-bitakit-app`. A package that depends on a library
@@ -729,24 +759,58 @@ there is no tag registry. Multiple selected tags match any selected label and co
 tags remain visible when no tag is selected. Names, descriptions and tags participate in text search.
 
 Declare metadata in `definePlugin({ metadata: { tags, coverImage } })`, local
-`plugin.config.ts` metadata, or the package.json `tags` / `coverImage` fields consumed by
-`bitakit build`. Discovery and package builds preserve both fields. Covers are optional;
+`plugin.config.ts` metadata, or package.json `bitakit.tags` / `bitakit.coverImage` with top-level legacy fallbacks. Discovery and package builds preserve both fields. Covers are optional;
 missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback).
 
-App Preferences uses the standard table and Radix ScrollArea in its owning visual package.
-Search and page headings stay outside the scroll viewport. The same ScrollArea is exported
-for composition; table scrolling is owned by that viewport rather than a nested native
-scroll container. Preserve the theme focus token and Radix data-orientation selectors when
-updating registry components. No app CSS is needed.
+App Preferences uses central Card/Item/Badge primitives and Radix ScrollArea, with no pagination.
+`pluginView` (flat by default, or grouped) and `pluginBundle` join search/tag/status in nuqs.
+Grouping uses Core's `groupPlugins` and inventory membership; repeated rows share the existing
+runtime toggle and the total counts distinct plugins. Keep central spacing, focus and theme tokens.
 
-- Plugin catalog pagination uses nuqs `pluginPage` and `pluginPageSize` (5/10/20/50,
-  default 10). Reset the page when search/tags/page size change, clamp stale page links,
-  and retain page state through detail/back navigation. Keep pagination outside the scroll
-  viewport. Match the existing Members filter buttons, including the dropdown chevron.
-- Keep focus rings outside clipping ancestors. Align the catalog's table outer cells with
-  its search and heading; retain inner column spacing and a small scroll focus gutter.
-  Verify computed padding after rebuilding packages: a stale development CSS cache can
-  retain removed styles or omit newly generated utilities.
+Package descriptive fields come from package.json; `bitakit.title`, `tags` and `coverImage` win
+per field over valid legacy metadata for installed packages. Local and explicitly included
+plugin.config metadata keeps its old precedence; package fields fill gaps. Builds retain the
+npm-name fallback in metadata.name for existing consumers.
+`projectPluginMetadata` (Zod shapes) is the shared pure projection; keywords stay separate from tags.
+`projectPluginMetadataSources` labels ordered inputs with concrete source locations. Metadata and
+package warnings are classified by their producers, never by regex matches against filenames.
+Use Core's `pluginDisplayTitle(metadata, fallback?)` for canonical title before legacy name;
+consumers apply application translations and explicit settings section labels first. The app's
+npm identity does not replace its default display label. Generated package-name fallbacks are
+identity, not authored title conflicts. Rebinding preserves prior metadata warnings and their
+manifest locations; folder diagnostics project all sources once in their effective order.
+Host provenance uses `withPluginOrigin` and `getPluginOrigin`, bound to definition objects, never
+parallel ID arrays. Internal copies preserve it; unrecorded replacements are unknown. Membership
+is derived for local/app modules, declared for memberOf IDs, general for exactly ['*'], otherwise
+unspecified. Full package/bundle names compare lowercase; runtime IDs, versions and paths do not.
+Known bundle labels come only from host `bundles`; unresolved claims stay visible.
+
+Installed static IDs come from bitakit.id or the version-1 sidecar's additive pluginId. Contradictory
+IDs fail before entry import; old sidecars without an ID do not override a manifest ID. Never
+predict an installed ID from its package name. The one historical packagePluginId build rule lives
+in Discovery and is shared by CLI and Core testing. Static evidence accepts the runtime's
+nonempty string ID contract, including numeric-leading build IDs. Inventory keys resolved physical
+manifests; activation preserves the first lowercase name in sorted breadth-first traversal from
+root dependencies, following only selected packages. Unselected copies and their exclusive
+dependencies contribute no plugins, hooks, styles or slots. CLI inventory exposes selected:false
+separately from enablement; Info and Doctor report selection and static ID conflicts. Physical
+record keys may change with hoisting. Nested selected client imports use enhanced-resolve's
+browser/import conditions at the owning edge; direct entries remain host-resolved package imports.
+Custom bundler conditions are not inferred for nested entries. Nested TS/TSX imports omit source extensions; code
+and CSS both follow the selected physical copy. Catalog selection accepts dependency aliases
+and canonical package names while retaining canonical provenance. Known startup collisions
+fail generation; optional complete catalog pluginIds sets fail before a new load. Multi-plugin
+manual loaders and post-load checks remain supported. Info/Doctor skip package entry and discovery
+hook execution; Doctor still audits styles. Upgrade Core and Discovery together. This adds no
+installer, admission policy, alias history or automatic dependency inference.
+
+Package-discovery compatibility checks must compare activation before and after a change, not
+just inventory records: include duplicate physical versions with both known and unknown static
+IDs, and preserve the bundler's browser/import conditions for nested package entries. Verify that
+every ID emitted by the existing package build remains readable by static discovery. Diagnostic
+checks must cover local metadata precedence and concrete source attribution; a filename containing
+`metadata` or `bundle` must not change a warning's category or recommended repair.
+
 
 - Protected organization settings must wait for an installed auth contract and render an
   actionable sign-in state when it settles without a user; never infer perpetual loading

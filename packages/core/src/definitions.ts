@@ -279,6 +279,10 @@ export type PluginUI = {
 };
 /** Public display information only; package authors remain the source of truth. */
 export type PluginMetadata = {
+  /** Canonical display title, distinct from package identity and the legacy name field. */
+  title?: string;
+  keywords?: readonly string[];
+  repository?: string | { type?: string; url: string; directory?: string };
   coverImage?: string;
   /** Catalog labels; presentation only, never permissions or dependencies. */
   tags?: readonly string[];
@@ -351,6 +355,10 @@ export type BitaKitRuntimeConfig = Omit<Plugin, 'id' | 'dependencies' | 'parent'
    */
   choose?: Readonly<Record<string, string>>;
   plugins?: readonly Plugin[];
+  /** Application grouping identity; independent of appId and all execution namespaces. */
+  bundle?: string;
+  /** Host-known bundle labels. A plugin's membership claim does not add entries here. */
+  knownBundles?: readonly import('./inspection/plugin-origin.js').PluginBundle[];
 };
 
 // ---------------------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   defineAction,
+  pluginDisplayTitle,
   type BitaKitRuntime,
   type PluginChangePreview,
   type PluginToggleRequest,
@@ -53,7 +54,7 @@ function request(input: PluginChangeInput): PluginToggleRequest {
 function pluginName(runtime: BitaKitRuntime, id: string) {
   return runtime.text(
     `plugins.${id}.name`,
-    runtime.config.plugins?.find((plugin) => plugin.id === id)?.metadata?.name ?? id,
+    pluginDisplayTitle(runtime.config.plugins?.find((plugin) => plugin.id === id)?.metadata, id),
   );
 }
 class PluginManagementError extends Error {}

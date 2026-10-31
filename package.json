@@ -32,7 +32,12 @@
     "apps/todo-preview"
   ],
   "devDependencies": {
+    "@changesets/assemble-release-plan": "^7.0.0",
     "@changesets/cli": "^3.0.3",
+    "@changesets/config": "^4.0.1",
+    "@changesets/pre": "^3.0.0",
+    "@changesets/read": "^1.0.1",
+    "@manypkg/get-packages": "^3.1.0",
     "gpt-tokenizer": "3.4.0",
     "prettier": "3.6.2"
   },

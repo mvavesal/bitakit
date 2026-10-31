@@ -44,3 +44,36 @@ one plugin under Node (no browser); `plugin.execute(id, input)` resolves to the 
   `app.has(name)` for optional ones.
 - Only the declaring plugin emits its events; others listen.
 - `enabled`, `visible` and interceptors are client rules; authorize on the server.
+
+## Plugin identity and inspection
+
+Discovery records provenance on definitions. `withPluginOrigin(plugin, record)` is the trusted
+host API; `getPluginOrigin` reads it. Replacing a definition without a record leaves it unknown.
+`pluginMembership` and `groupPlugins` are pure grouping projections; membership never changes
+execution or access. `inspectRuntime` adds origin, package, parent and membership to its existing
+version-1 inventory. Package/bundle names compare lowercase with scopes preserved; runtime IDs
+stay unchanged. `projectPluginMetadata` shares canonical-first package metadata and legacy
+fallback; `projectPluginMetadataSources([{ value, location }, ...])` uses the same projection
+with ordered sources and diagnostic labels. `packageMetadataSources` extracts public package
+fields without I/O. Included folder bindings preserve existing plugin metadata before package
+fallbacks. `metadata.name` remains supported; package identity is recorded independently.
+`pluginDisplayTitle(metadata, fallback?)` shares title-before-name selection; consumers apply
+translations and explicit settings section labels first. `projectPluginMetadataSources` accepts
+`{ packageName }` to distinguish the generated identity fallback from an authored display name.
+Origin records may carry `metadataLocation` for diagnostics. Rebinding a definition retains
+existing `metadataWarnings`. The runtime's application module has local origin; unknown
+replacement plugins remain unknown. Static inventory may include `selected` and
+`diagnostics.identityConflicts`; physical record keys are not portable package identities.
+The optional `@bitakit/core/testing` entry requires Discovery 0.2.5 or later.
+
+### Complete cohort replacement
+
+Host-only `runtime.plugins.replace(ids, nextPlugins, { expectedRevision?, preserve? })` validates
+an entire proposed composition before stopping any old owner. `plugins.preview({ operation:
+'replace', ids, plugins, ...options })` uses the same planner. Supply every owned descendant;
+external dependents and outside ID collisions are refused. Empty old/new sets support addition
+or removal. Providers, foundational services and other composition restrictions still return
+`restart-required`. Cleanup is awaited; failed cleanup blocks reuse. A startup failure can leave
+candidate definitions installed with failed lifecycle state; this API does not silently roll
+back. Optional `@bitakit/packages` coordinates artifact recovery. Core never downloads or
+persists code, and `reconcilePlugins` retains its existing narrower compatibility contract.

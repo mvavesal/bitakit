@@ -1,4 +1,5 @@
 import {
+  pluginDisplayTitle,
   ActionGroup,
   scopeLifecycle,
   type SlotAttachment,
@@ -174,7 +175,10 @@ export function bindSettingsNavigation(
             .filter((module) => module.id !== appId)
             .map((plugin) => ({
               id: `settings.plugins.${plugin.id}`,
-              title: text(`plugins.${plugin.id}.name`, plugin.metadata?.name ?? plugin.id),
+              title: text(
+                `plugins.${plugin.id}.name`,
+                pluginDisplayTitle(plugin.metadata, plugin.id),
+              ),
               description:
                 text(`plugins.${plugin.id}.description`, plugin.metadata?.description ?? '') ||
                 undefined,

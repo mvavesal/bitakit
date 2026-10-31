@@ -1,4 +1,13 @@
-import type { BitaKitRuntime, Plugin, PluginChangeResult } from '@bitakit/core';
+import { createDynamicPackageHost, type DynamicPackageOptions } from './dynamic-host.js';
+export type { DynamicPackageOptions } from './dynamic-host.js';
+export type * from './artifacts.js';
+import {
+  withPluginOrigin,
+  getPluginOrigin,
+  type BitaKitRuntime,
+  type Plugin,
+  type PluginChangeResult,
+} from '@bitakit/core';
 
 /** The host build owns this allowlist. Loaders return fresh definitions; they must not start work. */
 export type PackageCatalog = Readonly<
@@ -6,11 +15,13 @@ export type PackageCatalog = Readonly<
     string,
     Readonly<{
       version: string;
+      /** Complete static IDs, when known. Omit for legacy or dynamic multi-plugin loaders. */
+      pluginIds?: readonly string[];
       load(): Promise<readonly Plugin[]>;
     }>
   >
 >;
-export type PackageSelection = Readonly<{ name: string; version: string }>;
+export type PackageSelection = Readonly<{ name: string; version: string; artifact?: string }>;
 export type PackageRequest = Readonly<{
   /** An opaque host generation key, not a user-supplied identity or an authorization grant. */
   scope: string;
@@ -30,11 +41,27 @@ const stale = Symbol('superseded package request');
  * Feed an already-authorized active package selection from outside plugin hooks/Actions.
  * Callers must finish a scope switch before revealing that scope's UI. No records are persisted.
  */
-export function createPackageHost(options: { runtime: BitaKitRuntime; catalog: PackageCatalog }) {
+export function createPackageHost(options: {
+  runtime: BitaKitRuntime;
+  catalog?: PackageCatalog;
+  dynamic?: DynamicPackageOptions;
+}) {
+  if (options.dynamic) {
+    if (options.catalog)
+      throw new Error('Choose the build catalog or an artifact provider for this host.');
+    return createDynamicPackageHost(options.runtime, options.dynamic);
+  }
   const { runtime } = options;
-  const catalog = Object.fromEntries(
-    Object.entries(options.catalog).map(([name, entry]) => [name, Object.freeze({ ...entry })]),
-  );
+  const catalog: Record<string, PackageCatalog[string]> = Object.create(null);
+  for (const [name, entry] of Object.entries(options.catalog ?? {})) {
+    const canonical = name.toLowerCase();
+    if (Object.hasOwn(catalog, canonical))
+      throw new Error(`Duplicate catalog package identity "${canonical}".`);
+    catalog[canonical] = Object.freeze({
+      ...entry,
+      ...(entry.pluginIds ? { pluginIds: Object.freeze([...entry.pluginIds]) } : {}),
+    });
+  }
   const loaded = new Map<string, Loaded>();
   let scope: string | null = null;
   let sequence = 0;
@@ -123,13 +150,52 @@ export function createPackageHost(options: { runtime: BitaKitRuntime; catalog: P
         const recovery = await remove(retry);
         if (recovery.status !== 'applied') return recovery;
       }
+      // Existing definitions occupy their IDs even while disabled. Check every known incoming
+      // ID before invoking any new loader; legacy loaders still get the ordinary post-load check.
+      const owners = new Map([
+        [runtime.config.appId ?? 'app', 'application'],
+        ...(runtime.config.plugins ?? []).map(
+          (plugin) =>
+            [plugin.id, getPluginOrigin(plugin)?.package?.name ?? `plugin "${plugin.id}"`] as const,
+        ),
+      ]);
+      for (const selection of request.packages.filter((entry) => !loaded.has(entry.name))) {
+        for (const id of catalog[selection.name].pluginIds ?? []) {
+          if (owners.has(id))
+            return result('blocked', [
+              `Plugin ID "${id}" conflicts between ${owners.get(id)} and package "${selection.name}".`,
+            ]);
+          owners.set(id, `package "${selection.name}"`);
+        }
+      }
       const additions = await Promise.all(
         request.packages
           .filter((entry) => !loaded.has(entry.name))
-          .map(async (selection) => ({
-            selection,
-            plugins: [...(await load(catalog[selection.name], signal))],
-          })),
+          .map(async (selection) => {
+            const entry = catalog[selection.name];
+            const definitions = [...(await load(entry, signal))];
+            if (
+              entry.pluginIds &&
+              (definitions.length !== entry.pluginIds.length ||
+                definitions.some((plugin) => !entry.pluginIds!.includes(plugin.id)))
+            )
+              throw new Error(
+                `Package "${selection.name}" declares plugin IDs [${entry.pluginIds.join(', ')}] but loaded [${definitions.map((plugin) => plugin.id).join(', ')}].`,
+              );
+            return {
+              selection,
+              plugins: definitions.map((plugin) =>
+                withPluginOrigin(plugin, {
+                  ...getPluginOrigin(plugin),
+                  kind: 'package',
+                  package: {
+                    name: getPluginOrigin(plugin)?.package?.name ?? selection.name,
+                    version: selection.version,
+                  },
+                }),
+              ),
+            };
+          }),
       );
       if (!current()) return result('superseded');
       const plugins = additions.flatMap((entry) => entry.plugins);
@@ -169,7 +235,9 @@ export function createPackageHost(options: { runtime: BitaKitRuntime; catalog: P
       );
     const request = {
       scope: input.scope,
-      packages: input.packages.map((entry) => Object.freeze({ ...entry })),
+      packages: input.packages.map((entry) =>
+        Object.freeze({ ...entry, name: entry.name.toLowerCase() }),
+      ),
     };
     const names = request.packages.map((entry) => entry.name);
     if (new Set(names).size !== names.length)
@@ -188,5 +256,10 @@ export function createPackageHost(options: { runtime: BitaKitRuntime; catalog: P
     tail = work.catch(() => {});
     return work;
   }
-  return Object.freeze({ reconcile, get });
+  return Object.freeze({
+    reconcile,
+    get,
+    recover: async () => result('applied'),
+    dispose: () => reconcile({ scope: scope ?? '', packages: [] }),
+  });
 }

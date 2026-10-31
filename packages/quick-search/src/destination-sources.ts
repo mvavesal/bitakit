@@ -1,5 +1,6 @@
 import {
   safeHref,
+  pluginDisplayTitle,
   type ActionSnapshot,
   type Destination,
   type DestinationKind,
@@ -71,7 +72,7 @@ function result(
     });
     if (destination.plugin && destination.kind !== 'plugin') {
       const plugin = context.runtime.modules.find((module) => module.id === destination.plugin);
-      detail += ` · ${context.text({ key: `plugins.${destination.plugin}.name`, fallback: plugin?.metadata?.name ?? destination.plugin })}`;
+      detail += ` · ${context.text({ key: `plugins.${destination.plugin}.name`, fallback: pluginDisplayTitle(plugin?.metadata, destination.plugin) })}`;
     }
   }
   return {

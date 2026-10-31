@@ -78,3 +78,14 @@ In a discovered app, pass the configured `appPreferencesPlugin` through the prov
 
 README sections: Use it, Replace a generated page, Settings extension slots, Persist settings
 on a server, API, Linking to a setting.
+
+## Plugin grouping
+
+The Plugins page defaults to flat view; grouped view uses Core's inventory membership.
+Configure bundles in the host and membership in package.json, never a second UI registry.
+`pluginView` and `pluginBundle` join search/tag/status in nuqs URL state. Multiple group rows
+share one plugin and toggle; the total counts distinct plugins. Missing membership means
+Not assigned, never General purpose. Titles resolve app translation, canonical title, legacy
+name, package name, then runtime ID.
+
+Plugin list, navigation and generated settings labels share Core display-title precedence. Translations and explicit settings section titles remain authoritative; grouping never changes the label policy or runtime identity.

@@ -20,6 +20,7 @@ await writeFile(
   JSON.stringify(
     {
       version: 1,
+      pluginId: id,
       definitions: info.definitions.map((item) => ({
         ...item,
         file: 'src/slots.ts',

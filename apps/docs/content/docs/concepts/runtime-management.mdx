@@ -138,11 +138,23 @@ Use normal `Action` bindings with `{ id, operation, expectedRevision, preserve }
 the standard confirmation lists affected plugins and the Action reports pending/failure.
 It owns no additional runtime or persistence. Session changes do not alter host configuration.
 
+### Complete cohort replacement
+
+`runtime.plugins.replace(ids, nextPlugins, options?)` extends the structural planner for a
+complete package cohort. Preview with `{ operation: 'replace', ids, plugins, expectedRevision?,
+preserve? }`; execution validates again. All owned descendants must be included, outside ID
+collisions and external dependents are refused, and composition restrictions remain in force.
+The old owners stop only after the candidate composition passes validation. A failed startup
+can retain candidate definitions in failed lifecycle state; Core does not silently restore code.
+The optional package host coordinates durable artifact intent and recovery. Compatible
+`reconcilePlugins` behavior remains unchanged.
+
 ### A build-included package catalog
 
 The [Package manager guide](/docs/package-management) shows how to generate a
 trusted lazy catalog and activate it through `@bitakit/packages`, including selection, scope
-changes and current limits.
+changes and current limits. Its optional dynamic mode adds external artifacts, durable intent
+and recovery through the same Core ownership; privileged installation stays outside Core.
 
 ## Shared inspection schema
 

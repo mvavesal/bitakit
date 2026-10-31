@@ -53,3 +53,5 @@ provider in an existing DOM test setup (jsdom); it installs none.
 - Do not copy service state into `useState`; select it with `useServiceState`.
 - Do not nest a second `ActionProvider` or runtime provider; the generated `BitaKitProvider`
   owns the one runtime.
+
+Plugin-management confirmations and generated settings labels use canonical metadata.title before legacy metadata.name. Host translations and explicit settings section titles retain precedence; unnamed application settings keep their General fallback.

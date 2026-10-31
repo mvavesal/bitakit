@@ -84,6 +84,7 @@ import {
   type PluginDependentOptions,
   type PluginChangeOptions,
   type PluginToggleRequest,
+  type PluginReplacementRequest,
   type PluginChangePreview,
   type PluginChangeReason,
   type PlannedPluginChange,
@@ -306,13 +307,18 @@ export class BitaKitRuntime implements ContributionHost {
     add: (plugins: readonly Plugin[]) => this.changePlugins('add', [...plugins]),
     remove: (ids: readonly string[], options: PluginDependentOptions) =>
       this.changePlugins('remove', [...ids], options),
+    /** Replace a complete cohort after candidate validation; refuses external dependents. */
+    replace: (ids: readonly string[], plugins: readonly Plugin[], options?: PluginChangeOptions) =>
+      this.changePlugins('replace', [...ids], options, [...plugins]),
     enable: (id: string, options?: PluginChangeOptions) =>
       this.changePlugins('enable', [id], options),
     disable: (id: string, options: PluginDependentOptions) =>
       this.changePlugins('disable', [id], options),
     /** Preview uses the execution planner without stopping owners or changing retained intent. */
-    preview: (request: PluginToggleRequest): PluginChangePreview =>
-      this.planPluginChange(request.operation, [request.id], request).preview,
+    preview: (request: PluginToggleRequest | PluginReplacementRequest): PluginChangePreview =>
+      request.operation === 'replace'
+        ? this.planPluginChange('replace', request.ids, request, request.plugins).preview
+        : this.planPluginChange(request.operation, [request.id], request).preview,
   });
   private revision = 0;
   getRevision = () => this.revision;
@@ -1294,11 +1300,12 @@ export class BitaKitRuntime implements ContributionHost {
 
   /** Execute the same plan used by preview; there is no await between validation and exclusion. */
   private changePlugins(
-    operation: 'add' | 'remove' | 'enable' | 'disable',
+    operation: 'add' | 'remove' | 'enable' | 'disable' | 'replace',
     values: readonly Plugin[] | readonly string[],
     options?: PluginChangeOptions | PluginDependentOptions,
+    replacement: readonly Plugin[] = [],
   ): Promise<PluginUpdateResult> {
-    const plan = this.planPluginChange(operation, values, options);
+    const plan = this.planPluginChange(operation, values, options, replacement);
     if (plan.apply) return plan.apply();
     const { status, revision, changed, affected, reasons } = plan.preview;
     return Promise.resolve({
@@ -1312,9 +1319,10 @@ export class BitaKitRuntime implements ContributionHost {
 
   /** Validate without starting services, invoking hooks or mutating retained lifecycle intent. */
   private planPluginChange(
-    operation: 'add' | 'remove' | 'enable' | 'disable',
+    operation: 'add' | 'remove' | 'enable' | 'disable' | 'replace',
     values: readonly Plugin[] | readonly string[],
     options?: PluginChangeOptions | PluginDependentOptions,
+    replacement: readonly Plugin[] = [],
   ): PlannedPluginChange {
     let changed: string[] = [];
     let affected: string[] = [];
@@ -1388,6 +1396,24 @@ export class BitaKitRuntime implements ContributionHost {
       }
       // Ownership: a parent's descendants follow it, whatever the dependents policy says.
       const owned = descendantsOf(installed, ids);
+      if (operation === 'replace') {
+        const incoming = replacement.map((plugin) => plugin.id);
+        if (new Set(incoming).size !== incoming.length || incoming.includes(this.appId))
+          return result('blocked', ['Replacement plugin IDs must be unique and exclude the app.']);
+        if (owned.some((id) => !ids.includes(id)))
+          return result('blocked', ['Replacement must include every owned descendant.']);
+        for (const id of incoming)
+          if (!ids.includes(id) && installed.some((plugin) => plugin.id === id))
+            return result('blocked', [`Plugin "${id}" is owned outside the replacement cohort.`]);
+        dependents = updateClosure(modules, ids).filter((id) => !ids.includes(id));
+        if (dependents.length)
+          return result(
+            'blocked',
+            [`Enabled dependents: ${dependents.join(', ')}.`],
+            'dependents',
+            dependents,
+          );
+      }
       const cascaded = new Map(this.disabledWithParent);
       if (operation === 'remove') ids.push(...owned);
       if (operation === 'disable')
@@ -1434,14 +1460,27 @@ export class BitaKitRuntime implements ContributionHost {
       } else if (operation === 'enable') {
         changed = ids.filter((id) => disabled.has(id) || !this.isReady(id));
         for (const id of ids) disabled.delete(id);
+      } else if (operation === 'replace') {
+        changed = [...new Set([...ids, ...replacement.map((plugin) => plugin.id)])];
+        for (const id of ids) {
+          disabled.delete(id);
+          cascaded.delete(id);
+        }
       } else installed.push(...(values as Plugin[]));
       if (operation === 'remove') for (const id of ids) cascaded.delete(id);
       const nextInstalled =
-        operation === 'remove' ? installed.filter((plugin) => !ids.includes(plugin.id)) : installed;
+        operation === 'replace'
+          ? [...installed.filter((plugin) => !ids.includes(plugin.id)), ...replacement]
+          : operation === 'remove'
+            ? installed.filter((plugin) => !ids.includes(plugin.id))
+            : installed;
       for (const id of ids) if (operation === 'remove') disabled.delete(id);
       if (operation === 'disable') changed = changed.filter((id) => !this.disabledPlugins.has(id));
       const protectedOwners = changed.filter((id) => options?.preserve?.includes(id));
-      if ((operation === 'disable' || operation === 'remove') && protectedOwners.length)
+      if (
+        (operation === 'disable' || operation === 'remove' || operation === 'replace') &&
+        protectedOwners.length
+      )
         return result(
           'blocked',
           ['The host requires these plugins to remain enabled.'],
