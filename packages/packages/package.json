@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/packages",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "description": "Optional trusted package catalogs and recoverable runtime package activation for BitaKit.",
   "sideEffects": false,
@@ -31,7 +31,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@bitakit/core": "^0.2.6",
+    "@bitakit/core": "^0.2.8",
     "semver": "^7.8.5",
     "zod": "^4.6.7"
   },
@@ -43,7 +43,7 @@
     "npm-package-arg": "^14.0.0",
     "rollup": "^4.66.0",
     "typescript": "^5.9.3",
-    "@bitakit/discovery": "^0.2.4"
+    "@bitakit/discovery": "^0.2.5"
   },
   "license": "MIT",
   "repository": {

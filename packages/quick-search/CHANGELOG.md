@@ -1,5 +1,55 @@
 # @bitakit/quick-search
 
+## 0.2.8
+
+### Patch Changes
+
+- ec6b3c6: Restore application label fallbacks, share canonical display-title precedence across plugin
+  consumers, and align first-party descriptions with their published manifests. Preserve metadata
+  diagnostics across catalog activation, avoid warnings about generated npm-name fallbacks, and
+  report included-folder conflicts using their actual precedence.
+
+  Accept npm dependency aliases in build catalogs while preserving canonical package provenance.
+  Generate compatible imports for nested TypeScript source entries. Require Discovery 0.2.5 or
+  later for Core testing and the optional package installer. Info reports static ID conflicts,
+  runtime plugin IDs and unselected copies distinctly; missing versions remain explicitly unknown.
+  Static ID conflicts have their own heading, separate from unavailable live state.
+
+  Nested-copy resolution deliberately loads the code and CSS of the selected physical copy.
+  Previously a bare root import could execute a different hoisted version from the one discovery
+  had recorded. Inventory record keys identify a physical installation and can change with hoisting;
+  package identity and runtime plugin IDs remain separate.
+
+- afeb033: Record plugin provenance and full lowercase package/bundle identity without changing runtime IDs. Share canonical metadata projection with legacy fallbacks, expose passive inventory metadata, and group the Plugins page by declared or derived membership with URL-backed filters and distinct counts.
+
+  Add authoritative static IDs to existing build sidecars, reject contradictory bindings and known activation collisions before new imports, and retain dependency-edge resolution for multiple installed copies. Trusted catalogs preserve multi-plugin loaders and accept optional complete static ID sets. Upgrade Core and Discovery together; new apps require their matching provenance APIs. Runtime package downloads and installation remain separate.
+
+  Preserve the historical first-copy activation policy while retaining all physical copies in
+  inspection. Unselected copies and their exclusive dependencies contribute no plugins, hooks,
+  styles or slots; Doctor reports them separately. Resolve selected nested client entries with
+  browser/import conditions instead of Node's require condition, including import-only exports.
+  Accept historical nonempty runtime IDs in static sidecars, including numeric-leading build IDs.
+  Retain the npm-name fallback in built metadata.name and existing included-folder metadata
+  precedence. Attribute metadata warnings to their actual source files and keep ignored-file
+  warnings in their contribution check regardless of filenames.
+
+  Installed package manifest fields take precedence over conflicting in-code descriptive fields;
+  legacy names and executable icons remain supported. Such loaded conflicts produce metadata
+  warnings. Local and included folder declarations retain their previous precedence.
+
+  Add opt-in runtime artifact installation and recovery without changing build-pinned catalogs.
+  Core previews and replaces complete owned cohorts using its existing lifecycle planner. The
+  optional Packages server entry reuses npm, esbuild, Rollup and SQLite; the browser entry shares
+  actual host namespaces through SystemJS with JS/CSS integrity. Record durable activation intent,
+  retain previous artifacts and recover interrupted updates or failed startup/host health checks.
+  Data migrations, multi-browser rollout and authorization transports remain host-owned.
+
+- Updated dependencies [ec6b3c6]
+- Updated dependencies [afeb033]
+  - @bitakit/core@0.2.8
+  - @bitakit/ui@0.2.9
+  - @bitakit/app-preferences@0.2.10
+
 ## 0.2.7
 
 ### Patch Changes

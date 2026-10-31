@@ -15,12 +15,12 @@
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@bitakit/core": "^0.2.7",
-    "@bitakit/ui": "^0.2.8",
+    "@bitakit/core": "^0.2.8",
+    "@bitakit/ui": "^0.2.9",
     "@bitakit/next": "^0.2.4",
-    "@bitakit/app-preferences": "^0.2.9",
-    "@bitakit/shell": "^0.2.8",
-    "@bitakit/quick-search": "^0.2.7",
+    "@bitakit/app-preferences": "^0.2.10",
+    "@bitakit/shell": "^0.2.9",
+    "@bitakit/quick-search": "^0.2.8",
     "@bitakit/better-auth": "^0.2.2",
     "@bitakit/better-auth-ui": "^0.2.2",
     "@bitakit/organizations": "^0.2.5",
@@ -37,7 +37,7 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "@bitakit/cli": "^0.2.7",
-    "@bitakit/discovery": "^0.2.4"
+    "@bitakit/cli": "^0.2.8",
+    "@bitakit/discovery": "^0.2.5"
   }
 }
