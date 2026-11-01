@@ -1,3 +1,4 @@
+import { resolveName } from '../name-resolution.js';
 import type { Plugin } from '../definitions.js';
 import type { NormalizedPlugin } from '../runtime.js';
 
@@ -61,10 +62,15 @@ export function pluginDependencies(modules: readonly NormalizedPlugin[]) {
     modules.map((module) => [
       module.id,
       new Set([
-        ...(module.dependencies ?? []),
+        ...(module.dependencies ?? []).map((id) =>
+          resolveName(
+            id,
+            modules.map((entry) => entry.id),
+          ),
+        ),
         ...[...module.services, ...module.actions, ...(module.interceptors ?? [])]
           .flatMap((value) => value.requires ?? [])
-          .map((name) => owners.get(name))
+          .map((name) => owners.get(resolveName(name, owners.keys())))
           .filter((id): id is string => !!id && id !== module.id),
       ]),
     ]),

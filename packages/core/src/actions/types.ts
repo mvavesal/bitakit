@@ -1,3 +1,4 @@
+import type { NamedValue } from '../name-resolution.js';
 import type { ActionStatus } from './state.js';
 import type { PresentationType } from '../presentation.js';
 import type { RegistrationOptions } from './groups.js';
@@ -133,9 +134,13 @@ export type ActionInput<Id extends string = string> = Id extends KnownActionId
   ? ActionMap[Id] extends { input: infer Input }
     ? Input
     : unknown
-  : unknown;
+  : NamedValue<ActionMap, Id> extends { input: infer Input }
+    ? Input
+    : unknown;
 export type ActionResult<Id extends string = string> = Id extends KnownActionId
   ? ActionMap[Id] extends { result: infer Result }
     ? Result
     : unknown
-  : unknown;
+  : NamedValue<ActionMap, Id> extends { result: infer Result }
+    ? Result
+    : unknown;

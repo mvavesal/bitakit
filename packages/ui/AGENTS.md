@@ -53,3 +53,11 @@ provider in an existing DOM test setup (jsdom); it installs none.
 - Do not copy service state into `useState`; select it with `useServiceState`.
 - Do not nest a second `ActionProvider` or runtime provider; the generated `BitaKitProvider`
   owns the one runtime.
+
+## Identifier references
+
+Action, event, service, setting and slot string bindings accept unambiguous case-insensitive
+references while keeping existing exact identifiers and payload/value checks. Exact case-only
+registrations remain separate; ambiguous non-exact names throw. Generated namespace properties
+keep their declared TypeScript spelling. Do not lowercase IDs in renderers or copy runtime
+snapshots into a second lookup table.

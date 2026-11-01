@@ -2,7 +2,8 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import type {
   SaveResult,
-  SettingKey,
+  CheckedName,
+  SettingsMap,
   SettingSpec,
   SettingState,
   SettingValue,
@@ -21,7 +22,9 @@ export type UseSettingResult<T> = SettingState<T> & {
  * One setting by key (`'todos.pageSize'`, app settings by plain name). Reads the confirmed
  * value from the runtime store and writes through it; there is no second value store.
  */
-export function useSetting<Key extends SettingKey>(key: Key): UseSettingResult<SettingValue<Key>> {
+export function useSetting<Key extends string>(
+  key: Key & CheckedName<Key, Extract<keyof SettingsMap, string>>,
+): UseSettingResult<SettingValue<Key>> {
   const { runtime } = useBitaKit();
   const store = runtime.settings;
   const subscribe = useCallback(

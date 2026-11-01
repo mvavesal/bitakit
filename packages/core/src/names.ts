@@ -9,3 +9,12 @@ import type { ActionMapOptions } from './actions/types.js';
 export type GeneratedName<Known extends string> = ActionMapOptions extends { strict: true }
   ? Known
   : Known | (string & {});
+
+/** Checks a caller's string literal without enumerating exponentially many case permutations. */
+export type CheckedName<Name extends string, Known extends string> = ActionMapOptions extends {
+  strict: true;
+}
+  ? Lowercase<Name> extends Lowercase<Known>
+    ? Name
+    : never
+  : Name;

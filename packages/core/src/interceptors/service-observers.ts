@@ -20,7 +20,9 @@ export function serviceObserver(
   interceptors: readonly InterceptorSpec[],
   namesOf: (id: string) => readonly string[],
   services: () => unknown,
+  allNames?: () => readonly string[],
 ) {
+  let nextCallId = 0;
   const entries = interceptors
     .filter(isServiceInterceptor)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -29,7 +31,7 @@ export function serviceObserver(
       return instance;
     const names = [id, ...namesOf(id)];
     const selected = entries.filter((entry) =>
-      names.some((name) => matchesTarget(entry.service, name)),
+      names.some((name) => matchesTarget(entry.service, name, allNames?.() ?? names)),
     );
     if (!selected.length) return instance;
     const cache = new Map<PropertyKey, { original: Function; wrapped: Function }>();
@@ -56,11 +58,17 @@ export function serviceObserver(
         // A function Proxy keeps the method's own properties (for example `translate.has`);
         // only the call itself is observed.
         const call = (...args: unknown[]) => {
+          const callId = ++nextCallId;
+          const startedAt = Date.now();
+          const start = performance.now();
           const emit = (phase: 'before' | 'after' | 'onError', extra = {}) => {
             if (!active()) return;
             for (const entry of observers)
               notify(entry[phase] as ((event: any) => unknown) | undefined, {
                 service: id,
+                callId,
+                startedAt,
+                ...(phase === 'before' ? {} : { durationMs: performance.now() - start }),
                 method: key,
                 args: Object.freeze([...args]),
                 services: services(),

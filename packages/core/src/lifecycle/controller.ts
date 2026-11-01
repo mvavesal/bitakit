@@ -1,3 +1,4 @@
+import { resolveName } from '../name-resolution.js';
 import { createActionList, type ActionList } from '../actions/core.js';
 import type { BitaKitRuntimeConfig, Plugin } from '../definitions.js';
 import { BitaKitRuntime } from '../runtime.js';
@@ -71,19 +72,35 @@ export function failedPluginClosure(
     );
     for (const plugin of plugins) {
       const requirements = [
-        ...(plugin.dependencies ?? []).map((id) => off.has(id)),
+        ...(plugin.dependencies ?? []).map((id) =>
+          off.has(
+            resolveName(
+              id,
+              plugins.map((plugin) => plugin.id),
+            ),
+          ),
+        ),
         ...Object.values(plugin.services ?? {})
           .flatMap((value) => value.requires ?? [])
-          .map((name) => unavailable.has(name)),
+          .map((name) => unavailable.has(resolveName(name, plugins.flatMap(pluginServiceNames)))),
         ...Object.values(plugin.actions ?? {})
           .flatMap((value) => value.requires ?? [])
-          .map((name) => unavailable.has(name)),
+          .map((name) => unavailable.has(resolveName(name, plugins.flatMap(pluginServiceNames)))),
         ...(plugin.interceptors ?? [])
           .flatMap((value) => value.requires ?? [])
-          .map((name) => unavailable.has(name)),
+          .map((name) => unavailable.has(resolveName(name, plugins.flatMap(pluginServiceNames)))),
         ...(plugin.ui?.providers ?? [])
           .flatMap((value) => value.requires ?? [])
-          .map((name) => unavailableProviders.has(name)),
+          .map((name) =>
+            unavailableProviders.has(
+              resolveName(
+                name,
+                plugins.flatMap(
+                  (plugin) => plugin.ui?.providers?.map((provider) => provider.id) ?? [],
+                ),
+              ),
+            ),
+          ),
       ];
       if (!off.has(plugin.id) && requirements.some(Boolean)) {
         off.add(plugin.id);
@@ -148,7 +165,12 @@ export class RuntimeController {
       const failure = failed.get(id);
       const phase = failure
         ? 'failed'
-        : this.off.has(id)
+        : this.off.has(
+              resolveName(
+                id,
+                (this.config.plugins ?? []).map((plugin) => plugin.id),
+              ),
+            )
           ? 'blocked'
           : (states.get(id)?.phase ?? 'idle');
       const previous = this.store.get().plugins.find((entry) => entry.id === id);
@@ -202,7 +224,15 @@ export class RuntimeController {
           configOverrides:
             this.config.configOverrides &&
             Object.fromEntries(
-              Object.entries(this.config.configOverrides).filter(([id]) => !this.off.has(id)),
+              Object.entries(this.config.configOverrides).filter(
+                ([id]) =>
+                  !this.off.has(
+                    resolveName(
+                      id,
+                      (this.config.plugins ?? []).map((plugin) => plugin.id),
+                    ),
+                  ),
+              ),
             ),
           ui: this.config.ui && {
             ...this.config.ui,

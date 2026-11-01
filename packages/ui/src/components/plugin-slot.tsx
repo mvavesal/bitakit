@@ -1,4 +1,5 @@
 'use client';
+import type { CheckedName, NamedValue } from '@bitakit/core';
 import {
   createElement,
   memo,
@@ -45,15 +46,15 @@ const Contribution = memo(function Contribution({
  * to each contribution (a layout wraps the page); `fallback` renders when nothing is placed, and
  * replaces a failing occupant of a `single` slot, so a broken replacement shows the default.
  */
-export function PluginSlot<const Name extends SlotName>(
+export function PluginSlot<const Name extends string>(
   props: {
-    name: Name;
+    name: Name & CheckedName<Name, SlotName>;
     errorFallback?: SlotErrorFallback;
     fallback?: ReactNode;
     children?: ReactNode;
   } & SlotOptions<Name> &
-    (Name extends keyof SlotMap
-      ? SlotMap[Name] extends { accepts: 'component' }
+    (Lowercase<Name> extends Lowercase<Extract<keyof SlotMap, string>>
+      ? NamedValue<SlotMap, Name> extends { accepts: 'component' }
         ? unknown
         : never
       : unknown),

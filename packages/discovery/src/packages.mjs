@@ -110,7 +110,7 @@ export async function installedContributions(root, selection, jiti) {
       // Plugin IDs the package plugin depends on at runtime; the generator adds them to the plugin.
       const ids = list(metadata.dependencies);
       for (const id of ids)
-        if (typeof id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(id))
+        if (typeof id !== 'string' || !/^[a-z][a-z0-9-]*$/i.test(id))
           throw new Error(
             `Invalid plugin dependency in the bitakit manifest of package "${name}".`,
           );
@@ -126,7 +126,7 @@ export async function installedContributions(root, selection, jiti) {
     });
     // Layout packages declare the slots they render, so SlotMap and doctor know them.
     for (const slot of list(metadata.slots)) {
-      if (typeof slot !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$/.test(slot))
+      if (typeof slot !== 'string' || !/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$/i.test(slot))
         throw new Error(`Invalid slot name in the bitakit manifest of package "${name}".`);
       if (!slots.includes(slot)) slots.push(slot);
     }

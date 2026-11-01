@@ -108,3 +108,21 @@ function names() {
   <PluginSlot name="counter.sidbar" />;
 }
 void names;
+
+// Mixed-case string references preserve the same strict payload/value contracts.
+function mixedCaseBindings() {
+  useAction('CoUnTeR.InCrEmEnT');
+  useEvent('COUNTER.INCREMENTED', (event) => {
+    const value: number = event.data;
+    void value;
+  });
+  useServiceState('COUNTER.VALUE', (state) => state.count);
+  const setting = useSetting('COUNTER.STEP');
+  setting.set(2);
+  useSlot('COUNTER.TOOLBAR');
+  // @ts-expect-error Case-insensitive lookup does not allow unknown names.
+  useAction('COUNTER.UNKNOWN');
+  // @ts-expect-error Mixed-case setting references retain their value type.
+  setting.set('invalid');
+}
+void mixedCaseBindings;

@@ -1,3 +1,4 @@
+import { resolveName } from '../name-resolution.js';
 import type { ActionList } from '../actions/action-list.js';
 import { createActionReference } from '../actions/reference.js';
 import type { BitaKitActions } from './types.js';
@@ -6,6 +7,12 @@ import type { BitaKitActions } from './types.js';
 export function createActionAccess(list: ActionList): BitaKitActions {
   const references = new Map<string, object>();
   const at = (path: string): object => {
+    path = resolveName(
+      path,
+      Object.keys(list.getState().actions).flatMap((id) =>
+        id.split('.').map((_, index, parts) => parts.slice(0, index + 1).join('.')),
+      ),
+    );
     const cached = references.get(path);
     if (cached) return cached;
     const prefix = path ? `${path}.` : '';

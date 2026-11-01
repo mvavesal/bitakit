@@ -1,9 +1,11 @@
+import { resolveName } from '../name-resolution.js';
 import type { Events, EventHandler, EventErrorHandler, BitaKitEvent } from './types.js';
 import type { EventsDefinition } from './define.js';
 
 type Listener = (event: BitaKitEvent) => void | Promise<void>;
 type Declared = {
   plugin: string;
+  names: string[];
   cancelable: Set<string>;
   schemas: Map<string, { parse(input: unknown): unknown }>;
 };
@@ -20,6 +22,7 @@ export class EventService implements Events {
   private observers = new Set<(event: BitaKitEvent) => void>();
   private declared = new Map<string, Declared>();
   private reserved = new Set<string>();
+  private reservedEvents = new Set<string>();
   constructor(
     private onError: EventErrorHandler = (error, event) => {
       console.error(`Event handler failed for "${event.type}".`, error);
@@ -39,19 +42,31 @@ export class EventService implements Events {
       if (spec.cancelable) cancelable.add(`${plugin}.${name}`);
       if (spec.schema) schemas.set(`${plugin}.${name}`, spec.schema);
     }
-    this.declared.set(plugin, { plugin, cancelable, schemas });
+    this.declared.set(plugin, {
+      plugin,
+      names: Object.keys(definition.events).map((name) => `${plugin}.${name}`),
+      cancelable,
+      schemas,
+    });
   }
   /** Release a stopped owner’s declaration without removing other owners’ listeners. */
   undeclare(plugin: string) {
-    this.declared.delete(plugin);
+    this.declared.delete(resolveName(plugin, this.declared.keys()));
   }
 
   /** The plugin that declared the namespace of an event name, if any. */
   ownerOf(name: string): string | undefined {
-    const prefix = name.split('.')[0];
+    const prefix = resolveName(name.split('.')[0], [...this.declared.keys(), ...this.reserved]);
     return this.declared.has(prefix) ? prefix : undefined;
   }
+  resolve(name: string): string {
+    return resolveName(name, [
+      ...this.reservedEvents,
+      ...[...this.declared.values()].flatMap((entry) => entry.names),
+    ]);
+  }
   isCancelable(name: string) {
+    name = this.resolve(name);
     return this.declared.get(name.split('.')[0])?.cancelable.has(name) ?? false;
   }
 
@@ -63,17 +78,23 @@ export class EventService implements Events {
     return (name, data) => {
       if (!name.startsWith(`${namespace}.`))
         throw new Error('Event is outside the reserved namespace.');
+      this.reservedEvents.add(name);
       this.dispatch(name, data);
     };
   }
 
   emit = ((name: string, data?: unknown) => {
-    if (this.reserved.has(name.split('.')[0]))
+    if (
+      this.reserved.has(
+        resolveName(name.split('.')[0], [...this.reserved, ...this.declared.keys()]),
+      )
+    )
       throw new Error(`Event "${name}" is emitted only by the runtime.`);
     return this.dispatch(name, data);
   }) as Events['emit'];
 
   private dispatch = (name: string, data?: unknown): void | Promise<boolean> => {
+    name = this.resolve(name);
     const schema = this.declared.get(name.split('.')[0])?.schemas.get(name);
     if (this.isCancelable(name)) {
       // Cancelable emits return a promise, so an invalid payload rejects it instead of throwing.
@@ -139,10 +160,22 @@ export class EventService implements Events {
   }
 
   private listenersFor(name: string): Listener[] {
-    const result = [...(this.exact.get(name) ?? [])];
+    const result: Listener[] = [];
+    const select = (listeners: Set<Listener>, matches: () => boolean) => {
+      try {
+        if (matches()) result.push(...listeners);
+      } catch (error) {
+        this.report(error, Object.freeze({ type: name, data: undefined }));
+      }
+    };
+    for (const [requested, listeners] of this.exact)
+      select(listeners, () => this.resolve(requested) === name);
+    const namespaces = [...this.declared.keys(), ...this.reserved];
     for (const [prefix, listeners] of this.prefixes)
-      if (name.startsWith(prefix)) result.push(...listeners);
-    return result;
+      select(listeners, () =>
+        name.startsWith(prefix ? `${resolveName(prefix.slice(0, -1), namespaces)}.` : ''),
+      );
+    return [...new Set(result)];
   }
   private report(error: unknown, event: BitaKitEvent) {
     try {
@@ -155,6 +188,11 @@ export class EventService implements Events {
   on = ((names: string | readonly string[], handler: EventHandler) => {
     const controller = new AbortController();
     const keys = [...new Set(typeof names === 'string' ? [names] : names)];
+    for (const name of keys) {
+      if (name.endsWith('.*'))
+        resolveName(name.slice(0, -2), [...this.declared.keys(), ...this.reserved]);
+      else if (name !== '*') this.resolve(name);
+    }
     const invoke: Listener = (event) => {
       if (controller.signal.aborted) return;
       return handler(event as never, { signal: controller.signal });
@@ -216,7 +254,11 @@ export function createEventScope(events: EventService, owner?: string) {
     emit: ((name: string, ...data: unknown[]) => {
       if (!active) return undefined as never;
       const declaredBy = events.ownerOf(name);
-      if (owner !== undefined && declaredBy !== undefined && declaredBy !== owner)
+      if (
+        owner !== undefined &&
+        declaredBy !== undefined &&
+        declaredBy !== (events.ownerOf(`${owner}.__owner`) ?? owner)
+      )
         throw new Error(
           `"${owner}" cannot emit "${name}": that event belongs to plugin "${declaredBy}". Only the declaring plugin emits its events; listen with events.on instead.`,
         );

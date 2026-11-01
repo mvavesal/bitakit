@@ -1,3 +1,4 @@
+import { resolveName } from '../name-resolution.js';
 import type { ActionList } from '../actions/core.js';
 import type { PluginScope } from '../scope.js';
 import { BitaKitStartupError } from '../startup-error.js';
@@ -88,7 +89,7 @@ export class SlotRuntime {
         ),
       });
     this.reader = Object.freeze({
-      has: (name: string) => this.entries.has(name),
+      has: (name: string) => this.entries.has(resolveName(name, this.entries.keys())),
       get: (name: string) => this.entry(name).store.get(),
       subscribe: (name: string, listener: (snapshot: SlotSnapshot) => void) =>
         this.listen(this.entry(name).store, listener),
@@ -99,7 +100,7 @@ export class SlotRuntime {
   }
   /** `source` names the contributing file when an unknown target comes from an attachment. */
   private entry(name: string, plugin = this.appId, source?: string) {
-    const entry = this.entries.get(name);
+    const entry = this.entries.get(resolveName(name, this.entries.keys()));
     if (!entry)
       throw new SlotError(
         'unknown-slot',
@@ -207,6 +208,7 @@ export class SlotRuntime {
     availability: SlotAvailability,
   ): SlotAttachment {
     const { definition } = this.entry(name, plugin, contributionSource(contribution));
+    name = definition.id;
     const source = contributionSource(contribution) ?? contributionSource(definition);
     const error = (code: SlotError['code'], message: string) =>
       new SlotError(code, name, plugin, message, source, plugin === this.appId);

@@ -1,3 +1,4 @@
+import { resolveName } from './name-resolution.js';
 import { BitaKitStartupError } from './startup-error.js';
 import { BitaKitServiceError } from './app/service-error.js';
 import type { Services } from './definitions.js';
@@ -93,10 +94,10 @@ export class ServiceNames {
 
   /** The container key that `name` refers to; unknown names are returned as-is. */
   key(name: string): string {
-    return this.ids.get(name) ?? name;
+    return this.ids.get(resolveName(name, this.ids.keys())) ?? name;
   }
   known(name: string): boolean {
-    return this.ids.has(name);
+    return this.ids.has(resolveName(name, this.ids.keys()));
   }
   /** Every known name, IDs first. */
   names(): string[] {
@@ -117,7 +118,7 @@ export class ServiceNames {
         get: (_target, name) => {
           if (typeof name !== 'string' || name === 'then' || name === 'toJSON') return undefined;
           const path = prefix ? `${prefix}.${name}` : name;
-          const child = node.children.get(name);
+          const child = node.children.get(resolveName(name, node.children.keys()));
           if (!child) {
             throw new BitaKitServiceError(path, notReady?.() ? 'not-ready' : 'unregistered');
           }
@@ -129,10 +130,11 @@ export class ServiceNames {
           }
           return project(child, path);
         },
-        has: (_target, name) => typeof name === 'string' && node.children.has(name),
+        has: (_target, name) =>
+          typeof name === 'string' && node.children.has(resolveName(name, node.children.keys())),
         ownKeys: () => [...node.children.keys()],
         getOwnPropertyDescriptor: (_target, name): PropertyDescriptor | undefined =>
-          typeof name === 'string' && node.children.has(name)
+          typeof name === 'string' && node.children.has(resolveName(name, node.children.keys()))
             ? { enumerable: true, configurable: true, writable: false, value: proxy[name] }
             : undefined,
         set: () => false,

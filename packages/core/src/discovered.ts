@@ -45,7 +45,8 @@ export function discoveredFile<T, const P extends string>(
 ): DiscoveredFile<T, P> {
   return { value, path, source };
 }
-function expand(
+/** Expands folder/dotted/record contributions for optional integration normalizers. */
+export function expandContributions(
   files: readonly DiscoveredFile[],
   leaf: (value: any) => boolean,
   arrays = false,
@@ -88,7 +89,7 @@ const isActionLike = (value: unknown): value is ActionSpec =>
     !('kind' in value));
 
 export function discoverActions(files: readonly DiscoveredFile[], moduleId = ''): Contribution[] {
-  return expand(files, isActionLike).map(({ value, path, source }) => {
+  return expandContributions(files, isActionLike).map(({ value, path, source }) => {
     const spec = isActionSpec(value) ? value : defineAction(value as never);
     const resolved = resolveContribution(spec, [moduleId, ...path].filter(Boolean).join('.'));
     setContributionPath(resolved, path, source);
@@ -100,7 +101,7 @@ export function discoverServices(
   files: readonly DiscoveredFile[],
   moduleId = '',
 ): ServiceDefinition[] {
-  return expand(files, isServiceLike).map(({ value, path, source }) => {
+  return expandContributions(files, isServiceLike).map(({ value, path, source }) => {
     const service: ServiceDefinition = isServiceDefinition(value)
       ? value
       : defineService(value as never);
@@ -118,7 +119,7 @@ export function discoverSlots(
   moduleId = '',
 ): ResolvedSlotDefinition[] {
   const seen = new Map<string, string>();
-  return expand(
+  return expandContributions(
     files,
     isSlotDefinition,
     false,
@@ -144,7 +145,7 @@ export function discoverSlots(
   });
 }
 export function discoverInterceptors(files: readonly DiscoveredFile[]): InterceptorSpec[] {
-  return expand(
+  return expandContributions(
     files,
     (value) =>
       typeof value === 'function' ||

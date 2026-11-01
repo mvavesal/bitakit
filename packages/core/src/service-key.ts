@@ -1,3 +1,4 @@
+import { resolveName } from './name-resolution.js';
 import type { ServiceDefinition } from './definitions.js';
 
 declare const serviceType: unique symbol;
@@ -42,7 +43,13 @@ export function defineContract<const Name extends string>(id: Name): ContractBui
 /** Reads a contract from a services object (tree or flat); throws a clear error when absent. */
 export function getService<T>(services: object, key: ServiceKey<T>): T {
   let current: unknown = services;
-  for (const segment of (key as string).split('.')) {
+  for (const requested of (key as string).split('.')) {
+    const segment =
+      current && typeof current === 'object'
+        ? requested in current
+          ? requested
+          : resolveName(requested, Object.getOwnPropertyNames(current))
+        : requested;
     if (!current || typeof current !== 'object' || !(segment in (current as object)))
       throw new Error(`Missing service "${key}".`);
     current = (current as Record<string, unknown>)[segment];

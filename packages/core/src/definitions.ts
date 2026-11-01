@@ -296,7 +296,18 @@ export interface ContributionMap {}
 export type ContributionSet = {
   readonly [K in keyof ContributionMap]?: readonly ContributionMap[K][];
 } & { readonly [kind: string]: readonly unknown[] | undefined };
-export type ContributionContext = { module: string; app: boolean; services: Services };
+export type ContributionContext = {
+  module: string;
+  app: boolean;
+  services: Services;
+  /** Context and event ownership of the contributing plugin, not the installer. */
+  config?: ConfigContext;
+  events?: Events;
+  settings?: SettingsAccess;
+};
+/** Runtime installers always receive the full owner context; legacy manual contexts remain valid. */
+export type ContributionInstallerContext = ContributionContext &
+  Pick<ServiceContext, 'config' | 'events' | 'settings'>;
 export type ContributionInstaller<T = unknown> = (
   values: readonly T[],
   context: ContributionContext,

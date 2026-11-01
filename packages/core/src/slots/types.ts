@@ -1,10 +1,14 @@
+import type { CheckedName } from '../names.js';
+import type { NamedValue } from '../name-resolution.js';
 import type { PresentationType, SlotMap, SlotName } from '../presentation.js';
 import type { LifecycleFailure, LifecyclePhase } from '../lifecycle/state.js';
 import type { SlotPayload, SlotData } from './define.js';
 import type { ActionId } from '../actions/core.js';
 
 export type SlotPredicate<Name extends string = string> = (context: {
-  payload: Name extends keyof SlotMap ? SlotPayload<Name> : any;
+  payload: Lowercase<Name> extends Lowercase<Extract<keyof SlotMap, string>>
+    ? SlotPayload<Name>
+    : any;
 }) => boolean;
 
 export type SlotAvailability = 'require' | 'wait';
@@ -17,33 +21,34 @@ export type SlotContent =
       component?: never;
       data?: never;
     };
-type ContentFor<Name extends string> = Name extends keyof SlotMap
-  ? SlotMap[Name] extends { accepts: 'data' }
-    ? { data: SlotData<Name>; component?: never; actionId?: never; input?: never }
-    : SlotMap[Name] extends { accepts: 'actions' }
-      ? {
-          actionId: ActionId;
-          input?: (context: { payload: import('./define.js').SlotPayload<Name> }) => unknown;
-          component?: never;
-          data?: never;
-        }
-      : SlotMap[Name] extends { accepts: 'component' }
+type ContentFor<Name extends string> =
+  Lowercase<Name> extends Lowercase<Extract<keyof SlotMap, string>>
+    ? NamedValue<SlotMap, Name> extends { accepts: 'data' }
+      ? { data: SlotData<Name>; component?: never; actionId?: never; input?: never }
+      : NamedValue<SlotMap, Name> extends { accepts: 'actions' }
         ? {
-            component: PresentationType<'component'>;
+            actionId: ActionId;
+            input?: (context: { payload: import('./define.js').SlotPayload<Name> }) => unknown;
+            component?: never;
             data?: never;
-            actionId?: never;
-            input?: never;
           }
-        : SlotContent
-  : SlotContent;
+        : NamedValue<SlotMap, Name> extends { accepts: 'component' }
+          ? {
+              component: PresentationType<'component'>;
+              data?: never;
+              actionId?: never;
+              input?: never;
+            }
+          : SlotContent
+    : SlotContent;
 /** IDs are local to the contributor. Keys select an occupant in a keyed slot. */
 export type SlotContribution<Name extends string = string> = ContentFor<Name> & {
   id?: string;
   order?: number;
   /** Pure per-outlet presentation filter; never changes shared attachment state. */
   when?: SlotPredicate<Name>;
-} & (Name extends keyof SlotMap
-    ? SlotMap[Name] extends { policy: 'keyed' }
+} & (Lowercase<Name> extends Lowercase<Extract<keyof SlotMap, string>>
+    ? NamedValue<SlotMap, Name> extends { policy: 'keyed' }
       ? { key: string }
       : { key?: string }
     : { key?: string });
@@ -84,14 +89,20 @@ export type SlotAttachment = Readonly<{
 }>;
 export type SlotReader = Readonly<{
   has(name: string): boolean;
-  get(name: SlotName): SlotSnapshot;
-  subscribe(name: SlotName, listener: (state: SlotSnapshot) => void): () => void;
-  watch(name: SlotName, listener: (state: SlotSnapshot) => void): () => void;
+  get<const Name extends string>(name: Name & CheckedName<Name, SlotName>): SlotSnapshot;
+  subscribe<const Name extends string>(
+    name: Name & CheckedName<Name, SlotName>,
+    listener: (state: SlotSnapshot) => void,
+  ): () => void;
+  watch<const Name extends string>(
+    name: Name & CheckedName<Name, SlotName>,
+    listener: (state: SlotSnapshot) => void,
+  ): () => void;
 }>;
 export type ScopedSlots = SlotReader & {
   /** `scope.slots.attach({ slot: 'shell.toolbar', actionId: 'notes.open' })`; the slot is part of the contribution. */
-  attach<const Name extends SlotName>(
-    contribution: { slot: Name } & SlotContribution<Name>,
+  attach<const Name extends string>(
+    contribution: { slot: Name & CheckedName<Name, SlotName> } & SlotContribution<Name>,
     options?: { availability?: SlotAvailability },
   ): SlotAttachment;
 };

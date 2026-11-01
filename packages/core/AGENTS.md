@@ -44,3 +44,25 @@ one plugin under Node (no browser); `plugin.execute(id, input)` resolves to the 
   `app.has(name)` for optional ones.
 - Only the declaring plugin emits its events; others listen.
 - `enabled`, `visible` and interceptors are client rules; authorize on the server.
+
+## Identifier compatibility and integration contexts
+
+Registered spellings and exact matches remain authoritative, including existing case-only
+names. Service/contract lookup, declared events, Actions, plugin references and dependencies
+also accept an unambiguous case-insensitive match. An ambiguous non-exact reference throws;
+use an existing exact spelling. Generated map keys and namespace property types preserve
+original spellings. String-based Action/event/service hooks resolve mixed case with payload
+checking. Undeclared event strings retain their existing open-bus semantics; declare events
+for a typed, resolvable public name. Filesystem paths, URLs and service method names are unchanged.
+
+Optional integrations reuse `expandContributions` for folder/dotted/record declarations.
+`ContributionInstallerContext` describes the full contributing owner context (config, events and
+settings) supplied by the runtime. Installer callbacks retain `ContributionContext`, where these
+fields are optional for legacy direct invocations. Installed cleanup
+belongs to the contributor. Do not introduce a parallel context, registry or event bus.
+
+Service interceptors receive `callId` and epoch `startedAt`, plus `durationMs` on completion or
+failure (optional in the types for legacy manually constructed calls). Async settlement is observed without replacing the original promise or awaiting the
+observer. These IDs are local to one runtime. Trusted observers may see arguments/results;
+public inventory does not. Self-calls still bypass the service proxy; a producer that promises
+observable execution must enter its public method through the service container.

@@ -1,15 +1,17 @@
 'use client';
 import { useCallback, useRef, useSyncExternalStore } from 'react';
-import { isStore, type GeneratedName, type ServiceMap, type Store } from '@bitakit/core';
+import {
+  isStore,
+  type CheckedName,
+  type NamedValue,
+  type ServiceMap,
+  type Store,
+} from '@bitakit/core';
 import { useBitaKit } from '../providers/foundation-context.js';
 import { shallowEqual } from '../utils/merge-props.js';
 import { subscribeReadiness } from '../utils/subscribe-readiness.js';
 
-/** A service ID or contract name; strict generated apps reject unknown names. */
-type ServiceName = GeneratedName<Extract<keyof ServiceMap, string>>;
-type ServiceOf<Name extends string> = Name extends keyof ServiceMap
-  ? NonNullable<ServiceMap[Name]>
-  : unknown;
+type ServiceOf<Name extends string> = NonNullable<NamedValue<ServiceMap, Name>>;
 type StateOf<S> = S extends { state: Store<infer T> }
   ? T
   : S extends { getSnapshot(): infer T }
@@ -19,7 +21,9 @@ type StateOf<S> = S extends { state: Store<infer T> }
 const idle = () => () => {};
 
 /** The ready service instance; follows replacement. Use useServiceState for its data. */
-export function useService<Name extends ServiceName>(name: Name): ServiceOf<Name> | undefined {
+export function useService<Name extends string>(
+  name: Name & CheckedName<Name, Extract<keyof ServiceMap, string>>,
+): ServiceOf<Name> | undefined {
   const { runtime } = useBitaKit();
   const read = useCallback(
     () => (runtime.isServiceReady(name) ? readService(runtime.services, name) : undefined),
@@ -62,12 +66,12 @@ function sourceOf(
  * pair. Re-renders when the selected value changes. Returns `fallback` until the runtime
  * and its owning plugin are ready. Unrelated updates keep the current source subscribed.
  */
-export function useServiceState<Name extends ServiceName, R = StateOf<ServiceOf<Name>>>(
-  name: Name,
+export function useServiceState<Name extends string, R = StateOf<ServiceOf<Name>>>(
+  name: Name & CheckedName<Name, Extract<keyof ServiceMap, string>>,
   selector?: (state: StateOf<ServiceOf<Name>>) => R,
 ): R | undefined;
-export function useServiceState<Name extends ServiceName, R = StateOf<ServiceOf<Name>>>(
-  name: Name,
+export function useServiceState<Name extends string, R = StateOf<ServiceOf<Name>>>(
+  name: Name & CheckedName<Name, Extract<keyof ServiceMap, string>>,
   selector: ((state: StateOf<ServiceOf<Name>>) => R) | undefined,
   fallback: R,
 ): R;

@@ -29,7 +29,12 @@ export function selectSingle<T extends Pick<SlotItem, 'plugin' | 'key'>>(
   options: { choice?: string; appId: string },
 ): SingleSelection<T> {
   if (options.choice !== undefined) {
-    const matches = candidates.filter((item) => candidateNames(item).includes(options.choice!));
+    const exact = candidates.filter((item) => candidateNames(item).includes(options.choice!));
+    const matches = exact.length
+      ? exact
+      : candidates.filter((item) =>
+          candidateNames(item).some((name) => name.toLowerCase() === options.choice!.toLowerCase()),
+        );
     if (matches.length === 1) return { selected: matches[0], candidates };
     return { reason: matches.length ? 'ambiguous' : 'choice-unavailable', candidates };
   }

@@ -1,4 +1,5 @@
 'use client';
+import { resolveName, type CheckedName, type KnownActionId } from '@bitakit/core';
 import { useContext, useMemo, useSyncExternalStore, type MouseEvent } from 'react';
 import { useStore } from 'zustand';
 import { ActionContext, UIContext } from '../providers/action-context.js';
@@ -214,7 +215,7 @@ export function buildControl<Id extends string>(
  */
 /** Resolved controls retain their input; literal IDs and references follow strict discovery. */
 export type ActionTarget<Id extends string = string> =
-  | ((Id | ActionReference<Id>) & (Id extends ActionId ? unknown : never))
+  | ((Id | ActionReference<Id>) & (Id extends CheckedName<Id, KnownActionId> ? unknown : never))
   | ActionControl<Id>;
 export function isActionControl(value: unknown): value is ActionControl {
   return (
@@ -232,10 +233,13 @@ export function useAction<const Id extends string>(
 ): ActionControl<Id> | undefined {
   const list = useActionList();
   const ui = useContext(UIContext);
-  const id = isActionControl(target) ? (target.id as Id) : resolveActionId(target, list);
+  const id = isActionControl(target)
+    ? (target.id as Id)
+    : resolveActionId(target as Id | ActionReference<Id>, list);
   const boundInput = input === undefined && isActionControl(target) ? target.input : input;
-  const snapshot = useStore(list, (state) =>
-    Object.hasOwn(state.actions, id) ? state.actions[id] : undefined,
+  const snapshot = useStore(
+    list,
+    (state) => state.actions[resolveName(id, Object.keys(state.actions))],
   );
   return useMemo(() => {
     if (!snapshot) return undefined;

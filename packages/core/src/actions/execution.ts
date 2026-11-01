@@ -30,6 +30,7 @@ export function createExecutor(
   running: Map<string, Map<string, AbortController>>,
 ) {
   return async function execute(id: string, input?: unknown): Promise<ExecutionResult> {
+    id = get(id)?.id ?? id;
     const owner = owners.get(id);
     const controller = new AbortController();
     const context: ActionContext = Object.freeze({

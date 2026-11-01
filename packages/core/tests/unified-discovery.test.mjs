@@ -816,10 +816,8 @@ test('plugin roots, IDs, inclusion and overrides follow bitakit.config.ts', asyn
     );
     await put('bitakit.config.ts', `export default { plugins: { directory: 'src/extensions' } };`);
     await put('src/extensions/Todos/actions/add.ts', 'export default { execute: () => 1 }');
-    await assert.rejects(
-      generateBitaKit(root, { quiet: true }),
-      /Invalid plugin ID "Todos" \(src\/extensions\/Todos\)/,
-    );
+    const mixedCase = await generateBitaKit(root, { quiet: true });
+    assert.match(await readFile(mixedCase.generated, 'utf8'), /id: "Todos"/);
     await rm(path.join(root, 'src/extensions/Todos'), { recursive: true });
     await put('src/extensions/off/plugin.config.ts', `export default { id: 'library' };`);
     await assert.rejects(

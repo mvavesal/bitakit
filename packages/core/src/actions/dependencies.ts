@@ -1,3 +1,4 @@
+import { resolveName } from '../name-resolution.js';
 import type { ActionSnapshot } from './types.js';
 
 type Actions = Readonly<Record<string, ActionSnapshot>>;
@@ -13,6 +14,7 @@ export function dependencyEnabled(
   visiting = new Set<string>(),
   cache = new Map<string, boolean>(),
 ): boolean {
+  id = resolveName(id, Object.keys(actions));
   if (cache.has(id)) return cache.get(id)!;
   if (!Object.hasOwn(actions, id) || visiting.has(id)) return false;
   const action = actions[id];
@@ -32,7 +34,8 @@ export function affectedActions(actions: Actions, changed: string): Set<string> 
   const affected = new Set([changed]);
   const dependents = new Map<string, string[]>();
   for (const action of Object.values(actions)) {
-    for (const id of action.dependsOn ?? []) {
+    for (const reference of action.dependsOn ?? []) {
+      const id = resolveName(reference, Object.keys(actions));
       const items = dependents.get(id) ?? [];
       items.push(action.id);
       dependents.set(id, items);

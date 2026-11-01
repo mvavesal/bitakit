@@ -1114,3 +1114,23 @@ Do not maintain a second list of region IDs or import client entries during disc
 The ordinary package build must run before packed-consumer inspection/Doctor.
 Mobile Sidebar uses one Radix Sheet root around its trigger and content; preserve that relation
 so Escape restores focus and `aria-expanded` follows the actual open state.
+
+
+## Compatible identifier references and integration ownership
+
+Preserve registered spellings and exact-match lookup, including historical case-only names.
+Additional case-insensitive resolution must be unambiguous; never silently merge registrations,
+rewrite stored keys/paths, or weaken generated input/result checks. Keep actual file paths,
+URLs, JavaScript method names and namespace property typings unchanged. Undeclared event
+strings remain open-bus names; typed public event contracts require declarations.
+
+The runtime supplies the contributing owner's config/events/settings to integration installers.
+`ContributionInstallerContext` describes that full view; the callback contract keeps the additions
+optional through `ContributionContext` so legacy manual invocations remain valid. Reuse `expandContributions` for integration kinds rather than writing
+another record/path expansion. Domain-specific APIs, source adapters and lifecycle details
+belong in the owning package/plugin AGENTS.md; shared guides only state framework contracts.
+
+Service observers correlate calls with runtime-local `callId`, epoch `startedAt` and settlement
+`durationMs`. They observe promises without replacing them or awaiting logging. A service's
+internal self-call bypasses its decorated container method; test real producers that promise
+public interception. No automatic persistence or durable observer guarantee is implied.

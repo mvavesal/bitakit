@@ -1,3 +1,4 @@
+import { resolveName } from '../name-resolution.js';
 import type { ActionContext } from '../actions/types.js';
 import type { ConfigContext } from '../config-service.js';
 import type { Services, Translator } from '../definitions.js';
@@ -41,6 +42,9 @@ export type ServiceCall<Name extends string = string, Key extends string = strin
   /** The called service's ID; a glob or alias target still reports the actual ID. */
   readonly service: string;
   readonly method: Key;
+  /** Supplied by runtime observers; optional to preserve manually constructed legacy calls. */
+  readonly callId?: number;
+  readonly startedAt?: number;
   readonly args: Readonly<Parameters<MethodOf<Name, Key>>>;
 };
 /**
@@ -61,9 +65,15 @@ export type ServiceInterceptorSpec<Name extends string = string, Key extends str
   before?(call: ServiceCall<Name, Key> & ServiceHookContext): void;
   after?(
     call: ServiceCall<Name, Key> &
-      ServiceHookContext & { readonly result: Awaited<ReturnType<MethodOf<Name, Key>>> },
+      ServiceHookContext & {
+        readonly durationMs?: number;
+        readonly result: Awaited<ReturnType<MethodOf<Name, Key>>>;
+      },
   ): void;
-  onError?(call: ServiceCall<Name, Key> & ServiceHookContext & { readonly error: unknown }): void;
+  onError?(
+    call: ServiceCall<Name, Key> &
+      ServiceHookContext & { readonly durationMs?: number; readonly error: unknown },
+  ): void;
 };
 export type InterceptorSpec = (ActionInterceptorSpec | ServiceInterceptorSpec<any, any>) & {
   readonly kind: 'interceptor';
@@ -103,13 +113,27 @@ export function isServiceInterceptor(
 }
 
 /** Glob matching for action IDs and service names: exact, `prefix.*`, or `*`. */
-export function matchesTarget(target: InterceptorTarget, id: string): boolean {
+export function matchesTarget(
+  target: InterceptorTarget,
+  id: string,
+  names: readonly string[] = [id],
+): boolean {
   const patterns = typeof target === 'string' ? [target] : target;
   return patterns.some((pattern) =>
     pattern === '*'
       ? true
       : pattern.endsWith('.*')
-        ? id.startsWith(pattern.slice(0, -1))
-        : pattern === id,
+        ? id.startsWith(
+            `${resolveName(
+              pattern.slice(0, -2),
+              names.flatMap((name) =>
+                name
+                  .split('.')
+                  .slice(0, -1)
+                  .map((_, index, parts) => parts.slice(0, index + 1).join('.')),
+              ),
+            )}.`,
+          )
+        : resolveName(pattern, names) === id,
   );
 }

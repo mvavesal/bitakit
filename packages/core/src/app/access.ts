@@ -1,3 +1,4 @@
+import { namedRecord } from '../name-resolution.js';
 import type { BitaKitRuntime } from '../runtime.js';
 import type { BitaKitApp } from './types.js';
 import { BitaKitServiceError } from './service-error.js';
@@ -35,11 +36,13 @@ export function createBitaKitApp(runtime: BitaKitRuntime): BitaKitApp {
     actions: createActionAccess(runtime.actions),
     get config() {
       return Object.freeze(
-        Object.fromEntries(
-          runtime.modules.map((module) => [
-            module.id,
-            runtime.configuration.plugin(module.id).snapshot(),
-          ]),
+        namedRecord(
+          Object.fromEntries(
+            runtime.modules.map((module) => [
+              module.id,
+              runtime.configuration.plugin(module.id).snapshot(),
+            ]),
+          ),
         ),
       );
     },

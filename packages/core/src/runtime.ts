@@ -1,3 +1,4 @@
+import { resolveName } from './name-resolution.js';
 import type { RuntimeActionPlacement } from './slots/action-placement.js';
 import { EventService, createEventScope } from './events/service.js';
 import { normalizeSlots, validateSlotDeclarations } from './slots/normalize.js';
@@ -182,7 +183,16 @@ function descendantsOf(installed: readonly Plugin[], ids: readonly string[]): st
   const found: string[] = [];
   for (let frontier = [...ids]; frontier.length; ) {
     const children = installed
-      .filter((plugin) => plugin.parent && frontier.includes(plugin.parent))
+      .filter(
+        (plugin) =>
+          plugin.parent &&
+          frontier.includes(
+            resolveName(
+              plugin.parent,
+              installed.map((entry) => entry.id),
+            ),
+          ),
+      )
       .map((plugin) => plugin.id)
       .filter((id) => !found.includes(id) && !ids.includes(id));
     found.push(...children);
@@ -192,6 +202,12 @@ function descendantsOf(installed: readonly Plugin[], ids: readonly string[]): st
 }
 
 function orderPlugins(plugins: readonly NormalizedPlugin[], appId: string) {
+  const names = plugins.map((plugin) => plugin.id);
+  plugins = plugins.map((plugin) => ({
+    ...plugin,
+    dependencies: plugin.dependencies?.map((id) => resolveName(id, names)),
+    parent: plugin.parent ? resolveName(plugin.parent, names) : undefined,
+  }));
   const remaining = new Map<string, NormalizedPlugin>();
   for (const plugin of plugins) {
     if (remaining.has(plugin.id))
@@ -330,7 +346,14 @@ export class BitaKitRuntime implements ContributionHost {
   isReady = (plugin?: string) =>
     this.mounted &&
     (plugin === undefined ||
-      this.lifecycle.get().plugins.some((entry) => entry.id === plugin && entry.phase === 'ready'));
+      this.lifecycle.get().plugins.some(
+        (entry) =>
+          entry.id ===
+            resolveName(
+              plugin,
+              this.modules.map((module) => module.id),
+            ) && entry.phase === 'ready',
+      ));
   subscribeReady = (listener: () => void) => {
     this.readinessListeners.add(listener);
     return () => {
@@ -665,7 +688,19 @@ export class BitaKitRuntime implements ContributionHost {
     return translate;
   }
   override(id: string): Override {
-    return this.config.actionOverrides?.[id];
+    const overrides = this.config.actionOverrides ?? {};
+    const keys = Object.keys(overrides);
+    const exact = keys.find((name) => name === id);
+    if (exact) return overrides[exact];
+    const requested = keys.filter(
+      (name) =>
+        resolveName(name, [
+          ...this.modules.flatMap((module) => module.actions.map((action) => action.id)),
+          ...Object.keys(this.actions.getState().actions),
+        ]) === id,
+    );
+    if (requested.length > 1) throw new Error(`Duplicate action override for "${id}".`);
+    return requested.length ? overrides[requested[0]] : undefined;
   }
   dialog() {
     return this.state;
@@ -842,6 +877,7 @@ export class BitaKitRuntime implements ContributionHost {
         interceptors,
         (id) => this.aliasesOf(id),
         () => this.view,
+        () => this.names.names(),
       ),
       this.events,
       {
@@ -1062,6 +1098,9 @@ export class BitaKitRuntime implements ContributionHost {
             module: plugin.id,
             app: plugin.id === this.appId,
             services: this.services,
+            config: this.configuration.context(plugin.id),
+            events: this.pluginEvents.get(plugin.id)!.events,
+            settings: this.settingsAccess,
           });
           if (cleanup) this.scopes[index].own(cleanup);
         } catch (error) {
@@ -1096,7 +1135,7 @@ export class BitaKitRuntime implements ContributionHost {
         throw this.attribute(error, module, 'Interceptor', requester.source);
       }
       const applies = (id: string) =>
-        matchesTarget(definition.action ?? '*', id) &&
+        matchesTarget(definition.action ?? '*', id, Object.keys(this.actions.getState().actions)) &&
         (global || this.actionConfigs.get(id)?.module === module);
       const context = <T extends { id: string }>(base: T) => ({
         ...base,
@@ -1364,7 +1403,12 @@ export class BitaKitRuntime implements ContributionHost {
       const ids =
         operation === 'add'
           ? (values as Plugin[]).map((plugin) => plugin.id)
-          : [...(values as string[])];
+          : (values as string[]).map((id) =>
+              resolveName(
+                id,
+                installed.map((plugin) => plugin.id),
+              ),
+            );
       if (new Set(ids).size !== ids.length)
         return result('blocked', ['Plugin IDs must be unique.']);
       if (ids.includes(this.appId))
@@ -1398,7 +1442,13 @@ export class BitaKitRuntime implements ContributionHost {
           );
       if (operation === 'enable')
         for (const id of [...ids]) {
-          const parent = installed.find((plugin) => plugin.id === id)?.parent;
+          const declaredParent = installed.find((plugin) => plugin.id === id)?.parent;
+          const parent = declaredParent
+            ? resolveName(
+                declaredParent,
+                installed.map((plugin) => plugin.id),
+              )
+            : undefined;
           if (parent && disabled.has(parent) && !ids.includes(parent))
             return result(
               'blocked',
@@ -1440,7 +1490,14 @@ export class BitaKitRuntime implements ContributionHost {
         operation === 'remove' ? installed.filter((plugin) => !ids.includes(plugin.id)) : installed;
       for (const id of ids) if (operation === 'remove') disabled.delete(id);
       if (operation === 'disable') changed = changed.filter((id) => !this.disabledPlugins.has(id));
-      const protectedOwners = changed.filter((id) => options?.preserve?.includes(id));
+      const preserved =
+        options?.preserve?.map((id) =>
+          resolveName(
+            id,
+            installed.map((plugin) => plugin.id),
+          ),
+        ) ?? [];
+      const protectedOwners = changed.filter((id) => preserved.includes(id));
       if ((operation === 'disable' || operation === 'remove') && protectedOwners.length)
         return result(
           'blocked',

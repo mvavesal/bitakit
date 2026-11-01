@@ -39,3 +39,12 @@ export default defineBitaKit({
 
 - Never edit `src/bitakit.gen.*`; change source files and run `npm run typecheck`.
 - `npx bitakit info --json` and `npx bitakit slots --json` show what discovery found.
+
+## Identifier spelling and extension types
+
+Plugin IDs accept uppercase and lowercase letters. Preserve actual paths and declared names
+in generated files and maps. Plugin dependency/parent references and host plugin overrides
+resolve exact names first, then an unambiguous case-insensitive match; existing case-only
+registrations remain distinct. Ambiguous references need their exact registered spelling.
+Package-owned contribution kinds continue to declare their normalizer and type-map entry in
+package metadata; read that package's AGENTS.md for its contracts, not a second central guide.

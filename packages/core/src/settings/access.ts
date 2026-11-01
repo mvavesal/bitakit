@@ -1,3 +1,4 @@
+import { resolveName } from '../name-resolution.js';
 import type { Namespace } from '../app/types.js';
 import type { SettingSpec, SettingsMap } from './define.js';
 import type { SaveResult, SettingState, SettingsStore } from './store.js';
@@ -61,6 +62,7 @@ export function createSettingsAccess(store: SettingsStore): SettingsAccess {
     const proxy: object = new Proxy(target, {
       get(_object, name) {
         if (typeof name !== 'string' || reserved.has(name)) return undefined;
+        name = resolveName(name, keys());
         const key = path ? `${path}.${name}` : name;
         if (store.has(key)) {
           const spec = store.definition(key).spec;
@@ -68,14 +70,15 @@ export function createSettingsAccess(store: SettingsStore): SettingsAccess {
             handles.set(key, { spec, value: handle(store, key, spec) });
           return handles.get(key)!.value;
         }
-        if (keys().includes(name)) return project(key);
+        if (keys().includes(resolveName(name, keys()))) return project(key);
         const owner = path ? `plugin "${path}"` : 'the app or a plugin';
         throw new Error(`Unknown setting "${key}". Declare it in settings.ts of ${owner}.`);
       },
-      has: (_object, name) => typeof name === 'string' && keys().includes(name),
+      has: (_object, name) =>
+        typeof name === 'string' && keys().includes(resolveName(name, keys())),
       ownKeys: keys,
       getOwnPropertyDescriptor: (_object, name) =>
-        typeof name === 'string' && keys().includes(name)
+        typeof name === 'string' && keys().includes(resolveName(name, keys()))
           ? { enumerable: true, configurable: true }
           : undefined,
       set: () => false,

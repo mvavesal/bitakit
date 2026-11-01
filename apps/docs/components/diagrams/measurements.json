@@ -3,23 +3,23 @@
   "packages": [
     {
       "package": "@bitakit/core",
-      "files": 67,
-      "lines": 9633,
-      "tokens": 81840,
-      "tests": 258
+      "files": 68,
+      "lines": 10021,
+      "tokens": 85107,
+      "tests": 269
     },
     {
       "package": "@bitakit/ui",
       "files": 73,
-      "lines": 5933,
-      "tokens": 49614,
-      "tests": 90
+      "lines": 5973,
+      "tokens": 50012,
+      "tests": 91
     },
     {
       "package": "@bitakit/discovery",
-      "files": 15,
-      "lines": 2903,
-      "tokens": 28519,
+      "files": 16,
+      "lines": 2933,
+      "tokens": 28845,
       "tests": 0
     },
     {
@@ -32,16 +32,16 @@
     {
       "package": "@bitakit/shell",
       "files": 34,
-      "lines": 4495,
-      "tokens": 43377,
+      "lines": 4548,
+      "tokens": 43814,
       "tests": 48
     },
     {
       "package": "@bitakit/app-preferences",
-      "files": 40,
-      "lines": 3506,
-      "tokens": 27772,
-      "tests": 48
+      "files": 41,
+      "lines": 3733,
+      "tokens": 29481,
+      "tests": 49
     },
     {
       "package": "@bitakit/quick-search",
@@ -58,7 +58,7 @@
       "tests": 64
     }
   ],
-  "total": { "files": 271, "lines": 32189, "tokens": 284916, "tests": 555 },
+  "total": { "files": 274, "lines": 32927, "tokens": 291053, "tests": 568 },
   "feature": {
     "plugins": ["todos", "activity"],
     "files": 11,

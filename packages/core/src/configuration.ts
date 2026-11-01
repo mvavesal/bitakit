@@ -1,3 +1,4 @@
+import { resolveName } from './name-resolution.js';
 import type { BitaKitRuntimeConfig, Plugin, ProviderDefinition } from './definitions.js';
 
 export type BitaKitOverrides = Pick<
@@ -36,7 +37,15 @@ export function resolveBitaKitConfig(
   );
   if (config.configOverrides)
     config.configOverrides = Object.fromEntries(
-      Object.entries(config.configOverrides).filter(([id]) => !removed.has(id)),
+      Object.entries(config.configOverrides).filter(
+        ([id]) =>
+          !removed.has(
+            resolveName(
+              id,
+              (discovered.plugins ?? []).map((plugin) => plugin.id),
+            ),
+          ),
+      ),
     );
   const pluginIds = new Set<string>();
   for (const plugin of config.plugins ?? []) {
@@ -54,7 +63,15 @@ export function resolveBitaKitConfig(
     if (!provider.id || seen.has(provider.id))
       throw new Error(`Invalid or duplicate provider "${provider.id}".`);
     for (const id of provider.requires ?? []) {
-      if (!seen.has(id)) throw new Error(`Provider "${provider.id}" requires "${id}" before it.`);
+      if (
+        !seen.has(
+          resolveName(
+            id,
+            providers.map((provider) => provider.id),
+          ),
+        )
+      )
+        throw new Error(`Provider "${provider.id}" requires "${id}" before it.`);
     }
     seen.add(provider.id);
   }

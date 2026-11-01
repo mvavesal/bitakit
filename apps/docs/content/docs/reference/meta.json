@@ -5,6 +5,7 @@
     "services",
     "slots",
     "settings",
+    "scheduler",
     "quick-search",
     "theming",
     "layouts",

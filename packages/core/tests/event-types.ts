@@ -76,3 +76,12 @@ const service = defineService(({ events, store }) => {
   };
 });
 void [declared, cancelable, notCancelable, plain, allowed, wrongResult, stop, service];
+
+const foldedCancelable: Promise<boolean> = events.emit('ToDoS.DeLeTiNg', { id: 1 });
+events.on('TODOS.CHANGED', (event) => {
+  const id: number = event.data.id;
+  void id;
+});
+// @ts-expect-error Mixed-case references retain their declared payload contract.
+events.emit('TODOS.CHANGED', { id: 'wrong' });
+void foldedCancelable;

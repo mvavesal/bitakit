@@ -1,0 +1,6 @@
+- id: REPORTS.WEEKLY
+  task: Reports.Weekly
+  cron: '0 10 * * MON'
+  timezone: Europe/Berlin
+  input:
+    audience: team

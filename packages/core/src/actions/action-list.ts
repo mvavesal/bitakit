@@ -1,3 +1,5 @@
+import type { CheckedName } from '../names.js';
+import { resolveName } from '../name-resolution.js';
 import { ActionStatus } from './state.js';
 import { freezeGroups, type RegistrationOptions } from './groups.js';
 import { ExecutionLifecycle } from './interceptors.js';
@@ -14,7 +16,7 @@ import type {
   ActionPatch,
   ActionContext,
   ActionRegistration,
-  ActionId,
+  KnownActionId,
   ActionInput,
   ActionResult,
   ExecutionResult,
@@ -137,11 +139,13 @@ export function createActionList(
   }
 
   const get = (id: string) => {
+    id = resolveName(id, Object.keys(definitions));
     const { actions } = store.getState();
     return Object.hasOwn(actions, id) ? actions[id] : undefined;
   };
 
   function resolve(id: string, input?: unknown) {
+    id = resolveName(id, Object.keys(definitions));
     const action = source(id);
     if (!action) return undefined;
     const presentation = action.resolve?.(input);
@@ -169,6 +173,7 @@ export function createActionList(
   }
 
   function update(id: string, patch: ActionPatch): boolean {
+    id = resolveName(id, Object.keys(definitions));
     const current = source(id);
     if (!current || disposed) return false;
     // Preserve identity and runtime state even if untyped callers pass extra fields.
@@ -339,6 +344,7 @@ export function createActionList(
     register,
     /** Attach an existing action without duplicating it; cleanup owns only this placement. */
     attach(id: string, group: import('./groups.js').ActionGroup) {
+      id = resolveName(id, Object.keys(definitions));
       const action = get(id);
       const owner = owners.get(id);
       if (!action || !owner) throw new Error(`Unknown action "${id}".`);
@@ -369,8 +375,8 @@ export function createActionList(
     },
     update,
     /** Known IDs from ActionMap type their input and result; other IDs stay untyped. */
-    execute: execute as <Id extends ActionId>(
-      id: Id,
+    execute: execute as <Id extends string>(
+      id: Id & CheckedName<Id, KnownActionId>,
       input?: ActionInput<Id>,
     ) => Promise<ExecutionResult<ActionResult<Id>>>,
     dispose,

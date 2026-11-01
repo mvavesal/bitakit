@@ -164,3 +164,14 @@ type PlainAliasPlugins = [{ id: 'x'; services: { a: typeof notifications } }];
 // @ts-expect-error A plain string contract name adds no alias to the map.
 type _NoPlainAlias = PublicServicesOf<PlainAliasPlugins>['notifications'];
 void [notifications, shell];
+
+
+// Adding owner context to runtime installers must preserve legacy direct installer calls.
+import type { ContributionInstaller, Services as InstallerServices } from '../src/core.js';
+declare const legacyInstallerServices: InstallerServices;
+const legacyInstaller: ContributionInstaller = () => {};
+legacyInstaller([], { module: 'legacy', app: false, services: legacyInstallerServices });
+
+import type { ServiceCall } from '../src/core.js';
+const legacyObservedCall: ServiceCall = { service: 'legacy', method: 'run', args: [] };
+void legacyObservedCall;

@@ -1,3 +1,4 @@
+import { resolveName } from './name-resolution.js';
 /** Immutable configuration. User preferences belong to settings, not here. */
 export interface ConfigMap {}
 export type ConfigValues = Readonly<Record<string, unknown>>;
@@ -127,15 +128,25 @@ export class ConfigService {
     modules: readonly { id: string; config?: ConfigValues | ConfigDefinition }[],
     overrides: Readonly<Record<string, ConfigValues>> = {},
   ) {
+    const resolvedOverrides: Record<string, ConfigValues> = Object.create(null);
+    for (const [id, value] of Object.entries(overrides)) {
+      const resolved = resolveName(
+        id,
+        modules.map((module) => module.id),
+      );
+      if (Object.hasOwn(resolvedOverrides, resolved))
+        throw new Error(`Duplicate config override for "${resolved}".`);
+      resolvedOverrides[resolved] = value;
+    }
     for (const module of modules) {
       if (this.modules.has(module.id)) throw new Error(`Duplicate config module "${module.id}".`);
       this.modules.set(
         module.id,
-        new ConfigScope(resolve(module.config ?? {}, overrides[module.id]) as ConfigValues),
+        new ConfigScope(resolve(module.config ?? {}, resolvedOverrides[module.id]) as ConfigValues),
       );
     }
     for (const id of Object.keys(overrides))
-      if (!this.modules.has(id))
+      if (!this.modules.has(resolveName(id, this.modules.keys())))
         throw new Error(
           `configOverrides names "${id}", but no plugin with that ID is enabled. Known: ${[...this.modules.keys()].join(', ')}.`,
         );
@@ -148,7 +159,7 @@ export class ConfigService {
   plugin<K extends keyof ConfigMap & string>(id: K): ConfigScope<ConfigMap[K]>;
   plugin<T = ConfigValues>(id: string): ConfigScope<T>;
   plugin<T = ConfigValues>(id: string): ConfigScope<T> {
-    const scope = this.modules.get(id);
+    const scope = this.modules.get(resolveName(id, this.modules.keys()));
     if (!scope) throw new Error(`Unknown config module "${id}".`);
     return scope as ConfigScope<T>;
   }

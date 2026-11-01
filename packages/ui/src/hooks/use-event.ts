@@ -1,11 +1,13 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
-import type { EventSelector, EventHandler } from '@bitakit/core';
+import type { EventSelector, EventHandler, CheckedName } from '@bitakit/core';
 import { useBitaKit } from '../providers/foundation-context.js';
 
 /** React-owned subscription to the runtime's bus; released with the component. */
-export function useEvent<const Name extends EventSelector>(
-  names: Name | readonly Name[],
+export function useEvent<const Name extends string>(
+  names:
+    | (Name & CheckedName<Name, EventSelector>)
+    | readonly (Name & CheckedName<Name, EventSelector>)[],
   handler: EventHandler<Name>,
 ) {
   const { runtime } = useBitaKit();

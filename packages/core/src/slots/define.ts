@@ -1,3 +1,4 @@
+import type { NamedValue } from '../name-resolution.js';
 import type { InputSchema, SchemaOutput, EffectiveActionId } from '../definitions.js';
 import type { SlotMap } from '../presentation.js';
 
@@ -50,7 +51,11 @@ export function isSlotDefinition(value: unknown): value is SlotDefinition {
 }
 
 /** Accept a generated name or a definition directly (manual composition needs no augmentation). */
-type DefinitionOf<T> = T extends keyof SlotMap ? SlotMap[T] : T;
+type DefinitionOf<T> = T extends keyof SlotMap
+  ? SlotMap[T]
+  : T extends string
+    ? NamedValue<SlotMap, T, T>
+    : T;
 export type SlotPayload<T> =
   DefinitionOf<T> extends { payload: infer S } ? SchemaOutput<S> : undefined;
 export type SlotData<T> =

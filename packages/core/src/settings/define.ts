@@ -1,3 +1,4 @@
+import type { NamedValue } from '../name-resolution.js';
 import type { InputSchema, SchemaOutput } from '../definitions.js';
 import type { PresentationType } from '../presentation.js';
 import type { GeneratedName } from '../names.js';
@@ -222,9 +223,7 @@ export function parseSetting<T>(spec: SettingSpec<T>, value: unknown, key = 'set
 export interface SettingsMap {}
 /** A declared setting key; strict generated apps reject unknown keys. */
 export type SettingKey = GeneratedName<Extract<keyof SettingsMap, string>>;
-export type SettingValue<Key extends string> = Key extends keyof SettingsMap
-  ? SettingsMap[Key]
-  : unknown;
+export type SettingValue<Key extends string> = NamedValue<SettingsMap, Key>;
 type ValueOf<S> = S extends SettingSpec<infer T> ? T : never;
 /** `SettingsMap` entries of one declaration under a plugin prefix (none for the app module). */
 export type SettingsOf<D, Plugin extends string> =

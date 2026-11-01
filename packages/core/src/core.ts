@@ -10,7 +10,7 @@ export type * from './definitions.js';
 export { defineEvents, event, isEventsDefinition } from './events/define.js';
 export type { EventsDefinition, EventSpec, EventsOf, CancelableOf } from './events/define.js';
 export type * from './events/types.js';
-export type { GeneratedName } from './names.js';
+export type { GeneratedName, CheckedName } from './names.js';
 export { EventService } from './events/service.js';
 export {
   defineSettings,
@@ -197,3 +197,5 @@ export type {
   InventoryKind,
   InventoryLive,
 } from './inspection/inventory.js';
+
+export { resolveName, namedRecord, type NameKey, type NamedValue } from './name-resolution.js';

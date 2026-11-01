@@ -1,3 +1,4 @@
+import { resolveName, resolveOverrides } from './name-resolution.mjs';
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { createJiti } from 'jiti';
@@ -121,19 +122,26 @@ export async function describeBitaKit(root) {
   const idByDirectory = new Map();
   for (const entry of manifests)
     idByDirectory.set(path.dirname(entry.manifestFile), (await manifestOf(entry)).id);
+  const pluginNames = [...idByDirectory.values()];
+  const pluginOverrides = resolveOverrides(config.plugins?.overrides, pluginNames);
   for (const entry of manifests) {
     const base = path.dirname(entry.manifestFile);
     const manifest = await manifestOf(entry);
     const own = await files(base, new Set([...moduleRoots].filter((item) => item !== base)));
-    const parent = manifest.parent ?? idByDirectory.get(parentDirectory(base, moduleRoots));
+    const declaredParent = manifest.parent ?? idByDirectory.get(parentDirectory(base, moduleRoots));
+    const parent = declaredParent ? resolveName(declaredParent, pluginNames) : undefined;
     plugins.push({
       id: manifest.id,
       directory: relative(base),
       ...(parent ? { parent } : {}),
       // The parent is a lifecycle dependency, as at runtime.
-      dependencies: [...new Set([...(manifest.dependencies ?? []), ...(parent ? [parent] : [])])],
-      enabled:
-        config.plugins?.overrides?.[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true,
+      dependencies: [
+        ...new Set([
+          ...(manifest.dependencies ?? []).map((id) => resolveName(id, pluginNames)),
+          ...(parent ? [parent] : []),
+        ]),
+      ],
+      enabled: pluginOverrides[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true,
       ...(await contributionsOf(base, own, relative, warnings, root, {
         entries: manifest.entries,
       })),

@@ -1,4 +1,5 @@
 'use client';
+import type { CheckedName, NamedValue } from '@bitakit/core';
 import {
   useEffect,
   useMemo,
@@ -12,6 +13,7 @@ import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import {
   candidateNames,
+  resolveName,
   selectSingle,
   type SlotMap,
   type SlotPayload,
@@ -28,8 +30,10 @@ import { useSlotPayload } from './use-slot-payload.js';
 
 /** Props of a contributed component; `children` is what the outlet wraps, such as a page in a layout. */
 export type SlotProps<Name extends string> = { payload: SlotPayload<Name>; children?: ReactNode };
-export type SlotOptions<Name extends string> = { entryKey?: string } & (Name extends keyof SlotMap
-  ? SlotMap[Name] extends { payload: unknown }
+export type SlotOptions<Name extends string> = {
+  entryKey?: string;
+} & (Lowercase<Name> extends Lowercase<Extract<keyof SlotMap, string>>
+  ? NamedValue<SlotMap, Name> extends { payload: unknown }
     ? { payload: SlotPayload<Name> }
     : { payload?: undefined }
   : { payload?: unknown });
@@ -44,15 +48,16 @@ export type SlotActionEntry = Common & {
 };
 export type SlotDataEntry<Data = unknown> = Common & { kind: 'data'; data: Data };
 export type SlotEntry = SlotComponentEntry | SlotActionEntry | SlotDataEntry;
-type EntryFor<Name extends string> = Name extends keyof SlotMap
-  ? SlotMap[Name] extends { accepts: 'actions' }
-    ? SlotActionEntry
-    : SlotMap[Name] extends { accepts: 'component' }
-      ? SlotComponentEntry
-      : SlotMap[Name] extends { accepts: 'data' }
-        ? SlotDataEntry<SlotData<Name>>
-        : SlotEntry
-  : SlotEntry;
+type EntryFor<Name extends string> =
+  Lowercase<Name> extends Lowercase<Extract<keyof SlotMap, string>>
+    ? NamedValue<SlotMap, Name> extends { accepts: 'actions' }
+      ? SlotActionEntry
+      : NamedValue<SlotMap, Name> extends { accepts: 'component' }
+        ? SlotComponentEntry
+        : NamedValue<SlotMap, Name> extends { accepts: 'data' }
+          ? SlotDataEntry<SlotData<Name>>
+          : SlotEntry
+    : SlotEntry;
 export type SlotDiagnostics = Readonly<{
   slot: string;
   owner: string | null;
@@ -84,7 +89,9 @@ export type SlotDiagnostics = Readonly<{
 }>;
 export type SlotView<Name extends string = string> = {
   items: readonly EntryFor<Name>[];
-  payload: Name extends keyof SlotMap ? SlotPayload<Name> : unknown;
+  payload: Lowercase<Name> extends Lowercase<Extract<keyof SlotMap, string>>
+    ? SlotPayload<Name>
+    : unknown;
   pending: boolean;
   diagnostics: SlotDiagnostics;
   /** Declared owner's phase; unavailable for legacy undeclared outlets. */
@@ -94,13 +101,15 @@ export type SlotView<Name extends string = string> = {
   error?: Error;
 };
 /** One outlet's validated context and live contributions. Unmount never detaches shared entries. */
-export function useSlot<const Name extends SlotName>(
-  name: Name,
+export function useSlot<const Name extends string>(
+  name: Name & CheckedName<Name, SlotName>,
   ...[options]: SlotOptions<Name> extends { payload: unknown }
     ? [options: SlotOptions<Name>]
     : [options?: SlotOptions<Name>]
 ): SlotView<Name> {
   const { runtime } = useBitaKit();
+  const slotNames = runtime.modules.flatMap((module) => module.slots.map((slot) => slot.id));
+  name = resolveName(name, slotNames) as typeof name;
   const ready = useBitaKitReady();
   const lifecycle = useSyncExternalStore(
     runtime.lifecycle.subscribe,
@@ -187,7 +196,7 @@ export function useSlot<const Name extends SlotName>(
       const selection = selectSingle(
         runtime.modules.flatMap((plugin) =>
           plugin.views.flatMap((item, index) =>
-            item.slot === name
+            resolveName(item.slot, slotNames) === name
               ? [
                   {
                     plugin: plugin.id,
@@ -266,7 +275,7 @@ export function useSlot<const Name extends SlotName>(
         view.items = runtime.modules
           .flatMap((plugin) =>
             plugin.views.flatMap((item, index) =>
-              item.slot === name &&
+              resolveName(item.slot, slotNames) === name &&
               runtime.isReady(plugin.id) &&
               (options?.entryKey === undefined || item.key === options.entryKey) &&
               (!item.when || item.when({ payload: context.value }))

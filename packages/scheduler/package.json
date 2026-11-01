@@ -1,0 +1,67 @@
+{
+  "name": "@bitakit/scheduler",
+  "version": "0.2.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "discovery.mjs",
+    "examples"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "default": "./dist/plugin.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
+    "./discovery": "./discovery.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@bitakit/core": "^0.2.7",
+    "croner": "^11.0.0",
+    "fast-deep-equal": "^3.1.3",
+    "yaml": "^2.9.1",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3",
+    "@bitakit/discovery": "^0.2.4",
+    "jiti": "^2.7.0"
+  },
+  "description": "UI-free in-process task scheduling and runtime schedule sources for BitaKit.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/scheduler"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "bitakit",
+    "scheduler",
+    "cron"
+  ],
+  "bitakit": {
+    "plugin": "./plugin",
+    "discovery": "./discovery"
+  }
+}

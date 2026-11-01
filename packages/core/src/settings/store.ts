@@ -1,3 +1,4 @@
+import { resolveName } from '../name-resolution.js';
 import { parseSetting, type SettingSpec } from './define.js';
 import type { SettingsContext, SettingsStorage, StoredSetting } from './storage.js';
 import { schemaErrorMessage } from '../schema.js';
@@ -101,7 +102,7 @@ export class SettingsStore {
     return [...this.slots.values()].map((slot) => slot.entry);
   }
   has(key: string): boolean {
-    return this.slots.has(key);
+    return this.slots.has(resolveName(key, this.slots.keys()));
   }
   definition(key: string): SettingEntry {
     return this.slot(key).entry;
@@ -211,7 +212,7 @@ export class SettingsStore {
   }
 
   private slot(key: string): Slot {
-    const slot = this.slots.get(key);
+    const slot = this.slots.get(resolveName(key, this.slots.keys()));
     if (!slot) {
       const plugin = key.includes('.') ? `plugin "${key.slice(0, key.indexOf('.'))}"` : 'the app';
       throw new Error(`Unknown setting "${key}". Declare it in settings.ts of ${plugin}.`);
