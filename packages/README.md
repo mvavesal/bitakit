@@ -75,3 +75,12 @@ The [client authentication guide](../apps/docs/content/docs/reference/authentica
 external paths, Better Auth options and an adapter template. UI owns useAuth/AuthBoundary;
 Shell owns standalone page presentation through `@bitakit/shell/pages`. Available since
 Core 0.1.1 and UI/Shell/Better Auth 0.1.0. Auth.js and Clerk implementations remain future work.
+
+## Package artwork
+
+Every package ships a distinct 960 × 640 WebP illustration as `cover.webp`. Its
+`bitakit.coverImage` points to that file on the npm CDN. Settings consumes the existing metadata
+for installed runtime plugins and retains its Reicon fallback when an image is unavailable.
+Pure libraries ship the same asset and metadata without being registered as runtime plugins.
+The original high-resolution generation files are retained locally; only the optimized assets
+are included in npm packages.

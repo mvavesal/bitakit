@@ -14,7 +14,8 @@
     "styles.css",
     "locales",
     "examples",
-    "themes"
+    "themes",
+    "cover.webp"
   ],
   "exports": {
     ".": {
@@ -32,7 +33,8 @@
     "./theme.schema.json": "./dist/theme.schema.json",
     "./styles.css": "./styles.css",
     "./locales/*.json": "./locales/*.json",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./cover.webp": "./cover.webp"
   },
   "scripts": {
     "build": "node scripts/themes.mjs && tsc -p tsconfig.json && node scripts/theme-schema.mjs && node ../../scripts/visual-slot-metadata.mjs shell",
@@ -76,7 +78,8 @@
       "app-bar.end",
       "sidebar.header",
       "sidebar.footer"
-    ]
+    ],
+    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/shell/cover.webp"
   },
   "license": "MIT",
   "repository": {

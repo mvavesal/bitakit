@@ -37,3 +37,9 @@ const email = getService(runtime.services, emailService);
   Keep SMTP credentials in ignored local env files.
 - TLS is required; the browser entry refuses to run.
 - Registering it opens no connection and sends nothing; do not send real mail from tests.
+
+## Package artwork
+
+The package ships `cover.webp`; `package.json` declares its public CDN URL in
+`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
+Headless packages stay headless: artwork does not register a runtime plugin or add React.

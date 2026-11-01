@@ -99,3 +99,9 @@ or removal. Providers, foundational services and other composition restrictions 
 candidate definitions installed with failed lifecycle state; this API does not silently roll
 back. Optional `@bitakit/packages` coordinates artifact recovery. Core never downloads or
 persists code, and `reconcilePlugins` retains its existing narrower compatibility contract.
+
+## Package artwork
+
+The package ships `cover.webp`; `package.json` declares its public CDN URL in
+`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
+Headless packages stay headless: artwork does not register a runtime plugin or add React.

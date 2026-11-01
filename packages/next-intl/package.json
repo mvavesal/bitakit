@@ -3,7 +3,8 @@
   "version": "0.2.5",
   "type": "module",
   "bitakit": {
-    "plugin": "./plugin"
+    "plugin": "./plugin",
+    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/next-intl/cover.webp"
   },
   "sideEffects": false,
   "files": [
@@ -11,7 +12,8 @@
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
-    "locales"
+    "locales",
+    "cover.webp"
   ],
   "exports": {
     ".": {
@@ -27,7 +29,8 @@
       "default": "./dist/preferences.js"
     },
     "./locales/*.json": "./locales/*.json",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./cover.webp": "./cover.webp"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

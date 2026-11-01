@@ -11,7 +11,8 @@
     "assets",
     "discovery",
     "examples",
-    "testing"
+    "testing",
+    "cover.webp"
   ],
   "exports": {
     ".": {
@@ -29,7 +30,8 @@
     "./testing": {
       "types": "./testing/index.d.ts",
       "default": "./testing/index.mjs"
-    }
+    },
+    "./cover.webp": "./cover.webp"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -77,5 +79,8 @@
     "actions",
     "services",
     "events"
-  ]
+  ],
+  "bitakit": {
+    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/core/cover.webp"
+  }
 }

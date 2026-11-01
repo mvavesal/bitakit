@@ -8,14 +8,16 @@
       "types": "./src/index.d.ts",
       "default": "./src/index.mjs"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./cover.webp": "./cover.webp"
   },
   "files": [
     "src",
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
-    "LICENSE"
+    "LICENSE",
+    "cover.webp"
   ],
   "dependencies": {
     "enhanced-resolve": "^5.26.0",
@@ -42,5 +44,8 @@
     "composition",
     "discovery",
     "codegen"
-  ]
+  ],
+  "bitakit": {
+    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/discovery/cover.webp"
+  }
 }

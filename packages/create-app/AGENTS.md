@@ -38,3 +38,9 @@ skill explains the rest.
 
 Generated apps require Core 0.2.8 and Discovery 0.2.5 or newer within the 0.2 line for the
 provenance API. Local packed-package verification supplies these APIs before publication.
+
+## Package artwork
+
+The package ships `cover.webp`; `package.json` declares its public CDN URL in
+`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
+Headless packages stay headless: artwork does not register a runtime plugin or add React.

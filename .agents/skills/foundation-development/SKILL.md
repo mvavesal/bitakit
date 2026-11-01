@@ -760,7 +760,9 @@ tags remain visible when no tag is selected. Names, descriptions and tags partic
 
 Declare metadata in `definePlugin({ metadata: { tags, coverImage } })`, local
 `plugin.config.ts` metadata, or package.json `bitakit.tags` / `bitakit.coverImage` with top-level legacy fallbacks. Discovery and package builds preserve both fields. Covers are optional;
-missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback).
+missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback). The detail
+information Card displays the full cover using the central Card image treatment; failed detail
+images disappear without blocking settings.
 
 App Preferences uses central Card/Item/Badge primitives and Radix ScrollArea, with no pagination.
 `pluginView` (flat by default, or grouped) and `pluginBundle` join search/tag/status in nuqs.

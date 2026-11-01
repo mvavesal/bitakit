@@ -89,3 +89,9 @@ README sections: AppShell, Slots, Appearance settings, Theme files, Notification
 
 The built `foundation.slots.json` also records the static runtime ID `shell`. Discovery uses
 that generated evidence for binding checks; it does not derive membership from the npm scope.
+
+## Package artwork
+
+The package ships `cover.webp`; `package.json` declares its public CDN URL in
+`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
+Headless packages stay headless: artwork does not register a runtime plugin or add React.

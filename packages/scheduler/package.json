@@ -9,7 +9,8 @@
     "AGENTS.md",
     "CLAUDE.md",
     "discovery.mjs",
-    "examples"
+    "examples",
+    "cover.webp"
   ],
   "exports": {
     ".": {
@@ -25,7 +26,8 @@
       "default": "./dist/server/index.js"
     },
     "./discovery": "./discovery.mjs",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./cover.webp": "./cover.webp"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -62,6 +64,7 @@
   ],
   "bitakit": {
     "plugin": "./plugin",
-    "discovery": "./discovery"
+    "discovery": "./discovery",
+    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/scheduler/cover.webp"
   }
 }

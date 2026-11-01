@@ -19,3 +19,9 @@ from Vite and connects the BitaKit provider to TanStack Router and nuqs.
 
 - Plugin code is identical to a Next.js app; only the framework files differ.
 - Keep native routes for server work; plugin pages render in the browser.
+
+## Package artwork
+
+The package ships `cover.webp`; `package.json` declares its public CDN URL in
+`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
+Headless packages stay headless: artwork does not register a runtime plugin or add React.

@@ -7,7 +7,8 @@
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
-    "locales"
+    "locales",
+    "cover.webp"
   ],
   "exports": {
     ".": {
@@ -18,7 +19,8 @@
       "types": "./dist/demo.d.ts",
       "default": "./dist/demo.js"
     },
-    "./locales/*.json": "./locales/*.json"
+    "./locales/*.json": "./locales/*.json",
+    "./cover.webp": "./cover.webp"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -49,5 +51,8 @@
     "composition",
     "organizations",
     "multi-tenant"
-  ]
+  ],
+  "bitakit": {
+    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/organizations/cover.webp"
+  }
 }

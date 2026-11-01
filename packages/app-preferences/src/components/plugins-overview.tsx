@@ -153,6 +153,7 @@ function PluginMedia({ plugin }: { plugin: PluginEntry }) {
 }
 
 function PluginDetail({ plugin, back }: { plugin: PluginEntry; back: ReactNode }) {
+  const [failedCover, setFailedCover] = useState<string>();
   const messages = useMessages();
   const location = useSettingsLocation({});
   const id = useId();
@@ -213,6 +214,14 @@ function PluginDetail({ plugin, back }: { plugin: PluginEntry; back: ReactNode }
           </div>
           <aside aria-labelledby={`${id}information`} className="min-w-0">
             <Card size="sm">
+              {plugin.cover && failedCover !== plugin.cover && (
+                <img
+                  src={plugin.cover}
+                  alt=""
+                  className="aspect-[3/2] w-full object-cover"
+                  onError={() => setFailedCover(plugin.cover)}
+                />
+              )}
               <CardHeader>
                 <CardTitle id={`${id}information`}>{messages('information')}</CardTitle>
               </CardHeader>

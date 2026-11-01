@@ -38,3 +38,9 @@ export default defineService(() => betterAuthOrganizations(authClient), {
   proof of membership, and a disabled membership grants nothing.
 - Do not build a second organization store or membership check in the app.
 - Translations: compose `./locales/<lang>.json` with `mergePluginMessages`.
+
+## Package artwork
+
+The package ships `cover.webp`; `package.json` declares its public CDN URL in
+`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
+Headless packages stay headless: artwork does not register a runtime plugin or add React.

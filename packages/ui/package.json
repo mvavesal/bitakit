@@ -14,7 +14,8 @@
     "CLAUDE.md",
     "locales",
     "theme.css",
-    "THEME.md"
+    "THEME.md",
+    "cover.webp"
   ],
   "exports": {
     ".": {
@@ -36,7 +37,8 @@
     },
     "./locales/*.json": "./locales/*.json",
     "./theme.css": "./theme.css",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./cover.webp": "./cover.webp"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -77,7 +79,8 @@
   },
   "bitakit": {
     "styles": "./styles.css",
-    "theme": "./theme.css"
+    "theme": "./theme.css",
+    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/ui/cover.webp"
   },
   "peerDependenciesMeta": {
     "react-dom": {
