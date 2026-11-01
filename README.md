@@ -22,7 +22,7 @@ BitaKit is not another framework. It sits on top of the one you already use, thr
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/layers-dark.svg">
-  <img src="docs/assets/readme/layers-light.svg" alt="BitaKit as a composition layer: your pages sit on feature plugins, one folder each; the plugins snap onto BitaKit Core's contracts (Actions, services, events, settings, slots, layouts, interceptors); discovery and the adapter connect it at build time; Next.js or TanStack Start keeps routing, rendering and deployment." width="880">
+  <img src="docs/assets/readme/layers-light.svg" alt="BitaKit as a composition layer: a thin app layer connects custom feature plugins (examples you build) and optional plugins and integrations, including Scheduler. Core provides shared contracts; discovery and adapters connect plugins to Next.js or TanStack Start." width="880">
 </picture>
 
 ## Quick start
@@ -221,6 +221,7 @@ search, short lessons and separate API references.
 | Plugin updates and diagnostics            | [Runtime management](apps/docs/content/docs/concepts/runtime-management.mdx) |
 | Shell, auth, organizations or email       | [Packages](packages/README.md)                                               |
 | Trusted build-included package activation | [Package host adapter](packages/packages/README.md)                          |
+| In-process tasks and scheduling           | [Scheduler](packages/scheduler/README.md)                                    |
 | Headless runtime composition              | [Core](packages/core/README.md)                                              |
 | CLI commands                              | [CLI](packages/cli/README.md)                                                |
 

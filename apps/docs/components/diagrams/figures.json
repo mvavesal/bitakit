@@ -55,7 +55,7 @@
   },
   "layers": {
     "title": "BitaKit is a composition layer",
-    "caption": "Your framework keeps routing, rendering and deployment. BitaKit adds the contracts between features; every feature, yours or optional, is a plugin in its own folder.",
+    "caption": "A thin app layer connects your framework to custom feature plugins and optional packages such as Shell, App Preferences, Quick Search and Scheduler. Notes, Billing and Reports are examples you build, not included features.",
     "sources": [
       "packages/core/src/runtime.ts",
       "packages/core/src/interceptors/define.ts",
@@ -63,7 +63,7 @@
       "packages/next/src/config.mjs"
     ],
     "width": 880,
-    "height": 472
+    "height": 512
   },
   "lifecycle-flow": {
     "title": "Update compatible plugin owners",

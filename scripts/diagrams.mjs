@@ -39,6 +39,15 @@ const tokens = [
   ['#9a6700', '#ebb759'], // accent
   ['#1f5fa8', '#79a8e0'], // link
   ['#c9d3de', 'rgba(157,176,198,0.30)'], // rule-solid
+  // Approved layer-specific olive and indigo accents in the composition overview.
+  ['#f1f4e7', '#1c2417'], // app surface
+  ['#a6b183', '#657947'], // app border
+  ['#48572b', '#d0ddb0'], // app title
+  ['#536333', '#b8c99b'], // app label and notes
+  ['#f0f1f8', '#1b1e30'], // framework surface
+  ['#b8bdd7', '#656e9b'], // framework border
+  ['#464e79', '#ced4f2'], // framework title
+  ['#5a638c', '#b1bbdf'], // framework label and notes
   ['rgba(235,183,89,0.16)', 'rgba(235,183,89,0.12)'], // accent-tint
 ];
 // Role colors at an opacity keep their alpha.
