@@ -1,5 +1,17 @@
 # @bitakit/app-preferences
 
+## 0.2.11
+
+### Patch Changes
+
+- 32adc9f: Consolidate plugin filters into one accessible dropdown with tag, status and bundle submenus. Show removable active filters below the toolbar while preserving URL state and existing selection semantics.
+- 32adc9f: Use Reicon CardSearch for Quick Search, Setting4 for App Preferences and Window for Shell plugin metadata.
+- c84b956: Remove bundled package cover artwork and its package metadata and exports.
+- Updated dependencies [3917b35]
+- Updated dependencies [c84b956]
+  - @bitakit/core@0.2.9
+  - @bitakit/ui@0.2.10
+
 ## 0.2.10
 
 ### Patch Changes
