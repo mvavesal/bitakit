@@ -185,3 +185,13 @@ Say which plugin owns the page (`src/plugins/about`), that its URL comes from th
 `ui/pages/index.tsx` (`/about`), and that the sidebar entry is the Action `about.open` placed in
 Shell's `shell.navigation` slot. To try it: start the dev server, click "About" in the navigation (the
 sidebar, or the top bar in Shell's navbar layout) or open `/about`.
+
+## Plugin metadata and grouping
+
+Local titles, descriptions and tags belong in `plugin.config.ts` → `metadata`. Their application
+membership is derived. For package plugins use standard package.json fields and `bitakit.title`,
+`tags`, `coverImage`, `memberOf`; old tags/images remain fallbacks. `memberOf: ['*']` means general
+purpose; absence means unspecified. Host `bitakit.config.ts` may declare `bundles: [{ id, label? }]`.
+Package and bundle names compare lowercase with scopes preserved; runtime IDs do not change.
+`bitakit info --json` shows provenance and membership without running package entries or hooks.
+Keep static `bitakit.id` consistent with the built sidecar; grouping never adds dependencies.

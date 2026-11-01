@@ -13,7 +13,7 @@ import { searchSettings } from '../dist/search.js';
 const Page = () => h('p', null, 'custom page');
 const todos = definePlugin({
   id: 'todos',
-  metadata: { name: 'Todos' },
+  metadata: { title: 'Todos', name: '@acme/todos' },
   settings: defineSettings(
     {
       pageSize: setting({ default: 20, label: 'Page size', order: 2 }),
@@ -48,6 +48,22 @@ const messages = {
 };
 const translate = Object.assign((key) => messages[key] ?? key, {
   has: (key) => Object.hasOwn(messages, key),
+});
+
+test('settings titles prefer canonical metadata while explicit section labels and translations win', () => {
+  const modules = [{ id: 'app', settings: config.settings }, todos];
+  assert.equal(settingsCatalog(modules, 'app').find((s) => s.id === 'app').title, 'General');
+  assert.equal(settingsCatalog(modules, 'app').find((s) => s.id === 'todos').title, 'Todos');
+  assert.equal(
+    settingsCatalog(modules, 'app', translate).find((s) => s.id === 'todos').title,
+    'Aufgaben',
+  );
+  const explicit = {
+    ...todos,
+    settings: defineSettings({ size: setting({ default: 1 }) }, { title: 'My settings' }),
+  };
+  assert.equal(settingsCatalog([explicit], 'app')[0].title, 'My settings');
+  assert.equal(settingsCatalog([explicit], 'app', translate)[0].title, 'Aufgaben');
 });
 
 test('settingsCatalog builds the same sections as useSettingsCatalog, including translations', async () => {

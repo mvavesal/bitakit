@@ -9,6 +9,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { serve, smoke } from './fixtures/browser.mjs';
 import { configureAuthFixture, verifyAuthStyles } from './fixtures/generated-auth.mjs';
+import {
+  configurePluginGroupingFixture,
+  verifyPluginGrouping,
+  verifyPluginGroupingUpdates,
+} from './fixtures/generated-plugin-grouping.mjs';
 import { configureSearchFixture, verifySearch } from './fixtures/generated-search.mjs';
 import { configureThemeFixture, verifyDeveloperTheme } from './fixtures/generated-theme.mjs';
 import {
@@ -71,6 +76,7 @@ const app = (framework, sample) => ({
 const scenarios = {
   'next-bare': app('next', false),
   'next-sample': app('next', true),
+  'next-plugin-grouping': { ...app('next', true), pluginGrouping: true },
   'next-search': { ...app('next', true), search: true },
   'next-auth': { ...app('next', true), auth: true },
   'tanstack-bare': app('tanstack', false),
@@ -145,6 +151,12 @@ async function verify(name, scenario) {
         throw new Error(`${folder}/skills/bitakit-app-development differs from the package.`);
   });
   if (scenario.search) await configureSearchFixture(target);
+  if (scenario.pluginGrouping) {
+    await configurePluginGroupingFixture(target);
+    await step('install plugin grouping fixture', () =>
+      run('npm', ['install', '--no-audit', '--no-fund'], target),
+    );
+  }
   if (scenario.auth) {
     const archives = Object.fromEntries(
       (await readdir(packs)).map((file) => [
@@ -181,21 +193,29 @@ async function verify(name, scenario) {
   }
   await step('type check', () => run('npm', ['run', 'typecheck'], target));
   await step('doctor', () => run('npx', ['bitakit', 'doctor'], target));
-  if (scenario.auth || scenario.search) {
+  if (scenario.auth || scenario.search || scenario.pluginGrouping) {
     const server = await step('start development', () =>
       serve(scenario.framework, target, { development: true, auth: true }),
     );
     const artifacts = path.join(target, 'verification-development');
     await mkdir(artifacts);
     try {
-      await step(scenario.search ? 'development search' : 'development auth styles', () =>
-        smoke(server.url, [], async (page) => {
-          if (scenario.search) await verifySearch(page, server.url, artifacts);
-          else {
-            await verifyAuthStyles(page, server.url, artifacts, target);
-            await verifyDeveloperTheme(page, server.url, artifacts);
-          }
-        }),
+      await step(
+        scenario.pluginGrouping
+          ? 'development plugin updates'
+          : scenario.search
+            ? 'development search'
+            : 'development auth styles',
+        () =>
+          smoke(server.url, [], async (page) => {
+            if (scenario.pluginGrouping)
+              await verifyPluginGroupingUpdates(page, server.url, target);
+            else if (scenario.search) await verifySearch(page, server.url, artifacts);
+            else {
+              await verifyAuthStyles(page, server.url, artifacts, target);
+              await verifyDeveloperTheme(page, server.url, artifacts);
+            }
+          }),
       );
     } finally {
       server.stop();
@@ -212,14 +232,16 @@ async function verify(name, scenario) {
       smoke(
         server.url,
         scenario.visits,
-        scenario.search
-          ? async (page) => verifySearch(page, server.url, artifacts)
-          : scenario.auth
-            ? async (page) => {
-                await verifyAuthStyles(page, server.url, artifacts);
-                await verifyDeveloperTheme(page, server.url, artifacts);
-              }
-            : undefined,
+        scenario.pluginGrouping
+          ? async (page) => verifyPluginGrouping(page, server.url, artifacts)
+          : scenario.search
+            ? async (page) => verifySearch(page, server.url, artifacts)
+            : scenario.auth
+              ? async (page) => {
+                  await verifyAuthStyles(page, server.url, artifacts);
+                  await verifyDeveloperTheme(page, server.url, artifacts);
+                }
+              : undefined,
       ),
     );
   } finally {

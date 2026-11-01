@@ -7,7 +7,14 @@ import {
   parseAsStringLiteral,
   useQueryStates,
 } from 'nuqs';
-import { safeHref } from '@bitakit/core';
+import {
+  safeHref,
+  pluginDisplayTitle,
+  pluginMembership,
+  groupPlugins,
+  type PluginMembership,
+  type PluginGroup,
+} from '@bitakit/core';
 import { useBitaKit, useSettingsCatalog, useTranslation, useRuntimeInventory } from '@bitakit/ui';
 import {
   Badge,
@@ -59,6 +66,10 @@ const parsers = {
   pluginStatus: parseAsStringLiteral(statuses)
     .withDefault('all')
     .withOptions({ history: 'replace' }),
+  pluginView: parseAsStringLiteral(['flat', 'grouped'])
+    .withDefault('flat')
+    .withOptions({ history: 'replace' }),
+  pluginBundle: parseAsString.withDefault('all').withOptions({ history: 'replace' }),
   q: parseAsString.withDefault(''),
 };
 const serialize = createSerializer(parsers);
@@ -67,6 +78,8 @@ type View = {
   pluginSearch: string;
   pluginTag: string[];
   pluginStatus: PluginStatus;
+  pluginView: 'flat' | 'grouped';
+  pluginBundle: string;
   q: string;
 };
 
@@ -83,6 +96,7 @@ type PluginEntry = {
   cover?: string;
   icon: IconComponent;
   tags: readonly string[];
+  membership: PluginMembership;
 };
 /** Installed plugins with their metadata; `plugins.<id>.name|description` translate it. */
 function usePlugins(): readonly PluginEntry[] {
@@ -97,10 +111,15 @@ function usePlugins(): readonly PluginEntry[] {
         const meta = module.metadata;
         return {
           id: module.id,
+          membership: module.membership ?? pluginMembership(undefined),
           enabled:
             module.enabled === true &&
             inventory.live?.plugins.find((entry) => entry.id === module.id)?.phase !== 'failed',
-          name: t(`plugins.${module.id}.name`, undefined, meta?.name ?? module.id),
+          name: t(
+            `plugins.${module.id}.name`,
+            undefined,
+            pluginDisplayTitle(meta, module.package?.name ?? module.id),
+          ),
           description:
             t(`plugins.${module.id}.description`, undefined, meta?.description ?? '') || undefined,
           version: meta?.version,
@@ -251,12 +270,16 @@ function PluginsView({
   onTag,
   onClearTags,
   onStatus,
+  onView,
+  onBundle,
 }: {
   view: View;
   onSearch?: (value: string | null) => void;
   onTag?: (tag: string, checked: boolean) => void;
   onClearTags?: () => void;
   onStatus?: (value: PluginStatus) => void;
+  onView?: (value: 'flat' | 'grouped') => void;
+  onBundle?: (value: string) => void;
 }) {
   const messages = useMessages();
   const statusLabels = {
@@ -265,6 +288,19 @@ function PluginsView({
     disabled: messages('disabledPlugins'),
   };
   const plugins = usePlugins();
+  const { runtime } = useBitaKit();
+  const allGroups = groupPlugins(plugins, runtime.config.bundle);
+  const groupLabel = (group: PluginGroup<PluginEntry>) => {
+    if (group.kind === 'application') return messages('thisApplication');
+    if (group.kind === 'general') return messages('generalPlugins');
+    if (group.kind === 'unspecified') return messages('unassignedPlugins');
+    if (group.kind === 'unresolved')
+      return messages('unresolvedBundle', { bundle: group.bundleId ?? '' });
+    return group.label ?? group.bundleId ?? '';
+  };
+  const selectedBundle = view.pluginBundle.toLowerCase();
+  const selectedGroup = allGroups.find((group) => group.key === selectedBundle);
+
   const location = useSettingsLocation({});
   const catalog = useSettingsCatalog();
   const { Link } = location;
@@ -307,8 +343,15 @@ function PluginsView({
         .toLocaleLowerCase()
         .includes(terms) &&
       (!view.pluginTag.length || view.pluginTag.some((tag) => plugin.tags.includes(tag))) &&
-      (view.pluginStatus === 'all' || plugin.enabled === (view.pluginStatus === 'enabled')),
+      (view.pluginStatus === 'all' || plugin.enabled === (view.pluginStatus === 'enabled')) &&
+      (selectedBundle === 'all' || selectedGroup?.entries.some((entry) => entry.id === plugin.id)),
   );
+  const groups =
+    view.pluginView === 'grouped'
+      ? groupPlugins(entries, runtime.config.bundle).filter(
+          (group) => selectedBundle === 'all' || group.key === selectedBundle,
+        )
+      : [{ key: 'flat', kind: 'unspecified' as const, entries }];
   return (
     <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col gap-4">
       <PageHeader title={own?.title ?? messages('plugins')} subtitle={own?.description} />
@@ -369,75 +412,133 @@ function PluginsView({
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" aria-label={messages('filterBundles')}>
+              {selectedBundle === 'all'
+                ? messages('allBundles')
+                : selectedGroup
+                  ? groupLabel(selectedGroup)
+                  : view.pluginBundle}
+              <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuRadioGroup value={selectedBundle} onValueChange={onBundle}>
+              <DropdownMenuRadioItem value="all">{messages('allBundles')}</DropdownMenuRadioItem>
+              {allGroups.map((group) => (
+                <DropdownMenuRadioItem key={group.key} value={group.key}>
+                  {groupLabel(group)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" aria-label={messages('pluginView')}>
+              {messages(view.pluginView === 'flat' ? 'flatPluginView' : 'groupedPluginView')}
+              <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuRadioGroup
+              value={view.pluginView}
+              onValueChange={(value) => onView?.(value as 'flat' | 'grouped')}
+            >
+              <DropdownMenuRadioItem value="flat">
+                {messages('flatPluginView')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="grouped">
+                {messages('groupedPluginView')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+      <p role="status">{messages('distinctPlugins', { count: entries.length })}</p>
       <PluginChangeFeedback />
       <ScrollArea
-        key={`${view.pluginSearch}:${view.pluginTag.join()}:${view.pluginStatus}`}
+        key={`${view.pluginSearch}:${view.pluginTag.join()}:${view.pluginStatus}:${view.pluginView}:${view.pluginBundle}`}
         className="-mx-1 min-h-0 min-w-0 flex-initial"
       >
-        <div className="py-1 ps-1 pe-4">
-          {entries.length > 0 && (
-            <Card size="sm" className="py-0">
-              <ItemGroup
-                className="app-preferences-plugins gap-0 has-data-[size=sm]:gap-0"
-                aria-label={messages('plugins')}
+        <div className="flex flex-col gap-4 py-1 ps-1 pe-4">
+          {entries.length > 0 &&
+            groups.map((group) => (
+              <Card
+                key={group.key}
+                size="sm"
+                className={view.pluginView === 'flat' ? 'py-0' : undefined}
               >
-                {entries.map((plugin, index) => (
-                  <Fragment key={plugin.id}>
-                    <div role="listitem" className="flex min-w-0 items-center">
-                      <Item
-                        asChild
-                        size="sm"
-                        className="app-preferences-plugin min-w-0 flex-1 flex-nowrap [a]:hover:bg-transparent"
-                      >
-                        <Link href={href(plugin.id)}>
-                          <PluginMedia plugin={plugin} />
-                          <ItemContent className="min-w-0">
-                            <ItemTitle className="max-w-full flex-wrap overflow-visible">
-                              <span className="min-w-0 wrap-anywhere">{plugin.name}</span>
-                              {plugin.version && (
-                                <Badge
-                                  variant="secondary"
-                                  className="max-w-full whitespace-normal wrap-anywhere"
-                                >
-                                  {plugin.version}
-                                </Badge>
-                              )}
-                            </ItemTitle>
-                            {plugin.description && (
-                              <ItemDescription className="line-clamp-none wrap-anywhere">
-                                {plugin.description}
-                              </ItemDescription>
-                            )}
-                            {plugin.author && (
-                              <ItemDescription className="line-clamp-none wrap-anywhere">
-                                {messages('author', { author: plugin.author })}
-                              </ItemDescription>
-                            )}
-                            {plugin.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5">
-                                {plugin.tags.map((tag) => (
+                {view.pluginView === 'grouped' && (
+                  <CardHeader>
+                    <CardTitle role="heading" aria-level={2}>
+                      {groupLabel(group)} <Badge variant="secondary">{group.entries.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                )}
+                <ItemGroup
+                  className="app-preferences-plugins gap-0 has-data-[size=sm]:gap-0"
+                  aria-label={
+                    view.pluginView === 'grouped' ? groupLabel(group) : messages('plugins')
+                  }
+                >
+                  {group.entries.map((plugin, index) => (
+                    <Fragment key={plugin.id}>
+                      <div role="listitem" className="flex min-w-0 items-center">
+                        <Item
+                          asChild
+                          size="sm"
+                          className="app-preferences-plugin min-w-0 flex-1 flex-nowrap [a]:hover:bg-transparent"
+                        >
+                          <Link href={href(plugin.id)}>
+                            <PluginMedia plugin={plugin} />
+                            <ItemContent className="min-w-0">
+                              <ItemTitle className="max-w-full flex-wrap overflow-visible">
+                                <span className="min-w-0 wrap-anywhere">{plugin.name}</span>
+                                {plugin.version && (
                                   <Badge
-                                    key={tag}
-                                    variant="outline"
+                                    variant="secondary"
                                     className="max-w-full whitespace-normal wrap-anywhere"
                                   >
-                                    {tag}
+                                    {plugin.version}
                                   </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </ItemContent>
-                        </Link>
-                      </Item>
-                      <PluginToggle id={plugin.id} name={plugin.name} />
-                    </div>
-                    {index < entries.length - 1 && <ItemSeparator className="my-0" />}
-                  </Fragment>
-                ))}
-              </ItemGroup>
-            </Card>
-          )}
+                                )}
+                              </ItemTitle>
+                              {plugin.description && (
+                                <ItemDescription className="line-clamp-none wrap-anywhere">
+                                  {plugin.description}
+                                </ItemDescription>
+                              )}
+                              {plugin.author && (
+                                <ItemDescription className="line-clamp-none wrap-anywhere">
+                                  {messages('author', { author: plugin.author })}
+                                </ItemDescription>
+                              )}
+                              {plugin.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {plugin.tags.map((tag) => (
+                                    <Badge
+                                      key={tag}
+                                      variant="outline"
+                                      className="max-w-full whitespace-normal wrap-anywhere"
+                                    >
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </ItemContent>
+                          </Link>
+                        </Item>
+                        <PluginToggle id={plugin.id} name={plugin.name} />
+                      </div>
+                      {index < group.entries.length - 1 && <ItemSeparator className="my-0" />}
+                    </Fragment>
+                  ))}
+                </ItemGroup>
+              </Card>
+            ))}
           {!entries.length && (
             <Empty role="status">
               <EmptyHeader>
@@ -469,6 +570,8 @@ function SearchablePlugins() {
       }
       onClearTags={() => void setView({ pluginTag: [] })}
       onStatus={(value) => void setView({ pluginStatus: value })}
+      onView={(value) => void setView({ pluginView: value })}
+      onBundle={(value) => void setView({ pluginBundle: value })}
     />
   );
 }
@@ -487,6 +590,8 @@ export function PluginsOverview() {
             pluginSearch: '',
             pluginTag: [],
             pluginStatus: 'all',
+            pluginView: 'flat',
+            pluginBundle: 'all',
             q: '',
           }}
         />

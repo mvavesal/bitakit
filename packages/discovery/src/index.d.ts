@@ -1,3 +1,4 @@
+import type { PluginMetadata, PluginMetadataSources } from '@bitakit/core';
 /** An integration-defined contribution kind: folder inside `contributions/` of each module plus its normalizer. */
 export type ContributionKindSpec = {
   /** Kind name used in `contributions`, e.g. "settings.renderers". */
@@ -12,6 +13,8 @@ export type ContributionKindSpec = {
   types?: { entry: string; map: string };
 };
 export type DiscoveryConfig = {
+  /** Known application bundles and optional display labels; IDs compare in lowercase. */
+  bundles?: readonly { id: string; label?: string }[];
   /** Installed opt-in packages are included by default; false disables all, or select by package name. */
   packages?: false | Readonly<Record<string, boolean>>;
   /** Build-included package names offered for lazy host activation, instead of automatic startup. */
@@ -133,6 +136,8 @@ export function describeDefinitions(
 export type DescribedModule = {
   id: string;
   directory: string;
+  origin?: PluginOriginRecord;
+  metadata?: PluginMetadata;
   actions: DescribedEntry[];
   services: DescribedEntry[];
   events: DescribedEntry[];
@@ -156,6 +161,22 @@ export type DescribedModule = {
 };
 export type BitaKitDescription = {
   root: string;
+  bundle?: string;
+  knownBundles?: readonly { id: string; label?: string }[];
+  packagePlugins?: Readonly<
+    Record<
+      string,
+      {
+        name: string;
+        /** Lowercase dependency key; may be an npm alias for the canonical package name. */
+        dependencyName?: string;
+        version?: string;
+        pluginId?: string | null;
+        selected?: boolean;
+        origin: PluginOriginRecord;
+      }
+    >
+  >;
   framework: 'next' | 'tanstack' | 'none';
   pluginsDirectory: string;
   appDirectory: string;
@@ -167,7 +188,7 @@ export type BitaKitDescription = {
     parent?: string;
     enabled: boolean;
   })[];
-  /** Plugin entry specifiers of installed opt-in packages. */
+  /** All discovered physical plugin copies; packagePlugins.selected identifies build selection. */
   packages: string[];
   /** Included in the build, with activation chosen later by host management. */
   catalogPackages: string[];
@@ -187,8 +208,22 @@ export type BitaKitDescription = {
   /** `choose` of bitakit.config.ts: the occupant the app picks for each `single` slot. */
   choose: Readonly<Record<string, string>>;
   warnings: string[];
+  /** Subsets classified by their producer, independent of filenames or message wording. */
+  metadataWarnings?: string[];
+  packageWarnings?: string[];
 };
-export function describeBitaKit(root: string): Promise<BitaKitDescription>;
+export type PluginOriginRecord = {
+  kind: 'local' | 'included' | 'package';
+  package: { name: string; version: string | null } | null;
+  memberOf: readonly string[] | null;
+  pluginId?: string | null;
+  metadata?: PluginMetadataSources;
+};
+/** Package metadata inspection can skip executable discovery hooks and the stylesheet audit. */
+export function describeBitaKit(
+  root: string,
+  options?: { packageMetadataOnly?: boolean; auditPackageStyles?: boolean },
+): Promise<BitaKitDescription>;
 export function describeModule(
   directory: string,
 ): Promise<Omit<DescribedModule, 'id'> & { setup?: string; locales: string[]; warnings: string[] }>;
@@ -223,3 +258,18 @@ export function navigationPlacement(
   source: string,
   target?: string,
 ): { code: string; changed: number; missing: { line: number; safe: boolean }[] };
+
+/** Predicts the historical ID used by a plugin project build, not an installed package ID. */
+export function packagePluginId(name?: string): string;
+export function pluginIdentityConflicts(
+  records: readonly { id?: string | null; source: string }[],
+): string[];
+
+/** Resolve a selected package client entry with browser/import export conditions. */
+export function resolvePluginEntry(specifier: string, manifestFile: string): string;
+/** Check the existing manifest/sidecar binding without executing the package. */
+export function staticPluginId(
+  name: string,
+  metadata: { id?: unknown },
+  sidecar?: unknown,
+): string | null;

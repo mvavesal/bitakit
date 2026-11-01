@@ -31,7 +31,8 @@ export function quickSearchPlugin(options: QuickSearchOptions = {}) {
     id: 'quick-search',
     metadata: {
       name: 'Quick search',
-      description: 'Find pages, settings and results from connected search sources.',
+      description:
+        'BitaKit Quick Search: plugin-owned search sources, navigation, preferences and recent history.',
       tags: ['system'],
       icon: SearchIcon,
     },

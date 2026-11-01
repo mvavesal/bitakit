@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 // Published @bitakit packages share one release line (0.2.x). Only changed packages get a patch
 // release, so patch versions may differ. Internal dependencies use caret ranges the workspace
-// satisfies. Generated apps depend on the release line (`^0.2.0`), so create-app may be newer
+// satisfies; peer minima may use a verified pending release on the same line. Generated apps
+// depend on the release line (`^0.2.0`), so create-app may be newer
 // than other packages. Pending changesets are checked too: a minor or major bump starts a new
 // line, so it must list every published package; otherwise the Version packages pull request
 // would split the line and fail this check only after it was merged.
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getPackages } from '@manypkg/get-packages';
+import { readChangesets } from '@changesets/read';
+import { readConfig } from '@changesets/config';
+import { readPreState } from '@changesets/pre';
+import { assembleReleasePlan } from '@changesets/assemble-release-plan';
 
 const root = path.resolve(import.meta.dirname, '..');
 const directories = (await readdir(path.join(root, 'packages'), { withFileTypes: true }))
@@ -20,6 +26,22 @@ for (const directory of directories) {
 }
 const published = manifests.filter(({ manifest }) => !manifest.private);
 const versionOf = new Map(published.map(({ manifest }) => [manifest.name, manifest.version]));
+let plannedVersions;
+// A new optional entry can require an export shipping in the same release. Keep its peer
+// minimum truthful now. Use Changesets' planner directly: status also compares Git history,
+// which is unavailable in shallow detached PR checkouts and source archives.
+async function plannedVersion(name) {
+  if (!plannedVersions) {
+    const packages = await getPackages(root);
+    const { config, warnings, errors } = await readConfig(root, packages);
+    for (const warning of warnings) console.warn(warning);
+    if (errors?.length) throw new Error(`Invalid Changesets configuration:\n${errors.join('\n')}`);
+    const changesets = await readChangesets(root);
+    const plan = assembleReleasePlan(changesets, packages, config, await readPreState(root));
+    plannedVersions = new Map(plan.releases.map((release) => [release.name, release.newVersion]));
+  }
+  return plannedVersions.get(name);
+}
 const parse = (version) => version.split('.').map(Number);
 const line = (version) => {
   const [major, minor] = parse(version);
@@ -46,9 +68,19 @@ for (const { file, manifest } of manifests)
       if (!name.startsWith('@bitakit/')) continue;
       const current = versionOf.get(name);
       const minimum = /^\^(\d+\.\d+\.\d+)$/.exec(range)?.[1];
-      if (!current || !minimum || line(minimum) !== line(current) || compare(minimum, current) > 0)
+      const pending =
+        field === 'peerDependencies' && current && minimum && compare(minimum, current) > 0
+          ? await plannedVersion(name)
+          : undefined;
+      const available = pending ?? current;
+      if (
+        !current ||
+        !minimum ||
+        line(minimum) !== line(current) ||
+        compare(minimum, available) > 0
+      )
         problems.push(
-          `${file}: ${field}.${name} is "${range}"; expected a caret range that ${name}@${current} satisfies.`,
+          `${file}: ${field}.${name} is "${range}"; expected a caret range that ${name}@${available} satisfies${pending ? ' in the pending Changesets release' : ''}.`,
         );
     }
 const changesets = path.join(root, '.changeset');

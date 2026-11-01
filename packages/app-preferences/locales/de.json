@@ -58,7 +58,17 @@
       "pluginName": "Plugin",
       "tags": "Tags",
       "filterTags": "Nach Tag filtern",
-      "clearTags": "Tags zurücksetzen"
+      "clearTags": "Tags zurücksetzen",
+      "thisApplication": "Diese Anwendung",
+      "generalPlugins": "Allgemein verwendbar",
+      "unassignedPlugins": "Nicht zugeordnet",
+      "unresolvedBundle": "{bundle} (nicht aufgelöst)",
+      "filterBundles": "Nach Bundle filtern",
+      "allBundles": "Alle Bundles",
+      "pluginView": "Plugin-Ansicht",
+      "flatPluginView": "Flache Liste",
+      "groupedPluginView": "Nach Bundle gruppiert",
+      "distinctPlugins": "{count, plural, one {# Plugin} other {# Plugins}}"
     }
   },
   "settings": {

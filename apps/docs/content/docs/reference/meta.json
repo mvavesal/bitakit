@@ -6,6 +6,8 @@
     "slots",
     "settings",
     "scheduler",
+
+    "plugin-metadata",
     "quick-search",
     "theming",
     "layouts",

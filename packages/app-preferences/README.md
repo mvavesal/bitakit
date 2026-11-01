@@ -339,8 +339,8 @@ there is no tag registry. Multiple selected tags match any selected label and co
 tags remain visible when no tag is selected. Names, descriptions and tags participate in text search.
 
 Declare metadata in `definePlugin({ metadata: { tags, coverImage } })`, local
-`plugin.config.ts` metadata, or the package.json `tags` / `coverImage` fields consumed by
-`bitakit build`. Discovery and package builds preserve both fields. Covers are optional;
+`plugin.config.ts` metadata, or package.json `bitakit.tags` / `bitakit.coverImage`. Top-level package fields remain
+legacy fallbacks. Discovery and package builds preserve both fields. Covers are optional;
 missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback).
 
 App Preferences uses the shared standard Card and Item primitives from `@bitakit/ui/components`,
@@ -421,3 +421,12 @@ through a keyboard-focusable tooltip. Pending work disables conflicting operatio
 startup permits retry; failed cleanup requires resource recovery and a fresh runtime. The
 management page remains reachable inside its existing boundary if its catalog projection was
 stopped by an unsuccessful update; other settings pages keep normal owner availability rules.
+
+## Bundle grouping
+
+Flat remains the default. `pluginView=grouped` shows This application, known bundles, unresolved
+bundles, General purpose and Not assigned. `pluginBundle` filters those sections and combines
+with search, tags and status; all controls round-trip through nuqs and detail/back navigation.
+Repeated rows share one runtime ID and switch. Section counts count appearances; the total
+counts distinct plugins. The host's `bundles` labels and Core inventory are the only grouping
+inputs. See the [metadata reference](../../apps/docs/content/docs/reference/plugin-metadata.mdx).

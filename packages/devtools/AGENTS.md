@@ -35,3 +35,5 @@ export default function Page() {
 - It can show application data and run Actions: keep it out of production pages or behind the
   app's own access check.
 - Config values are omitted on purpose; do not add them to the page.
+
+The inspector heading uses canonical metadata.title before legacy metadata.name, package name and runtime ID. Identity badges continue to show the actual runtime ID.

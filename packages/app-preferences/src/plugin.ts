@@ -42,7 +42,8 @@ export function appPreferencesPlugin(options: AppPreferencesPluginOptions = {}) 
     metadata: {
       tags: ['system'],
       name: 'App Preferences',
-      description: 'Settings pages, setting controls and their navigation.',
+      description:
+        'The BitaKit settings UI: generated settings pages, field controls, navigation and the settings route.',
       icon: SettingIcon,
     },
     settings: defineSettings(

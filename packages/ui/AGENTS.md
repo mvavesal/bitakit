@@ -61,3 +61,5 @@ references while keeping existing exact identifiers and payload/value checks. Ex
 registrations remain separate; ambiguous non-exact names throw. Generated namespace properties
 keep their declared TypeScript spelling. Do not lowercase IDs in renderers or copy runtime
 snapshots into a second lookup table.
+
+Plugin-management confirmations and generated settings labels use canonical metadata.title before legacy metadata.name. Host translations and explicit settings section titles retain precedence; unnamed application settings keep their General fallback.

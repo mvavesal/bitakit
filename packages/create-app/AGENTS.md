@@ -35,3 +35,6 @@ skill explains the rest.
 - Scaffolding needs network access; if a sandbox blocks it, ask instead of writing generated
   files by hand.
 - Suggest `git init` and a first commit after creating an app.
+
+Generated apps require Core 0.2.8 and Discovery 0.2.5 or newer within the 0.2 line for the
+provenance API. Local packed-package verification supplies these APIs before publication.

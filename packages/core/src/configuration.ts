@@ -1,5 +1,6 @@
 import { resolveName } from './name-resolution.js';
 import type { BitaKitRuntimeConfig, Plugin, ProviderDefinition } from './definitions.js';
+import { preservePluginOrigin } from './inspection/plugin-origin.js';
 
 export type BitaKitOverrides = Pick<
   BitaKitRuntimeConfig,
@@ -22,11 +23,13 @@ export function resolveBitaKitConfig(
     plugins:
       overrides.actions === undefined && overrides.interceptors === undefined
         ? selectedPlugins
-        : selectedPlugins.map((plugin) => ({
-            ...plugin,
-            ...(overrides.actions === undefined ? {} : { actions: [] }),
-            ...(overrides.interceptors === undefined ? {} : { interceptors: [] }),
-          })),
+        : selectedPlugins.map((plugin) =>
+            preservePluginOrigin(plugin, {
+              ...plugin,
+              ...(overrides.actions === undefined ? {} : { actions: [] }),
+              ...(overrides.interceptors === undefined ? {} : { interceptors: [] }),
+            }),
+          ),
     actions: overrides.actions ?? discovered.actions ?? [],
     interceptors: overrides.interceptors ?? discovered.interceptors ?? [],
   };

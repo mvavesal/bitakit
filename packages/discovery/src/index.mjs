@@ -11,8 +11,10 @@ export {
   stylePrelude,
   cssImports,
   resolveStylesheet,
+  resolvePluginEntry,
   validatePackageStyles,
 } from './styles.mjs';
 export { describeDefinitions } from './definition-info.mjs';
 
 export { navigationPlacement } from './navigation-placement.mjs';
+export { packagePluginId, staticPluginId, pluginIdentityConflicts } from './package-identity.mjs';

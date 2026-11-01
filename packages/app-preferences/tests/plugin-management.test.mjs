@@ -42,7 +42,7 @@ const source = (hooks = {}) =>
   });
 const consumer = definePlugin({
   id: 'consumer',
-  metadata: { name: 'Consumer' },
+  metadata: { title: 'Consumer', name: '@acme/consumer' },
   services: { data: defineService(() => ({}), { requires: ['source.data'] }) },
 });
 

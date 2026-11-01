@@ -2,7 +2,7 @@ import { controlledStorage, renderApp, text, type, press, click } from './suppor
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h, act } from 'react';
-import { definePlugin, defineSettings, setting } from '@bitakit/core';
+import { definePlugin, defineSettings, setting, withPluginOrigin } from '@bitakit/core';
 import { PluginsOverview, SettingsRoute } from '../dist/index.js';
 import { appPreferencesPlugin } from '../dist/foundation.js';
 
@@ -360,6 +360,149 @@ test('the grouped list shows every filtered result and ignores legacy pagination
     assert.equal(view.container.querySelectorAll('[data-slot=item-separator]').length, 11);
     await type(view.container.querySelector('input[aria-label="Search plugins"]'), 'Sample 1');
     assert.equal(items(view.container).length, 3);
+  } finally {
+    await view.unmount();
+  }
+});
+
+test('bundle grouping restores from the URL, counts distinct plugins and shares enablement', async () => {
+  const origin = (id, kind, memberOf) =>
+    withPluginOrigin(definePlugin({ id, metadata: { name: id } }), { kind, memberOf });
+  const groupedConfig = {
+    bundle: 'host',
+    knownBundles: [{ id: 'other', label: 'Other application' }],
+    plugins: [
+      appPreferencesPlugin(),
+      origin('local', 'local'),
+      origin('multi', 'package', ['HOST', 'other']),
+      origin('general', 'package', ['*']),
+      origin('unresolved', 'package', ['missing']),
+      definePlugin({ id: 'legacy' }),
+    ],
+  };
+  const view = await renderApp(h(PluginsOverview), {
+    config: groupedConfig,
+    storage: controlledStorage(),
+    pathname: '/settings/plugins',
+    search: '?pluginView=grouped',
+  });
+  try {
+    const lists = [...view.container.querySelectorAll('[role="list"]')];
+    assert.deepEqual(
+      lists.map((list) => list.getAttribute('aria-label')),
+      [
+        'This application',
+        'Other application',
+        'missing (unresolved)',
+        'General purpose',
+        'Not assigned',
+      ],
+    );
+    assert.equal(view.container.querySelectorAll('a[href*="plugin=multi"]').length, 2);
+    assert.match(text(view.container.querySelector('p[role="status"]')), /^6 plugins$/);
+    assert.match(
+      view.container.querySelector('a[href*="plugin=multi"]').getAttribute('href'),
+      /pluginView=grouped/,
+    );
+    const switches = [...view.container.querySelectorAll('button[role="switch"]')].filter((item) =>
+      item.getAttribute('aria-label')?.includes('multi'),
+    );
+    assert.equal(switches.length, 2);
+    await click(switches[0]);
+    await click(
+      [...view.container.querySelectorAll('[role="dialog"] button')].find(
+        (item) => text(item) === 'Confirm',
+      ),
+    );
+    const updated = [...view.container.querySelectorAll('button[role="switch"]')].filter((item) =>
+      item.getAttribute('aria-label')?.includes('multi'),
+    );
+    assert.ok(updated.every((item) => item.getAttribute('aria-checked') === 'false'));
+    await type(view.container.querySelector('input[aria-label="Search plugins"]'), 'legacy');
+    assert.equal(view.container.querySelectorAll('[role="list"] a').length, 1);
+    assert.equal(
+      view.container.querySelector('[role="list"]').getAttribute('aria-label'),
+      'Not assigned',
+    );
+    assert.match(view.urls.at(-1), /pluginView=grouped/);
+  } finally {
+    await view.unmount();
+  }
+  const filtered = await renderApp(h(PluginsOverview), {
+    config: groupedConfig,
+    storage: controlledStorage(),
+    pathname: '/settings/plugins',
+    search: '?pluginView=grouped&pluginBundle=bundle%3AOTHER',
+  });
+  try {
+    assert.equal(filtered.container.querySelectorAll('[role="list"]').length, 1);
+    assert.equal(
+      filtered.container.querySelector('[role="list"]').getAttribute('aria-label'),
+      'Other application',
+    );
+    assert.match(text(filtered.container.querySelector('p[role="status"]')), /^1 plugin$/);
+  } finally {
+    await filtered.unmount();
+  }
+});
+
+test('this-application filtering includes local plugins when the application has no bundle ID', async () => {
+  const view = await renderApp(h(PluginsOverview), {
+    config: {
+      plugins: [
+        appPreferencesPlugin(),
+        withPluginOrigin(definePlugin({ id: 'local' }), { kind: 'local' }),
+        definePlugin({ id: 'unknown' }),
+      ],
+    },
+    storage: controlledStorage(),
+    pathname: '/settings/plugins',
+    search: '?pluginBundle=application',
+  });
+  try {
+    assert.deepEqual(
+      items(view.container).map(([name]) => name),
+      ['local'],
+    );
+  } finally {
+    await view.unmount();
+  }
+});
+
+test('display titles retain application translations and each legacy fallback', async () => {
+  const sources = [
+    withPluginOrigin(
+      definePlugin({ id: 'translated', metadata: { title: 'Canonical', name: 'Legacy' } }),
+      { kind: 'package', package: { name: '@fixture/translated', version: null } },
+    ),
+    withPluginOrigin(
+      definePlugin({ id: 'canonical', metadata: { title: 'Canonical title', name: 'Legacy' } }),
+      { kind: 'package', package: { name: '@fixture/canonical', version: null } },
+    ),
+    withPluginOrigin(definePlugin({ id: 'legacy-title', metadata: { name: 'Legacy title' } }), {
+      kind: 'package',
+      package: { name: '@fixture/legacy', version: null },
+    }),
+    withPluginOrigin(definePlugin({ id: 'package-name' }), {
+      kind: 'package',
+      package: { name: '@FIXTURE/Name', version: null },
+    }),
+    definePlugin({ id: 'runtime-id' }),
+  ];
+  const translate = Object.assign(
+    (key) => (key === 'plugins.translated.name' ? 'App translation' : key),
+    { has: (key) => key === 'plugins.translated.name' },
+  );
+  const view = await renderApp(h(PluginsOverview), {
+    config: { plugins: sources },
+    translate,
+    pathname: '/settings/plugins',
+  });
+  try {
+    assert.deepEqual(
+      items(view.container).map(([name]) => name),
+      ['App translation', 'Canonical title', 'Legacy title', '@fixture/name', 'runtime-id'],
+    );
   } finally {
     await view.unmount();
   }

@@ -1,8 +1,32 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
-import { createInventory } from '@bitakit/core';
-import { describeDefinitions } from '@bitakit/discovery';
+import {
+  createInventory,
+  pluginMembership,
+  inventoryMetadata,
+  projectPluginMetadata,
+} from '@bitakit/core';
+import { describeDefinitions, pluginIdentityConflicts } from '@bitakit/discovery';
+
+/** The same authoritative startup-ID evidence for passive info and doctor; never imports code. */
+export function identityConflictsFromDescription(description) {
+  return pluginIdentityConflicts([
+    { id: description.app.id, source: 'application' },
+    ...description.plugins
+      .filter((plugin) => plugin.enabled)
+      .map((plugin) => ({ id: plugin.id, source: plugin.directory })),
+    ...Object.entries(description.packagePlugins ?? {})
+      .filter(
+        ([entry, record]) =>
+          record.selected !== false && !description.catalogPackages?.includes(entry),
+      )
+      .map(([entry, record]) => ({
+        id: record.pluginId,
+        source: `${record.name}@${record.version ?? '?'} (${entry})`,
+      })),
+  ]);
+}
 
 const kinds = {
   services: 'service',
@@ -105,22 +129,56 @@ export async function inspectionFromDescription(description) {
     plugins.push({
       id: module.id,
       pluginId: module.id,
+      application: app,
+      origin: module.origin?.kind ?? 'unknown',
+      parent: module.parent ?? null,
+      package: module.origin?.package ?? null,
+      declaredMembership: module.origin?.memberOf ?? null,
+      membership: pluginMembership(module.origin, {
+        application: app,
+        bundle: description.bundle,
+        knownBundles: description.knownBundles,
+      }),
       enabled: module.enabled ?? true,
+      selected: null,
       source: { kind: 'file', path: module.directory },
-      metadata: {},
+      metadata: inventoryMetadata(module.metadata),
       dependencies: module.dependencies ?? [],
       declarations,
     });
   }
-  for (const specifier of description.packages)
+  for (const specifier of description.packages) {
+    const record = description.packagePlugins?.[specifier];
     plugins.push({
       id: specifier,
-      pluginId: null,
-      enabled: description.catalogPackages?.includes(specifier) ? null : true,
+      pluginId: record?.pluginId ?? null,
+      application: false,
+      selected: record?.selected ?? null,
+      origin: record?.origin?.kind ?? 'unknown',
+      parent: null,
+      package: record?.origin?.package ?? null,
+      declaredMembership: record?.origin?.memberOf ?? null,
+      membership: pluginMembership(record?.origin, {
+        bundle: description.bundle,
+        knownBundles: description.knownBundles,
+      }),
+      enabled:
+        record?.selected === false
+          ? false
+          : description.catalogPackages?.includes(specifier)
+            ? null
+            : true,
       source: { kind: 'package', path: specifier },
-      metadata: {},
+      metadata: inventoryMetadata(
+        projectPluginMetadata(record?.origin.metadata?.canonical, record?.origin.metadata?.legacy)
+          .metadata,
+      ),
       dependencies: null,
       declarations: null,
     });
-  return createInventory(plugins);
+  }
+  return {
+    ...createInventory(plugins),
+    diagnostics: { identityConflicts: identityConflictsFromDescription(description) },
+  };
 }

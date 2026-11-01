@@ -27,6 +27,7 @@ test('static inventory records unresolved files/packages without inventing runti
   assert.equal(result.static.plugins[1].enabled, false);
   assert.equal(result.static.plugins[1].declarations[0].id, null);
   assert.equal(result.static.plugins[2].pluginId, null);
+  assert.equal(result.static.plugins[2].selected, null);
   assert.equal(result.static.plugins[2].declarations, null);
   assert.equal(JSON.stringify(result).includes('/private/root'), false);
   assert.equal(JSON.stringify(result).includes('secret'), false);

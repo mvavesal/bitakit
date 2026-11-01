@@ -219,7 +219,7 @@ A changed scope releases old managed plugins before activating the next selectio
 both scopes choose Notes. Hide the outgoing scope, await a successful switch, then reveal the
 new one. A failed switch reports the actual scope still owned by the adapter.
 
-The manager does not store installation records or provide server permission checks. Those
+Catalog mode does not store installation records or provide server permission checks. Those
 remain host responsibilities; the example does not implement organization or user installation
 persistence.
 
@@ -246,7 +246,58 @@ plugin shapes that require composition replacement.
 | Owned Actions, listeners and slot attachments   | Shared eager CSS and catalog type maps              |
 | Plugin declarations, after successful removal   | Persisted setting records and external data         |
 
-There is one allowed version per catalog name in a host build. Runtime package upgrades,
-remote downloads, domain allowlists, signature checks, untrusted-code isolation and a
-marketplace UI are not included. New catalog code or versions require a new build, while
+There is one allowed version per catalog name in a host build. Catalog mode does not download
+packages or upgrade them. Domain allowlists, publisher signatures, untrusted-code isolation and
+a marketplace UI remain host/product responsibilities. New catalog code or versions require a new build, while
 activating an existing supported entry does not require restarting the website server.
+
+## External runtime packages
+
+`@bitakit/packages` also has an opt-in `dynamic` mode on the same package host. The existing
+catalog API and generated apps keep their current behavior. Use a matching Core, Discovery and
+Packages release for dynamic mode.
+
+| Entry                       | Responsibility                                                             |
+| --------------------------- | -------------------------------------------------------------------------- |
+| `@bitakit/packages`         | Selection queue, complete ID preflight, Core replacement and code recovery |
+| `@bitakit/packages/server`  | Node 24+ npm/Git acquisition, esbuild/Rollup artifacts, SQLite journal     |
+| `@bitakit/packages/browser` | Host-supplied SystemJS loader, actual shared namespaces, JS/CSS integrity  |
+
+The privileged host installs the optional `esbuild`, `rollup`, `npm-package-arg` and
+`@bitakit/discovery` peers. `createPackageInstaller({ directory, shared, registry? })` uses npm
+with lifecycle scripts disabled. Built packages keep the existing `bitakit.plugin` and static
+ID contract; a source factory may be selected explicitly with `entry` and its complete
+`pluginIds`. Ordinary dependencies are bundled. Shared host package ranges are checked, and
+incompatible peers fail before activation. This does not run native or arbitrary package build
+scripts. The installer returns immutable artifacts; it does not expose an installation route.
+
+The host serves declared artifact files through its existing authorized transport. Private
+installation evidence contains the resolved revision/integrity, npm lock and toolchain. Retain
+that evidence privately and keep active/previous/recovery artifact bytes. The installer has no
+automatic deletion. `installer.read(id)` verifies retained bytes without a registry lookup.
+
+A browser provider receives a standard SystemJS instance, actual host module namespaces with
+versions, and a resolver returning `{ artifact, baseURL }`. Bind every shared import, including
+subpaths such as `react/jsx-runtime`. Configure the host's CSP/CORS for its artifact origin.
+SystemJS shares the real React/Core/UI instances; the browser verifies JS and CSS integrity.
+CSS is prepared before replacing the old generation and enabled during activation.
+
+Create one host with `dynamic: { provider, journal, dataCompatibility: 'unchanged', health? }`.
+Call `recover()` before changing a persisted selection, then use the same
+`reconcile({ scope, packages })` API, with immutable `artifact` IDs in package selections.
+`createPackageJournal(filename, key)` uses SQLite durable compare-and-swap; use one privileged
+coordinator/application session per key, not a shared multi-browser rollout.
+
+The host records intent before switching a complete cohort through Core. Known ID and loaded
+composition conflicts fail before old owners stop. Failed startup or host health checks recover
+the previous cohort; successful updates retain its artifact references. Interrupted forward
+activation recovers its recorded predecessor, while committed updates restore the active
+version. Failed cleanup or recovery remains blocked with retained intent. Inspect `status`,
+`scope`, `get()` and the journal; a requested update that rolled back still returns `failed`.
+
+`dataCompatibility: 'unchanged'` confirms the storage owner requires no migration reversal.
+Recovery recreates affected services and leaves unrelated services/UI mounted; it does not
+snapshot ephemeral stores, restore a database or undo external effects. Supply a `health`
+callback for actual browser/application readiness: Core startup alone does not detect render
+errors. Do not invoke and await management from that callback or affected lifecycle work.
+Source authorization, user/organization policy, transport and data migration remain host-owned.

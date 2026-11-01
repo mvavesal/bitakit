@@ -77,7 +77,7 @@ test('an installed package reads its options from the app config named by bitaki
     );
     assert.match(
       source,
-      /packagePlugin0\(options\.get\("legacy\.options", \{\}\)\),\s+packagePlugin1\(options\.get\("quick-search", \{\}\)\)/,
+      /withPluginOrigin\(packagePlugin0\(options\.get\("legacy\.options", \{\}\)\),[^\n]+\n\s+withPluginOrigin\(packagePlugin1\(options\.get\("quick-search", \{\}\)\)/,
     );
     assert.match(
       source,
@@ -227,7 +227,7 @@ test('manifest dependencies join the dependencies of the generated package plugi
     const source = await readFile(path.join(root, 'src/bitakit.gen.ts'), 'utf8');
     assert.match(
       source,
-      /withDependencies\(packagePlugin0\(\), \["base"\]\),\s+packagePlugin1\(\)/,
+      /withPluginOrigin\(withDependencies\(packagePlugin0\(\), \["base"\]\),[^\n]+\n\s+withPluginOrigin\(packagePlugin1\(\)/,
     );
     await install(
       '@acme/broken',

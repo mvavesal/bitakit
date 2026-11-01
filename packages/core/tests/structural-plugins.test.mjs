@@ -653,3 +653,70 @@ test('host Action requirements participate in structural planning until their bi
     'ready',
   );
 });
+
+test('cohort replacement previews conflicts without stopping the active generation', async (t) => {
+  const runtime = await host(t, [servicePlugin('keeper'), servicePlugin('remote')]);
+  const previous = runtime.services.remote.state;
+  const invalid = definePlugin({
+    id: 'remote',
+    services: { bad: defineService(() => ({}), { requires: ['missing.service'] }) },
+  });
+  const preview = runtime.plugins.preview({
+    operation: 'replace',
+    ids: ['remote'],
+    plugins: [invalid],
+  });
+  assert.equal(preview.status, 'blocked');
+  assert.equal(runtime.services.remote.state, previous);
+  assert.equal((await runtime.plugins.replace(['remote'], [invalid])).status, 'blocked');
+  assert.equal(runtime.services.remote.state, previous);
+  const keeper = runtime.services.keeper.state;
+  const replacement = servicePlugin('remote');
+  assert.equal((await runtime.plugins.replace(['remote'], [replacement])).status, 'applied');
+  assert.notEqual(runtime.services.remote.state, previous);
+  assert.equal(runtime.services.keeper.state, keeper);
+});
+
+test('cohort replacement permits explicit membership changes and rejects outside owners or dependents', async (t) => {
+  const runtime = await host(t, [servicePlugin('remote'), servicePlugin('keeper')]);
+  assert.equal(
+    (await runtime.plugins.replace(['remote'], [servicePlugin('keeper')])).status,
+    'blocked',
+  );
+  assert.equal(
+    (await runtime.plugins.replace(['remote'], [servicePlugin('new'), servicePlugin('second')]))
+      .status,
+    'applied',
+  );
+  assert.equal(runtime.isReady('remote'), false);
+  assert.equal(runtime.isReady('new'), true);
+  await runtime.plugins.add([definePlugin({ id: 'consumer', dependencies: ['new'] })]);
+  assert.equal((await runtime.plugins.replace(['new'], [servicePlugin('new')])).status, 'blocked');
+  assert.equal(
+    (await runtime.plugins.replace(['new', 'consumer'], [servicePlugin('new')])).status,
+    'applied',
+  );
+});
+
+test('cohort replacement honors revisions and refuses incomplete parent ownership', async (t) => {
+  const runtime = await host(t, [
+    servicePlugin('parent'),
+    definePlugin({ id: 'child', parent: 'parent' }),
+  ]);
+  assert.equal(
+    (await runtime.plugins.replace(['parent'], [servicePlugin('parent')])).status,
+    'blocked',
+  );
+  const preview = runtime.plugins.preview({
+    operation: 'replace',
+    ids: ['parent', 'child'],
+    plugins: [],
+  });
+  await runtime.plugins.add([servicePlugin('other')]);
+  assert.equal(
+    (await runtime.plugins.replace(['parent', 'child'], [], { expectedRevision: preview.revision }))
+      .status,
+    'blocked',
+  );
+  assert.equal(runtime.isReady('parent'), true);
+});

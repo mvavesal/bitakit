@@ -87,7 +87,9 @@ verified by `scripts/verify-generated.mjs` in clean packed-package consumers.
 - `src/describe.mjs`: read-only summaries of an app (`describeBitaKit`) or one module folder
   (`describeModule`).
 - `src/packages.mjs`: opt-in metadata (`bitakit` in `package.json`) of installed packages and the
-  plugin packages they depend on.
+  plugin packages they depend on, retaining distinct resolved copies.
+- `src/package-identity.mjs`: historical build ID prediction and authoritative static binding checks.
+- `src/plugin-metadata.mjs`: manifest reads, npm name validation, bundle inputs and Core projection.
 - `src/layouts.mjs`: the layout-file convention shared by generation and `describeBitaKit`.
 - `src/styles.mjs`: canonical layer prelude, stylesheet resolution and package CSS validation.
 - `src/modules.mjs`: which folders are plugins.
@@ -110,7 +112,8 @@ components opaque; the shared UI catalog projects the declarations into settings
 navigation. This adds no service registry, value store or host routing code.
 
 Plugin catalog metadata supports optional `tags: readonly string[]` and `coverImage`.
-Local plugin manifests use `metadata`; `bitakit build` copies these fields from package.json.
+Local plugin manifests use `metadata`; package authors use `bitakit.tags` / `bitakit.coverImage`
+in package.json. Existing top-level fields remain fallbacks.
 Tags are catalog labels, not access rules. App Preferences derives filter choices from this
 metadata and stores the selected tags in the repeated `pluginTag` URL parameters. Missing covers fall
 back to the plugin icon.
@@ -170,3 +173,19 @@ runtime updates keep their owner-specific guarantees. Named components are the s
 React refresh path. Structural provider changes, server code, dependency installation and
 changes outside a React refresh boundary can require a host restart/reload. Restart the dev
 server after changing Node-loaded generator/integration code. No universal HMR promise.
+
+## Identity and provenance
+
+Discovery binds each definition to its local, included or installed package origin. Package and
+bundle identities compare lowercase with complete scopes. Static IDs come only from the selected
+manifest block or the entry sidecar; older entries may have unavailable IDs. See the
+[identity and metadata reference](../../apps/docs/content/docs/reference/plugin-metadata.mdx)
+for canonical fields, membership, passive inspection and compatibility rules. Upgrade Core with
+Discovery: generated code uses Core's host provenance API.
+
+Inspection retains every physical plugin copy, while activation preserves the first package
+name reached by sorted breadth-first traversal. Only selected copies contribute hooks/styles
+and transitive activation. Nested selected client entries resolve browser/import conditions
+through their owning dependency edge, using enhanced-resolve; direct imports remain package
+specifiers. See `packagePlugins[entry].selected` and the classified description warnings.
+Local and included folder metadata retain their existing declaration precedence.
