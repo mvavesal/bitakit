@@ -207,7 +207,11 @@ caret range.
 
 npm accepts the publish through [trusted publishing](https://docs.npmjs.com/trusted-publishers):
 each `@bitakit/*` package on npmjs.com trusts the repository `mvavesal/bitakit`, the workflow
-file `release.yml` and the environment `npm`. No npm token is stored in GitHub, and only the
-publish job may request the identity token. A new package must first be published once by hand
-and then given the same trusted publisher. The repository is private, so npm records no
-provenance attestation.
+file `release.yml` and the environment `npm`. Only the publish job may request the identity
+token. For a new package's first release, an optional short-lived `NPM_TOKEN` GitHub Actions
+secret is passed as `NODE_AUTH_TOKEN` only to the publish step. Scope that token to
+`@bitakit` with publish access; do not grant organization administration access. Publication
+still runs from `main` through this workflow, never from a local machine. After the first
+release, configure the new package's trusted publisher with the same repository, workflow
+and environment and allow `npm publish`, then revoke the bootstrap token and remove its
+GitHub secret. The repository is private, so npm records no provenance attestation.

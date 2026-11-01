@@ -1,8 +1,8 @@
 # Releases from main with Changesets, after CI passes:
 # - with pending .changeset/*.md files, it opens or updates the "Version packages" pull request;
 # - after that pull request is merged, it publishes every package whose version is not on npm yet.
-# npm authenticates this workflow through trusted publishing (OIDC): no npm token is stored, and
-# only the publish job can request an identity token. See the Release section of
+# npm normally authenticates through trusted publishing (OIDC). An optional short-lived
+# NPM_TOKEN bootstraps new packages; only the publish step receives it. See the Release section of
 # apps/docs/content/docs/contributing.mdx.
 name: Release
 
@@ -105,5 +105,7 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: npm ci
       - uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
