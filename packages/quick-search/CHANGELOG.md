@@ -1,5 +1,19 @@
 # @bitakit/quick-search
 
+## 0.2.9
+
+### Patch Changes
+
+- 32adc9f: Use Reicon CardSearch for Quick Search, Setting4 for App Preferences and Window for Shell plugin metadata.
+- c84b956: Remove bundled package cover artwork and its package metadata and exports.
+- Updated dependencies [32adc9f]
+- Updated dependencies [3917b35]
+- Updated dependencies [32adc9f]
+- Updated dependencies [c84b956]
+  - @bitakit/app-preferences@0.2.11
+  - @bitakit/core@0.2.9
+  - @bitakit/ui@0.2.10
+
 ## 0.2.8
 
 ### Patch Changes

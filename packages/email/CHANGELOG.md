@@ -1,5 +1,14 @@
 # @bitakit/email
 
+## 0.2.5
+
+### Patch Changes
+
+- c84b956: Remove bundled package cover artwork and its package metadata and exports.
+- Updated dependencies [3917b35]
+- Updated dependencies [c84b956]
+  - @bitakit/core@0.2.9
+
 ## 0.2.4
 
 ### Patch Changes
