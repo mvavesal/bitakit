@@ -1,8 +1,8 @@
 ---
-"@bitakit/core": patch
-"@bitakit/discovery": patch
-"@bitakit/ui": patch
-"@bitakit/scheduler": patch
+'@bitakit/core': patch
+'@bitakit/discovery': patch
+'@bitakit/ui': patch
+'@bitakit/scheduler': patch
 ---
 
 Add the optional UI-free scheduler with task contributions, runtime schedule sources, Croner

@@ -10,14 +10,14 @@ installer context and ships its own `AGENTS.md` consumer guide and runnable serv
 
 ## Declarations
 
-| API | Fields / behavior |
-| --- | --- |
-| `defineTask` | `{ input?, requires?, execute }`; parsed input, AbortSignal and feature-owned services/config/events/settings |
-| `defineSchedule` | `{ task, cron, input?, timezone?, paused? }` or `{ task, at, ... }`; `at` includes a UTC offset |
-| Task files | `contributions/tasks/<name>.ts`; dotted and record forms are equivalent |
-| Schedule files | `contributions/schedules/<name>.ts`; separate namespace with the same ID convention |
-| Generated maps | `TaskMap` and `ScheduleMap`; mixed-case string references retain input/result checking |
-| Manual composition | Named `schedulerPlugin` in `createRuntime`; `registerTask` accepts the same definition and feature context |
+| API                | Fields / behavior                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `defineTask`       | `{ input?, requires?, execute }`; parsed input, AbortSignal and feature-owned services/config/events/settings |
+| `defineSchedule`   | `{ task, cron, input?, timezone?, paused? }` or `{ task, at, ... }`; `at` includes a UTC offset               |
+| Task files         | `contributions/tasks/<name>.ts`; dotted and record forms are equivalent                                       |
+| Schedule files     | `contributions/schedules/<name>.ts`; separate namespace with the same ID convention                           |
+| Generated maps     | `TaskMap` and `ScheduleMap`; mixed-case string references retain input/result checking                        |
+| Manual composition | Named `schedulerPlugin` in `createRuntime`; `registerTask` accepts the same definition and feature context    |
 
 Tasks are executable application code. Sources contain JSON-compatible schedule data only.
 Domain authorization stays in the task or business service and applies to every invocation.
@@ -28,16 +28,16 @@ Task, source and schedule registration IDs in this new package must be unique ig
 Obtain the service with `getService(services, scheduler)` using the exported `scheduler`
 contract. Its actual service ID is `scheduler-engine`; plugin ID is `scheduler`.
 
-| Method | Contract |
-| --- | --- |
-| `run(taskId, input?, { schedule? }?)` | Await parsed/authorized execution and its result; schedule metadata grants no access |
-| `registerTask(id, definition, context?)` | Register code without discovery; returned async cleanup aborts and drains this task |
-| `registerSource(source)` | Register a data source; returns `ready`, `reload`, `dispose`, `Symbol.asyncDispose` |
-| `reload(sourceId?)` | Reload one or all sources; rejects on failure |
-| `unregisterSource(sourceId)` | Revoke and dispose a source; lower-priority schedules return |
-| `registerSchedule(schedule, { priority? }?)` | One schedule as an owned source; default priority 100 |
-| `pause(scheduleId)` / `resume(scheduleId)` | Runtime pause override, retained across reloads |
-| `list()` / `state` | Sanitized current status / Core observable store; no inputs, results or raw errors |
+| Method                                       | Contract                                                                             |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `run(taskId, input?, { schedule? }?)`        | Await parsed/authorized execution and its result; schedule metadata grants no access |
+| `registerTask(id, definition, context?)`     | Register code without discovery; returned async cleanup aborts and drains this task  |
+| `registerSource(source)`                     | Register a data source; returns `ready`, `reload`, `dispose`, `Symbol.asyncDispose`  |
+| `reload(sourceId?)`                          | Reload one or all sources; rejects on failure                                        |
+| `unregisterSource(sourceId)`                 | Revoke and dispose a source; lower-priority schedules return                         |
+| `registerSchedule(schedule, { priority? }?)` | One schedule as an owned source; default priority 100                                |
+| `pause(scheduleId)` / `resume(scheduleId)`   | Runtime pause override, retained across reloads                                      |
+| `list()` / `state`                           | Sanitized current status / Core observable store; no inputs, results or raw errors   |
 
 Automatic timers activate after Core startup is ready and pause during lifecycle replacement.
 Manual execution through the plugin also requires runtime readiness. Direct `createScheduler`
@@ -46,12 +46,12 @@ Never await owned cleanup from a task that cleanup must drain.
 
 ## Sources and precedence
 
-| Source field | Meaning |
-| --- | --- |
-| `id` | Unique source ID, ignoring case |
-| `priority` | Higher wins; default 0; feature defaults use -100 |
-| `load()` | Promise of a complete schedule array, including each schedule's `id` |
-| `subscribe(onChange)` | Optional change notification; returns unsubscribe |
+| Source field          | Meaning                                                              |
+| --------------------- | -------------------------------------------------------------------- |
+| `id`                  | Unique source ID, ignoring case                                      |
+| `priority`            | Higher wins; default 0; feature defaults use -100                    |
+| `load()`              | Promise of a complete schedule array, including each schedule's `id` |
+| `subscribe(onChange)` | Optional change notification; returns unsubscribe                    |
 
 Equal priorities sort case-folded source IDs by code-point order; last wins. Removing an
 override restores the lower-priority default. Invalid snapshots retain the last valid state;
@@ -59,12 +59,12 @@ loads serialize and disposed sources cannot reactivate. Unchanged effective defi
 their timer and one-shot completion state. Removed schedules stop future triggers; running
 calls drain normally, or are aborted when their task/scheduler is disposed.
 
-| Helper | Environment / behavior |
-| --- | --- |
-| `dataSource` | Callback source; existing authorized DB/CMS services implement the contract |
-| `urlSource` | Node/browser fetch; JSON or YAML; registration, reload or subscribed change |
+| Helper                                        | Environment / behavior                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| `dataSource`                                  | Callback source; existing authorized DB/CMS services implement the contract    |
+| `urlSource`                                   | Node/browser fetch; JSON or YAML; registration, reload or subscribed change    |
 | `fileSource` from `@bitakit/scheduler/server` | Node-only runtime reads and directory watch, including atomic file replacement |
-| `parseSchedules` / `parseScheduleDocument` | Shared Zod validation and JSON/YAML parsing |
+| `parseSchedules` / `parseScheduleDocument`    | Shared Zod validation and JSON/YAML parsing                                    |
 
 Adapters are normal services: register in `onStart`, own disposal with `onStop` before awaiting
 `ready`. Source errors reject explicit calls and reach the local error reporter; the service

@@ -15,7 +15,7 @@ npm under `@bitakit/`; this checkout is the 0.2 release line.
 | [quick-search](quick-search/README.md)       | A Mod+K dialog listing pages, Settings pages and plugins, plus an App Bar button            |
 | [next-intl](next-intl/README.md)             | Translation integration and optional language preferences                                   |
 | [organizations](organizations/README.md)     | Shared organization service contracts and a local test adapter                              |
-| [scheduler](scheduler/README.md) | UI-free tasks, runtime schedule sources and in-process execution |
+| [scheduler](scheduler/README.md)             | UI-free tasks, runtime schedule sources and in-process execution                            |
 | [email](email/README.md)                     | Provider-independent message and sending contract                                           |
 | [nodemailer](nodemailer/README.md)           | Server-side SMTP implementation of the email contract                                       |
 | [create-app](create-app/README.md)           | Native frontend scaffolding with installed BitaKit packages                                 |

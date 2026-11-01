@@ -3,23 +3,23 @@
   "packages": [
     {
       "package": "@bitakit/core",
-      "files": 68,
-      "lines": 10021,
-      "tokens": 85107,
-      "tests": 269
+      "files": 69,
+      "lines": 10465,
+      "tokens": 88999,
+      "tests": 279
     },
     {
       "package": "@bitakit/ui",
       "files": 73,
-      "lines": 5973,
-      "tokens": 50012,
+      "lines": 5975,
+      "tokens": 50024,
       "tests": 91
     },
     {
       "package": "@bitakit/discovery",
-      "files": 16,
-      "lines": 2933,
-      "tokens": 28845,
+      "files": 18,
+      "lines": 3393,
+      "tokens": 32983,
       "tests": 0
     },
     {
@@ -32,33 +32,33 @@
     {
       "package": "@bitakit/shell",
       "files": 34,
-      "lines": 4548,
-      "tokens": 43814,
+      "lines": 4549,
+      "tokens": 43823,
       "tests": 48
     },
     {
       "package": "@bitakit/app-preferences",
       "files": 41,
-      "lines": 3733,
-      "tokens": 29481,
-      "tests": 49
+      "lines": 3853,
+      "tokens": 30592,
+      "tests": 53
     },
     {
       "package": "@bitakit/quick-search",
       "files": 18,
-      "lines": 1420,
-      "tokens": 11230,
-      "tests": 16
+      "lines": 1422,
+      "tokens": 11245,
+      "tests": 17
     },
     {
       "package": "@bitakit/cli",
       "files": 15,
-      "lines": 4187,
-      "tokens": 41544,
-      "tests": 64
+      "lines": 4284,
+      "tokens": 42490,
+      "tests": 82
     }
   ],
-  "total": { "files": 274, "lines": 32927, "tokens": 291053, "tests": 568 },
+  "total": { "files": 277, "lines": 34053, "tokens": 301176, "tests": 601 },
   "feature": {
     "plugins": ["todos", "activity"],
     "files": 11,
@@ -72,7 +72,7 @@
     { "plugin": "guard", "files": 2, "lines": 26, "tokens": 202 },
     { "plugin": "notes", "files": 10, "lines": 166, "tokens": 1359 }
   ],
-  "guide": { "agentsMd": 822, "skillEntry": 3044, "skillReferences": 25178 },
+  "guide": { "agentsMd": 822, "skillEntry": 3044, "skillReferences": 25330 },
   "comparison": {
     "rows": [
       {

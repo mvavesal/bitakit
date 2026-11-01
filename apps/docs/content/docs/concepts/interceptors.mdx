@@ -101,7 +101,6 @@ Without `interceptors.enabled` in `bitakit.config.ts`, all discovered app interc
 a configured list selects them. See [Patterns at a glance](/docs/concepts/patterns) to choose
 between an interceptor, an event, a store and Action options.
 
-
 Service callbacks also receive a runtime-local `callId` and epoch `startedAt`; `after` and
 `onError` include `durationMs`, measured through asynchronous settlement. These fields let an
 observer correlate overlapping calls without storing inputs globally. The original result,

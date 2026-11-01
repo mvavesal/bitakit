@@ -48,8 +48,15 @@ export const schedulerPlugin = definePlugin({
     'scheduler.tasks': (values: readonly DiscoveredTask[], context: ContributionContext) => {
       const service = getService(context.services, scheduler);
       if (!context.config || !context.events || !context.settings)
-        throw new Error('Task contributions require a Core runtime that supplies the contributing owner context.');
-      const owner = { services: context.services, config: context.config, events: context.events, settings: context.settings };
+        throw new Error(
+          'Task contributions require a Core runtime that supplies the contributing owner context.',
+        );
+      const owner = {
+        services: context.services,
+        config: context.config,
+        events: context.events,
+        settings: context.settings,
+      };
       const releases: (() => Promise<void>)[] = [];
       try {
         for (const { id, definition } of values)

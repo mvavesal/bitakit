@@ -165,7 +165,6 @@ type PlainAliasPlugins = [{ id: 'x'; services: { a: typeof notifications } }];
 type _NoPlainAlias = PublicServicesOf<PlainAliasPlugins>['notifications'];
 void [notifications, shell];
 
-
 // Adding owner context to runtime installers must preserve legacy direct installer calls.
 import type { ContributionInstaller, Services as InstallerServices } from '../src/core.js';
 declare const legacyInstallerServices: InstallerServices;
