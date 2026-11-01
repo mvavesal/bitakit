@@ -84,9 +84,3 @@ The built `foundation.slots.json` also records the static runtime ID `quick-sear
 uses that generated evidence for binding checks; npm scope does not imply bundle membership.
 
 Page/settings result details use the host plugin-name translation, then canonical metadata.title, legacy metadata.name and the plugin ID. This only changes labels, not destination ownership or navigation.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

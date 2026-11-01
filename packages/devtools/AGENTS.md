@@ -37,9 +37,3 @@ export default function Page() {
 - Config values are omitted on purpose; do not add them to the page.
 
 The inspector heading uses canonical metadata.title before legacy metadata.name, package name and runtime ID. Identity badges continue to show the actual runtime ID.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

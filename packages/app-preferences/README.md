@@ -341,9 +341,7 @@ tags remain visible when no tag is selected. Names, descriptions and tags partic
 Declare metadata in `definePlugin({ metadata: { tags, coverImage } })`, local
 `plugin.config.ts` metadata, or package.json `bitakit.tags` / `bitakit.coverImage`. Top-level package fields remain
 legacy fallbacks. Discovery and package builds preserve both fields. Covers are optional;
-missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback). The detail
-information Card displays the full cover using the central Card image treatment; failed detail
-images disappear without blocking settings.
+missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback).
 
 App Preferences uses the shared standard Card and Item primitives from `@bitakit/ui/components`,
 Badges and Radix ScrollArea. Compact groups use `sm` rows with separators between entries only;

@@ -12,8 +12,7 @@
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
-    "LICENSE",
-    "cover.webp"
+    "LICENSE"
   ],
   "exports": {
     ".": {
@@ -21,12 +20,10 @@
       "default": "./dist/index.js"
     },
     "./styles.css": "./styles.css",
-    "./package.json": "./package.json",
-    "./cover.webp": "./cover.webp"
+    "./package.json": "./package.json"
   },
   "bitakit": {
-    "styles": "./styles.css",
-    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/devtools/cover.webp"
+    "styles": "./styles.css"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

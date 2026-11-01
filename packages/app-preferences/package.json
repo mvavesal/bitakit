@@ -5,8 +5,7 @@
   "description": "The BitaKit settings UI: generated settings pages, field controls, navigation and the settings route.",
   "bitakit": {
     "plugin": "./foundation",
-    "styles": "./styles.css",
-    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/app-preferences/cover.webp"
+    "styles": "./styles.css"
   },
   "sideEffects": [
     "./styles.css"
@@ -17,8 +16,7 @@
     "AGENTS.md",
     "CLAUDE.md",
     "styles.css",
-    "locales",
-    "cover.webp"
+    "locales"
   ],
   "exports": {
     "./package.json": "./package.json",
@@ -31,8 +29,7 @@
       "default": "./dist/foundation.js"
     },
     "./styles.css": "./styles.css",
-    "./locales/*.json": "./locales/*.json",
-    "./cover.webp": "./cover.webp"
+    "./locales/*.json": "./locales/*.json"
   },
   "scripts": {
     "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json && node ../../scripts/visual-slot-metadata.mjs app-preferences",

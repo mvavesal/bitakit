@@ -9,8 +9,7 @@
     "src/cli.mjs",
     "README.md",
     "AGENTS.md",
-    "CLAUDE.md",
-    "cover.webp"
+    "CLAUDE.md"
   ],
   "exports": {
     ".": {
@@ -20,8 +19,7 @@
     "./config": {
       "types": "./src/config.d.ts",
       "default": "./src/config.mjs"
-    },
-    "./cover.webp": "./cover.webp"
+    }
   },
   "bin": {
     "foundation-generate": "./src/cli.mjs"
@@ -61,8 +59,5 @@
     "composition",
     "tanstack-start",
     "adapter"
-  ],
-  "bitakit": {
-    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/tanstack/cover.webp"
-  }
+  ]
 }

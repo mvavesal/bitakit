@@ -7,15 +7,13 @@
     "dist",
     "README.md",
     "AGENTS.md",
-    "CLAUDE.md",
-    "cover.webp"
+    "CLAUDE.md"
   ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./cover.webp": "./cover.webp"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"
@@ -41,8 +39,5 @@
     "ai-agents",
     "composition",
     "email"
-  ],
-  "bitakit": {
-    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/email/cover.webp"
-  }
+  ]
 }

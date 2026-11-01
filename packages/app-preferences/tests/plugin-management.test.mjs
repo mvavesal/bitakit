@@ -56,7 +56,11 @@ test('status filters compose with search and tags and update after confirmed plu
       text,
     );
   const selectStatus = async (label) => {
-    await press(button(view, 'Filter by status'), 'Enter');
+    await press(button(view, 'Filters'), 'Enter');
+    await press(
+      [...document.querySelectorAll('[role=menuitem]')].find((e) => text(e) === 'Filter by status'),
+      'ArrowRight',
+    );
     await click(
       [...document.querySelectorAll('[role=menuitemradio]')].find((e) => text(e) === label),
     );

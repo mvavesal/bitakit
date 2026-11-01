@@ -50,9 +50,3 @@ Info text includes runtime plugin IDs and labels unselected physical copies sepa
 disabled plugins. JSON includes `selected` and `diagnostics.identityConflicts`; Info and Doctor
 use the same passive startup collision evidence. Unknown package versions are never printed
 as JavaScript undefined. Inventory record keys can change when packages are hoisted differently.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

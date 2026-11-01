@@ -90,12 +90,7 @@ name, package name, then runtime ID.
 
 Plugin list, navigation and generated settings labels share Core display-title precedence. Translations and explicit settings section titles remain authoritative; grouping never changes the label policy or runtime identity.
 
-Package covers use `bitakit.coverImage` metadata. Settings shows a thumbnail in the plugin list
-and the full illustration in the detail information Card. Broken covers disappear without
-blocking settings; use the central Card image treatment and preserve decorative empty alt text.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.
+The plugin overview groups tag, status and bundle filters in one dropdown. Tags remain
+multi-select; status and bundle remain single-select. Active chips are removable; the
+additional-filter menu and main menu retain every selection. Reset clears filters while
+preserving search and view mode. The existing nuqs parameters remain the source of truth.

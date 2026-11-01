@@ -139,9 +139,3 @@ Tests cover source precedence, invalid/stale snapshots, cleanup, feature ownersh
 validation, timer execution and one public interceptor trace per run. Test a real installed
 consumer's generated type maps when changing contribution metadata. Keep this guide and the
 reference page aligned with shipped behavior; `CLAUDE.md` only imports this file.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

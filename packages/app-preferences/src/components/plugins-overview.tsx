@@ -28,9 +28,15 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuGroup,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@bitakit/ui/components';
+import SlidersIcon from 'reicon-react/icons/Sliders';
+import XIcon from 'reicon-react/icons/X';
+import ListIcon from 'reicon-react/icons/List';
 import ChevronRightIcon from 'reicon-react/icons/ChevronRight';
-import ChevronDownIcon from 'reicon-react/icons/ChevronDown';
 import PuzzleIcon from 'reicon-react/icons/Puzzle';
 import SearchIcon from 'reicon-react/icons/Search';
 import { visibleSections } from '../catalog.js';
@@ -153,7 +159,6 @@ function PluginMedia({ plugin }: { plugin: PluginEntry }) {
 }
 
 function PluginDetail({ plugin, back }: { plugin: PluginEntry; back: ReactNode }) {
-  const [failedCover, setFailedCover] = useState<string>();
   const messages = useMessages();
   const location = useSettingsLocation({});
   const id = useId();
@@ -214,14 +219,6 @@ function PluginDetail({ plugin, back }: { plugin: PluginEntry; back: ReactNode }
           </div>
           <aside aria-labelledby={`${id}information`} className="min-w-0">
             <Card size="sm">
-              {plugin.cover && failedCover !== plugin.cover && (
-                <img
-                  src={plugin.cover}
-                  alt=""
-                  className="aspect-[3/2] w-full object-cover"
-                  onError={() => setFailedCover(plugin.cover)}
-                />
-              )}
               <CardHeader>
                 <CardTitle id={`${id}information`}>{messages('information')}</CardTitle>
               </CardHeader>
@@ -277,7 +274,7 @@ function PluginsView({
   view,
   onSearch,
   onTag,
-  onClearTags,
+  onReset,
   onStatus,
   onView,
   onBundle,
@@ -285,7 +282,7 @@ function PluginsView({
   view: View;
   onSearch?: (value: string | null) => void;
   onTag?: (tag: string, checked: boolean) => void;
-  onClearTags?: () => void;
+  onReset?: () => void;
   onStatus?: (value: PluginStatus) => void;
   onView?: (value: 'flat' | 'grouped') => void;
   onBundle?: (value: string) => void;
@@ -361,11 +358,36 @@ function PluginsView({
           (group) => selectedBundle === 'all' || group.key === selectedBundle,
         )
       : [{ key: 'flat', kind: 'unspecified' as const, entries }];
+  const activeFilters = [
+    ...view.pluginTag.map((tag) => ({
+      key: `tag:${tag}`,
+      label: tag,
+      remove: () => onTag?.(tag, false),
+    })),
+    ...(view.pluginStatus === 'all'
+      ? []
+      : [
+          {
+            key: 'status',
+            label: statusLabels[view.pluginStatus],
+            remove: () => onStatus?.('all'),
+          },
+        ]),
+    ...(selectedBundle === 'all'
+      ? []
+      : [
+          {
+            key: 'bundle',
+            label: selectedGroup ? groupLabel(selectedGroup) : view.pluginBundle,
+            remove: () => onBundle?.('all'),
+          },
+        ]),
+  ];
   return (
     <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col gap-4">
       <PageHeader title={own?.title ?? messages('plugins')} subtitle={own?.description} />
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <div className="w-full sm:max-w-xs">
+      <div className="flex min-w-0 shrink-0 items-center gap-2">
+        <div className="min-w-0 flex-1 sm:max-w-xs">
           <SearchField
             label={messages('searchPlugins')}
             placeholder={messages('searchPluginsPlaceholder')}
@@ -376,78 +398,104 @@ function PluginsView({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" aria-label={messages('filterTags')}>
-              {messages('tags')}
-              {view.pluginTag.length > 0 && (
-                <Badge variant="secondary">{view.pluginTag.length}</Badge>
+            <Button variant="outline" aria-label={messages('filters')}>
+              <SlidersIcon aria-hidden="true" data-icon="inline-start" />
+              {messages('filters')}
+              {activeFilters.length > 0 && (
+                <Badge variant="secondary">{activeFilters.length}</Badge>
               )}
-              <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            {tags.map((tag) => (
-              <DropdownMenuCheckboxItem
-                key={tag}
-                checked={view.pluginTag.includes(tag)}
-                onSelect={(event) => event.preventDefault()}
-                onCheckedChange={(checked) => onTag?.(tag, checked === true)}
-              >
-                {tag}
-              </DropdownMenuCheckboxItem>
-            ))}
-            {tags.length > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuItem disabled={!view.pluginTag.length} onSelect={onClearTags}>
-              {messages('clearTags')}
-            </DropdownMenuItem>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>{messages('tags')}</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuGroup>
+                    {tags.map((tag) => (
+                      <DropdownMenuCheckboxItem
+                        key={tag}
+                        checked={view.pluginTag.includes(tag)}
+                        onSelect={(event) => event.preventDefault()}
+                        onCheckedChange={(checked) => onTag?.(tag, checked === true)}
+                      >
+                        {tag}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>{messages('filterStatus')}</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuRadioGroup
+                    value={view.pluginStatus}
+                    onValueChange={(value) => onStatus?.(value as PluginStatus)}
+                  >
+                    {statuses.map((status) => (
+                      <DropdownMenuRadioItem key={status} value={status}>
+                        {statusLabels[status]}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>{messages('filterBundles')}</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuRadioGroup value={selectedBundle} onValueChange={onBundle}>
+                    <DropdownMenuRadioItem value="all">
+                      {messages('allBundles')}
+                    </DropdownMenuRadioItem>
+                    {allGroups.map((group) => (
+                      <DropdownMenuRadioItem key={group.key} value={group.key}>
+                        {groupLabel(group)}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </DropdownMenuGroup>
+            {activeFilters.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  {activeFilters.map((filter) => (
+                    <DropdownMenuItem
+                      key={filter.key}
+                      onSelect={filter.remove}
+                      aria-label={messages('removeFilter', { filter: filter.label })}
+                    >
+                      <XIcon aria-hidden="true" />
+                      {filter.label}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuItem onSelect={onReset}>{messages('resetFilters')}</DropdownMenuItem>
+                </DropdownMenuGroup>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
+        {activeFilters.length > 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onReset}
+            aria-label={messages('resetFilters')}
+            title={messages('resetFilters')}
+          >
+            <XIcon aria-hidden="true" />
+          </Button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" aria-label={messages('filterStatus')}>
-              {statusLabels[view.pluginStatus]}
-              <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuRadioGroup
-              value={view.pluginStatus}
-              onValueChange={(value) => onStatus?.(value as PluginStatus)}
+            <Button
+              variant="outline"
+              size="icon"
+              className="ms-auto"
+              aria-label={messages('pluginView')}
             >
-              {statuses.map((status) => (
-                <DropdownMenuRadioItem key={status} value={status}>
-                  {statusLabels[status]}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" aria-label={messages('filterBundles')}>
-              {selectedBundle === 'all'
-                ? messages('allBundles')
-                : selectedGroup
-                  ? groupLabel(selectedGroup)
-                  : view.pluginBundle}
-              <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuRadioGroup value={selectedBundle} onValueChange={onBundle}>
-              <DropdownMenuRadioItem value="all">{messages('allBundles')}</DropdownMenuRadioItem>
-              {allGroups.map((group) => (
-                <DropdownMenuRadioItem key={group.key} value={group.key}>
-                  {groupLabel(group)}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" aria-label={messages('pluginView')}>
-              {messages(view.pluginView === 'flat' ? 'flatPluginView' : 'groupedPluginView')}
-              <ChevronDownIcon aria-hidden="true" data-icon="inline-end" />
+              <ListIcon aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -465,6 +513,55 @@ function PluginsView({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      {activeFilters.length > 0 && (
+        <div
+          className="hidden min-w-0 items-center gap-2 sm:flex"
+          aria-label={messages('activeFilters')}
+        >
+          {activeFilters.slice(0, 2).map((filter) => (
+            <Button
+              variant="secondary"
+              size="sm"
+              key={filter.key}
+              className="min-w-0 max-w-xs shrink"
+              type="button"
+              onClick={filter.remove}
+              title={filter.label}
+              aria-label={messages('removeFilter', { filter: filter.label })}
+            >
+              <span className="truncate">{filter.label}</span>
+              <XIcon aria-hidden="true" data-icon="inline-end" />
+            </Button>
+          ))}
+          {activeFilters.length > 2 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={messages('moreFilters', { count: activeFilters.length - 2 })}
+                >
+                  +{activeFilters.length - 2}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuGroup>
+                  {activeFilters.slice(2).map((filter) => (
+                    <DropdownMenuItem
+                      key={filter.key}
+                      onSelect={filter.remove}
+                      aria-label={messages('removeFilter', { filter: filter.label })}
+                    >
+                      <XIcon aria-hidden="true" />
+                      {filter.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      )}
       <p role="status">{messages('distinctPlugins', { count: entries.length })}</p>
       <PluginChangeFeedback />
       <ScrollArea
@@ -577,7 +674,7 @@ function SearchablePlugins() {
             : current.pluginTag.filter((value) => value !== tag),
         }))
       }
-      onClearTags={() => void setView({ pluginTag: [] })}
+      onReset={() => void setView({ pluginTag: [], pluginStatus: 'all', pluginBundle: 'all' })}
       onStatus={(value) => void setView({ pluginStatus: value })}
       onView={(value) => void setView({ pluginView: value })}
       onBundle={(value) => void setView({ pluginBundle: value })}

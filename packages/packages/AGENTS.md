@@ -72,9 +72,3 @@ signal? })` prepares immutable artifacts. Scripts stay disabled. Source entries 
 On session shutdown, await `packages.dispose()` outside owned work (or after a successful
 `runtime.stop()`). This releases browser resources and preserves durable selection for recovery;
 reconciling an empty selection is an explicit uninstall. Failed cleanup blocks reuse.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

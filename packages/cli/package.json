@@ -8,8 +8,7 @@
   },
   "exports": {
     ".": "./src/index.mjs",
-    "./package.json": "./package.json",
-    "./cover.webp": "./cover.webp"
+    "./package.json": "./package.json"
   },
   "files": [
     "src",
@@ -17,8 +16,7 @@
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
-    "LICENSE",
-    "cover.webp"
+    "LICENSE"
   ],
   "engines": {
     "node": ">=24"
@@ -47,8 +45,5 @@
     "composition",
     "cli",
     "scaffolding"
-  ],
-  "bitakit": {
-    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/cli/cover.webp"
-  }
+  ]
 }

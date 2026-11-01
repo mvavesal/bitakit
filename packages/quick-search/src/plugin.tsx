@@ -1,6 +1,7 @@
 'use client';
 import { defineAction, definePlugin } from '@bitakit/core';
 import SearchIcon from 'reicon-react/icons/Search';
+import CardSearchIcon from 'reicon-react/icons/CardSearch';
 import { QuickSearchTrigger } from './trigger.js';
 import { SearchResults } from './ui/search-results.js';
 import type { QuickSearchResults } from './types.js';
@@ -34,7 +35,7 @@ export function quickSearchPlugin(options: QuickSearchOptions = {}) {
       description:
         'BitaKit Quick Search: plugin-owned search sources, navigation, preferences and recent history.',
       tags: ['system'],
-      icon: SearchIcon,
+      icon: CardSearchIcon,
     },
     settings: quickSearchSettings,
     slots: { sources: searchSources },

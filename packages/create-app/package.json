@@ -12,8 +12,7 @@
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
-    "LICENSE",
-    "cover.webp"
+    "LICENSE"
   ],
   "engines": {
     "node": ">=24"
@@ -48,8 +47,5 @@
     "scaffolding",
     "nextjs",
     "tanstack-start"
-  ],
-  "bitakit": {
-    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/create-app/cover.webp"
-  }
+  ]
 }

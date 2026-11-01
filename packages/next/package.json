@@ -7,8 +7,7 @@
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
-    "dist",
-    "cover.webp"
+    "dist"
   ],
   "exports": {
     ".": {
@@ -26,8 +25,7 @@
     "./query": {
       "types": "./dist/query.d.ts",
       "default": "./dist/query.js"
-    },
-    "./cover.webp": "./cover.webp"
+    }
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
@@ -66,8 +64,5 @@
     "composition",
     "nextjs",
     "adapter"
-  ],
-  "bitakit": {
-    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/next/cover.webp"
-  }
+  ]
 }

@@ -13,8 +13,7 @@
     "AGENTS.md",
     "CLAUDE.md",
     "locales",
-    "examples",
-    "cover.webp"
+    "examples"
   ],
   "exports": {
     ".": {
@@ -35,8 +34,7 @@
     "./sources": {
       "types": "./dist/sources.d.ts",
       "default": "./dist/sources.js"
-    },
-    "./cover.webp": "./cover.webp"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node ../../scripts/visual-slot-metadata.mjs quick-search",
@@ -71,8 +69,7 @@
   "bitakit": {
     "plugin": "./foundation",
     "configuration": "quick-search",
-    "styles": "./styles.css",
-    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/quick-search/cover.webp"
+    "styles": "./styles.css"
   },
   "keywords": [
     "bitakit",

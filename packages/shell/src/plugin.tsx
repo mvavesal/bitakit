@@ -10,7 +10,7 @@ import { type ThemeLibrary } from './themes.js';
 import { bundledThemes } from './bundled-themes.js';
 import { selectTheme, saveThemeCopy, updateTheme, deleteTheme } from './actions/themes.js';
 import { testNotification } from './actions/test-notification.js';
-import LayoutIcon from 'reicon-react/icons/Layout';
+import WindowIcon from 'reicon-react/icons/Window';
 import SidebarIcon from 'reicon-react/icons/Sidebar';
 import { shellSlots } from './slots.js';
 import { appearanceSettings } from './appearance.js';
@@ -46,7 +46,7 @@ export function shellPlugin(options: ShellOptions = {}) {
     id: 'shell',
     metadata: {
       tags: ['system', 'design'],
-      icon: LayoutIcon,
+      icon: WindowIcon,
       name: 'App Shell',
       description:
         'Application frame for BitaKit apps: navigation layouts, slots, appearance settings and notifications.',

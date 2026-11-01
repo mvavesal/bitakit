@@ -63,9 +63,3 @@ keep their declared TypeScript spelling. Do not lowercase IDs in renderers or co
 snapshots into a second lookup table.
 
 Plugin-management confirmations and generated settings labels use canonical metadata.title before legacy metadata.name. Host translations and explicit settings section titles retain precedence; unnamed application settings keep their General fallback.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

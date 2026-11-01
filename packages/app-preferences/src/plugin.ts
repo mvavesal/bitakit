@@ -8,7 +8,7 @@ import {
 } from '@bitakit/core';
 import PuzzleIcon from 'reicon-react/icons/Puzzle';
 import SearchIcon from 'reicon-react/icons/Search';
-import SettingIcon from 'reicon-react/icons/Setting';
+import SettingIcon from 'reicon-react/icons/Setting4';
 import { PluginsOverview } from './components/plugins-overview.js';
 import { settingsSlots } from './slots.js';
 import { pluginId } from './id.js';

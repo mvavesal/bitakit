@@ -30,9 +30,3 @@ to Next.js routing and query state. Apps from create-app are already wired; do n
 - This Next.js version may differ from what you know: read the guides in
   `node_modules/next/dist/docs/` before writing route or config code.
 - Run `npm run typecheck` (it runs `bitakit generate`, `next typegen` and `tsc`).
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

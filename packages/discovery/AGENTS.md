@@ -87,9 +87,3 @@ always retains the canonical package name. Nested TypeScript source entries use 
 generated imports. Code and CSS follow the selected physical copy, which may differ from the
 hoisted version older bare imports accidentally executed. The app module does not acquire its
 npm name as a display label; its existing default/explicit labels remain intact.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

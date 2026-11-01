@@ -7,16 +7,14 @@
     "dist",
     "README.md",
     "AGENTS.md",
-    "CLAUDE.md",
-    "cover.webp"
+    "CLAUDE.md"
   ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "browser": "./dist/browser.js",
       "default": "./dist/index.js"
-    },
-    "./cover.webp": "./cover.webp"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -49,8 +47,5 @@
     "email",
     "smtp",
     "nodemailer"
-  ],
-  "bitakit": {
-    "coverImage": "https://cdn.jsdelivr.net/npm/@bitakit/nodemailer/cover.webp"
-  }
+  ]
 }

@@ -18,4 +18,4 @@
 '@bitakit/ui': patch
 ---
 
-Ship a distinct illustrated cover for each BitaKit package using the existing package metadata and Settings presentation.
+Remove bundled package cover artwork and its package metadata and exports.

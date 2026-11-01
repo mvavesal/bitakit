@@ -19,9 +19,3 @@ itself; a provider plugin such as `@bitakit/nodemailer` implements it.
 - Sending needs a real, configured sender; tests use a fake service through `mountPlugin`'s
   `services` option.
 - Never log recipients, subjects with personal data or message bodies.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

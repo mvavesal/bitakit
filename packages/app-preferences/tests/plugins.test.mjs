@@ -295,9 +295,13 @@ test('status defaults to all plugins and invalid URL values use the same default
     const view = await renderApp(h(PluginsOverview), { config, search });
     try {
       assert.equal(items(view.container).length, 4);
-      const trigger = view.container.querySelector('button[aria-label="Filter by status"]');
-      assert.equal(text(trigger), 'All plugins');
-      await press(trigger, 'Enter');
+      await press(view.container.querySelector('button[aria-label="Filters"]'), 'Enter');
+      await press(
+        [...document.querySelectorAll('[role=menuitem]')].find(
+          (e) => text(e) === 'Filter by status',
+        ),
+        'ArrowRight',
+      );
       const options = [...document.querySelectorAll('[role=menuitemradio]')];
       assert.deepEqual(options.map(text), ['All plugins', 'Enabled', 'Disabled']);
       assert.equal(options[0].getAttribute('aria-checked'), 'true');
@@ -320,7 +324,11 @@ test('multiple tags use union matching, remain checked and can be cleared togeth
       items(view.container).map(([name]) => name),
       ['Todos', 'Reports'],
     );
-    await press(view.container.querySelector('button[aria-label="Filter by tag"]'), 'Enter');
+    await press(view.container.querySelector('button[aria-label="Filters"]'), 'Enter');
+    await press(
+      [...document.querySelectorAll('[role=menuitem]')].find((e) => text(e) === 'Tags'),
+      'ArrowRight',
+    );
     const options = () => [...document.querySelectorAll('[role=menuitemcheckbox]')];
     assert.deepEqual(
       options()
@@ -336,7 +344,7 @@ test('multiple tags use union matching, remain checked and can be cleared togeth
     assert.match(view.urls.at(-1), /pluginTag=reporting/);
     assert.ok(!view.urls.at(-1).includes('pluginTag=team'));
     await click(
-      [...document.querySelectorAll('[role=menuitem]')].find((e) => text(e) === 'Clear tags'),
+      [...document.querySelectorAll('[role=menuitem]')].find((e) => text(e) === 'Reset filters'),
     );
     assert.equal(items(view.container).length, 4);
     assert.ok(!view.urls.at(-1).includes('pluginTag'));
@@ -503,6 +511,28 @@ test('display titles retain application translations and each legacy fallback', 
       items(view.container).map(([name]) => name),
       ['App translation', 'Canonical title', 'Legacy title', '@fixture/name', 'runtime-id'],
     );
+  } finally {
+    await view.unmount();
+  }
+});
+
+test('toolbar reset clears filters while retaining search and view mode', async () => {
+  const view = await renderApp(h(PluginsOverview), {
+    config,
+    pathname: '/settings/plugins',
+    search:
+      '?pluginTag=team&pluginStatus=enabled&pluginBundle=application&pluginSearch=task&pluginView=grouped',
+  });
+  try {
+    await click(view.container.querySelector('button[aria-label="Remove filter: team"]'));
+    assert.ok(!view.urls.at(-1).includes('pluginTag='));
+    await click(view.container.querySelector('button[aria-label="Reset filters"]'));
+    const url = new URL(view.urls.at(-1), 'https://example.test');
+    assert.equal(url.searchParams.get('pluginSearch'), 'task');
+    assert.equal(url.searchParams.get('pluginView'), 'grouped');
+    for (const key of ['pluginTag', 'pluginStatus', 'pluginBundle'])
+      assert.equal(url.searchParams.has(key), false);
+    assert.equal(view.container.querySelector('button[aria-label="Reset filters"]'), null);
   } finally {
     await view.unmount();
   }

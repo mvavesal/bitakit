@@ -25,9 +25,3 @@ catalogs. It is a discovered plugin (`next-intl`) and keeps no locale store of i
 - Keep the locale in the validated cookie the host already uses; no second locale store and no
   URL locale prefix without a product requirement.
 - Keep matching keys in every language catalog; plugin text stays in its own package.
-
-## Package artwork
-
-The package ships `cover.webp`; `package.json` declares its public CDN URL in
-`bitakit.coverImage`. Existing plugin metadata consumers display it after publication.
-Headless packages stay headless: artwork does not register a runtime plugin or add React.

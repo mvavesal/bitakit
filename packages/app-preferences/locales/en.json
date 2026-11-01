@@ -68,7 +68,12 @@
       "pluginView": "Plugin view",
       "flatPluginView": "Flat list",
       "groupedPluginView": "Grouped by bundle",
-      "distinctPlugins": "{count, plural, one {# plugin} other {# plugins}}"
+      "distinctPlugins": "{count, plural, one {# plugin} other {# plugins}}",
+      "filters": "Filters",
+      "activeFilters": "Active filters",
+      "removeFilter": "Remove filter: {filter}",
+      "resetFilters": "Reset filters",
+      "moreFilters": "{count} more filters"
     }
   },
   "settings": {
