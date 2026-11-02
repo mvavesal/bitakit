@@ -325,6 +325,8 @@ Categories group navigation; they do not grant access. Pages and server APIs enf
 
 The settings shell owns the single content scroll area. Plugin lists and details flow with
 the page, including their headings and search controls; they do not add nested scrollbars.
+The section frame preserves content height so the shell's responsive bottom padding remains
+visible after the last card, including pages that provide their own heading.
 Plugin details list every catalog page by owning plugin ID,
 including App Preferences' own page. Versions use the standard Badge when metadata supplies
 a version; missing versions are not invented. `ui.settings.showHeader: false` lets a custom

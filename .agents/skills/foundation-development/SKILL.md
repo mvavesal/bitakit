@@ -881,7 +881,8 @@ must stay scoped, including portaled dialogs, and must not mutate confirmed sett
 
 Standard settings sections retain their content minimum height inside the padded scroll
 container; otherwise flex shrink lets descendants overflow past the bottom padding and clip
-the last card. Header-owning constrained views retain `min-h-0` for their internal scrolling.
+the last card. This also applies to pages that own their heading (`showHeader: false`);
+heading ownership does not change the shell's scroll or padding ownership.
 
 Theme choices reuse central FieldLabel/Field/FieldContent/FieldTitle selection cards and
 RadioGroup/RadioGroupItem from `@bitakit/ui/components`, matching App Preferences color scheme

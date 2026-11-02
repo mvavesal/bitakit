@@ -100,3 +100,5 @@ preserving search and view mode. The existing nuqs parameters remain the source 
 SettingsShell owns the content scroll area. Plugin lists and details use normal page flow,
 including their headings, filters and settings; do not wrap them in another scroll viewport.
 Keep room for card rings and focus outlines when composing content.
+Section frames retain their content minimum height even when the page owns its heading,
+so the shell's bottom padding remains reachable after the final card.

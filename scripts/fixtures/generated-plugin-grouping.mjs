@@ -162,6 +162,21 @@ export async function verifyPluginScrolling(page, url) {
         await check(last);
         await last.scrollIntoViewIfNeeded();
         await expect(last).toBeInViewport();
+        const spacing = await last.evaluate((element) => {
+          let parent = element.parentElement;
+          while (parent && !/auto|scroll/.test(getComputedStyle(parent).overflowY))
+            parent = parent.parentElement;
+          if (!parent) throw new Error('Missing settings scroll container');
+          parent.scrollTop = parent.scrollHeight;
+          return {
+            actual: parent.getBoundingClientRect().bottom - element.getBoundingClientRect().bottom,
+            expected: parseFloat(getComputedStyle(parent).paddingBottom),
+          };
+        });
+        assert.ok(
+          spacing.actual >= spacing.expected - 1,
+          `Final plugin must retain shell bottom padding: ${JSON.stringify(spacing)}`,
+        );
         await last.click();
         const info = page.locator('dl').last();
         await expect(info).toBeVisible();

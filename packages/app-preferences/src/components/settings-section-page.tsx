@@ -35,7 +35,7 @@ function Content({ section, showHeader }: SettingsSectionPageProps) {
   return (
     <div
       data-settings-section={section.id}
-      className={`flex w-full min-w-0 flex-1 flex-col gap-6 ${showHeader ? 'min-h-fit' : 'min-h-0'}`}
+      className="flex w-full min-h-fit min-w-0 flex-1 flex-col gap-6"
     >
       {showHeader && <PageHeader title={section.title} subtitle={section.description} />}
       <PluginSlot name="app-preferences.page.header" payload={payload} />
