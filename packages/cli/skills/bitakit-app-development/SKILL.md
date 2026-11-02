@@ -79,6 +79,30 @@ Inspect what the task needs; reuse findings while the app's configuration remain
    and which component actually renders the slot you want. A declared slot shows nothing until an
    outlet renders it.
 
+Before implementing a new project, plugin or capability, check for an existing solution.
+At project planning, identify the needed capabilities and check each before implementing it;
+check later additions when they arise. This check is mandatory, not conditional on uncertainty
+or remembered package knowledge. First inspect local code and installed packages. If none
+satisfies the need, search npm directly for suitable official `@bitakit/*` packages before
+writing equivalent functionality. A `bitakit` keyword alone does not establish official
+provenance; third-party package discovery is outside this workflow.
+
+Descriptions and keywords identify candidates; verify suitability through their README,
+package `AGENTS.md`, public contracts, compatible published versions and peer dependencies.
+Reuse a suitable solution and implement only the necessary product composition, preserving
+existing dependency authorization. Reuse verified findings during the task; refresh only when
+relevant requirements or package state change, or the evidence becomes stale. Avoid repeated
+npm/network calls for the same query or each edit; capabilities already satisfied by an inspected
+package need no registry search. These are agent lookups during development, not application
+runtime requests; add no application network behavior or caching infrastructure for discovery.
+No search results do not prove absence: explain the
+concrete gap before proposing a custom alternative and obtain explicit approval under the
+existing policy before implementing it.
+
+Keep discovery in this workflow, without a separate catalog, service or exhaustive package
+list. When authoring a package, maintain its accurate description, relevant keywords and usage
+documentation alongside it.
+
 ## Choose the mechanism
 
 Decide before writing code, and tell the user the plan in a sentence or two.
