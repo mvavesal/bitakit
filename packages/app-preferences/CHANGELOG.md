@@ -1,5 +1,11 @@
 # @bitakit/app-preferences
 
+## 0.2.13
+
+### Patch Changes
+
+- 5fde70e: Preserve the settings shell's bottom padding on pages with their own heading, including the plugin list and details.
+
 ## 0.2.12
 
 ### Patch Changes
