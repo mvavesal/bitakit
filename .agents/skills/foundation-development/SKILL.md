@@ -952,8 +952,9 @@ filesystem and moves in without replacing user files (managed AGENTS.md blocks o
 `claudeFileFor`, missing `.gitignore` lines ahead of the user's, root text files also through links
 inside the folder, folders entry by entry, SKILL.md folders whole, other kept files reported).
 
-Doctor keeps update checks opt-in: `doctor --check-updates` is read-only, `doctor --update`
-is the explicit mutation path, and plain Doctor stays local. `doctor-updates.mjs` composes
+Plain Doctor runs local health and read-only update checks once per invocation.
+`doctor --check-updates` focuses on updates; `doctor --update` is the explicit mutation path.
+Bound lookup duration and report unavailable registry results without suppressing local diagnostics. `doctor-updates.mjs` composes
 `npm-check-updates` (registry/auth, range/peer filtering), `package-manager-detector` (native
 commands) and `semver`; do not add a registry catalog or a second dependency solver. Candidates
 are advisory, not a full installed-graph compatibility guarantee. Unknown results prevent

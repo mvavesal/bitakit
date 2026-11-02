@@ -31,9 +31,10 @@ contracts and checks there and update them with the code; shared rules stay in t
 
 ## Explicit updates
 
-Use `npx bitakit doctor --check-updates` only when the user requests an update check; it is
+Plain `npx bitakit doctor` reports local health and available updates without installing.
+Use `npx bitakit doctor --check-updates` for a focused update report; it is
 read-only and supports `--json`. For an authorized BitaKit update, use `npx bitakit doctor
---update` (also `--json`), then run the project's checks. Plain Doctor does not contact a registry.
+--update` (also `--json`), then run the project's checks. Registry failures do not suppress local health diagnostics; update status is unavailable.
 The commands distinguish installed/running versions, latest and range/peer-filtered candidates;
 unavailable results are unknown, not current. The native project package manager owns installation.
 Updates preserve constraints, skip non-registry specifications and refuse ambiguous release-line

@@ -92,7 +92,7 @@ Keep every `@bitakit/*` package on one release line: 0.2.x is one line, 0.3.x th
 
 ### Within a release line
 
-Use Doctor explicitly when you want to check or install updates:
+Plain Doctor checks local health and available updates. Use these modes for a focused check or an authorized installation:
 
 ```sh
 npx bitakit doctor --check-updates
@@ -101,7 +101,7 @@ npx bitakit doctor --update
 
 | Command                  | Behavior                                                                                                                                                              |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `doctor`                 | Local health checks; no registry lookup or mutation                                                                                                                   |
+| `doctor`                 | Local health and read-only update checks; never installs                                                                                                              |
 | `doctor --check-updates` | Read-only report of the running CLI, declared official BitaKit packages, installed versions, latest releases, range/peer-filtered candidates and project skill copies |
 | `doctor --update`        | One fresh check, then the detected npm/pnpm/Yarn/Bun upgrade for eligible BitaKit dependencies and project-local `init --update-agent-files`                          |
 
@@ -112,7 +112,9 @@ but unrelated third-party packages are not explicit upgrade targets. Necessary t
 can change through normal package-manager resolution.
 
 Private registry/auth configuration is retained; unavailable results are `unknown`, not “up to date”,
-and cause a nonzero exit status. An incomplete check prevents mutation. Ranges permitting a new
+and cause a nonzero exit status for `--check-updates`. Plain Doctor still reports local diagnostics
+and preserves their exit status; JSON adds `updateStatus: "unavailable"`. Lookups have bounded
+timeouts and no retries, with no duplicate check within one invocation. An incomplete check prevents mutation. Ranges permitting a new
 release line, or peer-filtered candidates the native range update cannot enforce, require a separate
 constraint decision. Workspace/catalog/file/URL specifications are reported rather than rewritten.
 An unknown package manager prevents mutation.
@@ -226,7 +228,7 @@ You rarely run `generate` yourself: the framework adapters run it during `dev` a
 | Command                | What it does                                                                                                                                                                                                                                    | Useful switch                      |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | `npx bitakit generate` | Writes `src/bitakit.gen.*` from your plugin folders                                                                                                                                                                                             | `--watch` keeps regenerating       |
-| `npx bitakit doctor`   | Reports wiring problems with a fix for each; exit code 1 when something is wrong                                                                                                                                                                | `--json` for CI                    |
+| `npx bitakit doctor`   | Reports local health with fixes and available updates; registry failures do not change the local-health exit status                                                                                                                             | `--json` for CI                    |
 | `npx bitakit info`     | Lists every plugin with the IDs you type: Actions, services, page URLs, events, settings and slots                                                                                                                                              | `--json`                           |
 | `npx bitakit slots`    | Lists every slot you can fill, including those of installed packages, with its owner, what it accepts, what your files already put there and, for replaceable parts, which candidate renders                                                    | `--json`                           |
 | `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout and API spellings: setup `{ scope }`, placement `slot`, `attach({ slot })`, `Foundation*` → `BitaKit*` (also in root config files), and Core names imported from `@bitakit/ui` move to `@bitakit/core` | `--dry-run` only lists the changes |

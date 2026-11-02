@@ -19,7 +19,7 @@ async function installedPackage(root, name) {
   }
 }
 
-/** Registry lookups are opt-in. The standard updater owns registry/auth and peer filtering. */
+/** Read-only registry checks for Doctor. The standard updater owns registry/auth and peer filtering. */
 export async function checkUpdates({ cwd, lookup } = {}) {
   const project = await findProjectRoot(cwd);
   const manager = await detect({
@@ -102,7 +102,7 @@ export async function checkUpdates({ cwd, lookup } = {}) {
     interactive: false,
     cache: false,
     retry: 0,
-    timeout: 30000,
+    timeout: 10000,
     silent: true,
     jsonUpgraded: true,
     configFileName: '.bitakit-unused-ncu-config',

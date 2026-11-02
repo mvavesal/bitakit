@@ -218,7 +218,7 @@ program
   .option('--check-updates', 'check published BitaKit updates (read-only, uses the registry)')
   .option('--update', 'update compatible project BitaKit packages and refresh unedited agent files')
   .description(
-    'Check versions, wiring, routes, links, service names, styles and deprecated layouts.',
+    'Check local project health and available BitaKit updates; never installs without --update.',
   )
   .action(async (options) => {
     if (options.checkUpdates && options.update)
@@ -231,12 +231,32 @@ program
         process.exitCode = 1;
       return;
     }
-    const { project, results } = await doctor();
+    const { checkUpdates, formatUpdates } = await import('./doctor-updates.mjs');
+    const [{ project, results }, updates] = await Promise.all([
+      doctor(),
+      checkUpdates().catch(() => null),
+    ]);
     const errors = results.filter((result) => result.status === 'error').length;
     const warnings = results.filter((result) => result.status === 'warn').length;
     if (options.json) {
       console.log(
-        JSON.stringify({ project: project.manifest.name, results, errors, warnings }, null, 2),
+        JSON.stringify(
+          {
+            project: project.manifest.name,
+            results,
+            errors,
+            warnings,
+            updates,
+            updateStatus:
+              !updates ||
+              !updates.supportedManager ||
+              updates.packages.some((item) => item.status === 'unknown')
+                ? 'unavailable'
+                : 'checked',
+          },
+          null,
+          2,
+        ),
       );
       if (errors) process.exitCode = 1;
       return;
@@ -255,6 +275,11 @@ program
     }
     console.log(
       `\n${errors ? `${errors} problem${errors === 1 ? '' : 's'}` : 'No problems'}${warnings ? `, ${warnings} warning${warnings === 1 ? '' : 's'}` : ''}.\n`,
+    );
+    console.log(
+      updates
+        ? formatUpdates(updates)
+        : 'Update status unavailable; local health checks above are unaffected.',
     );
     if (errors) process.exitCode = 1;
   });

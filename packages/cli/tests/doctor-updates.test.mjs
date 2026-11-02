@@ -1,4 +1,7 @@
 import test from 'node:test';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -213,4 +216,22 @@ test('native range upgrades refuse a higher peer-incompatible version', () => {
       }),
     /peer-incompatible/,
   );
+});
+
+test('default Doctor keeps local diagnostics when the registry is inaccessible and never installs', async (t) => {
+  const root = await fixture(t);
+  const requests = await registry(t, root, { unavailable: true });
+  const before = await readFile(path.join(root, 'package.json'), 'utf8');
+  const result = await promisify(execFile)(
+    process.execPath,
+    [fileURLToPath(new URL('../src/cli.mjs', import.meta.url)), 'doctor', '--json'],
+    { cwd: root },
+  ).catch((error) => error);
+  const report = JSON.parse(result.stdout);
+  assert.ok(report.results.length > 0);
+  assert.equal(report.updateStatus, 'unavailable');
+  assert.ok(requests.length > 0);
+  assert.ok(report.updates.packages.every(({ status }) => status === 'unknown'));
+  assert.equal(await readFile(path.join(root, 'package.json'), 'utf8'), before);
+  assert.ok(!result.stdout.includes('test-private-token'));
 });

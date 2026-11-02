@@ -26,12 +26,13 @@ and explain in plain words what you built and why.
 
 ## Explicit update requests
 
-When the user asks to check updates, run `npx bitakit doctor --check-updates` (read-only).
+Plain Doctor reports local health and available updates without installing.
+When the user asks for a focused update check, run `npx bitakit doctor --check-updates` (read-only).
 When they authorize updating BitaKit tooling, packages and skills, run
 `npx bitakit doctor --update`, then the relevant project checks. Both support `--json`.
 Doctor owns version lookup, package-manager integration and safe agent-file refresh; follow
 its report for unavailable results, constraints or an external CLI. Do not duplicate that
-logic, check updates on every task, refresh skills automatically, or repeat an authorization
+logic, add recurring checks outside Doctor, refresh skills automatically, or repeat an authorization
 already given. “Update everything” here covers BitaKit, not unrelated dependencies or a new
 release line.
 

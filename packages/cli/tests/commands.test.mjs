@@ -211,6 +211,8 @@ test('add prints the created files, doctor --json reports counts and the exit co
   assert.equal(failing.code, 1);
   const report = JSON.parse(failing.stdout);
   assert.equal(report.project, 'demo');
+  assert.equal(report.updateStatus, 'unavailable');
+  assert.ok(report.updates.notes.some((note) => note.includes('Package manager')));
   assert.deepEqual([report.errors, report.warnings], [1, 0]);
   assert.deepEqual(
     report.results.filter((result) => result.status !== 'ok').map((result) => result.title),
@@ -223,6 +225,7 @@ test('add prints the created files, doctor --json reports counts and the exit co
   assert.match(passing.stdout, /BitaKit doctor · demo/);
   assert.match(passing.stdout, /All 2 plugin pages can be reached/);
   assert.match(passing.stdout, /No problems\./);
+  assert.match(passing.stdout, /BitaKit updates/);
 
   const version = await bitakit(root, '--version');
   assert.equal(

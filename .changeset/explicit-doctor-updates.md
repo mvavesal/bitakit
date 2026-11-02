@@ -2,4 +2,4 @@
 '@bitakit/cli': patch
 ---
 
-Add explicit Doctor update checks and project-scoped BitaKit upgrades using the existing package manager, with guarded agent-file refresh and no registry requests during normal health checks.
+Report available BitaKit updates alongside Doctor health checks, with a focused read-only mode and explicitly authorized project upgrades and guarded agent-file refresh. Registry failures preserve local diagnostics.

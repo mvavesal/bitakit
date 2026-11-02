@@ -159,13 +159,16 @@ npx bitakit doctor --check-updates  # read-only registry lookup
 npx bitakit doctor --update         # authorized BitaKit updates and agent-file refresh
 ```
 
-Both accept `--json`; the two flags cannot be combined. Plain `doctor` stays local and
-never checks npm or updates files. The check reports the running CLI, project-declared
+Both accept `--json`; the two flags cannot be combined. Plain `doctor` reports local health
+and available updates without installing anything. `--check-updates` focuses on updates only.
+Registry failures leave local diagnostics and their exit status intact; JSON includes
+`updateStatus: "unavailable"`. Each lookup has a bounded timeout and no retries.
+The check reports the running CLI, project-declared
 `@bitakit/*` packages, installed versions, registry `latest`, range/peer-filtered candidates,
 and both skill copies. `latest` can belong to another release line. Candidates are advisory:
 `npm-check-updates` filters declared ranges and peer constraints, while the package manager
 and project tests validate the installed graph. Inaccessible results stay `unknown`, with a
-nonzero exit status. Registry/auth settings remain with the detected npm, pnpm, Yarn or Bun
+nonzero exit status in `--check-updates`. Registry/auth settings remain with the detected npm, pnpm, Yarn or Bun
 configuration; credentials are not printed. Peer inspection can also read other dependencies.
 
 `--update` performs one fresh check, then uses the project's package manager to upgrade only
