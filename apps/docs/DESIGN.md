@@ -40,9 +40,10 @@ The user requested a small code-block refinement on October 1: warm tinted surfa
 no drop shadow and a subtle border. Central `--docs-code-background` and
 `--docs-code-border` tokens apply to Fumadocs code-block figures in light and dark mode.
 Preserve upstream syntax highlighting, copy controls, scrolling, typography and spacing.
-The light surface is nearly neutral with a trace of warmth. Dark code blocks retain their
-10% primary tint over the card surface with a subtle border, independently of navigation's
-navy selection surface. Reuse the upstream theme tokens.
+The light surface is nearly neutral with a trace of warmth. On November 2 the user asked for
+dark code to match the landing page's: dark code blocks sit on the page background with the
+standard border, below package-manager tab headers and file titles in the card color, so the
+code reads darker than its header or the card around it. Reuse the upstream theme tokens.
 
 Check article navigation, search, narrow layouts and both themes in the rendered site
 when these surfaces change. A successful build alone does not verify their appearance.

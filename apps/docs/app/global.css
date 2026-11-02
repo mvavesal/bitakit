@@ -54,9 +54,11 @@ html > body[data-scroll-locked] {
   --docs-code-border: oklch(0.92 0.004 75);
 }
 
+/* Dark code sits on the page's own background, darker than the tab header or card around it,
+   like the landing page's code. */
 .dark {
-  --docs-code-background: color-mix(in srgb, var(--color-fd-primary) 10%, var(--color-fd-card));
-  --docs-code-border: color-mix(in srgb, var(--color-fd-primary) 15%, var(--color-fd-card));
+  --docs-code-background: var(--color-fd-background);
+  --docs-code-border: var(--color-fd-border);
 }
 
 figure.shiki {
@@ -64,4 +66,9 @@ figure.shiki {
   background-color: var(--docs-code-background);
   border-color: var(--docs-code-border);
   box-shadow: none;
+}
+
+/* A dark code block's title takes the card color, like the package-manager tab headers. */
+.dark figure.shiki > div:has(> figcaption) {
+  background-color: var(--color-fd-card);
 }
