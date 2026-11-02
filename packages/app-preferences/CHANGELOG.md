@@ -1,5 +1,11 @@
 # @bitakit/app-preferences
 
+## 0.2.12
+
+### Patch Changes
+
+- 60ec415: Use the settings page's single content scroll area for plugin lists and details, avoiding nested scrollbars and collapsed lists in short windows.
+
 ## 0.2.11
 
 ### Patch Changes
