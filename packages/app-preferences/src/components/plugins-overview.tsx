@@ -58,7 +58,6 @@ import {
   ItemSeparator,
   ItemTitle,
 } from './ui/item.js';
-import { ScrollArea } from './ui/scroll-area.js';
 
 import { useMessages } from './use-messages.js';
 import { PluginToggle, PluginChangeFeedback } from './plugin-toggle.js';
@@ -169,7 +168,7 @@ function PluginDetail({ plugin, back }: { plugin: PluginEntry; back: ReactNode }
   return (
     <section
       aria-labelledby={`${id}title`}
-      className="flex w-full min-h-0 min-w-0 flex-1 flex-col gap-6"
+      className="flex w-full min-h-fit min-w-0 flex-1 flex-col gap-6"
     >
       <PageHeader
         before={back}
@@ -178,94 +177,92 @@ function PluginDetail({ plugin, back }: { plugin: PluginEntry; back: ReactNode }
         subtitle={plugin.author ? messages('author', { author: plugin.author }) : undefined}
         trailing={plugin.version && <Badge variant="secondary">{plugin.version}</Badge>}
       />
-      <ScrollArea className="min-h-0 min-w-0 flex-1">
-        <div className="grid min-w-0 gap-6 p-2 lg:grid-cols-3">
-          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
-            <section aria-labelledby={`${id}about`} className="flex min-w-0 flex-col gap-3">
-              <h3 id={`${id}about`} className="text-sm font-medium">
-                {messages('aboutPlugin')}
-              </h3>
-              <p className="text-sm text-muted-foreground wrap-anywhere">
-                {plugin.description ?? messages('noDescription')}
-              </p>
-            </section>
-            <section aria-labelledby={`${id}settings`} className="flex min-w-0 flex-col gap-3">
-              <h3 id={`${id}settings`} className="text-sm font-medium">
-                {messages('pluginSettings')}
-              </h3>
-              {sections.length ? (
-                sections.map((section) =>
-                  section.component ? (
-                    <Item key={section.id} asChild variant="outline">
-                      <Link href={sectionHref(location.basePath, section)}>
-                        <ItemContent className="min-w-0">
-                          <ItemTitle>{section.title}</ItemTitle>
-                          <ItemDescription>{messages('openSettings')}</ItemDescription>
-                        </ItemContent>
-                        <ChevronRightIcon
-                          className="size-4 shrink-0 text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      </Link>
-                    </Item>
-                  ) : section?.fields.length ? (
-                    <SettingsFields key={section.id} section={section} />
-                  ) : null,
-                )
-              ) : (
-                <p className="text-sm text-muted-foreground">{messages('noPluginSettings')}</p>
-              )}
-            </section>
-          </div>
-          <aside aria-labelledby={`${id}information`} className="min-w-0">
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle id={`${id}information`}>{messages('information')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="flex flex-col gap-4 text-sm wrap-anywhere">
+      <div className="grid min-w-0 gap-6 p-2 lg:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+          <section aria-labelledby={`${id}about`} className="flex min-w-0 flex-col gap-3">
+            <h3 id={`${id}about`} className="text-sm font-medium">
+              {messages('aboutPlugin')}
+            </h3>
+            <p className="text-sm text-muted-foreground wrap-anywhere">
+              {plugin.description ?? messages('noDescription')}
+            </p>
+          </section>
+          <section aria-labelledby={`${id}settings`} className="flex min-w-0 flex-col gap-3">
+            <h3 id={`${id}settings`} className="text-sm font-medium">
+              {messages('pluginSettings')}
+            </h3>
+            {sections.length ? (
+              sections.map((section) =>
+                section.component ? (
+                  <Item key={section.id} asChild variant="outline">
+                    <Link href={sectionHref(location.basePath, section)}>
+                      <ItemContent className="min-w-0">
+                        <ItemTitle>{section.title}</ItemTitle>
+                        <ItemDescription>{messages('openSettings')}</ItemDescription>
+                      </ItemContent>
+                      <ChevronRightIcon
+                        className="size-4 shrink-0 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  </Item>
+                ) : section?.fields.length ? (
+                  <SettingsFields key={section.id} section={section} />
+                ) : null,
+              )
+            ) : (
+              <p className="text-sm text-muted-foreground">{messages('noPluginSettings')}</p>
+            )}
+          </section>
+        </div>
+        <aside aria-labelledby={`${id}information`} className="min-w-0">
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle id={`${id}information`}>{messages('information')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="flex flex-col gap-4 text-sm wrap-anywhere">
+                <div className="flex flex-col gap-1.5">
+                  <dt className="text-muted-foreground">{messages('version')}</dt>
+                  <dd>
+                    {plugin.version ? (
+                      <Badge variant="secondary">{plugin.version}</Badge>
+                    ) : (
+                      messages('unspecified')
+                    )}
+                  </dd>
+                </div>
+                {plugin.license && (
                   <div className="flex flex-col gap-1.5">
-                    <dt className="text-muted-foreground">{messages('version')}</dt>
+                    <dt className="text-muted-foreground">{messages('license')}</dt>
+                    <dd>{plugin.license}</dd>
+                  </div>
+                )}
+                {plugin.homepage && (
+                  <div className="flex flex-col gap-1.5">
+                    <dt className="text-muted-foreground">{messages('website')}</dt>
                     <dd>
-                      {plugin.version ? (
-                        <Badge variant="secondary">{plugin.version}</Badge>
-                      ) : (
-                        messages('unspecified')
-                      )}
+                      <a href={plugin.homepage} className="underline underline-offset-4">
+                        {messages('projectWebsite')}
+                      </a>
                     </dd>
                   </div>
-                  {plugin.license && (
-                    <div className="flex flex-col gap-1.5">
-                      <dt className="text-muted-foreground">{messages('license')}</dt>
-                      <dd>{plugin.license}</dd>
-                    </div>
-                  )}
-                  {plugin.homepage && (
-                    <div className="flex flex-col gap-1.5">
-                      <dt className="text-muted-foreground">{messages('website')}</dt>
-                      <dd>
-                        <a href={plugin.homepage} className="underline underline-offset-4">
-                          {messages('projectWebsite')}
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                  {plugin.support && (
-                    <div className="flex flex-col gap-1.5">
-                      <dt className="text-muted-foreground">{messages('support')}</dt>
-                      <dd>
-                        <a href={plugin.support} className="underline underline-offset-4">
-                          {messages('supportLink')}
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              </CardContent>
-            </Card>
-          </aside>
-        </div>
-      </ScrollArea>
+                )}
+                {plugin.support && (
+                  <div className="flex flex-col gap-1.5">
+                    <dt className="text-muted-foreground">{messages('support')}</dt>
+                    <dd>
+                      <a href={plugin.support} className="underline underline-offset-4">
+                        {messages('supportLink')}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
     </section>
   );
 }
@@ -384,7 +381,7 @@ function PluginsView({
         ]),
   ];
   return (
-    <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col gap-4">
+    <div className="flex w-full min-h-fit min-w-0 flex-1 flex-col gap-4">
       <PageHeader title={own?.title ?? messages('plugins')} subtitle={own?.description} />
       <div className="flex min-w-0 shrink-0 items-center gap-2">
         <div className="min-w-0 flex-1 sm:max-w-xs">
@@ -564,100 +561,96 @@ function PluginsView({
       )}
       <p role="status">{messages('distinctPlugins', { count: entries.length })}</p>
       <PluginChangeFeedback />
-      <ScrollArea
+      <div
         key={`${view.pluginSearch}:${view.pluginTag.join()}:${view.pluginStatus}:${view.pluginView}:${view.pluginBundle}`}
-        className="-mx-1 min-h-0 min-w-0 flex-initial"
+        className="-mx-1 flex min-w-0 flex-col gap-4 py-1 ps-1 pe-4"
       >
-        <div className="flex flex-col gap-4 py-1 ps-1 pe-4">
-          {entries.length > 0 &&
-            groups.map((group) => (
-              <Card
-                key={group.key}
-                size="sm"
-                className={view.pluginView === 'flat' ? 'py-0' : undefined}
+        {entries.length > 0 &&
+          groups.map((group) => (
+            <Card
+              key={group.key}
+              size="sm"
+              className={view.pluginView === 'flat' ? 'py-0' : undefined}
+            >
+              {view.pluginView === 'grouped' && (
+                <CardHeader>
+                  <CardTitle role="heading" aria-level={2}>
+                    {groupLabel(group)} <Badge variant="secondary">{group.entries.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+              )}
+              <ItemGroup
+                className="app-preferences-plugins gap-0 has-data-[size=sm]:gap-0"
+                aria-label={view.pluginView === 'grouped' ? groupLabel(group) : messages('plugins')}
               >
-                {view.pluginView === 'grouped' && (
-                  <CardHeader>
-                    <CardTitle role="heading" aria-level={2}>
-                      {groupLabel(group)} <Badge variant="secondary">{group.entries.length}</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                )}
-                <ItemGroup
-                  className="app-preferences-plugins gap-0 has-data-[size=sm]:gap-0"
-                  aria-label={
-                    view.pluginView === 'grouped' ? groupLabel(group) : messages('plugins')
-                  }
-                >
-                  {group.entries.map((plugin, index) => (
-                    <Fragment key={plugin.id}>
-                      <div role="listitem" className="flex min-w-0 items-center">
-                        <Item
-                          asChild
-                          size="sm"
-                          className="app-preferences-plugin min-w-0 flex-1 flex-nowrap [a]:hover:bg-transparent"
-                        >
-                          <Link href={href(plugin.id)}>
-                            <PluginMedia plugin={plugin} />
-                            <ItemContent className="min-w-0">
-                              <ItemTitle className="max-w-full flex-wrap overflow-visible">
-                                <span className="min-w-0 wrap-anywhere">{plugin.name}</span>
-                                {plugin.version && (
+                {group.entries.map((plugin, index) => (
+                  <Fragment key={plugin.id}>
+                    <div role="listitem" className="flex min-w-0 items-center">
+                      <Item
+                        asChild
+                        size="sm"
+                        className="app-preferences-plugin min-w-0 flex-1 flex-nowrap [a]:hover:bg-transparent"
+                      >
+                        <Link href={href(plugin.id)}>
+                          <PluginMedia plugin={plugin} />
+                          <ItemContent className="min-w-0">
+                            <ItemTitle className="max-w-full flex-wrap overflow-visible">
+                              <span className="min-w-0 wrap-anywhere">{plugin.name}</span>
+                              {plugin.version && (
+                                <Badge
+                                  variant="secondary"
+                                  className="max-w-full whitespace-normal wrap-anywhere"
+                                >
+                                  {plugin.version}
+                                </Badge>
+                              )}
+                            </ItemTitle>
+                            {plugin.description && (
+                              <ItemDescription className="line-clamp-none wrap-anywhere">
+                                {plugin.description}
+                              </ItemDescription>
+                            )}
+                            {plugin.author && (
+                              <ItemDescription className="line-clamp-none wrap-anywhere">
+                                {messages('author', { author: plugin.author })}
+                              </ItemDescription>
+                            )}
+                            {plugin.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {plugin.tags.map((tag) => (
                                   <Badge
-                                    variant="secondary"
+                                    key={tag}
+                                    variant="outline"
                                     className="max-w-full whitespace-normal wrap-anywhere"
                                   >
-                                    {plugin.version}
+                                    {tag}
                                   </Badge>
-                                )}
-                              </ItemTitle>
-                              {plugin.description && (
-                                <ItemDescription className="line-clamp-none wrap-anywhere">
-                                  {plugin.description}
-                                </ItemDescription>
-                              )}
-                              {plugin.author && (
-                                <ItemDescription className="line-clamp-none wrap-anywhere">
-                                  {messages('author', { author: plugin.author })}
-                                </ItemDescription>
-                              )}
-                              {plugin.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5">
-                                  {plugin.tags.map((tag) => (
-                                    <Badge
-                                      key={tag}
-                                      variant="outline"
-                                      className="max-w-full whitespace-normal wrap-anywhere"
-                                    >
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                            </ItemContent>
-                          </Link>
-                        </Item>
-                        <PluginToggle id={plugin.id} name={plugin.name} />
-                      </div>
-                      {index < group.entries.length - 1 && <ItemSeparator className="my-0" />}
-                    </Fragment>
-                  ))}
-                </ItemGroup>
-              </Card>
-            ))}
-          {!entries.length && (
-            <Empty role="status">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <SearchIcon aria-hidden="true" />
-                </EmptyMedia>
-                <EmptyTitle>{messages('noPlugins')}</EmptyTitle>
-                <EmptyDescription>{messages('noPluginsHint')}</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
-        </div>
-      </ScrollArea>
+                                ))}
+                              </div>
+                            )}
+                          </ItemContent>
+                        </Link>
+                      </Item>
+                      <PluginToggle id={plugin.id} name={plugin.name} />
+                    </div>
+                    {index < group.entries.length - 1 && <ItemSeparator className="my-0" />}
+                  </Fragment>
+                ))}
+              </ItemGroup>
+            </Card>
+          ))}
+        {!entries.length && (
+          <Empty role="status">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <SearchIcon aria-hidden="true" />
+              </EmptyMedia>
+              <EmptyTitle>{messages('noPlugins')}</EmptyTitle>
+              <EmptyDescription>{messages('noPluginsHint')}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
+      </div>
     </div>
   );
 }

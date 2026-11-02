@@ -94,3 +94,9 @@ The plugin overview groups tag, status and bundle filters in one dropdown. Tags 
 multi-select; status and bundle remain single-select. Active chips are removable; the
 additional-filter menu and main menu retain every selection. Reset clears filters while
 preserving search and view mode. The existing nuqs parameters remain the source of truth.
+
+## Plugin page scrolling
+
+SettingsShell owns the content scroll area. Plugin lists and details use normal page flow,
+including their headings, filters and settings; do not wrap them in another scroll viewport.
+Keep room for card rings and focus outlines when composing content.

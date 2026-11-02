@@ -744,7 +744,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
 - Plugin details enumerate settings by owning plugin ID, including additional pages and the
   overview plugin itself. Use the shared PageHeader `before` slot for back navigation. A
   custom settings page owning its header declares `ui.settings.showHeader: false`. Long
-  plugin lists scroll within a constrained viewport; header, breadcrumb and search stay fixed.
+  plugin lists and details share SettingsShell's content scroll area; their headings and search
+  flow with the page. Do not add a nested list/detail viewport: short windows otherwise show
+  two competing scrollbars. The shell breadcrumb remains outside the content scroller.
 
 - Scroll regions containing standard cards need inner spacing for their outward rings and shadows; otherwise overflow clips the top and side borders. Verify the rendered edges, not only scroll geometry.
 
@@ -762,7 +764,8 @@ Declare metadata in `definePlugin({ metadata: { tags, coverImage } })`, local
 `plugin.config.ts` metadata, or package.json `bitakit.tags` / `bitakit.coverImage` with top-level legacy fallbacks. Discovery and package builds preserve both fields. Covers are optional;
 missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback).
 
-App Preferences uses central Card/Item/Badge primitives and Radix ScrollArea, with no pagination.
+App Preferences uses central Card/Item/Badge primitives with no pagination; the settings shell
+owns scrolling for the plugin list and details.
 `pluginView` (flat by default, or grouped) and `pluginBundle` join search/tag/status in nuqs.
 Grouping uses Core's `groupPlugins` and inventory membership; repeated rows share the existing
 runtime toggle and the total counts distinct plugins. Keep central spacing, focus and theme tokens.

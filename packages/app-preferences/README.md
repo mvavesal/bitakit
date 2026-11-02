@@ -323,8 +323,9 @@ Categories group navigation; they do not grant access. Pages and server APIs enf
 
 ### Plugin overview layout
 
-The settings shell constrains the viewport; the plugin list scrolls independently while its
-header and search stay visible. Plugin details list every catalog page by owning plugin ID,
+The settings shell owns the single content scroll area. Plugin lists and details flow with
+the page, including their headings and search controls; they do not add nested scrollbars.
+Plugin details list every catalog page by owning plugin ID,
 including App Preferences' own page. Versions use the standard Badge when metadata supplies
 a version; missing versions are not invented. `ui.settings.showHeader: false` lets a custom
 page own its header. The shared `PageHeader.before` slot places back navigation above the title.
@@ -343,13 +344,11 @@ Declare metadata in `definePlugin({ metadata: { tags, coverImage } })`, local
 legacy fallbacks. Discovery and package builds preserve both fields. Covers are optional;
 missing, unsafe or failed images use the plugin icon (or the standard puzzle fallback).
 
-App Preferences uses the shared standard Card and Item primitives from `@bitakit/ui/components`,
-Badges and Radix ScrollArea. Compact groups use `sm` rows with separators between entries only;
-there is no extra group gap. The viewport keeps a logical end gutter clear of the scrollbar.
-Search and page headings stay outside the scroll viewport. The same ScrollArea is exported
-for composition; list scrolling is owned by that viewport rather than a nested native
-scroll container. Preserve the theme focus token and Radix data-orientation selectors when
-updating registry components. No app CSS is needed.
+App Preferences uses the shared standard Card and Item primitives from `@bitakit/ui/components`
+and Badges. Compact groups use `sm` rows with separators between entries only;
+there is no extra group gap. Lists retain inner spacing for card rings and focus outlines,
+but delegate scrolling to the settings shell. Radix ScrollArea remains exported for explicit
+composition elsewhere. No app CSS is needed.
 
 Each row places a declared version beside the plugin name, followed by the description,
 optional author and wrapping tags. Missing versions are omitted from the list; the detail
@@ -358,7 +357,7 @@ The semantic list uses `.app-preferences-plugins`; each linked row uses
 `.app-preferences-plugin`. These hooks identify the owning surface and item; native link
 focus and shared component state remain authoritative.
 
-The scroll viewport shows every filtered plugin without pagination. The status filter beside
+The page shows every filtered plugin without pagination. The status filter beside
 Tags offers All plugins (default), Enabled and Disabled. It combines with search and tags,
 uses the same inventory state as the switches, and updates when a plugin is toggled. Failed
 plugins appear under Disabled, matching their retry switch. `pluginStatus` uses a typed nuqs

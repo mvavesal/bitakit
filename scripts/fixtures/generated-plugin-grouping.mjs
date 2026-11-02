@@ -59,6 +59,7 @@ export default defineBitaKit({ bundles: [{ id: '@fixture/other', label: 'Other a
 }
 
 export async function verifyPluginGrouping(page, url, artifacts) {
+  await verifyPluginScrolling(page, url);
   const route = url + '/settings/plugins?pluginView=grouped';
   await page.goto(route);
   const groups = [
@@ -128,6 +129,46 @@ export async function verifyPluginGrouping(page, url, artifacts) {
         path: path.join(artifacts, `plugins-${width}-${dark ? 'dark' : 'light'}.png`),
         animations: 'disabled',
       });
+    }
+  }
+}
+
+/** Plugin content shares the settings scroller, even when headers fill a short window. */
+export async function verifyPluginScrolling(page, url) {
+  const check = async (content) => {
+    const count = await content.evaluate((element) => {
+      const scrollers = new Set();
+      for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+        if (
+          /auto|scroll/.test(getComputedStyle(parent).overflowY) &&
+          parent.scrollHeight > parent.clientHeight + 1
+        )
+          scrollers.add(parent);
+      }
+      const documentScroller = document.scrollingElement;
+      if (documentScroller && documentScroller.scrollHeight > documentScroller.clientHeight + 1)
+        scrollers.add(documentScroller);
+      return scrollers.size;
+    });
+    assert.ok(count <= 1, `Plugin content must have one scrolling ancestor, found ${count}`);
+  };
+  for (const width of [390, 1440]) {
+    for (const height of [320, 900]) {
+      await page.setViewportSize({ width, height });
+      for (const view of ['flat', 'grouped']) {
+        await page.goto(`${url}/settings/plugins?pluginView=${view}`);
+        const last = page.locator('.app-preferences-plugin').last();
+        await expect(last).toBeVisible();
+        await check(last);
+        await last.scrollIntoViewIfNeeded();
+        await expect(last).toBeInViewport();
+        await last.click();
+        const info = page.locator('dl').last();
+        await expect(info).toBeVisible();
+        await check(info);
+        await info.scrollIntoViewIfNeeded();
+        await expect(info).toBeInViewport();
+      }
     }
   }
 }
