@@ -952,6 +952,18 @@ filesystem and moves in without replacing user files (managed AGENTS.md blocks o
 `claudeFileFor`, missing `.gitignore` lines ahead of the user's, root text files also through links
 inside the folder, folders entry by entry, SKILL.md folders whole, other kept files reported).
 
+Doctor keeps update checks opt-in: `doctor --check-updates` is read-only, `doctor --update`
+is the explicit mutation path, and plain Doctor stays local. `doctor-updates.mjs` composes
+`npm-check-updates` (registry/auth, range/peer filtering), `package-manager-detector` (native
+commands) and `semver`; do not add a registry catalog or a second dependency solver. Candidates
+are advisory, not a full installed-graph compatibility guarantee. Unknown results prevent
+mutation. Native upgrades target declared official packages only, retain project constraints
+and refuse release-line or peer selections they cannot enforce. Refresh agent files through
+the project-local CLI's existing `init --update-agent-files`; preserve custom skills and
+external/global CLI installations. The consumer skill only routes explicit user requests to
+these commands; it never schedules or duplicates checks. Focus verification on local registry,
+auth/error handling, peer constraints, package-manager targeting and refresh failure ordering.
+
 The consumer skill routes bootstrap and plugin-guide examples to `references/create-app.md`
 and `references/plugin-guides.md`. Recipes load on demand; checks follow the task (prose-only,
 behavior, UI), and existing user authorization is retained. Select compatible package versions

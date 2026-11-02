@@ -92,18 +92,36 @@ Keep every `@bitakit/*` package on one release line: 0.2.x is one line, 0.3.x th
 
 ### Within a release line
 
-The generated `package.json` uses caret ranges (`^0.2.2`), so `npm update` installs the newest patches of the line. Name the `@bitakit/*` packages your `package.json` lists; plain `npm update` would update every other dependency too:
+Use Doctor explicitly when you want to check or install updates:
 
 ```sh
-npm update @bitakit/core @bitakit/ui @bitakit/next @bitakit/app-preferences @bitakit/shell @bitakit/quick-search @bitakit/cli @bitakit/discovery
+npx bitakit doctor --check-updates
+npx bitakit doctor --update
 ```
 
-With pnpm use `pnpm update`, with Yarn `yarn upgrade`, with Bun `bun update`, each with the same package names. `package.json` keeps its ranges and the lockfile records the new versions. `npm outdated` shows which packages have a newer version. Then refresh the agent files and check the project:
+| Command                  | Behavior                                                                                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `doctor`                 | Local health checks; no registry lookup or mutation                                                                                                                   |
+| `doctor --check-updates` | Read-only report of the running CLI, declared official BitaKit packages, installed versions, latest releases, range/peer-filtered candidates and project skill copies |
+| `doctor --update`        | One fresh check, then the detected npm/pnpm/Yarn/Bun upgrade for eligible BitaKit dependencies and project-local `init --update-agent-files`                          |
 
-```sh
-npx bitakit init --update-agent-files
-npx bitakit doctor
-```
+Both update modes support `--json` and cannot be combined. `latest` is not necessarily compatible.
+Candidates use `npm-check-updates` range and peer filtering; the package manager and project tests
+remain responsible for validating the installed graph. Peer inspection may read other dependencies,
+but unrelated third-party packages are not explicit upgrade targets. Necessary transitive dependencies
+can change through normal package-manager resolution.
+
+Private registry/auth configuration is retained; unavailable results are `unknown`, not “up to date”,
+and cause a nonzero exit status. An incomplete check prevents mutation. Ranges permitting a new
+release line, or peer-filtered candidates the native range update cannot enforce, require a separate
+constraint decision. Workspace/catalog/file/URL specifications are reported rather than rewritten.
+An unknown package manager prevents mutation.
+
+Edited skills and user text outside managed agent blocks are preserved. A failed install stops
+before skill refresh; inspect the diff before retrying. External/global CLIs are reported but not
+silently replaced. Without a project-local CLI, agent files are preserved; use the desired compatible
+CLI with `init --update-agent-files`. The JSON update result includes `installedAfter` without another
+registry lookup. After updating, run the project's typecheck and relevant tests, then plain Doctor.
 
 ### To a new release line
 

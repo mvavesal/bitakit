@@ -29,6 +29,18 @@ doctor exits 1 on errors and names the fix.
 and a `CLAUDE.md` importing it. Read the local guide before editing the plugin. Keep its purpose,
 contracts and checks there and update them with the code; shared rules stay in the app guide.
 
+## Explicit updates
+
+Use `npx bitakit doctor --check-updates` only when the user requests an update check; it is
+read-only and supports `--json`. For an authorized BitaKit update, use `npx bitakit doctor
+--update` (also `--json`), then run the project's checks. Plain Doctor does not contact a registry.
+The commands distinguish installed/running versions, latest and range/peer-filtered candidates;
+unavailable results are unknown, not current. The native project package manager owns installation.
+Updates preserve constraints, skip non-registry specifications and refuse ambiguous release-line
+or peer selections. Existing `init --update-agent-files` refreshes through the project-local CLI,
+preserving custom skills. External/global CLIs are never overwritten. Do not duplicate lookup
+logic in a skill, schedule recurring checks, or ask again for authorization already given.
+
 ## Rules
 
 - Replace template bodies and tutorial comments with the real implementation.

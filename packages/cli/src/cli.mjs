@@ -215,10 +215,22 @@ program
 program
   .command('doctor')
   .option('--json', 'machine-readable output')
+  .option('--check-updates', 'check published BitaKit updates (read-only, uses the registry)')
+  .option('--update', 'update compatible project BitaKit packages and refresh unedited agent files')
   .description(
     'Check versions, wiring, routes, links, service names, styles and deprecated layouts.',
   )
   .action(async (options) => {
+    if (options.checkUpdates && options.update)
+      throw new Error('Use either --check-updates (read-only) or --update.');
+    if (options.checkUpdates || options.update) {
+      const { checkUpdates, updatePackages, formatUpdates } = await import('./doctor-updates.mjs');
+      const report = await (options.update ? updatePackages() : checkUpdates());
+      console.log(options.json ? JSON.stringify(report, null, 2) : formatUpdates(report));
+      if (!report.supportedManager || report.packages.some((item) => item.status === 'unknown'))
+        process.exitCode = 1;
+      return;
+    }
     const { project, results } = await doctor();
     const errors = results.filter((result) => result.status === 'error').length;
     const warnings = results.filter((result) => result.status === 'warn').length;

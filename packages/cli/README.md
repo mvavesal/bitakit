@@ -152,6 +152,34 @@ npx bitakit info [--json]   # the plugins, services, actions, events and pages d
 npx bitakit slots [--json]  # every slot you can fill: owner, accepts and this app's contributions
 ```
 
+### Explicit update checks
+
+```sh
+npx bitakit doctor --check-updates  # read-only registry lookup
+npx bitakit doctor --update         # authorized BitaKit updates and agent-file refresh
+```
+
+Both accept `--json`; the two flags cannot be combined. Plain `doctor` stays local and
+never checks npm or updates files. The check reports the running CLI, project-declared
+`@bitakit/*` packages, installed versions, registry `latest`, range/peer-filtered candidates,
+and both skill copies. `latest` can belong to another release line. Candidates are advisory:
+`npm-check-updates` filters declared ranges and peer constraints, while the package manager
+and project tests validate the installed graph. Inaccessible results stay `unknown`, with a
+nonzero exit status. Registry/auth settings remain with the detected npm, pnpm, Yarn or Bun
+configuration; credentials are not printed. Peer inspection can also read other dependencies.
+
+`--update` performs one fresh check, then uses the project's package manager to upgrade only
+eligible declared BitaKit dependencies within their constraints. It refuses ranges allowing a
+new release line and peer-filtered candidates a native range update cannot enforce. Native
+resolution may update necessary transitive dependencies. It then runs the project-local CLI's
+existing `init --update-agent-files`, preserving edited skills and user text outside managed
+agent blocks. A failed install stops before that refresh; inspect the project diff before
+retrying. The result includes `installedAfter` without another registry lookup. Run project
+checks afterward. An external/global CLI is reported but never silently replaced; without a
+project-local CLI, agent files are preserved and the report explains how to refresh them.
+Workspace/catalog/file/URL dependency specifications are reported as unsupported rather than
+rewritten. Unknown package managers or incomplete registry checks prevent mutation.
+
 For a replaceable (`single`) slot, `slots` also prints which candidate renders, from the app's
 files and `choose` in `bitakit.config.ts` (`renders app:split`, or `renders the default: choose
 one of ...`); `--json` adds `selection: { candidates, renders, reason, choice }`. Layout files
