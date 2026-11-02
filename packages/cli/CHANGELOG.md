@@ -1,5 +1,11 @@
 # @bitakit/cli
 
+## 0.2.10
+
+### Patch Changes
+
+- c822eea: Require app agents to check existing solutions for each new capability and search official BitaKit packages on npm when local code or installed packages do not satisfy it, before implementing equivalent functionality.
+
 ## 0.2.9
 
 ### Patch Changes
