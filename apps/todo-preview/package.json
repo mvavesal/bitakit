@@ -37,7 +37,7 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "@bitakit/cli": "^0.2.9",
+    "@bitakit/cli": "^0.2.10",
     "@bitakit/discovery": "^0.2.6"
   }
 }
