@@ -2,7 +2,7 @@
 
 Provider-independent organization contracts, service, and local demo backend. This package has no UI implementation and no Better Auth dependency.
 
-`organizationsPlugin()` takes no arguments. Its service reads the data source from the
+`organizationsPlugin()` takes one optional option, `roles`: the app's organization roles, most powerful first (default: `owner`, `admin`, `member`; see AGENTS.md „Your own roles“). Its service reads the data source from the
 `organizationBackend` contract (`organization-backend`), which the host provides once, created
 for each mount:
 

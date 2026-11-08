@@ -32,6 +32,24 @@ export default defineService(() => betterAuthOrganizations(authClient), {
   (in memory, no real authentication or email).
 - Without a backend, startup fails with a named error.
 
+## Your own roles
+
+The roles are configuration, not code. List them once, most powerful first, with the same IDs as
+Better Auth's `organization({ roles })` on the server:
+
+```ts
+organizationsPlugin({ roles: ['owner', 'admin', 'publisher', 'editor', 'viewer'] });
+// an alias the UI never offers: { id: 'member', assignable: false }
+```
+
+- `owner` and `admin` keep their meaning (protected owner, member management); every other ID
+  is a member role. `{ id, kind?, assignable? }` changes that per role.
+- Labels are translations (`foundationUI.roles.<id>`), never code.
+- The service offers `roles`, `assignableRoles()` (assignable roles up to the viewer's own),
+  `roleKind(role)` and `defaultRole` (the least powerful assignable role, used for invitations).
+  Invitations and role changes accept only assignable roles; the server decides again.
+- Without the option the roles stay Better Auth's `owner`, `admin`, `member`.
+
 ## Rules
 
 - The backend (the server) owns authorization; an active organization ID in the client is not

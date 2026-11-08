@@ -1,6 +1,7 @@
 import { definePlugin, defineService, defineContract, getService } from '@bitakit/core';
 import type { OrganizationBackend } from './contracts.js';
 import { createOrganizationService, type OrganizationService } from './services/organizations.js';
+import { organizationRoles, type OrganizationRoleConfig } from './roles.js';
 
 export const organizationService = defineContract('organizations').of<OrganizationService>();
 /**
@@ -10,8 +11,16 @@ export const organizationService = defineContract('organizations').of<Organizati
  * The name is not `organizations.backend`: `organizations` is already the service itself.
  */
 export const organizationBackend = defineContract('organization-backend').of<OrganizationBackend>();
+export type OrganizationsPluginOptions = {
+  /**
+   * The app's organization roles, most powerful first – the same IDs as Better Auth's
+   * `organization({ roles })`. Default: Better Auth's `owner`, `admin`, `member`.
+   */
+  roles?: readonly OrganizationRoleConfig[];
+};
 /** Headless plugin: the backend service is created for each mount, never shared globally. */
-export function organizationsPlugin() {
+export function organizationsPlugin(options: OrganizationsPluginOptions = {}) {
+  const roles = organizationRoles(options.roles);
   return definePlugin({
     id: 'organizations',
     metadata: {
@@ -23,7 +32,9 @@ export function organizationsPlugin() {
     services: [
       defineService(
         ({ services, onStop }) => {
-          const service = createOrganizationService(getService(services, organizationBackend));
+          const service = createOrganizationService(getService(services, organizationBackend), {
+            roles,
+          });
           onStop(() => service.dispose());
           return service;
         },

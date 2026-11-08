@@ -162,3 +162,75 @@ test('the plugin reads its backend from the organization-backend contract', asyn
     stop();
   }
 });
+
+test('configured roles drive invitations and role changes; the default stays owner, admin, member', async () => {
+  const { organizationRoles, defaultOrganizationRoles, roleKind } = await import(
+    '../dist/index.js'
+  );
+  assert.deepEqual(
+    organizationRoles().map((role) => role.id),
+    ['owner', 'admin', 'member'],
+  );
+  assert.equal(organizationRoles(), defaultOrganizationRoles);
+  const roles = organizationRoles([
+    'owner',
+    'admin',
+    'publisher',
+    'editor',
+    { id: 'member', assignable: false },
+    'viewer',
+  ]);
+  assert.deepEqual(
+    roles.map((role) => [role.id, role.kind, role.assignable]),
+    [
+      ['owner', 'owner', false],
+      ['admin', 'admin', true],
+      ['publisher', 'member', true],
+      ['editor', 'member', true],
+      ['member', 'member', false],
+      ['viewer', 'member', true],
+    ],
+  );
+  assert.equal(roleKind('editor,admin', roles), 'admin');
+  assert.throws(() => organizationRoles(['owner', 'owner']), /unique/);
+  assert.throws(() => organizationRoles(['owner']), /assignable/);
+  assert.throws(() => organizationRoles(['bad role']), /Invalid organization role/);
+
+  const calls = [];
+  const backend = {
+    load: async () => ({
+      organizations: [{ id: 'org', name: 'Org', slug: 'org' }],
+      activeId: 'org',
+      members: [
+        { id: 'me', email: 'me@example.test', name: 'Me', role: 'admin' },
+        { id: 'ed', email: 'ed@example.test', name: 'Ed', role: 'editor' },
+      ],
+      invitations: [],
+      canManage: true,
+      viewerMemberId: 'me',
+    }),
+    setActive: async () => {},
+    create: async () => {},
+    invite: async (input) => void calls.push(['invite', input.role]),
+    cancelInvitation: async () => {},
+    updateRole: async (input) => void calls.push(['role', input.memberId, input.role]),
+    removeMember: async () => {},
+  };
+  const service = createOrganizationService(backend, { roles });
+  await service.refresh();
+  assert.equal(service.defaultRole, 'viewer', 'the least powerful assignable role');
+  assert.deepEqual(
+    service.assignableRoles().map((role) => role.id),
+    ['admin', 'publisher', 'editor', 'viewer'],
+    'an admin hands out roles up to admin, never the owner or an alias',
+  );
+  await service.invite('new@example.test');
+  await service.updateRole('ed', 'publisher');
+  assert.throws(() => service.invite('x@example.test', 'member'), /Invalid role/);
+  assert.throws(() => service.updateRole('ed', 'owner'), /Invalid role/);
+  assert.deepEqual(calls, [
+    ['invite', 'viewer'],
+    ['role', 'ed', 'publisher'],
+  ]);
+  service.dispose();
+});

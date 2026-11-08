@@ -1,11 +1,30 @@
 import { isOrganizationWebsite, organizationWebsiteError } from '../website.js';
 import type { OrganizationBackend, OrganizationData, OrganizationInput } from '../contracts.js';
+import { defaultOrganizationRoles, roleKind, type OrganizationRole } from '../roles.js';
 export type OrganizationSnapshot = OrganizationData & {
   pending: boolean;
   error: string | null;
   loaded: boolean;
 };
-export function createOrganizationService(backend: OrganizationBackend) {
+export function createOrganizationService(
+  backend: OrganizationBackend,
+  options: { roles?: readonly OrganizationRole[] } = {},
+) {
+  const roles = options.roles ?? defaultOrganizationRoles;
+  const kindOf = (role: string) => roleKind(role, roles);
+  /** The default role of an invitation: the least powerful assignable role. */
+  const defaultRole = [...roles].reverse().find((role) => role.assignable)!.id;
+  /** Roles the viewer may hand out: assignable ones at or below the viewer's own strongest role. */
+  function assignableRoles() {
+    const viewer = state.members.find((item) => item.id === state.viewerMemberId);
+    const ids = viewer?.role.split(',').map((value) => value.trim()) ?? [];
+    const own = roles.findIndex((role) => ids.includes(role.id));
+    return roles.filter(
+      (role, index) =>
+        role.assignable && (own < 0 || kindOf(viewer!.role) === 'owner' || index >= own),
+    );
+  }
+  const isAssignable = (role: string) => assignableRoles().some((item) => item.id === role);
   let state: OrganizationSnapshot = {
     organizations: [],
     activeId: null,
@@ -91,6 +110,13 @@ export function createOrganizationService(backend: OrganizationBackend) {
         invitations: !!backend.acceptInvitation && !!backend.rejectInvitation,
       };
     },
+    /** The app's organization roles, most powerful first (`organizationsPlugin({ roles })`). */
+    roles,
+    /** Roles the current viewer may choose in invitations and role changes. */
+    assignableRoles,
+    /** `owner`, `admin` or `member` for a stored role value. */
+    roleKind: kindOf,
+    defaultRole,
     getSnapshot: () => state,
     subscribe(listener: () => void) {
       listeners.add(listener);
@@ -120,9 +146,9 @@ export function createOrganizationService(backend: OrganizationBackend) {
         }),
       );
     },
-    invite(email: string, role: 'member' | 'admin' = 'member', expiresInDays = 30) {
+    invite(email: string, role: string = defaultRole, expiresInDays = 30) {
       const organizationId = active();
-      if (role !== 'member' && role !== 'admin') throw new Error('Invalid role.');
+      if (!isAssignable(role)) throw new Error('Invalid role.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
         throw new Error('Check the email address.');
       if (!Number.isInteger(expiresInDays) || expiresInDays < 1 || expiresInDays > 365)
@@ -141,7 +167,9 @@ export function createOrganizationService(backend: OrganizationBackend) {
         backend.invite({
           organizationId,
           email: invitation.email,
-          role: invitation.role === 'admin' ? 'admin' : 'member',
+          role: roles.some((item) => item.id === invitation.role && item.assignable)
+            ? invitation.role
+            : defaultRole,
           resend: true,
         }),
       );
@@ -152,24 +180,16 @@ export function createOrganizationService(backend: OrganizationBackend) {
         throw new Error('Invitation not available.');
       return mutate(() => backend.cancelInvitation({ organizationId, invitationId }));
     },
-    updateRole(memberId: string, role: 'member' | 'admin') {
+    updateRole(memberId: string, role: string) {
       const organizationId = active();
-      if (role !== 'member' && role !== 'admin') throw new Error('Invalid role.');
-      if (
-        !state.members.some(
-          (item) => item.id === memberId && !item.role.split(',').includes('owner'),
-        )
-      )
+      if (!isAssignable(role)) throw new Error('Invalid role.');
+      if (!state.members.some((item) => item.id === memberId && kindOf(item.role) !== 'owner'))
         throw new Error('Member not available.');
       return mutate(() => backend.updateRole({ organizationId, memberId, role }));
     },
     remove(memberId: string) {
       const organizationId = active();
-      if (
-        !state.members.some(
-          (item) => item.id === memberId && !item.role.split(',').includes('owner'),
-        )
-      )
+      if (!state.members.some((item) => item.id === memberId && kindOf(item.role) !== 'owner'))
         throw new Error('Member not available.');
       return mutate(() => backend.removeMember({ organizationId, memberId }));
     },
@@ -200,7 +220,7 @@ export function createOrganizationService(backend: OrganizationBackend) {
         !backend.setMemberDisabled ||
         !member ||
         memberId === state.viewerMemberId ||
-        member.role.split(',').includes('owner')
+        kindOf(member.role) === 'owner'
       )
         throw new Error('Member not available.');
       return mutate(() => backend.setMemberDisabled!({ organizationId, memberId, disabled }));

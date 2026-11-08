@@ -65,15 +65,12 @@ export interface OrganizationBackend {
   invite(input: {
     organizationId: string;
     email: string;
-    role: 'member' | 'admin';
+    /** One of the app's assignable organization roles (`organizationsPlugin({ roles })`). */
+    role: string;
     resend?: boolean;
     expiresInDays?: number;
   }): Promise<void>;
   cancelInvitation(input: { organizationId: string; invitationId: string }): Promise<void>;
-  updateRole(input: {
-    organizationId: string;
-    memberId: string;
-    role: 'member' | 'admin';
-  }): Promise<void>;
+  updateRole(input: { organizationId: string; memberId: string; role: string }): Promise<void>;
   removeMember(input: { organizationId: string; memberId: string }): Promise<void>;
 }
