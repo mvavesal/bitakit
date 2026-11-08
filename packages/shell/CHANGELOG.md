@@ -1,5 +1,12 @@
 # @bitakit/shell
 
+## 0.2.11
+
+### Patch Changes
+
+- 4edc835: Add a persisted content width choice to Layout settings, preserving the centered container by default.
+  Allow settings navigation categories to collapse independently with accessible standard triggers.
+
 ## 0.2.10
 
 ### Patch Changes

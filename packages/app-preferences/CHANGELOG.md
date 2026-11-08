@@ -1,5 +1,12 @@
 # @bitakit/app-preferences
 
+## 0.2.14
+
+### Patch Changes
+
+- 4edc835: Add a persisted content width choice to Layout settings, preserving the centered container by default.
+  Allow settings navigation categories to collapse independently with accessible standard triggers.
+
 ## 0.2.13
 
 ### Patch Changes
