@@ -1,6 +1,7 @@
 export type * from './contracts.js';
 export {
   createOrganizationService,
+  standardOrganizationRoles,
   type OrganizationService,
   type OrganizationSnapshot,
 } from './services/organizations.js';

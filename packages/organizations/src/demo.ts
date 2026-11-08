@@ -4,7 +4,14 @@ async function logoData(file: File) {
   for (const byte of bytes) data += String.fromCharCode(byte);
   return `data:${file.type};base64,${btoa(data)}`;
 }
-import type { OrganizationBackend, Organization, Member, Invitation } from './contracts.js';
+import type {
+  OrganizationBackend,
+  Organization,
+  Member,
+  Invitation,
+  InvitationPolicy,
+  OrganizationRole,
+} from './contracts.js';
 /** In-memory test backend. No authentication, persistence or email delivery. */
 export function createDemoOrganizationBackend(): OrganizationBackend {
   let activeId = 'studio';
@@ -33,6 +40,35 @@ export function createDemoOrganizationBackend(): OrganizationBackend {
     .get('studio')!
     .push({ id: 'studio-member', name: 'Sam Beispiel', email: 'sam@example.test', role: 'member' });
   const invitations = new Map<string, Invitation[]>();
+  // Base roles as an app would declare them; custom roles and policies per organization.
+  const manage = { member: ['create', 'update', 'delete'], invitation: ['create', 'cancel'] };
+  const baseRoles: OrganizationRole[] = [
+    {
+      id: 'owner',
+      standard: 'owner',
+      custom: false,
+      permissions: {
+        ...manage,
+        organization: ['update', 'delete'],
+        content: ['read', 'edit', 'publish'],
+      },
+    },
+    {
+      id: 'admin',
+      standard: 'admin',
+      custom: false,
+      permissions: { ...manage, organization: ['update'], content: ['read', 'edit'] },
+    },
+    {
+      id: 'member',
+      standard: 'member',
+      label: 'Editor',
+      custom: false,
+      permissions: { content: ['read', 'edit'] },
+    },
+  ];
+  const customRoles = new Map<string, OrganizationRole[]>();
+  const policies = new Map<string, InvitationPolicy>();
   const scope = (id: string) => {
     if (!organizations.some((org) => org.id === id)) throw new Error('Unknown organization');
   };
@@ -46,6 +82,8 @@ export function createDemoOrganizationBackend(): OrganizationBackend {
         canManage: activeId !== 'partner',
         canDelete: activeId !== 'partner',
         viewerMemberId: `${activeId}-owner`,
+        roles: [...baseRoles, ...(customRoles.get(activeId) ?? [])],
+        viewerPermissions: baseRoles[0]!.permissions,
         incomingInvitations: [...incoming],
       };
     },
@@ -143,6 +181,42 @@ export function createDemoOrganizationBackend(): OrganizationBackend {
           .get(organizationId)!
           .map((item) => (item.id === memberId ? { ...item, disabled } : item)),
       );
+    },
+    customRoles: {
+      async create({ organizationId, role, permissions }) {
+        scope(organizationId);
+        const list = customRoles.get(organizationId) ?? [];
+        if (baseRoles.some((item) => item.id === role) || list.some((item) => item.id === role))
+          throw new Error('Role name taken');
+        customRoles.set(organizationId, [...list, { id: role, custom: true, permissions }]);
+      },
+      async update({ organizationId, role, permissions }) {
+        scope(organizationId);
+        customRoles.set(
+          organizationId,
+          (customRoles.get(organizationId) ?? []).map((item) =>
+            item.id === role ? { ...item, permissions } : item,
+          ),
+        );
+      },
+      async delete({ organizationId, role }) {
+        scope(organizationId);
+        customRoles.set(
+          organizationId,
+          (customRoles.get(organizationId) ?? []).filter((item) => item.id !== role),
+        );
+      },
+    },
+    invitationPolicy: {
+      async load(organizationId) {
+        scope(organizationId);
+        return policies.get(organizationId) ?? { mode: 'any', domains: [] };
+      },
+      async save({ organizationId, policy }) {
+        scope(organizationId);
+        policies.set(organizationId, policy);
+        return policy;
+      },
     },
     async removeMember({ organizationId, memberId }) {
       scope(organizationId);
