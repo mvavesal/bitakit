@@ -231,12 +231,25 @@ export { operation, role };
       'src/plugins/content/permissions.ts',
     );
     assert.doesNotThrow(() => createRuntime(config));
+    const accessFile = path.join(root, 'src/bitakit.gen.access.ts');
+    const accessSource = await readFile(accessFile, 'utf8');
+    assert.doesNotMatch(accessSource, /use client|react/i, 'server-safe: no client code');
+    const { accessConfiguration } = await createJiti(import.meta.url, {
+      moduleCache: false,
+      alias: { '@bitakit/core': coreRuntime },
+    }).import(accessFile);
+    assert.deepEqual(Object.keys(accessConfiguration.permissions), ['content', 'media']);
+    assert.equal(accessConfiguration.permissions.media.owner, 'media');
+    assert.deepEqual(Object.keys(accessConfiguration.roles.roles), ['owner', 'member', 'viewer']);
+    assert.equal(accessConfiguration.roles.options.customRoles, true);
+    assert.deepEqual(typeErrors([accessFile], root), []);
 
     await rm(path.join(root, 'src/roles.ts'));
     await rm(path.join(root, 'src/plugins/content/permissions.ts'));
     await rm(path.join(root, 'src/plugins/media/permissions.ts'));
     const plain = await readFile((await generateBitaKit(root, { quiet: true })).generated, 'utf8');
     assert.doesNotMatch(plain, /Permission|discoverRoles|RoleMap/);
+    await assert.rejects(readFile(path.join(root, 'src/bitakit.gen.access.ts')), /ENOENT/);
   }));
 
 test('discovery fails before the app runs: duplicate resources, unknown grants and plugin roles', () =>

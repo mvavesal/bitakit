@@ -40,6 +40,13 @@ export default defineRoles(
 - Order is display order only; it never ranks permissions.
 - `customRoles: true` lets organizations create their own roles through the provider.
 
+## Use them on the server
+
+`npx bitakit generate` writes `src/bitakit.gen.access.ts` (only when declarations exist): the
+composed, checked `accessConfiguration`, server-safe pure data. Authorization adapters build
+their provider configuration from it; never import the client-side `bitakit.gen` config on a
+server.
+
 ## Checks
 
 `npx bitakit generate` (part of typecheck) and the runtime start reject, with every source file

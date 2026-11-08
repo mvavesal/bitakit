@@ -839,6 +839,49 @@ export function BitaKitProvider(props: Omit<ComponentProps<typeof BitaKitRuntime
     path.join(output, 'bitakit.gen.css'),
     `/* ${generatedHeader.slice(3)} Styles of installed packages, theme last. */\n${stylePrelude}\n${(installed.styles ?? []).map((specifier) => `@import ${quote(path.isAbsolute(specifier) ? './' + path.relative(output, specifier).split(path.sep).join('/') : specifier)};`).join('\n')}\n`,
   );
+  // Roles and permissions for servers and authorization adapters: pure data, no client code,
+  // composed and checked by Core when imported. Absent without declarations.
+  const accessFile = path.join(output, 'bitakit.gen.access.ts');
+  if (accessFiles.permissions.length || accessFiles.roles) {
+    const access = [];
+    const local = (file) => {
+      const relative = path
+        .relative(output, file)
+        .replaceAll(path.sep, '/')
+        .replace(/\.tsx?$/, '');
+      return specifier(relative.startsWith('.') ? relative : `./${relative}`);
+    };
+    const entry = (file, index) => {
+      access.push(`import access${index} from ${local(file)};`);
+      return `discoveredFile(access${index}, '', ${quote(relativeTo(file))})`;
+    };
+    const permissions = accessFiles.permissions.map(
+      ({ owner, file }, index) =>
+        `{ owner: ${quote(owner)}, definition: discoverPermissions([${entry(file, index)}])! }`,
+    );
+    const roles = accessFiles.roles
+      ? `discoverRoles([${entry(accessFiles.roles, accessFiles.permissions.length)}])`
+      : 'undefined';
+    await writeChanged(
+      accessFile,
+      `${generatedHeader}
+import {
+  composeAccessConfiguration,
+  discoveredFile,
+  discoverPermissions,
+  discoverRoles,
+  type AccessConfiguration,
+} from '@bitakit/core';
+${access.join('\n')}
+
+/** The app's roles and permissions: trusted, server-safe configuration for authorization adapters. */
+export const accessConfiguration: AccessConfiguration = composeAccessConfiguration({
+  permissions: [${permissions.join(', ')}],
+  roles: ${roles},
+});
+`,
+    );
+  } else await removeGenerated(accessFile);
   const messagesFile = path.join(output, 'bitakit.gen.messages.json');
   if (Object.keys(allMessages).length)
     await writeChanged(messagesFile, JSON.stringify(allMessages, null, 2) + '\n');

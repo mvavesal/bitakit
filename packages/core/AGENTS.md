@@ -35,6 +35,8 @@ The app declares its base roles once in `src/roles.ts` with `defineRoles({ ... }
   `owner`, `admin` or `member`; `label` and `description` are defaults that translations
   override; `grants` lists operations from the catalog (typed by `bitakit generate`). Declaration
   order is display order, never a permission hierarchy.
+- `bitakit generate` writes `bitakit.gen.access.ts` with the composed `accessConfiguration`
+  (server-safe data) for authorization adapters.
 - Conflicts fail before the app runs, at generation and again at startup: a resource claimed
   twice, a grant of an unknown resource or operation, a standard role extended twice, roles in a
   plugin. Nothing is resolved by registration order or merging.
