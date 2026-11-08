@@ -140,16 +140,21 @@ test('doctor reports missing wiring with the lines to add', async (t) => {
 });
 
 test('doctor accepts different patch versions on one release line', async (t) => {
+  // The fixture's other packages are on the current release line, so the patch versions follow it.
+  const line = releaseVersion.split('.').slice(0, 2).join('.');
   const root = await project(
     nextApp({
-      'node_modules/@bitakit/core/package.json': { name: '@bitakit/core', version: '0.2.2' },
-      'node_modules/@bitakit/cli/package.json': { name: '@bitakit/cli', version: '0.2.3' },
+      'node_modules/@bitakit/core/package.json': { name: '@bitakit/core', version: `${line}.98` },
+      'node_modules/@bitakit/cli/package.json': { name: '@bitakit/cli', version: `${line}.99` },
       ...catchAll,
     }),
     t,
   );
   const { results } = await doctor({ cwd: root });
-  const versions = find(results, /@bitakit packages are on the 0\.2\.x release line/);
+  const versions = find(
+    results,
+    new RegExp(`@bitakit packages are on the ${line.replace('.', '\\.')}\\.x release line`),
+  );
   assert.equal(versions.status, 'ok');
 });
 
