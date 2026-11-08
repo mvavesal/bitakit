@@ -18,3 +18,4 @@ export {
   organizationWebsiteError,
   organizationWebsiteSchema,
 } from './website.js';
+export { normalizeInvitationDomain } from './domains.js';

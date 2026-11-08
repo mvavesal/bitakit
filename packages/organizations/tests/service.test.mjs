@@ -277,3 +277,33 @@ test('custom roles and the invitation policy are optional backend capabilities',
   await assert.rejects(plain.invitationPolicy(), /Not supported/);
   service.dispose();
 });
+
+test('one domain check for invitation policies: IDNA to ASCII, whole names only', async () => {
+  const { normalizeInvitationDomain } = await import('../dist/index.js');
+  assert.equal(normalizeInvitationDomain(' Bücher.Example. '), 'xn--bcher-kva.example');
+  assert.equal(normalizeInvitationDomain('sub.example.co.uk'), 'sub.example.co.uk');
+  for (const invalid of [
+    'kjgkgukguio',
+    '',
+    'localhost',
+    '*.example.com',
+    'a@b.com',
+    '192.168.0.1',
+    'ex ample.com',
+    '[::1]',
+    '-bad.com',
+    'example.com:80',
+    'example..com',
+  ])
+    assert.equal(normalizeInvitationDomain(invalid), null, invalid);
+  const service = createOrganizationService(createDemoOrganizationBackend());
+  await service.refresh();
+  await assert.rejects(
+    service.saveInvitationPolicy({
+      mode: 'blocklist',
+      domains: [{ domain: 'kjgkgukguio', includeSubdomains: false }],
+    }),
+    /not a valid domain/,
+  );
+  service.dispose();
+});

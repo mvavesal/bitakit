@@ -1,4 +1,5 @@
 import { isOrganizationWebsite, organizationWebsiteError } from '../website.js';
+import { normalizeInvitationDomain } from '../domains.js';
 import type {
   InvitationPolicy,
   OrganizationBackend,
@@ -287,6 +288,8 @@ export function createOrganizationService(backend: OrganizationBackend) {
       if (!backend.invitationPolicy) throw new Error('Not supported.');
       if (policy.mode === 'allowlist' && !policy.domains.length)
         throw new Error('An allowlist needs at least one domain.');
+      const invalid = policy.domains.find((entry) => !normalizeInvitationDomain(entry.domain));
+      if (invalid) throw new Error(`"${invalid.domain}" is not a valid domain.`);
       let saved!: InvitationPolicy;
       await mutate(async () => {
         saved = await backend.invitationPolicy!.save({ organizationId, policy });
