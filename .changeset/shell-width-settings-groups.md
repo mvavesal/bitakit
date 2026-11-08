@@ -1,6 +1,6 @@
 ---
-"@bitakit/shell": patch
-"@bitakit/app-preferences": patch
+'@bitakit/shell': patch
+'@bitakit/app-preferences': patch
 ---
 
 Add a persisted content width choice to Layout settings, preserving the centered container by default.

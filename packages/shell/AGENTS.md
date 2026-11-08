@@ -18,13 +18,13 @@ It is a discovered plugin with the ID `shell`; create-app installs it by default
 
 ## What it provides
 
-| Kind     | IDs                                                                                                                                                            |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Services | `notifications` (`show(message, { type, description, duration })`, `dismiss(id)`), `themes`                                                                    |
-| Actions  | `shell.selectTheme`, `shell.saveThemeCopy`, `shell.updateTheme`, `shell.deleteTheme`, `shell.testNotification`                                                 |
+| Kind     | IDs                                                                                                                                                                                  |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Services | `notifications` (`show(message, { type, description, duration })`, `dismiss(id)`), `themes`                                                                                          |
+| Actions  | `shell.selectTheme`, `shell.saveThemeCopy`, `shell.updateTheme`, `shell.deleteTheme`, `shell.testNotification`                                                                       |
 | Settings | `shell.mode` (device), `shell.layout`, `shell.contentWidth`, `shell.density`, `shell.corners`, `shell.toasts` (device), `shell.themeLibrary` (hidden), `shell.preset` (with presets) |
-| Hooks    | `useShellLayout()`, `useNotifications()`                                                                                                                       |
-| Pages    | `NotFoundPage`, `ErrorPage`, `AccessDeniedPage`, `LoadingPage`, `PageState` from `@bitakit/shell/pages`                                                        |
+| Hooks    | `useShellLayout()`, `useNotifications()`                                                                                                                                             |
+| Pages    | `NotFoundPage`, `ErrorPage`, `AccessDeniedPage`, `LoadingPage`, `PageState` from `@bitakit/shell/pages`                                                                              |
 
 ## Put things into the frame (list slots)
 
@@ -89,7 +89,6 @@ README sections: AppShell, Slots, Appearance settings, Theme files, Notification
 
 The built `foundation.slots.json` also records the static runtime ID `shell`. Discovery uses
 that generated evidence for binding checks; it does not derive membership from the npm scope.
-
 
 Content width is the user setting `shell.contentWidth`: `contained` (default) keeps the existing
 centered `max-w-6xl` surface; `full` uses the available content area. Shell projects it as

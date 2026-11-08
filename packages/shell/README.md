@@ -202,15 +202,15 @@ Shell declares its settings once and presents two pages in the `appearance` cate
 **Layout** at `/settings/layout` for navigation, content width, density and notification position.
 The existing Appearance URL remains valid. Labels come from `shell.settings.*` in the Shell locales.
 
-| Key             | Scope  | Default       | Values                                                                | Applied as                       |
-| --------------- | ------ | ------------- | --------------------------------------------------------------------- | -------------------------------- |
-| `shell.mode`    | device | `system`      | `light`, `dark`, `system`                                             | `dark` class and `color-scheme`  |
-| `shell.layout`  | user   | `sidebar`     | `sidebar`, `navbar`                                                   | `data-shell-layout` on the frame |
-| `shell.preset`  | user   | `default`     | `default` and the configured presets                                  | `data-theme-preset`              |
-| `shell.contentWidth` | user | `contained` | `contained`, `full` | `data-shell-content-width` |
-| `shell.density` | user   | `comfortable` | `comfortable`, `compact`                                              | `data-density`                   |
-| `shell.corners` | user   | `default`     | `default`, `round`, `square`                                          | `data-shell-corners`             |
-| `shell.toasts`  | device | `bottom`      | `top start`, `top`, `top end`, `bottom start`, `bottom`, `bottom end` | Toast region placement           |
+| Key                  | Scope  | Default       | Values                                                                | Applied as                       |
+| -------------------- | ------ | ------------- | --------------------------------------------------------------------- | -------------------------------- |
+| `shell.mode`         | device | `system`      | `light`, `dark`, `system`                                             | `dark` class and `color-scheme`  |
+| `shell.layout`       | user   | `sidebar`     | `sidebar`, `navbar`                                                   | `data-shell-layout` on the frame |
+| `shell.preset`       | user   | `default`     | `default` and the configured presets                                  | `data-theme-preset`              |
+| `shell.contentWidth` | user   | `contained`   | `contained`, `full`                                                   | `data-shell-content-width`       |
+| `shell.density`      | user   | `comfortable` | `comfortable`, `compact`                                              | `data-density`                   |
+| `shell.corners`      | user   | `default`     | `default`, `round`, `square`                                          | `data-shell-corners`             |
+| `shell.toasts`       | device | `bottom`      | `top start`, `top`, `top end`, `bottom start`, `bottom`, `bottom end` | Toast region placement           |
 
 `shell.preset` exists only when presets are configured. Read and write them like any setting:
 `useSetting('shell.layout')`, `settings.shell.mode.get()` in services and actions. The Shell
@@ -459,7 +459,6 @@ page access boundary. Navigation-shell regions are not protected by an individua
 No second Settings catalog, store, route registry or layout engine is introduced.
 
 Progressive examples and the full region table: `apps/docs/content/docs/reference/layouts.mdx`.
-
 
 Content width is the user setting `shell.contentWidth`: `contained` (default) keeps the existing
 centered `max-w-6xl` surface; `full` uses the available content area. Shell projects it as

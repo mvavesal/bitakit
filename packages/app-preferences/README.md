@@ -432,7 +432,6 @@ Repeated rows share one runtime ID and switch. Section counts count appearances;
 counts distinct plugins. The host's `bundles` labels and Core inventory are the only grouping
 inputs. See the [metadata reference](../../apps/docs/content/docs/reference/plugin-metadata.mdx).
 
-
 Settings navigation category headings are independent Radix Collapsible triggers. Groups start
 open, preserve the existing heading and link styling, and hide their entries and group extension
 regions when closed. The active settings page remains mounted. Changing the search query opens

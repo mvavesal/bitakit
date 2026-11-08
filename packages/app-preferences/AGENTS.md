@@ -103,7 +103,6 @@ Keep room for card rings and focus outlines when composing content.
 Section frames retain their content minimum height even when the page owns its heading,
 so the shell's bottom padding remains reachable after the final card.
 
-
 Settings navigation category headings are independent Radix Collapsible triggers. Groups start
 open, preserve the existing heading and link styling, and hide their entries and group extension
 regions when closed. The active settings page remains mounted. Changing the search query opens
