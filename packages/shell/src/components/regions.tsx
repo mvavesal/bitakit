@@ -43,7 +43,7 @@ export function ShellSurface({ children }: ShellSurfaceProps) {
   return (
     <div
       data-shell-surface=""
-      className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-6 p-4 md:p-6"
+      className="mx-auto flex w-full min-w-0 max-w-6xl in-data-[shell-content-width=full]:max-w-none flex-1 flex-col gap-6 p-4 md:p-6"
     >
       <PluginSlot name="shell.content.before" />
       {children}

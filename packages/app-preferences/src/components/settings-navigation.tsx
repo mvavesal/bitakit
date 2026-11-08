@@ -1,4 +1,6 @@
 'use client';
+import { Collapsible } from 'radix-ui';
+import ChevronDownIcon from 'reicon-react/icons/ChevronDown';
 import { safeHref } from '@bitakit/core';
 import { PluginSlot, useSettingsCatalog, useSlot, type SettingsCatalogSection } from '@bitakit/ui';
 import {
@@ -63,45 +65,57 @@ export function NavigationList({
   return (
     <nav aria-label={messages('navigation')} className="flex min-w-0 flex-col">
       {groups.map((group) => (
-        <SidebarGroup key={group.id}>
-          <SidebarGroupLabel asChild>
-            <h2>{group.title}</h2>
-          </SidebarGroupLabel>
-          <PluginSlot
-            name="app-preferences.navigation.group.before"
-            payload={{ groupId: group.id }}
-          />
-          <SidebarMenu>
-            {group.items.map(({ item, source }) => {
-              // A SettingsRoute can be mounted under an explicit base path. Other destinations keep their URL.
-              const href = source
-                ? withQuery(sectionHref(location.basePath, source), query)
-                : item.action.href!;
-              const active = normalizePath(href) === current;
-              const Icon = iconOf(item.action.icon);
-              const props = item.action.linkProps({ href, onExecuted: onNavigate });
-              const EntryLink = props.href ? Link : 'a';
-              return (
-                <SidebarMenuItem key={item.key}>
-                  <Button
-                    asChild
-                    variant={active ? 'secondary' : 'ghost'}
-                    className="w-full justify-start"
-                  >
-                    <EntryLink {...props} aria-current={active ? 'page' : undefined}>
-                      {Icon && <Icon aria-hidden="true" data-icon="inline-start" />}
-                      <span className="truncate">{item.action.title}</span>
-                    </EntryLink>
-                  </Button>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-          <PluginSlot
-            name="app-preferences.navigation.group.after"
-            payload={{ groupId: group.id }}
-          />
-        </SidebarGroup>
+        <Collapsible.Root key={`${group.id}:${query}`} defaultOpen asChild>
+          <SidebarGroup>
+            <h2>
+              <SidebarGroupLabel asChild>
+                <Collapsible.Trigger className="group w-full">
+                  {group.title}
+                  <ChevronDownIcon
+                    aria-hidden="true"
+                    className="ml-auto group-data-[state=closed]:-rotate-90"
+                  />
+                </Collapsible.Trigger>
+              </SidebarGroupLabel>
+            </h2>
+            <Collapsible.Content>
+              <PluginSlot
+                name="app-preferences.navigation.group.before"
+                payload={{ groupId: group.id }}
+              />
+              <SidebarMenu>
+                {group.items.map(({ item, source }) => {
+                  // A SettingsRoute can be mounted under an explicit base path. Other destinations keep their URL.
+                  const href = source
+                    ? withQuery(sectionHref(location.basePath, source), query)
+                    : item.action.href!;
+                  const active = normalizePath(href) === current;
+                  const Icon = iconOf(item.action.icon);
+                  const props = item.action.linkProps({ href, onExecuted: onNavigate });
+                  const EntryLink = props.href ? Link : 'a';
+                  return (
+                    <SidebarMenuItem key={item.key}>
+                      <Button
+                        asChild
+                        variant={active ? 'secondary' : 'ghost'}
+                        className="w-full justify-start"
+                      >
+                        <EntryLink {...props} aria-current={active ? 'page' : undefined}>
+                          {Icon && <Icon aria-hidden="true" data-icon="inline-start" />}
+                          <span className="truncate">{item.action.title}</span>
+                        </EntryLink>
+                      </Button>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+              <PluginSlot
+                name="app-preferences.navigation.group.after"
+                payload={{ groupId: group.id }}
+              />
+            </Collapsible.Content>
+          </SidebarGroup>
+        </Collapsible.Root>
       ))}
       {!groups.length && !view.pending && (
         <p role="status" className="px-4 text-sm text-muted-foreground">

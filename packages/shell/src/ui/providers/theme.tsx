@@ -100,7 +100,7 @@ function useColorScheme(dark: boolean | undefined) {
 
 /**
  * Projects the appearance settings onto `<html>`: the `dark` class and `color-scheme` from
- * `shell.mode` and the system preference, `data-density`, `data-shell-corners` and, with
+ * `shell.mode` and the system preference, `data-density`, `data-shell-corners`, `data-shell-content-width` and, with
  * presets, `data-theme-preset`. The CSS for these attributes comes from the theme.
  */
 export function ShellTheme({ children }: { children: ReactNode }) {
@@ -111,6 +111,7 @@ export function ShellTheme({ children }: { children: ReactNode }) {
   useColorScheme(
     mode === undefined ? undefined : mode === 'dark' || (mode === 'system' && systemDark),
   );
+  useRootAttribute('data-shell-content-width', confirmed(useSetting('shell.contentWidth')));
   useRootAttribute('data-density', confirmed(useSetting('shell.density')));
   useRootAttribute('data-shell-corners', confirmed(useSetting('shell.corners')));
   return (

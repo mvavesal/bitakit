@@ -199,7 +199,7 @@ in `app-bar.end`. The plugin owns typed `defineSlot` contracts; manifest names a
 
 Shell declares its settings once and presents two pages in the `appearance` category:
 **Themes** at `/settings/theme` for color scheme, theme selection and personal copies, and
-**Layout** at `/settings/layout` for navigation, density and notification position.
+**Layout** at `/settings/layout` for navigation, content width, density and notification position.
 The existing Appearance URL remains valid. Labels come from `shell.settings.*` in the Shell locales.
 
 | Key             | Scope  | Default       | Values                                                                | Applied as                       |
@@ -207,6 +207,7 @@ The existing Appearance URL remains valid. Labels come from `shell.settings.*` i
 | `shell.mode`    | device | `system`      | `light`, `dark`, `system`                                             | `dark` class and `color-scheme`  |
 | `shell.layout`  | user   | `sidebar`     | `sidebar`, `navbar`                                                   | `data-shell-layout` on the frame |
 | `shell.preset`  | user   | `default`     | `default` and the configured presets                                  | `data-theme-preset`              |
+| `shell.contentWidth` | user | `contained` | `contained`, `full` | `data-shell-content-width` |
 | `shell.density` | user   | `comfortable` | `comfortable`, `compact`                                              | `data-density`                   |
 | `shell.corners` | user   | `default`     | `default`, `round`, `square`                                          | `data-shell-corners`             |
 | `shell.toasts`  | device | `bottom`      | `top start`, `top`, `top end`, `bottom start`, `bottom`, `bottom end` | Toast region placement           |
@@ -391,7 +392,7 @@ the saved color scheme. The preview also includes an interactive Checkbox and Ra
 using the shared theme tokens. Theme menu items show small text, button and radio samples. Radius, shadow and button finish
 use the same standard selection cards as color scheme, with an isolated sample inside each.
 Font choices show text rendered in the corresponding system family.
-The Layout page reads the same settings catalog for navigation, density and notification controls.
+The Layout page reads the same settings catalog for navigation, content width, density and notification controls.
 The editor composes existing standard cards, inputs and popovers with react-colorful and
 Culori color conversion. Colors, radius, surface shadow, font family and raised/flat button finish can be edited;
 unexposed tokens in a copied theme are retained. Empty values inherit central CSS. Personal
@@ -458,3 +459,10 @@ page access boundary. Navigation-shell regions are not protected by an individua
 No second Settings catalog, store, route registry or layout engine is introduced.
 
 Progressive examples and the full region table: `apps/docs/content/docs/reference/layouts.mdx`.
+
+
+Content width is the user setting `shell.contentWidth`: `contained` (default) keeps the existing
+centered `max-w-6xl` surface; `full` uses the available content area. Shell projects it as
+`data-shell-content-width` on `<html>`. `ShellSurface`, including sidebar, navbar and full-page
+layouts, responds without remounting page content. Auth/error layouts retain their dedicated
+widths; custom surfaces opt into this behavior explicitly.

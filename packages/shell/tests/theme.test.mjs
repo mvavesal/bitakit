@@ -228,3 +228,21 @@ test('app baseline reads both host palettes and restores the original root class
     resetRoot();
   }
 });
+
+test('content width projects only confirmed values and restores the host attribute', async () => {
+  resetRoot();
+  root.setAttribute('data-shell-content-width', 'host');
+  const memory = createMemorySettingsStorage({ 'shell.contentWidth': 'full' });
+  const { view, runtime } = await mountShell(shellPlugin(), { 'settings.storage': memory });
+  try {
+    await settle();
+    assert.equal(root.getAttribute('data-shell-content-width'), 'full');
+    await act(() => runtime().settings.set('shell.contentWidth', 'contained'));
+    assert.equal(root.getAttribute('data-shell-content-width'), 'contained');
+    assert.throws(() => runtime().settings.parse('shell.contentWidth', 'invalid'));
+  } finally {
+    await view.unmount();
+  }
+  assert.equal(root.getAttribute('data-shell-content-width'), 'host');
+  root.removeAttribute('data-shell-content-width');
+});

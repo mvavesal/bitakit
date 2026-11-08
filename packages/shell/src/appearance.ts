@@ -56,6 +56,15 @@ export function appearanceSettings(presets: readonly ShellPreset[]) {
           { value: 'navbar', label: 'Navigation bar', icon: NavbarIcon },
         ],
       }),
+      contentWidth: setting({
+        default: 'contained',
+        control: 'cards',
+        label: 'Content width',
+        options: [
+          { value: 'contained', label: 'Centered container' },
+          { value: 'full', label: 'Full width' },
+        ],
+      }),
       ...(presets.length
         ? {
             preset: setting({

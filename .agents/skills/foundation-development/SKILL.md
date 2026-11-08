@@ -1215,3 +1215,10 @@ Service observers correlate calls with runtime-local `callId`, epoch `startedAt`
 `durationMs`. They observe promises without replacing them or awaiting logging. A service's
 internal self-call bypasses its decorated container method; test real producers that promise
 public interception. No automatic persistence or durable observer guarantee is implied.
+
+
+Shell's `shell.contentWidth` uses the existing appearance declaration and root attribute
+projection; `contained` preserves the existing surface and `full` removes its maximum width.
+App Preferences category disclosure uses Radix Collapsible with the existing SidebarGroupLabel.
+Groups are independent and initially open; query changes reveal matching groups again. Neither
+feature introduces another settings store, catalog, or host integration.

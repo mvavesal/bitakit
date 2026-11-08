@@ -95,6 +95,18 @@
           "title": "Layout",
           "description": "Navigation, Abstände und Position der Benachrichtigungen."
         }
+      },
+      "contentWidth": {
+        "label": "Inhaltsbreite",
+        "description": "Zentrierter Container oder die gesamte verfügbare Breite.",
+        "options": {
+          "contained": {
+            "label": "Zentrierter Container"
+          },
+          "full": {
+            "label": "Volle Breite"
+          }
+        }
       }
     },
     "ui": {

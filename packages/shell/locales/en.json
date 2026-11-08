@@ -95,6 +95,18 @@
           "title": "Layout",
           "description": "Navigation, spacing and notification position."
         }
+      },
+      "contentWidth": {
+        "label": "Content width",
+        "description": "Use a centered container or the full available width.",
+        "options": {
+          "contained": {
+            "label": "Centered container"
+          },
+          "full": {
+            "label": "Full width"
+          }
+        }
       }
     },
     "ui": {

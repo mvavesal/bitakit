@@ -51,6 +51,7 @@ test('appearance settings: keys, scopes and defaults; preset only with presets',
     {
       mode: ['device', 'system', 'cards', ['light', 'dark', 'system']],
       layout: ['user', 'sidebar', 'cards', ['sidebar', 'navbar']],
+      contentWidth: ['user', 'contained', 'cards', ['contained', 'full']],
       density: ['user', 'comfortable', 'cards', ['comfortable', 'compact']],
       corners: ['user', 'default', 'radio', ['default', 'round', 'square']],
       toasts: [
@@ -76,6 +77,7 @@ test('appearance settings: keys, scopes and defaults; preset only with presets',
     'themeLibrary',
     'mode',
     'layout',
+    'contentWidth',
     'preset',
     'density',
     'corners',
@@ -99,6 +101,7 @@ test('appearance settings: keys, scopes and defaults; preset only with presets',
       'shell.themeLibrary',
       'shell.mode',
       'shell.layout',
+      'shell.contentWidth',
       'shell.density',
       'shell.corners',
       'shell.toasts',
@@ -160,6 +163,7 @@ test('the settings catalog labels the Themes and Layout pages from the Shell loc
       fields: [
         ['shell.mode', 'Color scheme', ['Light', 'Dark', 'System']],
         ['shell.layout', 'Navigation', ['Sidebar', 'Navigation bar']],
+        ['shell.contentWidth', 'Content width', ['Centered container', 'Full width']],
         ['shell.preset', 'Theme', ['Default', 'Ocean']],
         ['shell.density', 'Density', ['Comfortable', 'Compact']],
         ['shell.corners', 'Corners', ['Default', 'Round', 'Square']],
@@ -186,7 +190,10 @@ test('the settings catalog labels the Themes and Layout pages from the Shell loc
       'Farbschema',
       ['Hell', 'Dunkel', 'System'],
     ]);
-    assert.deepEqual(labels().fields[2], ['shell.preset', 'Theme', ['Standard', 'Ocean']]);
+    assert.deepEqual(
+      labels().fields.find(([key]) => key === 'shell.preset'),
+      ['shell.preset', 'Theme', ['Standard', 'Ocean']],
+    );
   } finally {
     await view.unmount();
   }

@@ -102,3 +102,12 @@ including their headings, filters and settings; do not wrap them in another scro
 Keep room for card rings and focus outlines when composing content.
 Section frames retain their content minimum height even when the page owns its heading,
 so the shell's bottom padding remains reachable after the final card.
+
+
+Settings navigation category headings are independent Radix Collapsible triggers. Groups start
+open, preserve the existing heading and link styling, and hide their entries and group extension
+regions when closed. The active settings page remains mounted. Changing the search query opens
+matching groups again. Collapse state is local to the mounted navigation, not a persisted setting.
+
+When Shell projects `data-shell-content-width="full"`, SettingsShell also fills the available
+content width. Without it, the existing centered `max-w-4xl` settings surface stays unchanged.

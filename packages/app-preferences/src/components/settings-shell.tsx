@@ -175,7 +175,7 @@ export function SettingsShell({
           <div
             id={contentId}
             tabIndex={-1}
-            className="mx-auto flex w-full min-h-0 min-w-0 max-w-4xl flex-1 flex-col gap-7 overflow-y-auto overscroll-contain p-4 outline-none md:p-8 lg:p-10"
+            className="mx-auto flex w-full min-h-0 min-w-0 max-w-4xl in-data-[shell-content-width=full]:max-w-none flex-1 flex-col gap-7 overflow-y-auto overscroll-contain p-4 outline-none md:p-8 lg:p-10"
           >
             {children}
           </div>

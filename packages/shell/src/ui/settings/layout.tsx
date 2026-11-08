@@ -19,7 +19,7 @@ export function LayoutSettings({
       <CardContent>
         <FieldGroup className="gap-6">
           {section?.fields
-            .filter((field) => ['layout', 'density', 'toasts'].includes(field.name))
+            .filter((field) => ['layout', 'contentWidth', 'density', 'toasts'].includes(field.name))
             .map((field) => (
               <div key={field.key} className="flex items-end gap-2">
                 <div className="min-w-0 flex-1">

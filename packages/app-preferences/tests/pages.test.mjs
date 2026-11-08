@@ -363,3 +363,35 @@ test('additional plugin pages render through the same route with one heading and
     await view.unmount();
   }
 });
+
+test('navigation groups collapse independently and keep the active page mounted', async () => {
+  const view = await renderApp(h(SettingsRoute), {
+    config,
+    storage: controlledStorage(),
+    pathname: '/settings/todos',
+  });
+  try {
+    const c = view.container;
+    const trigger = (title) =>
+      [...c.querySelectorAll('nav h2 button')].find((el) => text(el) === title);
+    const content = trigger('Content');
+    const account = trigger('Account');
+    const field = c.querySelector('[data-setting="todos.pageSize"]');
+    assert.equal(content.getAttribute('aria-expanded'), 'true');
+    await click(content);
+    assert.equal(content.getAttribute('aria-expanded'), 'false');
+    assert.equal(account.getAttribute('aria-expanded'), 'true');
+    assert.equal(c.querySelector('nav a[href="/settings/todos"]'), null);
+    assert.equal(c.querySelector('[data-setting="todos.pageSize"]'), field);
+    await click(account);
+    await click(content);
+    assert.equal(account.getAttribute('aria-expanded'), 'false');
+    assert.equal(content.getAttribute('aria-expanded'), 'true');
+    assert.equal(
+      c.querySelector('nav a[href="/settings/todos"]').getAttribute('aria-current'),
+      'page',
+    );
+  } finally {
+    await view.unmount();
+  }
+});
