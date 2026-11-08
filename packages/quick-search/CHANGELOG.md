@@ -1,5 +1,20 @@
 # @bitakit/quick-search
 
+## 0.3.0
+
+### Minor Changes
+
+- df00bdd: Start the 0.3 release line: roles and permissions as configuration.
+
+  Plugins declare the resources and operations they own in `permissions.ts` (`definePermissions`); the app declares its base roles once in `src/roles.ts` (`defineRoles`, with `standard`, `label`, `description`, `grants` and the `customRoles` option). Discovery collects both, types role grants against the discovered catalog (`PermissionMap`, `RoleMap`) and, like the runtime start, rejects a resource declared twice, grants of unknown resources or operations, a standard role extended twice and roles outside the app. Core only owns this vocabulary; the authorization provider translates it and decides every check. `@bitakit/organizations` gets the provider-independent role contract: backends report the organization's roles (base and custom, with permissions for presentation) and the viewer's permissions; invitations and role changes take role IDs; custom roles and the invitation domain policy are optional backend capabilities, and `normalizeInvitationDomain` is the one domain check that settings screens and providers share. The service offers assignable roles for choices only; the provider enforces every rule on the server.
+
+### Patch Changes
+
+- Updated dependencies [df00bdd]
+  - @bitakit/app-preferences@0.3.0
+  - @bitakit/core@0.3.0
+  - @bitakit/ui@0.3.0
+
 ## 0.2.9
 
 ### Patch Changes
