@@ -180,7 +180,7 @@ test('an empty folder becomes the app; scaffolding runs in a sibling and install
   assert.match(await read(target, 'AGENTS.md'), /^<!-- next rules -->\n\n<!-- BEGIN:bitakit/);
   assert.equal(
     JSON.parse(await read(target, 'package.json')).dependencies['@bitakit/core'],
-    '^0.2.8',
+    packageRange('core'),
   );
 });
 
@@ -195,8 +195,8 @@ test('generated projects depend on the release line, not the generator version',
     assert.equal(releaseLineRange(version), bitakitRange, `${name} stays on the release line`);
     assert.equal(packageRange(name), `^${version}`);
   }
-  assert.equal(packageRange('core'), '^0.2.8');
-  assert.equal(packageRange('discovery'), '^0.2.5');
+  assert.equal(packageRange('core'), bitakitRange);
+  assert.equal(packageRange('discovery'), bitakitRange);
   assert.equal(packageRange('ui'), bitakitRange);
 });
 
@@ -440,7 +440,7 @@ test('a bare app wraps next.config, mounts one provider, imports one generated s
   for (const name of ['core', 'ui', 'next'])
     assert.equal(manifest.dependencies[`@bitakit/${name}`], packageRange(name));
   assert.equal(manifest.devDependencies['@bitakit/cli'], bitakitRange);
-  assert.equal(manifest.devDependencies['@bitakit/discovery'], '^0.2.5');
+  assert.equal(manifest.devDependencies['@bitakit/discovery'], packageRange('discovery'));
   assert.deepEqual(manifest.scripts, {
     dev: 'next dev',
     build: 'next build',
@@ -529,7 +529,11 @@ test('the shell app adds the App Shell, settings, a not-found fallback and the T
   const manifest = JSON.parse(await read(plan.target, 'package.json'));
   for (const name of ['app-preferences', 'shell', 'quick-search'])
     assert.equal(manifest.dependencies[`@bitakit/${name}`], packageRange(name));
-  assert.equal(manifest.dependencies['@bitakit/shell'], '^0.2.6', 'layout prop and HeroUI peers');
+  assert.equal(
+    manifest.dependencies['@bitakit/shell'],
+    packageRange('shell'),
+    'layout prop and HeroUI peers',
+  );
   assert.match(
     await read(plan.target, 'src/app/(app)/layout.tsx'),
     /<AppShell>\{children\}<\/AppShell>/,
@@ -796,7 +800,7 @@ test('a plugin package has the same folders as an app plugin, a headless test an
   assert.equal(manifest.devDependencies.react, '19.2.0');
   assert.equal(manifest.devDependencies['react-dom'], '19.2.0');
   assert.equal(manifest.devDependencies['@bitakit/cli'], bitakitRange);
-  assert.equal(manifest.devDependencies['@bitakit/discovery'], '^0.2.5');
+  assert.equal(manifest.devDependencies['@bitakit/discovery'], packageRange('discovery'));
   assert.equal(manifest.scripts.build, 'bitakit build');
   assert.equal(manifest.scripts.typecheck, 'bitakit build --check');
   assert.equal(manifest.scripts.test, 'node --test tests/*.test.ts');

@@ -34,14 +34,7 @@ export async function writeProjectFiles(root, files) {
  * minimumReleaseAge) or an older lockfile installs a version missing an API the files use.
  * Raise an entry when a template starts using a newer API; drop entries at a new release line.
  */
-export const minimumVersions = {
-  // Discovery binds provenance through Core; keep the generated API and runtime together.
-  core: '0.2.8',
-  discovery: '0.2.5',
-  // 0.2.5: not-found.tsx renders `<AppShell layout="error">` and error pages Shell's screens.
-  // 0.2.6: Shell declares HeroUI's peers, which Yarn does not install by itself.
-  shell: '0.2.6',
-};
+export const minimumVersions = {};
 
 /** The dependency range for a generated project: the release line, from its minimum if any. */
 export function packageRange(name) {
