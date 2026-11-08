@@ -2,6 +2,11 @@ import { resolveName } from './name-resolution.js';
 import type { RuntimeActionPlacement } from './slots/action-placement.js';
 import { EventService, createEventScope } from './events/service.js';
 import { normalizeSlots, validateSlotDeclarations } from './slots/normalize.js';
+import {
+  AccessConfigurationError,
+  composeAccessConfiguration,
+  isPermissionsDefinition,
+} from './permissions.js';
 import type { OwnedSlotDefinition } from './slots/define.js';
 import { SlotRuntime } from './slots/runtime.js';
 import type { SlotReader } from './slots/types.js';
@@ -159,6 +164,14 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
         );
     if (module.settings !== undefined && !isSettingsDefinition(module.settings))
       throw new Error('settings must be declared with defineSettings({ ... }) in settings.ts.');
+    if (module.permissions !== undefined && !isPermissionsDefinition(module.permissions))
+      throw new Error(
+        'permissions must be declared with definePermissions({ ... }) in permissions.ts.',
+      );
+    if (!isApp && (module as { roles?: unknown }).roles !== undefined)
+      throw new Error(
+        "Base roles belong to the app's src/roles.ts; a plugin declares permissions, never roles.",
+      );
     if (module.parent === id) throw new Error('A plugin cannot be its own parent.');
     return {
       ...module,
@@ -176,6 +189,33 @@ function normalize(module: Plugin, appId: string): NormalizedPlugin {
     };
   } catch (error) {
     throw attributed(error, id, 'Plugin definition', appId);
+  }
+}
+
+/**
+ * Roles and permissions are configuration: every module's permissions compose into one catalog
+ * and the app's base roles may only grant declared operations. Problems stop the start with one
+ * error naming each conflict; nothing is resolved by registration order.
+ */
+function validateAccessDeclarations(modules: readonly NormalizedPlugin[], appId: string) {
+  const app = modules.find((module) => module.id === appId) as
+    | (NormalizedPlugin & { roles?: import('./permissions.js').RolesDefinition })
+    | undefined;
+  try {
+    composeAccessConfiguration({
+      permissions: modules
+        .filter((module) => module.permissions !== undefined)
+        .map((module) => ({ owner: module.id, definition: module.permissions! })),
+      roles: app?.roles,
+    });
+  } catch (error) {
+    if (error instanceof AccessConfigurationError)
+      throw new BitaKitStartupError(error.message, appId, {
+        app: true,
+        cause: error,
+        source: app?.roles?.source,
+      });
+    throw error;
   }
 }
 
@@ -423,6 +463,7 @@ export class BitaKitRuntime implements ContributionHost {
     ];
     this.order = orderPlugins(this.modules, this.appId);
     validateSlotDeclarations(this.modules, this.appId);
+    validateAccessDeclarations(this.modules, this.appId);
     this.events = new EventService(config.onEventError);
     const publishLifecycle = this.events.reserve('runtime');
     this.lifecycleState = createLifecycleState(
@@ -1563,6 +1604,7 @@ export class BitaKitRuntime implements ContributionHost {
       const declarations = [app, ...nextInstalled.map((plugin) => normalize(plugin, this.appId))];
       orderPlugins(all, this.appId);
       validateSlotDeclarations(declarations, this.appId);
+      validateAccessDeclarations(all, this.appId);
       validatePluginPages(all, layoutFamilies(all));
       // Failed updates may have already disposed a projection's scope. Recover its recorded
       // failure cohort when the host retries one of those owners, without restarting other failures.
@@ -1777,6 +1819,7 @@ export class BitaKitRuntime implements ContributionHost {
       ];
       orderPlugins(all, this.appId);
       validateSlotDeclarations(all, this.appId);
+      validateAccessDeclarations(all, this.appId);
       validatePluginPages(all, layoutFamilies(all));
       // A projection that captured the composition is an explicit consumer of every revision.
       affected = updateClosure(all, [

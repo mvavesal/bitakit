@@ -13,6 +13,32 @@ export type * from './events/types.js';
 export type { GeneratedName, CheckedName } from './names.js';
 export { EventService } from './events/service.js';
 export {
+  definePermissions,
+  defineRoles,
+  isPermissionsDefinition,
+  isRolesDefinition,
+  standardRoles,
+  composePermissions,
+  composeAccessConfiguration,
+  roleProblems,
+  AccessConfigurationError,
+} from './permissions.js';
+export type {
+  PermissionMap,
+  RoleMap,
+  PermissionSpec,
+  PermissionsDefinition,
+  StandardRole,
+  RoleSpec,
+  RolesOptions,
+  RolesDefinition,
+  PermissionResource,
+  PermissionCatalog,
+  AccessConfiguration,
+  PermissionsOf,
+  RoleIdsOf,
+} from './permissions.js';
+export {
   defineSettings,
   setting,
   isSettingsDefinition,

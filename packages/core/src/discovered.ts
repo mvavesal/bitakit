@@ -13,6 +13,12 @@ import { resolveContribution } from './conventions.js';
 import { actionIdPattern } from './conventions.js';
 import { isSlotDefinition, type ResolvedSlotDefinition, type SlotEntry } from './slots/define.js';
 import { BitaKitStartupError } from './startup-error.js';
+import {
+  isPermissionsDefinition,
+  isRolesDefinition,
+  type PermissionsDefinition,
+  type RolesDefinition,
+} from './permissions.js';
 import type { ContractName } from './service-key.js';
 import { defineInterceptor, type InterceptorSpec } from './interceptors/define.js';
 import {
@@ -191,6 +197,32 @@ export function discoverSettings(files: readonly DiscoveredFile[]): SettingsDefi
   if (!isSettingsDefinition(file.value))
     throw new Error(`${file.source} must default-export defineSettings({ ... }).`);
   return file.value;
+}
+/** A module's `permissions.ts`: one file, `definePermissions({ ... })`; the source is kept for diagnostics. */
+export function discoverPermissions(
+  files: readonly DiscoveredFile[],
+): PermissionsDefinition | undefined {
+  if (!files.length) return undefined;
+  if (files.length > 1)
+    throw new Error(
+      `A module declares its permissions in one file: ${files.map((file) => file.source).join(', ')}`,
+    );
+  const [file] = files;
+  if (!isPermissionsDefinition(file.value))
+    throw new Error(`${file.source} must default-export definePermissions({ ... }).`);
+  return Object.freeze({ ...file.value, source: file.source });
+}
+/** The app's `roles.ts`: one file, `defineRoles({ ... })`; the source is kept for diagnostics. */
+export function discoverRoles(files: readonly DiscoveredFile[]): RolesDefinition | undefined {
+  if (!files.length) return undefined;
+  if (files.length > 1)
+    throw new Error(
+      `The app declares its roles in one file: ${files.map((file) => file.source).join(', ')}`,
+    );
+  const [file] = files;
+  if (!isRolesDefinition(file.value))
+    throw new Error(`${file.source} must default-export defineRoles({ ... }).`);
+  return Object.freeze({ ...file.value, source: file.source });
 }
 /** File assembly rejects overlapping leaves; intentional overrides happen later in ConfigService. */
 export function discoverConfig(files: readonly DiscoveredFile[]): ConfigValues | ConfigDefinition {

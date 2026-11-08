@@ -337,6 +337,8 @@ export type Plugin = {
   slots?: SlotDefinitions | readonly SlotDefinition[];
   events?: EventsDefinition<any>;
   settings?: SettingsDefinition<any>;
+  /** Resources and operations this module owns (`permissions.ts`); never roles. */
+  permissions?: import('./permissions.js').PermissionsDefinition;
   config?: ConfigValues | ConfigDefinition;
   interceptors?: readonly InterceptorSpec[];
   setup?: Setup;
@@ -354,6 +356,8 @@ export function definePlugin<const T extends Plugin>(plugin: T): T {
 
 export type BitaKitRuntimeConfig = Omit<Plugin, 'id' | 'dependencies' | 'parent'> & {
   appId?: string;
+  /** The app's base roles (`src/roles.ts`); only the app declares roles. */
+  roles?: import('./permissions.js').RolesDefinition;
   dependencies?: readonly string[];
   /** Receives synchronous throws and async rejections from event handlers. */
   onEventError?: import('./events/types.js').EventErrorHandler;
