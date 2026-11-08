@@ -20,6 +20,11 @@ for (const mode of ['source archive', 'shallow detached PR'])
       await cp(path.join(repo, 'package.json'), path.join(root, 'package.json'));
       await cp(path.join(repo, 'package-lock.json'), path.join(root, 'package-lock.json'));
       await cp(path.join(repo, '.changeset'), path.join(root, '.changeset'), { recursive: true });
+      // The fixture's own changeset decides the next versions; pending repository changesets
+      // (for example a new release line) must not change what this test checks.
+      for (const file of await readdir(path.join(root, '.changeset')))
+        if (file.endsWith('.md') && file !== 'README.md')
+          await rm(path.join(root, '.changeset', file));
       await symlink(path.join(repo, 'node_modules'), path.join(root, 'node_modules'));
       for (const folder of await readdir(path.join(repo, 'packages'))) {
         const file = path.join(repo, 'packages', folder, 'package.json');

@@ -162,3 +162,148 @@ test('the plugin reads its backend from the organization-backend contract', asyn
     stop();
   }
 });
+
+test('roles come from the backend: assignable roles follow the viewer’s permissions, never the creator role', async () => {
+  const { standardOrganizationRoles } = await import('../dist/index.js');
+  const content = (actions) => ({ content: actions });
+  const roles = [
+    {
+      id: 'owner',
+      standard: 'owner',
+      custom: false,
+      permissions: content(['read', 'edit', 'publish']),
+    },
+    { id: 'admin', standard: 'admin', custom: false, permissions: content(['read', 'edit']) },
+    { id: 'publisher', custom: false, permissions: content(['read', 'publish']) },
+    {
+      id: 'member',
+      standard: 'member',
+      label: 'Editor',
+      custom: false,
+      permissions: content(['read', 'edit']),
+    },
+    { id: 'viewer', custom: false, permissions: content(['read']) },
+  ];
+  const calls = [];
+  const service = createOrganizationService({
+    load: async () => ({
+      organizations: [{ id: 'org', name: 'Org', slug: 'org' }],
+      activeId: 'org',
+      members: [
+        { id: 'me', email: 'me@example.test', name: 'Me', role: 'admin' },
+        { id: 'boss', email: 'boss@example.test', name: 'Boss', role: 'owner' },
+        { id: 'ed', email: 'ed@example.test', name: 'Ed', role: 'member' },
+      ],
+      invitations: [],
+      canManage: true,
+      viewerMemberId: 'me',
+      roles,
+      viewerPermissions: content(['read', 'edit']),
+    }),
+    setActive: async () => {},
+    create: async () => {},
+    invite: async (input) => void calls.push(['invite', input.role]),
+    cancelInvitation: async () => {},
+    updateRole: async (input) => void calls.push(['role', input.memberId, input.role]),
+    removeMember: async () => {},
+  });
+  assert.deepEqual(
+    service.roles.map((role) => role.id),
+    ['owner', 'admin', 'member'],
+    'before loading: standard roles',
+  );
+  await service.refresh();
+  assert.deepEqual(
+    service.assignableRoles().map((role) => role.id),
+    ['admin', 'member', 'viewer'],
+  );
+  assert.equal(service.defaultRole, 'member');
+  await service.invite('new@example.test');
+  await service.updateRole('ed', 'viewer');
+  assert.throws(() => service.invite('x@example.test', 'publisher'), /Invalid role/);
+  assert.throws(() => service.updateRole('ed', 'owner'), /Invalid role/);
+  assert.throws(
+    () => service.updateRole('boss', 'viewer'),
+    /not available/,
+    'the creator role is protected',
+  );
+  assert.deepEqual(calls, [
+    ['invite', 'member'],
+    ['role', 'ed', 'viewer'],
+  ]);
+  assert.equal(standardOrganizationRoles.length, 3);
+  service.dispose();
+});
+
+test('custom roles and the invitation policy are optional backend capabilities', async () => {
+  const service = createOrganizationService(createDemoOrganizationBackend());
+  await service.refresh();
+  assert.equal(service.capabilities.customRoles, true);
+  assert.equal(service.capabilities.invitationPolicy, true);
+  await service.createCustomRole('reviewer', { content: ['read'] });
+  assert.ok(service.roles.some((role) => role.id === 'reviewer' && role.custom));
+  assert.throws(() => service.createCustomRole('owner', {}), /new role name/);
+  assert.throws(() => service.updateCustomRole('admin', {}), /Only custom roles/);
+  await service.updateCustomRole('reviewer', { content: ['read', 'edit'] });
+  assert.deepEqual(service.roles.find((role) => role.id === 'reviewer').permissions, {
+    content: ['read', 'edit'],
+  });
+  await service.deleteCustomRole('reviewer');
+  assert.equal(
+    service.roles.some((role) => role.id === 'reviewer'),
+    false,
+  );
+  assert.deepEqual(await service.invitationPolicy(), { mode: 'any', domains: [] });
+  await assert.rejects(
+    service.saveInvitationPolicy({ mode: 'allowlist', domains: [] }),
+    /at least one domain/,
+  );
+  const saved = await service.saveInvitationPolicy({
+    mode: 'allowlist',
+    domains: [{ domain: 'example.com', includeSubdomains: false }],
+  });
+  assert.equal(saved.mode, 'allowlist');
+  assert.deepEqual(await service.invitationPolicy(), saved);
+  const plain = createOrganizationService({
+    load: async () => ({
+      organizations: [],
+      activeId: null,
+      members: [],
+      invitations: [],
+      canManage: false,
+    }),
+  });
+  assert.equal(plain.capabilities.customRoles, false);
+  await assert.rejects(plain.invitationPolicy(), /Not supported/);
+  service.dispose();
+});
+
+test('one domain check for invitation policies: IDNA to ASCII, whole names only', async () => {
+  const { normalizeInvitationDomain } = await import('../dist/index.js');
+  assert.equal(normalizeInvitationDomain(' Bücher.Example. '), 'xn--bcher-kva.example');
+  assert.equal(normalizeInvitationDomain('sub.example.co.uk'), 'sub.example.co.uk');
+  for (const invalid of [
+    'kjgkgukguio',
+    '',
+    'localhost',
+    '*.example.com',
+    'a@b.com',
+    '192.168.0.1',
+    'ex ample.com',
+    '[::1]',
+    '-bad.com',
+    'example.com:80',
+    'example..com',
+  ])
+    assert.equal(normalizeInvitationDomain(invalid), null, invalid);
+  const service = createOrganizationService(createDemoOrganizationBackend());
+  await service.refresh();
+  await assert.rejects(
+    service.saveInvitationPolicy({
+      mode: 'blocklist',
+      domains: [{ domain: 'kjgkgukguio', includeSubdomains: false }],
+    }),
+    /not a valid domain/,
+  );
+  service.dispose();
+});

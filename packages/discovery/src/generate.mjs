@@ -1,8 +1,10 @@
 import { resolveName, resolveOverrides } from './name-resolution.mjs';
 import { readFile, writeFile, mkdir, realpath, rm, readdir, rmdir, rename } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { createJiti } from 'jiti';
+import { AccessConfigurationError, composeAccessConfiguration } from '@bitakit/core';
 import { files, discoverEntries, contributionKindSpecs } from './entries.mjs';
 import { pluginIdentityConflicts } from './package-identity.mjs';
 import { installedContributions } from './packages.mjs';
@@ -154,6 +156,26 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     settings: [],
     slots: [],
     configs: [],
+    permissions: [],
+    roles: [],
+  };
+  /**
+   * Roles and permissions: each module's `permissions.ts` and the app's `roles.ts`. Every file is
+   * checked here (conflicts, unknown grants) and again by the runtime; nothing is merged by order.
+   */
+  const accessFiles = { permissions: [], roles: undefined };
+  const declareAccess = (kind, file, owner) => {
+    const name = importFile(file);
+    const wrapped = `file${serial++}`;
+    imports.push(`const ${wrapped} = discoveredFile(${name}, '', ${quote(relativeTo(file))});`);
+    if (kind === 'permissions') {
+      types.permissions.push(`PermissionsOf<typeof ${name}>`);
+      accessFiles.permissions.push({ owner, file });
+      return `discoverPermissions([${wrapped}])`;
+    }
+    types.roles.push(`RoleIdsOf<typeof ${name}>`);
+    accessFiles.roles = file;
+    return `discoverRoles([${wrapped}])`;
   };
   const fileEntries = (entries) =>
     entries.map((entry) => {
@@ -336,6 +358,12 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     '',
   );
   const appSettingsPage = settingsPage(appFiles, appRoot);
+  const appPermissionsFile = appFiles.find((file) => file === path.join(appRoot, 'permissions.ts'));
+  const appRolesFile = appFiles.find((file) => file === path.join(appRoot, 'roles.ts'));
+  const appPermissions = appPermissionsFile
+    ? declareAccess('permissions', appPermissionsFile, appId)
+    : undefined;
+  const appRoles = appRolesFile ? declareAccess('roles', appRolesFile, appId) : undefined;
   const appLayouts = emitLayouts(appFiles, path.join(appRoot, 'layouts'));
   const appConfigExpression = emit('configs', await appEntries('configs'), appId);
   let interceptorEntries = await appEntries('interceptors');
@@ -465,6 +493,14 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     enabledModuleIds.add(manifest.id);
     const eventsFile = moduleFiles.find((file) => file === path.join(base, 'events.ts'));
     const settingsFile = moduleFiles.find((file) => file === path.join(base, 'settings.ts'));
+    const permissionsFile = moduleFiles.find((file) => file === path.join(base, 'permissions.ts'));
+    if (moduleFiles.includes(path.join(base, 'roles.ts')))
+      throw new Error(
+        `Plugin "${manifest.id}" has ${relativeTo(path.join(base, 'roles.ts'))}: base roles belong to the app's src/roles.ts; a plugin declares permissions in permissions.ts.`,
+      );
+    const permissions = permissionsFile
+      ? declareAccess('permissions', permissionsFile, manifest.id)
+      : undefined;
     const setupFiles = await resolveEntry('setup', 'setup.ts');
     const actions = emit('actions', await entriesFor('actions'), manifest.id);
     const services = emit('services', await entriesFor('services'), manifest.id);
@@ -496,7 +532,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       manifest.id,
     );
     definitions.push(
-      `withPluginOrigin({ id: ${quote(manifest.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}metadata: ${quote(metadata)}, dependencies: ${quote((manifest.dependencies ?? []).map((id) => resolveName(id, pluginNames)))}, events: ${events}, settings: ${settings}, actions: ${actions}, services: ${services}, slots: ${slotDefinitions}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${pluginSettingsPage ? `, settings: ${pluginSettingsPage}` : ''} }, setup: ${setup}, contributions: ${pluginContributions} }, ${quote(origin)})`,
+      `withPluginOrigin({ id: ${quote(manifest.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}metadata: ${quote(metadata)}, dependencies: ${quote((manifest.dependencies ?? []).map((id) => resolveName(id, pluginNames)))}, events: ${events}, settings: ${settings}, ${permissions ? `permissions: ${permissions}, ` : ''}actions: ${actions}, services: ${services}, slots: ${slotDefinitions}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${pluginSettingsPage ? `, settings: ${pluginSettingsPage}` : ''} }, setup: ${setup}, contributions: ${pluginContributions} }, ${quote(origin)})`,
     );
     for (const file of await resolveEntry('locales', 'locales')) {
       if (!file.endsWith('.json')) continue;
@@ -640,6 +676,8 @@ ${installed.plugins
     types.events.length && 'type DiscoveredEventsEntry',
     types.cancelable.length && 'type DiscoveredCancelableEntry',
     types.settings.length && 'type DiscoveredSettingsEntry',
+    types.permissions.length && 'type PermissionsOf',
+    types.roles.length && 'type RoleIdsOf',
     types.configs.some((entry) => entry.includes('DiscoveredConfigEntry')) &&
       'type DiscoveredConfigEntry',
     installed.plugins.length && 'type PublicServicesOf',
@@ -649,6 +687,36 @@ ${installed.plugins
     installed.plugins.length && 'type PublicEventsOf',
     installed.plugins.length && 'type PublicCancelableOf',
   ].filter(Boolean);
+  if (accessFiles.permissions.length || accessFiles.roles) {
+    // Declarations are pure data; they load against the Core this discovery uses (one copy per app).
+    const accessJiti = createJiti(import.meta.url, {
+      moduleCache: false,
+      fsCache: false,
+      alias: { '@bitakit/core': fileURLToPath(import.meta.resolve('@bitakit/core')) },
+    });
+    const load = async (file) => {
+      try {
+        const value = await accessJiti.import(file, { default: true });
+        return value && typeof value === 'object' ? { ...value, source: relativeTo(file) } : value;
+      } catch (error) {
+        throw new Error(`${relativeTo(file)}: ${error.message}`);
+      }
+    };
+    try {
+      composeAccessConfiguration({
+        permissions: await Promise.all(
+          accessFiles.permissions.map(async (entry) => ({
+            owner: entry.owner,
+            definition: await load(entry.file),
+          })),
+        ),
+        roles: accessFiles.roles ? await load(accessFiles.roles) : undefined,
+      });
+    } catch (error) {
+      if (error instanceof AccessConfigurationError) throw new Error(error.message);
+      throw error;
+    }
+  }
   const body = [
     ...definitions,
     appPages.join(''),
@@ -675,7 +743,7 @@ ${usesFiles ? '  discoveredFile,\n' : ''}  discoverActions,
   discoverConfig,
   discoverEvents,
   discoverSettings,
-${helpers.map((helper) => `  ${helper},\n`).join('')}${configured ? '  ConfigService,\n' : ''}  type BitaKitRuntimeConfig,
+${types.permissions.length ? '  discoverPermissions,\n' : ''}${types.roles.length ? '  discoverRoles,\n' : ''}${helpers.map((helper) => `  ${helper},\n`).join('')}${configured ? '  ConfigService,\n' : ''}  type BitaKitRuntimeConfig,
 ${typeImports.map((item) => `  ${item},`).join('\n')}
 } from '@bitakit/core';
 ${imports.join('\n')}
@@ -685,7 +753,7 @@ type DiscoveredServices = ${intersect(types.services)};
 type DiscoveredActions = ${intersect(types.actions)};
 type DiscoveredEvents = ${intersect(types.events)};
 type DiscoveredCancelable = ${intersect(types.cancelable)};
-type DiscoveredSettings = ${intersect(types.settings)};
+type DiscoveredSettings = ${intersect(types.settings)};${types.permissions.length ? `\ntype DiscoveredPermissions = ${types.permissions.join(' & ')};` : ''}${types.roles.length ? `\ntype DiscoveredRoles = ${types.roles.join(' & ')};` : ''}
 type DiscoveredSlots = ${intersect(types.slots)};
 ${installed.plugins.length ? `type InstalledPlugins = [${installed.plugins.map((_, index) => `ReturnType<typeof packagePlugin${index}>`).join(', ')}];\ntype InstalledServices = PublicServicesOf<InstalledPlugins>;\ntype InstalledSettings = PublicSettingsOf<InstalledPlugins>;\ntype InstalledSlots = PublicSlotsOf<InstalledPlugins>;\ntype InstalledActions = PublicActionsOf<InstalledPlugins>;\ntype InstalledEvents = PublicEventsOf<InstalledPlugins>;\ntype InstalledCancelable = PublicCancelableOf<InstalledPlugins>;` : 'type InstalledServices = {};\ntype InstalledSettings = {};\ntype InstalledSlots = {};\ntype InstalledActions = {};\ntype InstalledEvents = {};\ntype InstalledCancelable = {};'}
 ${[...kindTypes.values()].map(({ kind, index, entries }) => `type KindMap${index} = ${entries.join(' & ')};\ndeclare module ${specifier(kind.from)} { interface ${kind.types.map} extends KindMap${index} {} }`).join('\n')}
@@ -694,7 +762,7 @@ declare module '@bitakit/core' {
   interface ActionMap extends DiscoveredActions, InstalledActions {}
   interface EventMap extends DiscoveredEvents, InstalledEvents {}
   interface CancelableEventMap extends DiscoveredCancelable, InstalledCancelable {}
-  interface SettingsMap extends DiscoveredSettings, InstalledSettings {}
+  interface SettingsMap extends DiscoveredSettings, InstalledSettings {}${types.permissions.length ? '\n  interface PermissionMap extends DiscoveredPermissions {}' : ''}${types.roles.length ? '\n  interface RoleMap extends DiscoveredRoles {}' : ''}
   interface ConfigMap {
     ${types.configs.join('\n    ')}
   }
@@ -727,7 +795,7 @@ ${configured ? `  const options = new ConfigService([{ id: ${quote(appId)}, conf
     configOverrides,
     events: ${appEvents},
     settings: ${appSettings},
-    services: ${appServices},
+${appPermissions ? `    permissions: ${appPermissions},\n` : ''}${appRoles ? `    roles: ${appRoles},\n` : ''}    services: ${appServices},
     slots: ${appLayoutFamilies.length ? `[...${appSlotDefinitions}, ...layoutSlots(${quote(appLayoutFamilies)})]` : appSlotDefinitions},
     actions: ${appActions},
     interceptors: ${appInterceptors},
@@ -771,6 +839,49 @@ export function BitaKitProvider(props: Omit<ComponentProps<typeof BitaKitRuntime
     path.join(output, 'bitakit.gen.css'),
     `/* ${generatedHeader.slice(3)} Styles of installed packages, theme last. */\n${stylePrelude}\n${(installed.styles ?? []).map((specifier) => `@import ${quote(path.isAbsolute(specifier) ? './' + path.relative(output, specifier).split(path.sep).join('/') : specifier)};`).join('\n')}\n`,
   );
+  // Roles and permissions for servers and authorization adapters: pure data, no client code,
+  // composed and checked by Core when imported. Absent without declarations.
+  const accessFile = path.join(output, 'bitakit.gen.access.ts');
+  if (accessFiles.permissions.length || accessFiles.roles) {
+    const access = [];
+    const local = (file) => {
+      const relative = path
+        .relative(output, file)
+        .replaceAll(path.sep, '/')
+        .replace(/\.tsx?$/, '');
+      return specifier(relative.startsWith('.') ? relative : `./${relative}`);
+    };
+    const entry = (file, index) => {
+      access.push(`import access${index} from ${local(file)};`);
+      return `discoveredFile(access${index}, '', ${quote(relativeTo(file))})`;
+    };
+    const permissions = accessFiles.permissions.map(
+      ({ owner, file }, index) =>
+        `{ owner: ${quote(owner)}, definition: discoverPermissions([${entry(file, index)}])! }`,
+    );
+    const roles = accessFiles.roles
+      ? `discoverRoles([${entry(accessFiles.roles, accessFiles.permissions.length)}])`
+      : 'undefined';
+    await writeChanged(
+      accessFile,
+      `${generatedHeader}
+import {
+  composeAccessConfiguration,
+  discoveredFile,
+  discoverPermissions,
+  discoverRoles,
+  type AccessConfiguration,
+} from '@bitakit/core';
+${access.join('\n')}
+
+/** The app's roles and permissions: trusted, server-safe configuration for authorization adapters. */
+export const accessConfiguration: AccessConfiguration = composeAccessConfiguration({
+  permissions: [${permissions.join(', ')}],
+  roles: ${roles},
+});
+`,
+    );
+  } else await removeGenerated(accessFile);
   const messagesFile = path.join(output, 'bitakit.gen.messages.json');
   if (Object.keys(allMessages).length)
     await writeChanged(messagesFile, JSON.stringify(allMessages, null, 2) + '\n');

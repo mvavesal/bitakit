@@ -1,5 +1,30 @@
 import { isOrganizationWebsite, organizationWebsiteError } from '../website.js';
-import type { OrganizationBackend, OrganizationData, OrganizationInput } from '../contracts.js';
+import { normalizeInvitationDomain } from '../domains.js';
+import type {
+  InvitationPolicy,
+  OrganizationBackend,
+  OrganizationData,
+  OrganizationInput,
+  OrganizationRole,
+  Permissions,
+} from '../contracts.js';
+
+/** The provider's standard roles, used while a backend reports no roles of its own. */
+export const standardOrganizationRoles: readonly OrganizationRole[] = Object.freeze([
+  { id: 'owner', standard: 'owner', custom: false, permissions: {} },
+  { id: 'admin', standard: 'admin', custom: false, permissions: {} },
+  { id: 'member', standard: 'member', custom: false, permissions: {} },
+]);
+/** Whether `held` includes every operation of `needed` (presentation only; the server decides). */
+const covers = (held: Permissions, needed: Permissions) =>
+  Object.entries(needed).every(([resource, actions]) =>
+    actions.every((action) => held[resource]?.includes(action)),
+  );
+const rolesOf = (value: string) =>
+  value
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
 export type OrganizationSnapshot = OrganizationData & {
   pending: boolean;
   error: string | null;
@@ -65,6 +90,27 @@ export function createOrganizationService(backend: OrganizationBackend) {
     if (!state.activeId || !state.canManage) throw new Error('This action is not available.');
     return state.activeId;
   }
+  const availableRoles = () => state.roles ?? standardOrganizationRoles;
+  /** The creator role's ID (`standard: 'owner'`), protected by the provider. */
+  const creatorRole = () =>
+    availableRoles().find((role) => role.standard === 'owner')?.id ?? 'owner';
+  const isCreator = (memberRole: string) => rolesOf(memberRole).includes(creatorRole());
+  /**
+   * Roles the viewer may hand out, for choices in the UI: never the creator role (ownership
+   * transfer is its own flow) and, when the backend reports permissions, only roles the viewer's
+   * effective permissions cover. The provider enforces the same rule on the server.
+   */
+  function assignableRoles(): readonly OrganizationRole[] {
+    const roles = availableRoles().filter((role) => role.standard !== 'owner');
+    if (!state.roles || !state.viewerPermissions) return state.canManage ? roles : [];
+    const held = state.viewerPermissions;
+    return roles.filter((role) => covers(held, role.permissions));
+  }
+  const assignable = (role: string) => {
+    const ids = rolesOf(role);
+    const allowed = assignableRoles().map((item) => item.id);
+    return ids.length > 0 && ids.every((id) => allowed.includes(id));
+  };
   const unsubscribe = backend.subscribe?.(() => {
     generation++;
     update({
@@ -89,7 +135,18 @@ export function createOrganizationService(backend: OrganizationBackend) {
         delete: !!backend.delete,
         suspension: !!backend.setMemberDisabled,
         invitations: !!backend.acceptInvitation && !!backend.rejectInvitation,
+        customRoles: !!backend.customRoles,
+        invitationPolicy: !!backend.invitationPolicy,
       };
+    },
+    /** The organization's roles: the app's base roles and its custom roles. */
+    get roles() {
+      return availableRoles();
+    },
+    assignableRoles,
+    /** The default role of an invitation: the assignable role extending `member`, if any. */
+    get defaultRole() {
+      return assignableRoles().find((role) => role.standard === 'member')?.id;
     },
     getSnapshot: () => state,
     subscribe(listener: () => void) {
@@ -120,9 +177,10 @@ export function createOrganizationService(backend: OrganizationBackend) {
         }),
       );
     },
-    invite(email: string, role: 'member' | 'admin' = 'member', expiresInDays = 30) {
+    invite(email: string, role?: string, expiresInDays = 30) {
       const organizationId = active();
-      if (role !== 'member' && role !== 'admin') throw new Error('Invalid role.');
+      role ??= assignableRoles().find((item) => item.standard === 'member')?.id;
+      if (!role || !assignable(role)) throw new Error('Invalid role.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
         throw new Error('Check the email address.');
       if (!Number.isInteger(expiresInDays) || expiresInDays < 1 || expiresInDays > 365)
@@ -141,7 +199,7 @@ export function createOrganizationService(backend: OrganizationBackend) {
         backend.invite({
           organizationId,
           email: invitation.email,
-          role: invitation.role === 'admin' ? 'admin' : 'member',
+          role: invitation.role,
           resend: true,
         }),
       );
@@ -152,24 +210,16 @@ export function createOrganizationService(backend: OrganizationBackend) {
         throw new Error('Invitation not available.');
       return mutate(() => backend.cancelInvitation({ organizationId, invitationId }));
     },
-    updateRole(memberId: string, role: 'member' | 'admin') {
+    updateRole(memberId: string, role: string) {
       const organizationId = active();
-      if (role !== 'member' && role !== 'admin') throw new Error('Invalid role.');
-      if (
-        !state.members.some(
-          (item) => item.id === memberId && !item.role.split(',').includes('owner'),
-        )
-      )
+      if (!assignable(role)) throw new Error('Invalid role.');
+      if (!state.members.some((item) => item.id === memberId && !isCreator(item.role)))
         throw new Error('Member not available.');
       return mutate(() => backend.updateRole({ organizationId, memberId, role }));
     },
     remove(memberId: string) {
       const organizationId = active();
-      if (
-        !state.members.some(
-          (item) => item.id === memberId && !item.role.split(',').includes('owner'),
-        )
-      )
+      if (!state.members.some((item) => item.id === memberId && !isCreator(item.role)))
         throw new Error('Member not available.');
       return mutate(() => backend.removeMember({ organizationId, memberId }));
     },
@@ -200,10 +250,51 @@ export function createOrganizationService(backend: OrganizationBackend) {
         !backend.setMemberDisabled ||
         !member ||
         memberId === state.viewerMemberId ||
-        member.role.split(',').includes('owner')
+        isCreator(member.role)
       )
         throw new Error('Member not available.');
       return mutate(() => backend.setMemberDisabled!({ organizationId, memberId, disabled }));
+    },
+    /** Creates an organization role; the provider checks the viewer holds what it grants. */
+    createCustomRole(role: string, permissions: Permissions) {
+      const organizationId = active();
+      if (!backend.customRoles) throw new Error('Not supported.');
+      if (!/^[a-z][a-z0-9-]{0,63}$/.test(role) || availableRoles().some((item) => item.id === role))
+        throw new Error('Choose a new role name: lowercase letters, digits and "-".');
+      return mutate(() => backend.customRoles!.create({ organizationId, role, permissions }));
+    },
+    updateCustomRole(role: string, permissions: Permissions) {
+      const organizationId = active();
+      if (!backend.customRoles) throw new Error('Not supported.');
+      if (!availableRoles().some((item) => item.id === role && item.custom))
+        throw new Error('Only custom roles can be changed.');
+      return mutate(() => backend.customRoles!.update({ organizationId, role, permissions }));
+    },
+    deleteCustomRole(role: string) {
+      const organizationId = active();
+      if (!backend.customRoles) throw new Error('Not supported.');
+      if (!availableRoles().some((item) => item.id === role && item.custom))
+        throw new Error('Only custom roles can be deleted.');
+      return mutate(() => backend.customRoles!.delete({ organizationId, role }));
+    },
+    /** The active organization's invitation domain policy (members may read it). */
+    async invitationPolicy(): Promise<InvitationPolicy> {
+      if (!backend.invitationPolicy || !state.activeId) throw new Error('Not supported.');
+      return backend.invitationPolicy.load(state.activeId);
+    },
+    /** Saves the policy; the provider validates it and checks the right to change it. */
+    async saveInvitationPolicy(policy: InvitationPolicy): Promise<InvitationPolicy> {
+      const organizationId = active();
+      if (!backend.invitationPolicy) throw new Error('Not supported.');
+      if (policy.mode === 'allowlist' && !policy.domains.length)
+        throw new Error('An allowlist needs at least one domain.');
+      const invalid = policy.domains.find((entry) => !normalizeInvitationDomain(entry.domain));
+      if (invalid) throw new Error(`"${invalid.domain}" is not a valid domain.`);
+      let saved!: InvitationPolicy;
+      await mutate(async () => {
+        saved = await backend.invitationPolicy!.save({ organizationId, policy });
+      });
+      return saved;
     },
     accept(invitationId: string) {
       if (!backend.acceptInvitation || !invitationId) throw new Error('Invitation not available.');

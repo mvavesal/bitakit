@@ -32,6 +32,25 @@ export default defineService(() => betterAuthOrganizations(authClient), {
   (in memory, no real authentication or email).
 - Without a backend, startup fails with a named error.
 
+## Roles, custom roles and the invitation policy
+
+- The backend reports the organization's roles in `load()`: `roles` (the app's base roles from
+  `defineRoles`, then the organization's custom roles: `id`, `label`, `description`, `standard`,
+  `custom`, `permissions`) and `viewerPermissions`. Without them the provider's standard
+  `owner`, `admin`, `member` apply.
+- The service offers `roles`, `assignableRoles()` and `defaultRole` (the role extending
+  `member`). Assignable roles never include the creator role (`standard: 'owner'`) and, with
+  permission data, only roles the viewer's permissions cover. This is presentation only: the
+  provider enforces the same rule on the server (for Better Auth: the membership guard of
+  `createOrganizationPlugin`). `invite(email, role?)` and `updateRole(memberId, role)` take role IDs.
+- Optional capabilities: `customRoles` (`createCustomRole`, `updateCustomRole`,
+  `deleteCustomRole`; only custom roles change) and `invitationPolicy` (`invitationPolicy()`,
+  `saveInvitationPolicy(policy)`; the provider validates, normalizes and checks the right).
+  `normalizeInvitationDomain(value)` is the one domain check for these policies (browser- and server-safe,
+  WHATWG URL / UTS #46: ASCII lowercase without a trailing dot, at least two labels, no wildcards, addresses,
+  ports or IPs; `null` when invalid). Settings screens use it on input; providers use it on save and match.
+  Check `service.capabilities` before offering them. Each app builds its own screens.
+
 ## Rules
 
 - The backend (the server) owns authorization; an active organization ID in the client is not

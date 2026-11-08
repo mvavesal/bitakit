@@ -16,10 +16,30 @@ rarely call the runtime directly: files in `src/plugins/<id>/` are discovered, a
 | `actions/<name>.ts`      | `defineAction({ title, enabled, execute, ... })`               | `<plugin>.<name>`  |
 | `events.ts`              | `defineEvents({ changed: event<T>() })`                        | `<plugin>.changed` |
 | `settings.ts`            | `defineSettings({ name: setting({ default }) }, page)`         | `<plugin>.<name>`  |
+| `permissions.ts`         | `definePermissions({ content: ['read', 'edit'] })`             | `<resource>`       |
 | `slots/<name>.ts`        | `defineSlot({ accepts, policy?, payload? })`                   | `<plugin>.<name>`  |
 | `interceptors/<name>.ts` | `defineInterceptor({ action or service, before, after })`      | —                  |
 | `configs/<name>.ts`      | `defineConfig({ defaults, schema? })`                          | `<plugin>.<name>`  |
 | `setup.ts`               | `Setup` function (`scope.slots.attach`, cleanup)               | —                  |
+
+The app declares its base roles once in `src/roles.ts` with `defineRoles({ ... }, { customRoles })`.
+
+## Roles and permissions
+
+- Core holds only the vocabulary: `definePermissions`, `defineRoles`, the composed catalog and
+  its checks. It stores nothing and authorizes nothing; the authorization provider (for example
+  the Better Auth adapter) translates the declarations and decides every check on the server.
+- A plugin declares the resources and operations it owns, never roles. One resource has one
+  owning plugin.
+- Only the app declares base roles (`src/roles.ts`): `standard` extends the provider's built-in
+  `owner`, `admin` or `member`; `label` and `description` are defaults that translations
+  override; `grants` lists operations from the catalog (typed by `bitakit generate`). Declaration
+  order is display order, never a permission hierarchy.
+- `bitakit generate` writes `bitakit.gen.access.ts` with the composed `accessConfiguration`
+  (server-safe data) for authorization adapters.
+- Conflicts fail before the app runs, at generation and again at startup: a resource claimed
+  twice, a grant of an unknown resource or operation, a standard role extended twice, roles in a
+  plugin. Nothing is resolved by registration order or merging.
 
 ## Slots and replaceable parts
 

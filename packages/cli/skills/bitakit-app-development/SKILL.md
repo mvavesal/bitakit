@@ -52,6 +52,7 @@ commands, file locations, examples and the rules that matter; do not load every 
 | Another layout or frame, their own 404, error or sign-in page, a replaceable part  | [references/layouts-and-screens.md](references/layouts-and-screens.md)           |
 | A rule around Actions: block, check or observe them                                | [references/interceptors.md](references/interceptors.md)                         |
 | A user preference                                                                  | [references/settings.md](references/settings.md)                                 |
+| Roles, permissions, or who may do what                                             | [references/roles-and-permissions.md](references/roles-and-permissions.md)       |
 | Data that survives a reload or comes from a server or database                     | [references/data-and-api.md](references/data-and-api.md)                         |
 | The app's colors, fonts or a theme file                                            | The Theme files section of `node_modules/@bitakit/shell/README.md`               |
 | Tests, the browser preview, or what to report                                      | [references/testing-and-preview.md](references/testing-and-preview.md)           |
@@ -125,6 +126,8 @@ Decide before writing code, and tell the user the plan in a sentence or two.
 | Data or logic that pages, Actions and other features use | Service with a `store()`          | `services/<name>.ts`                                     |
 | Something the user triggers: button, link, menu entry    | Action bound with `<Action>`      | `actions/<name>.ts`                                      |
 | A choice the user keeps after a reload                   | Setting                           | `settings.ts`                                            |
+| Operations that roles may be allowed to perform          | Permissions                       | `permissions.ts`                                         |
+| The app's roles and what each may do                     | Base roles (app only)             | `src/roles.ts`                                           |
 | To tell other features that something happened           | Event                             | `events.ts`                                              |
 | A place where other features can add buttons or UI       | Slot and its outlet               | `slots/<name>.ts`                                        |
 | Your UI in another feature's place or in the Shell       | Slot contribution or Action slots | `ui/slots/<slot>.tsx`                                    |
