@@ -1,7 +1,11 @@
 {
   "language": {
-    "title": "Language",
-    "label": "Interface language",
-    "description": "Choose your interface language."
+    "settings": {
+      "title": "Language",
+      "description": "Choose your interface language.",
+      "locale": {
+        "label": "Interface language"
+      }
+    }
   }
 }

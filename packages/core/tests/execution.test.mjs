@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ActionStatus, createRuntime, defineAction, definePlugin } from '../dist/core.js';
+import {
+  ActionStatus,
+  createRuntime,
+  createTranslationPlugin,
+  defineAction,
+  definePlugin,
+} from '../dist/core.js';
 
 const deferred = () => {
   let resolve, reject;
@@ -140,6 +146,44 @@ test('exclusive skips while running; per-input tracks each input; latest aborts 
   }
 });
 
+test('a latest run that rejects because a newer run aborted it is cancelled, not failed', async () => {
+  const failed = [];
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'demo',
+        actions: {
+          search: defineAction({
+            concurrency: 'latest',
+            // Like fetch(url, { signal }): rejects as soon as the signal aborts.
+            execute: ({ input, signal }) =>
+              new Promise((resolve, reject) => {
+                signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+                setTimeout(() => resolve(input), 10);
+              }),
+          }),
+        },
+      }),
+    ],
+  });
+  const { actions } = runtime;
+  const stop = runtime.mount();
+  const off = actions.subscribeExecution((event) => {
+    if (event.phase === 'failed') failed.push(event.error);
+  });
+  try {
+    const stale = actions.execute('demo.search', 'a');
+    const fresh = actions.execute('demo.search', 'ap');
+    assert.deepEqual(await stale, { status: 'skipped', reason: 'cancelled' });
+    assert.deepEqual(await fresh, { status: 'completed', value: 'ap' });
+    assert.deepEqual(failed, [], 'the aborted run reports no failure');
+    assert.equal(actions.get('demo.search').status, ActionStatus.Succeeded);
+  } finally {
+    off();
+    stop();
+  }
+});
+
 test('the execution signal aborts when the registration is disposed; late results do not touch state', async () => {
   let signal;
   const gate = deferred();
@@ -241,6 +285,55 @@ test('confirm asks the host before running; declining skips with reason cancelle
     }
     assert.equal(warnings.length, 1);
     assert.match(warnings[0], /no confirmation handler/);
+  } finally {
+    stop();
+  }
+});
+
+test('confirm texts translate like titles: a catalog key, then <id>.confirm.title, then the literal', async () => {
+  const catalog = {
+    'todos.clear.confirm.title': 'Alles löschen?',
+    'todos.ask': 'Wirklich entfernen?',
+    'todos.removeHint': 'Das kann nicht rückgängig gemacht werden.',
+  };
+  const translator = (key) => catalog[key] ?? key;
+  translator.has = (key) => key in catalog;
+  const asked = [];
+  const runtime = createRuntime({
+    plugins: [
+      createTranslationPlugin(translator),
+      definePlugin({
+        id: 'todos',
+        actions: {
+          clear: defineAction({ confirm: 'Clear everything?', execute: () => 'cleared' }),
+          remove: defineAction({
+            confirm: { title: 'todos.ask', description: 'todos.removeHint', destructive: true },
+            execute: () => 'removed',
+          }),
+          archive: defineAction({ confirm: 'Archive it?', execute: () => 'archived' }),
+        },
+      }),
+    ],
+  });
+  runtime.setConfirm(async (request) => {
+    asked.push(request);
+    return true;
+  });
+  const stop = runtime.mount();
+  try {
+    await runtime.ready;
+    await runtime.actions.execute('todos.clear');
+    await runtime.actions.execute('todos.remove');
+    await runtime.actions.execute('todos.archive');
+    assert.deepEqual(asked, [
+      { title: 'Alles löschen?', description: '' },
+      {
+        title: 'Wirklich entfernen?',
+        description: 'Das kann nicht rückgängig gemacht werden.',
+        destructive: true,
+      },
+      { title: 'Archive it?', description: '' },
+    ]);
   } finally {
     stop();
   }

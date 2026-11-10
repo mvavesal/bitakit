@@ -100,6 +100,9 @@ export function createExecutor(
       lifecycle.emit({ id, context, phase: 'completed', result });
       return result;
     } catch (error) {
+      // A run whose signal was aborted (a newer `latest` run took over, or its registration went
+      // away) usually rejects with that abort. It was stopped on purpose: not a failure to report.
+      if (controller.signal.aborted) return skip('cancelled');
       status = ActionStatus.Failed;
       failure = error;
       lifecycle.emit({ id, context, phase: 'failed', error });

@@ -16,7 +16,11 @@ export type Translate = ((
   has(key: string): boolean;
   getCatalog(namespace?: string): TranslationCatalog | undefined;
 };
-const serverRevision = () => 0;
+// The server never starts the runtime, so it renders every text's fallback. Hydration uses
+// this snapshot too, even when the runtime translated before a lazily hydrated route: both
+// renders match, and the translation follows right after hydration.
+const hydrating = -1;
+const serverRevision = () => hydrating;
 const notReady = () => false;
 const idle = () => () => {};
 
@@ -35,12 +39,12 @@ export function useTranslation(): Translate {
   );
   return useMemo(() => {
     const translate: Translate = (key, values, fallback = key) =>
-      runtime?.text(key, fallback, values) ?? fallback;
+      revision === hydrating ? fallback : (runtime?.text(key, fallback, values) ?? fallback);
     translate.getCatalog = (namespace) =>
       ready && runtime?.hasService('i18n')
         ? getService(runtime.services, translationService).getCatalog?.(namespace)
         : undefined;
-    translate.has = (key) => runtime?.translator().has?.(key) ?? false;
+    translate.has = (key) => revision !== hydrating && (runtime?.translator().has?.(key) ?? false);
     return translate;
   }, [runtime, revision, ready]);
 }
