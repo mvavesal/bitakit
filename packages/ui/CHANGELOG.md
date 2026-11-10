@@ -1,5 +1,16 @@
 # @bitakit/ui
 
+## 0.3.1
+
+### Patch Changes
+
+- 28e697b: `useTranslation()` renders every text's fallback during hydration, as the server does, and
+  translates right after. A route that hydrates after the runtime already translated (a Settings
+  page loaded in German, for example) no longer reports a hydration mismatch.
+- Updated dependencies [95f6c6e]
+- Updated dependencies [a29bb47]
+  - @bitakit/core@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

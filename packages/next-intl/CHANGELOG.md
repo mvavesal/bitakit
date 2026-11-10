@@ -1,5 +1,15 @@
 # @bitakit/next-intl
 
+## 0.3.1
+
+### Patch Changes
+
+- a2ac1c5: The language page translates: the package catalogs now use the keys Settings reads
+  (`language.settings.title`, `.description` and `.locale.label`).
+- Updated dependencies [95f6c6e]
+- Updated dependencies [a29bb47]
+  - @bitakit/core@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

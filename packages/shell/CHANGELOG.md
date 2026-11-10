@@ -1,5 +1,16 @@
 # @bitakit/shell
 
+## 0.3.1
+
+### Patch Changes
+
+- b4bf632: The navbar layout's app bar stays on one row: from 768 px the links follow the brand, never wrap and scroll sideways when they do not fit; below 768 px a menu button opens the same links in the Shell drawer.
+- Updated dependencies [95f6c6e]
+- Updated dependencies [a29bb47]
+- Updated dependencies [28e697b]
+  - @bitakit/core@0.3.1
+  - @bitakit/ui@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
