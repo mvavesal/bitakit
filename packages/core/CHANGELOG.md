@@ -1,5 +1,16 @@
 # @bitakit/core
 
+## 0.3.1
+
+### Patch Changes
+
+- 95f6c6e: An Action's `confirm` title and description translate like its title: the text as a catalog
+  key, then `<id>.confirm.title` and `<id>.confirm.description`, then the literal.
+- a29bb47: A `latest` Action run that rejects because a newer run aborted its signal now ends as skipped
+  (`cancelled`) instead of failing, so typing into a search no longer shows "signal is aborted"
+  messages or leaves unhandled rejections. The same applies to runs aborted when their
+  registration is removed.
+
 ## 0.3.0
 
 ### Minor Changes
