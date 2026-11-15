@@ -921,3 +921,84 @@ test('local tarballs replace every @bitakit dependency, including dev tools', as
     /Missing npm tarball for @bitakit\/shell/,
   );
 });
+
+/** A template folder: `bitakit.template.json` with `manifest`, plus `files` (path → content). */
+async function templateFolder(root, manifest, files = {}) {
+  const directory = path.join(root, 'template');
+  await mkdir(directory, { recursive: true });
+  await writeFile(path.join(directory, 'bitakit.template.json'), JSON.stringify(manifest));
+  for (const [file, content] of Object.entries(files)) {
+    await mkdir(path.dirname(path.join(directory, file)), { recursive: true });
+    await writeFile(path.join(directory, file), content);
+  }
+  return directory;
+}
+
+test('a template adds its files, packages and environment names and wins over starter files', async (t) => {
+  const root = await workspace(t);
+  const template = await templateFolder(
+    root,
+    {
+      name: 'Notes starter',
+      frameworks: ['next'],
+      features: ['shell'],
+      dependencies: { 'notes-client': '^1.0.0', next: '0.0.1' },
+      env: { NOTES_URL: 'https://notes.example' },
+      next: ['Fill in NOTES_URL in .env.local.'],
+    },
+    {
+      'src/plugins/notes/plugin.config.ts': "export default { id: 'notes' };\n",
+      'src/app/(app)/page.tsx': 'export default function Home() { return null; }\n',
+    },
+  );
+  const plan = await planProject(path.join(root, 'app'), { template, install: false });
+  assert.equal(plan.template.name, 'Notes starter');
+  assert.deepEqual(plan.template.next, ['Fill in NOTES_URL in .env.local.']);
+  await createProject(plan, { run: scaffoldNext });
+
+  assert.match(await read(plan.target, 'src/plugins/notes/plugin.config.ts'), /id: 'notes'/);
+  assert.equal(
+    await read(plan.target, 'src/app/(app)/page.tsx'),
+    'export default function Home() { return null; }\n',
+    'the template replaces the generated home page',
+  );
+  await missing(plan.target, 'bitakit.template.json');
+  const manifest = JSON.parse(await read(plan.target, 'package.json'));
+  assert.equal(manifest.dependencies['notes-client'], '^1.0.0');
+  assert.equal(
+    manifest.dependencies.next,
+    '16.4.2',
+    'a package the app already has keeps its version',
+  );
+  assert.equal(await read(plan.target, '.env.example'), 'NOTES_URL=https://notes.example\n');
+  // The generator's own agent files are still there.
+  await exists(plan.target, 'AGENTS.md');
+});
+
+test('a template that does not fit stops before anything is written', async (t) => {
+  const root = await workspace(t);
+  const target = path.join(root, 'app');
+  await assert.rejects(
+    planProject(target, { template: path.join(root, 'nowhere') }),
+    /needs a bitakit\.template\.json/,
+  );
+  const needsShell = await templateFolder(root, { name: 'Framed', features: ['shell'] });
+  await assert.rejects(
+    planProject(target, { template: needsShell, features: [] }),
+    /needs the feature shell/,
+  );
+  await assert.rejects(
+    planProject(target, { template: needsShell, type: 'plugin' }),
+    /cannot be combined with --plugin/,
+  );
+  const tanstackOnly = await templateFolder(root, { name: 'Other', frameworks: ['tanstack'] });
+  await assert.rejects(
+    planProject(target, { template: tanstackOnly }),
+    /made for tanstack, not next/,
+  );
+  const unknownKey = await templateFolder(root, { name: 'Typo', dependecies: {} });
+  await assert.rejects(planProject(target, { template: unknownKey }), /unknown key dependecies/);
+  const ownsManifest = await templateFolder(root, { name: 'Greedy' }, { 'package.json': '{}' });
+  await assert.rejects(planProject(target, { template: ownsManifest }), /contains package\.json/);
+  await assert.rejects(access(target), 'nothing was created');
+});

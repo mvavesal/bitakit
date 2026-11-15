@@ -26,6 +26,10 @@ const program = new Command()
     '--features <names>',
     `comma-separated ${Object.keys(features).join(', ')}, or none (default: ${defaultFeatures.join(',')})`,
   )
+  .option(
+    '--template <directory>',
+    'start from a template: a folder with bitakit.template.json and the files it adds',
+  )
   .option('--sample', 'add the Todo sample (two plugins that work together)')
   .option('--no-sample', 'do not add the Todo sample')
   .option('-y, --yes', 'use defaults without prompts')
@@ -45,6 +49,7 @@ Examples:
   npx @bitakit/create-app my-app
   npx @bitakit/create-app . --yes
   npx @bitakit/create-app my-app --framework tanstack --sample --yes
+  npx @bitakit/create-app my-app --template ./my-template --yes
   npx @bitakit/create-app my-plugin --plugin`,
   )
   .action(async (directory, options) => {
@@ -123,6 +128,8 @@ Examples:
           )
         : defaultFeatures;
     let sample = options.sample;
+    // A template is its own starting point: the sample is added only when asked for explicitly.
+    if (options.template && sample === undefined) sample = false;
     if (type === 'app' && sample === undefined)
       sample = interactive
         ? await answer(
@@ -143,6 +150,9 @@ Examples:
         ? [
             `Features:  ${plan.features.join(', ') || 'none'}`,
             `Sample:    ${plan.sample ? 'Todo (todos + activity plugins)' : 'no'}`,
+            ...(plan.template
+              ? [`Template:  ${plan.template.name} (${plan.template.files.length} files)`]
+              : []),
           ]
         : []),
       `Install:   ${plan.install ? `yes, with ${plan.packageManager}` : 'no'}`,
@@ -191,6 +201,8 @@ Examples:
             'npx bitakit add plugin notes   add a feature',
             'npx bitakit doctor             check the project',
           ]),
+      // What the template itself says comes next (for example the environment values to fill in).
+      ...(plan.template?.next.length ? ['', ...plan.template.next] : []),
       // A running agent session lists only the rules and skills that existed when it started.
       ...(plan.existing
         ? [

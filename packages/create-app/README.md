@@ -56,6 +56,7 @@ the minimal app above needs no additional options.
 | `--framework next\|tanstack` | The framework. Default: `next`. TanStack Start is experimental.                                                               |
 | `--features <list>`          | Comma-separated `preferences`, `shell`, `quick-search`, or `none`. Default: `shell,quick-search`.                             |
 | `--sample` / `--no-sample`   | Add the Todo sample: `src/plugins/todos` and `src/plugins/activity`, which extends it. Asked interactively; off with `--yes`. |
+| `--template <directory>`     | Start from a template: a folder with `bitakit.template.json` and the files it adds. See [Templates](#templates).              |
 | `--plugin`                   | Create a standalone plugin package with a playground app instead of an app.                                                   |
 | `-y, --yes`                  | Use the defaults without prompts.                                                                                             |
 | `--no-install`               | Write the files without installing dependencies.                                                                              |
@@ -83,6 +84,47 @@ The project is generated in a temporary folder (next to it, or inside it when th
 - `README.md`, `AGENTS.md` and a `CLAUDE.md` that imports it, plus the `bitakit-app-development` skill in `.agents/skills/` for Codex and `.claude/skills/` for Claude Code. The generated `AGENTS.md` points assistants to the skill for version-aware project inspection, layout/slot selection and focused verification. The `bitakit` command (`@bitakit/cli`, with `@bitakit/discovery` for `bitakit.config.ts`) is a dev dependency. In an existing app, `npx @bitakit/cli init` writes the same guidance and skill. See the [skill README](../cli/skills/bitakit-app-development/README.md) for how to use it.
 
 The generator does not create a backend, authentication, a database or email; those are separate integrations.
+
+## Templates
+
+A template is a starting point for a new app: plugin folders and other files, the packages they
+need and the environment values they read.
+
+```sh
+npx @bitakit/create-app my-app --template ./my-template --yes
+```
+
+A template is a folder with a `bitakit.template.json`; every other file in it is copied into the
+new app at the same path:
+
+```json
+{
+  "name": "Notes starter",
+  "description": "A notes feature with sign-in.",
+  "frameworks": ["next"],
+  "features": ["shell"],
+  "dependencies": { "notes-client": "^1.0.0" },
+  "env": { "NOTES_URL": "https://notes.example" },
+  "next": ["Fill in NOTES_URL in .env.local."]
+}
+```
+
+| Key                               | Meaning                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------- |
+| `name`                            | Required. Shown in the plan.                                                                |
+| `description`                     | What the template is for.                                                                   |
+| `frameworks`                      | The frameworks it is made for; another `--framework` stops before anything is written.      |
+| `features`                        | The features it needs, for example `shell`; a missing one stops before anything is written. |
+| `dependencies`, `devDependencies` | Packages added to `package.json`. A package the app already has keeps its version.          |
+| `env`                             | Names and example values written to `.env.example`.                                         |
+| `next`                            | Lines printed after "Next steps".                                                           |
+
+- A template's file wins over the generator's starter file at the same path, for example the home
+  page. Your own files in an existing folder still win over both.
+- A template cannot contain `package.json`, `AGENTS.md` or `CLAUDE.md`: packages go through
+  `dependencies`, rules into a plugin's own `AGENTS.md`.
+- Unknown keys fail with their name. `--template` cannot be combined with `--plugin`, and the Todo
+  sample is added only with `--sample`.
 
 ## Plugin packages
 

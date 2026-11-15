@@ -15,6 +15,9 @@ npx @bitakit/create-app@latest <directory> --framework next --features <list|non
 
 - `--features`: comma-separated `preferences` (Settings), `shell` (frame) and `quick-search`, or
   `none`; without it the app gets `shell,quick-search`. Add `--sample` for the Todo sample.
+  `--template <directory>` starts from a template: a folder with `bitakit.template.json` (name,
+  frameworks, features, dependencies, env, next) whose other files are copied into the app and win
+  over the starter files; see the README's Templates section.
 - `--yes` skips prompts. Use `.` as the directory when the folder holds only `.git` and agent
   files; existing agent files are kept and merged.
 - `--plugin` creates a plugin package with a playground app; it always installs with npm.
