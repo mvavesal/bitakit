@@ -18,6 +18,7 @@ checks a project. It also ships the `bitakit-app-development` skill, which `crea
 | `npx bitakit add test <plugin>`                            | A headless test, plus the setup commands it still needs                                               |
 | `npx bitakit info --json`                                  | Plugins, services, Actions, events, settings, pages                                                   |
 | `npx bitakit slots [--json]`                               | Every slot, its owner, contributions and, for replaceable parts, what renders                         |
+| `npx bitakit shell [use <name>\|reset] [--part <id>]`      | The app's frame (`layout.app`): candidates, what renders; `use` and `reset` write `choose`            |
 | `npx bitakit doctor [--json]`                              | Wiring, versions, routes, links, slots, replaceable parts, agent files                                |
 | `npx bitakit check-page /<path> --json`                    | Opens the page headlessly and reports headings and errors (Playwright)                                |
 | `npx bitakit init --update-agent-files`                    | Refreshes AGENTS.md's BitaKit block and unedited skill copies                                         |

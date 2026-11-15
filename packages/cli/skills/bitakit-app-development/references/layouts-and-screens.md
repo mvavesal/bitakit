@@ -105,6 +105,32 @@ widget of another plugin keeps working as long as the frame renders its slot (`T
 `shell.header.end` and `shell.toolbar`); check the pages that use header slots after replacing
 the frame.
 
+## Offer a frame as a shell, and switch shells
+
+A shell is a plugin whose only job is the frame. Put the frame into the plugin instead of the app:
+`src/plugins/<shell>/ui/layouts/app.tsx` is the candidate `<shell>:default`, and
+`ui/layouts/app/<variant>.tsx` is `<shell>:<variant>`. A shell may offer the sign-in frame too
+(`ui/layouts/auth.tsx`). A plugin package ships the same folders, so a shell can be installed.
+
+- Render the common places, so every feature works in every shell: the navigation
+  (`shell.navigation`), the toolbar (`shell.toolbar`), the header regions (`shell.header.start`,
+  `.center`, `.end`), the brand (`shell.brand`) and the regions around the page
+  (`shell.content.before`, `.after`, `shell.footer`). Shell's parts render them for you.
+- Features never name a shell: they put Actions and components into those places.
+
+Look at the frames an app has and pick one:
+
+```sh
+npx bitakit shell                  # what renders, the candidates, the choice
+npx bitakit shell use <name>       # "plugin:variant", a plugin or a variant
+npx bitakit shell reset            # back to the default
+npx bitakit shell --part layout.auth   # the same for another replaceable part
+```
+
+`shell use` writes `choose: { 'layout.app': '<name>' }` into `bitakit.config.ts` and generates the
+wiring again. Without a choice the app's own `src/layouts/app.tsx` wins; with several plugin
+candidates and no choice the default renders and Doctor asks for one.
+
 ## Replace a screen
 
 ```tsx
