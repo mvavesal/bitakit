@@ -10,6 +10,7 @@ import { createPluginPackage } from './plugin-package.mjs';
 import { writeProjectFiles } from './project-files.mjs';
 import { createInExistingFolder, existingFolder, failUnchanged } from './existing-folder.mjs';
 import { detectPackageManager, packageManagers } from './package-manager.mjs';
+import { applyTemplate, readTemplate, templateMismatch } from './template.mjs';
 
 export const adapters = { next, tanstack };
 
@@ -51,6 +52,16 @@ export async function planProject(directory, options = {}) {
   // A plugin package is an npm workspace (package and playground) with npm overrides.
   if (type === 'plugin' && options.packageManager && packageManager !== 'npm')
     throw new Error('A plugin package uses npm workspaces; create it with npm.');
+  // A template is read and checked here, so a template that does not fit stops before anything is written.
+  if (options.template && type === 'plugin')
+    throw new Error('A template starts an app; it cannot be combined with --plugin.');
+  const template = options.template
+    ? await readTemplate(
+        typeof options.template === 'string' ? options.template : options.template.directory,
+      )
+    : undefined;
+  const mismatch = template && templateMismatch(template, { framework, features });
+  if (mismatch) throw new Error(mismatch);
   return {
     type,
     target,
@@ -59,6 +70,7 @@ export async function planProject(directory, options = {}) {
     features,
     packageManager: type === 'plugin' ? 'npm' : packageManager,
     sample: type === 'app' && !!options.sample,
+    template,
     install: options.install !== false,
     existing,
   };
@@ -109,6 +121,8 @@ export async function createApp(plan, { run, packagesDir, install = plan.install
         navigationSlot: plan.features.includes('shell') ? 'shell.navigation' : undefined,
       }),
     );
+  // The template comes last, so its files win over the generator's starter files and the sample.
+  if (plan.template) await applyTemplate(plan.target, plan.template);
   if (packagesDir) await useLocalPackages(plan.target, packagesDir);
   if (install) await run(plan.packageManager, ['install'], plan.target);
   return plan.target;
