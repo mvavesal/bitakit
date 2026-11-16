@@ -50,6 +50,10 @@ import { createSettingsAccess, type SettingsAccess } from './settings/access.js'
 import { createLocalSettingsStorage, type SettingsStorage } from './settings/storage.js';
 import { isSettingsDefinition, type SettingSpec } from './settings/define.js';
 import { translationService, type AuthService } from './contracts.js';
+import { serverSettingHandle } from './settings/server.js';
+import { createRemote, type Remote } from './remote.js';
+import { isOperationError } from './operation-error.js';
+import { serverStartHooks, type RuntimeMode, type RuntimeOptions } from './runtime-mode.js';
 import { getService } from './service-key.js';
 import { createServices, type Observable } from './services.js';
 import { createBitaKitApp } from './app/access.js';
@@ -420,7 +424,7 @@ export class BitaKitRuntime implements ContributionHost {
       }
     }
     // Presentation may read app.ready.
-    if (this.container) {
+    if (this.container && this.mode === 'client') {
       try {
         this.actions.refresh();
       } catch (error) {
@@ -448,12 +452,23 @@ export class BitaKitRuntime implements ContributionHost {
   private notifier?: (message: string, kind: 'success' | 'failure') => unknown;
   private confirmHandler?: (request: Confirmation) => Promise<boolean> | boolean;
   private confirmWarned = false;
+  /** `client` by default; `server` under `createServer` (see `RuntimeMode`). */
+  readonly mode: RuntimeMode;
+  /** The exposed server operations, as client Actions and services receive them. */
+  readonly remote: Remote;
 
   constructor(
     readonly actions: ActionList,
     config: BitaKitRuntimeConfig,
     private providedServices: Readonly<Record<string, unknown>> = {},
+    options: RuntimeOptions = {},
   ) {
+    this.mode = options.mode === 'server' ? 'server' : 'client';
+    this.remote =
+      options.remote ??
+      createRemote(this.mode === 'server' ? undefined : config.remote, () =>
+        this.organizationHeader(),
+      );
     this.currentConfig = config;
     this.appId = config.appId ?? 'app';
     const { plugins = [], appId: _appId, ...appModule } = config;
@@ -493,7 +508,12 @@ export class BitaKitRuntime implements ContributionHost {
     this.names = new ServiceNames(this.serviceEntries(), this.appId);
     try {
       this.settings = new SettingsStore(this.settingEntries(), () => this.storage());
-      this.settingsAccess = createSettingsAccess(this.settings);
+      this.settingsAccess =
+        this.mode === 'server'
+          ? createSettingsAccess(this.settings, (_store, key, spec) =>
+              serverSettingHandle(key, spec, () => this.storageProvider()),
+            )
+          : createSettingsAccess(this.settings);
     } catch (error) {
       throw attributed(error, this.appId, 'Settings', this.appId);
     }
@@ -547,10 +567,25 @@ export class BitaKitRuntime implements ContributionHost {
   }
   /** The `settings.storage` contract when a service provides it, otherwise browser storage. */
   private storage(): SettingsStorage {
-    const name = 'settings.storage';
-    if (this.hasService(name))
-      return this.container!.services[this.names.key(name)] as SettingsStorage;
+    const provider = this.storageProvider();
+    if (provider) return provider;
+    // A server never keeps setting values in process memory.
+    if (this.mode === 'server')
+      throw new Error('No service provides settings.storage; settings cannot load on the server.');
     return (this.defaultStorage ??= createLocalSettingsStorage());
+  }
+  private storageProvider(): SettingsStorage | undefined {
+    const name = 'settings.storage';
+    return this.hasService(name)
+      ? (this.container!.services[this.names.key(name)] as SettingsStorage)
+      : undefined;
+  }
+  /** The organization header `remote` sends: only while the `auth` contract has a user. */
+  private organizationHeader(): string | undefined {
+    if (!this.container || !this.hasService('auth')) return undefined;
+    const auth = this.container.services[this.names.key('auth')] as Partial<AuthService>;
+    const snapshot = typeof auth?.getSnapshot === 'function' ? auth.getSnapshot() : undefined;
+    return snapshot?.user ? (snapshot.organizationId ?? '') : undefined;
   }
   /**
    * Loads settings for the identity the `auth` contract reports. Runs after setup and whenever
@@ -558,7 +593,7 @@ export class BitaKitRuntime implements ContributionHost {
    * anonymous device identity applies. Never blocks readiness.
    */
   private syncIdentity() {
-    if (!this.container) return;
+    if (!this.container || this.mode === 'server') return;
     const auth = this.hasService('auth')
       ? (this.container.services[this.names.key('auth')] as Partial<AuthService>)
       : undefined;
@@ -939,61 +974,65 @@ export class BitaKitRuntime implements ContributionHost {
       (definition) => definition.id!,
       this.settingsAccess,
       (id, phase, error) => this.servicePhase(id, phase, error),
+      this.mode === 'client' ? { remote: this.remote } : {},
     );
     // Contexts exist only after the container does; readiness is the public facade's concern.
     this.view = this.names.tree(this.container.services);
     const moduleEvents = new Map<string, Events>();
+    const server = this.mode === 'server';
     try {
       this.container.initialize();
-      this.extensionCleanups.push(
-        this.actions.subscribeExecution((event) => {
-          if (
-            event.phase === 'started' &&
-            (this.registrations.some((entry) => entry.definition.id === event.id) ||
-              this.scopes.some((scope) => scope.ownsAction(event.id)))
-          ) {
-            const pending = deferred();
-            this.activeRuns.set(event.context, {
-              ...pending,
-              plugin:
-                this.actionConfigs.get(event.id)?.module ??
-                (this.scopes.find((scope) => scope.ownsAction(event.id))
-                  ? scopeModule(this.scopes.find((scope) => scope.ownsAction(event.id))!).id
-                  : undefined),
-            });
-          } else if (event.phase !== 'started') {
-            this.activeRuns.get(event.context)?.resolve();
-            this.activeRuns.delete(event.context);
-          }
-        }),
-        this.actions.use({
-          before: ({ id }) => {
-            const phase = this.lifecycle.get().phase;
-            const scope = this.scopes.find((entry) => entry.ownsAction(id));
-            const owner = this.actionConfigs.get(id)?.module ?? (scope && scopeModule(scope).id);
+      if (!server)
+        this.extensionCleanups.push(
+          this.actions.subscribeExecution((event) => {
             if (
-              owner &&
-              (this.stopCompletion ||
-                phase === 'stopping' ||
-                phase === 'stopped' ||
-                (phase === 'failed' && !this.isReady()) ||
-                (this.isReady() && !this.isReady(owner)))
-            )
-              return false;
-          },
-        }),
-        this.actions.subscribeExecution((event) => {
-          if (event.phase === 'failed' && event.context.get() && isActionFailure(event.error))
-            this.notify(event.error.feedback, 'failure');
-        }),
-      );
+              event.phase === 'started' &&
+              (this.registrations.some((entry) => entry.definition.id === event.id) ||
+                this.scopes.some((scope) => scope.ownsAction(event.id)))
+            ) {
+              const pending = deferred();
+              this.activeRuns.set(event.context, {
+                ...pending,
+                plugin:
+                  this.actionConfigs.get(event.id)?.module ??
+                  (this.scopes.find((scope) => scope.ownsAction(event.id))
+                    ? scopeModule(this.scopes.find((scope) => scope.ownsAction(event.id))!).id
+                    : undefined),
+              });
+            } else if (event.phase !== 'started') {
+              this.activeRuns.get(event.context)?.resolve();
+              this.activeRuns.delete(event.context);
+            }
+          }),
+          this.actions.use({
+            before: ({ id }) => {
+              const phase = this.lifecycle.get().phase;
+              const scope = this.scopes.find((entry) => entry.ownsAction(id));
+              const owner = this.actionConfigs.get(id)?.module ?? (scope && scopeModule(scope).id);
+              if (
+                owner &&
+                (this.stopCompletion ||
+                  phase === 'stopping' ||
+                  phase === 'stopped' ||
+                  (phase === 'failed' && !this.isReady()) ||
+                  (this.isReady() && !this.isReady(owner)))
+              )
+                return false;
+            },
+          }),
+          this.actions.subscribeExecution((event) => {
+            if (event.phase === 'failed' && event.context.get() && isActionFailure(event.error))
+              this.notify(event.error.feedback, 'failure');
+          }),
+        );
       for (const plugin of plugins) {
         const scope = createEventScope(this.events, plugin.id);
         this.pluginEvents.set(plugin.id, scope);
         moduleEvents.set(plugin.id, scope.events);
       }
       this.connectTranslation();
-      this.installInterceptors(plugins);
+      // On the server, action interceptors are compiled with the operations.
+      if (!server) this.installInterceptors(plugins);
       const composed = Object.freeze(
         plugins
           .filter((plugin) => plugin.id !== this.appId)
@@ -1031,13 +1070,16 @@ export class BitaKitRuntime implements ContributionHost {
         scope.onClose(this.pluginEvents.get(plugin.id)!.dispose);
       }
       this.installContributions(plugins);
-      plugins.forEach((plugin, index) => {
-        for (const contribution of plugin.actions)
-          this.install(this.scopes[index], contribution, plugin.id, moduleEvents.get(plugin.id)!);
-      });
+      if (server) this.startServer(plugins);
+      else
+        plugins.forEach((plugin, index) => {
+          for (const contribution of plugin.actions)
+            this.install(this.scopes[index], contribution, plugin.id, moduleEvents.get(plugin.id)!);
+        });
       // Declared targets and programmatic contributions share the same owned attachment path.
       // Undeclared UI slots retain their existing rendering until the placement migration.
       plugins.forEach((plugin, index) => {
+        if (server) return;
         for (const [viewIndex, view] of plugin.views.entries()) {
           if (!this.slots.has(view.slot)) continue;
           const contribution = {
@@ -1058,7 +1100,7 @@ export class BitaKitRuntime implements ContributionHost {
           }
         }
       });
-      this.observe(new Set([...this.container.observed, this.settings]));
+      if (!server) this.observe(new Set([...this.container.observed, this.settings]));
       plugins.forEach((plugin, index) => {
         const scope = this.scopes[index];
         try {
@@ -1128,7 +1170,8 @@ export class BitaKitRuntime implements ContributionHost {
           );
         installers.set(kind, { module: plugin.id, install });
       }
-    for (const plugin of plugins)
+    // Server kinds have no installers yet; their values stay readable through contributionsOf.
+    for (const plugin of this.mode === 'server' ? [] : plugins)
       for (const [kind, values] of Object.entries(plugin.contributions ?? {}))
         if (values?.length && !installers.has(kind))
           throw new BitaKitStartupError(
@@ -1154,6 +1197,17 @@ export class BitaKitRuntime implements ContributionHost {
           throw this.attribute(error, plugin.id, `Contribution "${kind}"`);
         }
       });
+  }
+  /** Server mode: hands the started composition to the kernel's compiler instead of the ActionList. */
+  private startServer(plugins: readonly NormalizedPlugin[]) {
+    serverStartHooks.get(this)?.({
+      modules: plugins,
+      appId: this.appId,
+      config: (module, path) => this.configuration.context(module, path),
+      events: (module) => this.pluginEvents.get(module)!,
+      require: (module, ids, requester) => void this.requireServices(module, ids, requester),
+      attribute: (error, module, what, source) => this.attribute(error, module, what, source),
+    });
   }
   private connectTranslation() {
     const i18n = this.hasService('i18n')
@@ -1255,6 +1309,7 @@ export class BitaKitRuntime implements ContributionHost {
    * runtime shutdown also releases it. Host Actions must not await this runtime's stop.
    */
   bindHostAction<Input, Output>(id: string, definition: ActionSpec<Input, Output>): () => void {
+    if (this.mode === 'server') throw new Error('Host Actions are not supported in server mode.');
     if (!this.isReady() || this.updating || this.stopCompletion)
       throw new Error('Host Actions can only be bound to a ready, idle runtime.');
     const scope = this.scopes.find((entry) => scopeModule(entry).id === this.appId)!;
@@ -1404,6 +1459,7 @@ export class BitaKitRuntime implements ContributionHost {
     options?: PluginChangeOptions | PluginDependentOptions,
     replacement: readonly Plugin[] = [],
   ): PlannedPluginChange {
+    this.assertClientMode();
     let changed: string[] = [];
     let affected: string[] = [];
     let dependents: string[] = [];
@@ -1758,6 +1814,7 @@ export class BitaKitRuntime implements ContributionHost {
 
   /** Explicit host update of already-loaded immutable plugin definitions; never installs code. */
   reconcilePlugins(next: readonly Plugin[]): Promise<PluginUpdateResult> {
+    this.assertClientMode();
     next = [...next];
     const result = (
       status: PluginUpdateResult['status'],
@@ -1878,6 +1935,13 @@ export class BitaKitRuntime implements ContributionHost {
       })
       .catch(() => {});
     return this.updating;
+  }
+
+  private assertClientMode() {
+    if (this.mode === 'server')
+      throw new Error(
+        'Structural plugin updates are not supported in server mode. Restart the server with the new composition.',
+      );
   }
 
   private async stopPlugins(ids: readonly string[]) {
@@ -2291,6 +2355,8 @@ export class BitaKitRuntime implements ContributionHost {
 }
 
 function defaultFailure(error: unknown) {
+  // An OperationError's message is written for its caller, in every environment.
+  if (isOperationError(error)) return error.safeMessage;
   let development = true;
   try {
     development = process.env.NODE_ENV !== 'production';
@@ -2308,7 +2374,17 @@ function defaultFailure(error: unknown) {
  */
 export function createRuntime(
   config: BitaKitRuntimeConfig,
-  options: { actions?: ActionList; services?: Readonly<Record<string, unknown>> } = {},
+  options: {
+    actions?: ActionList;
+    services?: Readonly<Record<string, unknown>>;
+    /** Replaces the `remote` built from `config.remote`, for tests and in-process hosts. */
+    remote?: Remote;
+    /** `server` is the headless mode `createServer` uses; see `RuntimeMode`. */
+    mode?: RuntimeMode;
+  } = {},
 ): BitaKitRuntime {
-  return new BitaKitRuntime(options.actions ?? createActionList(), config, options.services);
+  return new BitaKitRuntime(options.actions ?? createActionList(), config, options.services, {
+    mode: options.mode,
+    remote: options.remote,
+  });
 }

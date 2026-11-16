@@ -19,6 +19,7 @@ import type { InterceptorSpec } from './interceptors/define.js';
 import type { Confirmation } from './confirmation.js';
 import type { Cleanup } from './lifecycle/cleanup.js';
 import type { SlotDefinition, SlotDefinitions } from './slots/define.js';
+import type { Remote, RemoteConfig } from './remote.js';
 
 /** Service IDs and aliases with their instance types. Generated from discovery; augmentable by hand. */
 export interface ServiceMap {}
@@ -36,6 +37,8 @@ export type ServiceContext = {
   services: Services;
   config: ConfigContext;
   events: Events;
+  /** The exposed server operations: `await remote.todos.add(input)` (see `Remote`). */
+  remote: Remote;
   /** Typed setting handles: `settings.todos.pageSize.get()`. */
   settings: SettingsAccess;
   /** Observable state; actions and `useServiceState` follow it automatically. */
@@ -111,6 +114,8 @@ export type ExecuteContext<Input = unknown> = ActionContext<Input> & {
   settings: SettingsAccess;
   app: BitaKitApp;
   events: Events;
+  /** The exposed server operations: `await remote.todos.add(input)` (see `Remote`). */
+  remote: Remote;
   /** Aborts when the registration is disposed, or when a newer `latest` run supersedes this one. */
   signal: AbortSignal;
 };
@@ -374,6 +379,11 @@ export type BitaKitRuntimeConfig = Omit<Plugin, 'id' | 'dependencies' | 'parent'
   bundle?: string;
   /** Host-known bundle labels. A plugin's membership claim does not add entries here. */
   knownBundles?: readonly import('./inspection/plugin-origin.js').PluginBundle[];
+  /**
+   * The exposed server operations and their endpoint, generated into the client config. Without
+   * it every `remote` call rejects with SERVICE_UNAVAILABLE.
+   */
+  remote?: RemoteConfig;
 };
 
 // ---------------------------------------------------------------------------------------------

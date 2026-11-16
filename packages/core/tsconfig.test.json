@@ -11,6 +11,7 @@
     "tests/event-types.ts",
     "tests/settings-types.ts",
     "tests/testing-types.ts",
-    "tests/slot-types.ts"
+    "tests/slot-types.ts",
+    "tests/server-types.ts"
   ]
 }

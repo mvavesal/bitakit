@@ -3,6 +3,7 @@ import type { Feedback, MessageValues } from '../actions/feedback.js';
 import type { ResolvedContribution, Services, Translator } from '../definitions.js';
 import type { BitaKitApp } from '../app/types.js';
 import type { Confirmation } from '../confirmation.js';
+import type { Remote } from '../remote.js';
 
 export type FeedbackOutcome = { message: string | false; closeDialog: boolean };
 export type Override = Readonly<{ enabled?: boolean; visible?: boolean }> | undefined;
@@ -17,6 +18,8 @@ export interface ContributionHost {
   readonly app: BitaKitApp;
   readonly actions: ActionList;
   readonly services: Services;
+  /** The exposed server operations, passed to `execute` as `remote`. */
+  readonly remote: Remote;
   translator(): Translator;
   title(definition: ResolvedContribution): string;
   description(definition: ResolvedContribution): string | undefined;
