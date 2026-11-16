@@ -168,6 +168,7 @@ test('integration kinds are validated: names are unique and not built in, folder
     from: 'x',
     normalize: 'discoverWidgets',
     types: undefined,
+    runtime: 'client',
   });
   assert.ok(Object.isFrozen(spec));
   assert.equal(

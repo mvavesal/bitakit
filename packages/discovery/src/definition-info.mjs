@@ -1,25 +1,29 @@
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
+import { sourceTrees } from './source-trees.mjs';
 
 /** Static hints for tooling, never runtime registration. Unreadable expressions stay unresolved.
  * Uses TypeScript's parser for the same define* leaves and dotted/nested records Discovery emits.
  * `inspect(fields, { unwrap, literal, ts })` lets a tool read non-literal fields (arrays, schemas)
  * of each object-form definition with the same ID rules; its result is merged into the entry.
  * Callers classify the nodes with the passed `ts`: SyntaxKind numbers differ between versions.
+ * `keys: true` adds `key`, the record path inside the file ('' for a file's own definition).
  */
 export async function describeDefinitions(
   entries,
-  { helper, moduleId = '', properties = [], inspect },
+  { helper, moduleId = '', properties = [], inspect, keys = false },
 ) {
   const definitions = [];
   const unresolved = [];
   for (const entry of entries) {
-    const tree = ts.createSourceFile(
-      entry.file,
-      await readFile(entry.file, 'utf8'),
-      ts.ScriptTarget.Latest,
-      true,
-    );
+    const tree =
+      sourceTrees.get(entry) ??
+      ts.createSourceFile(
+        entry.file,
+        await readFile(entry.file, 'utf8'),
+        ts.ScriptTarget.Latest,
+        true,
+      );
     const variables = new Map();
     const helpers = new Set([helper]);
     let exported;
@@ -66,10 +70,11 @@ export async function describeDefinitions(
     const unknown = () => {
       if (!unresolved.includes(entry.file)) unresolved.push(entry.file);
     };
-    const visit = (expression, path, trail = new Set()) => {
+    const visit = (expression, path, trail = new Set(), key = '') => {
       const node = unwrap(expression);
       if (!node || trail.has(node)) return unknown();
       const next = new Set([...trail, node]);
+      const keyOf = keys ? { key } : {};
       if (
         ts.isCallExpression(node) &&
         ts.isIdentifier(node.expression) &&
@@ -83,7 +88,7 @@ export async function describeDefinitions(
           if (!options || !ts.isFunctionLike(options)) return unknown();
           const id = [moduleId, path].filter(Boolean).join('.');
           if (!id) return unknown();
-          definitions.push({ id, file: entry.file });
+          definitions.push({ id, file: entry.file, ...keyOf });
           return;
         }
         for (const item of options.properties) {
@@ -101,7 +106,7 @@ export async function describeDefinitions(
           ? literal(fields.get('id'))
           : [moduleId, path].filter(Boolean).join('.');
         if (!id) return unknown();
-        const info = { id, file: entry.file };
+        const info = { id, file: entry.file, ...keyOf };
         for (const property of properties) {
           if (!fields.has(property)) continue;
           const value = literal(fields.get(property));
@@ -129,6 +134,7 @@ export async function describeDefinitions(
           ts.isPropertyAssignment(item) ? item.initializer : item.name,
           [path, item.name.text].filter(Boolean).join('.'),
           next,
+          [key, item.name.text].filter(Boolean).join('.'),
         );
       }
     };

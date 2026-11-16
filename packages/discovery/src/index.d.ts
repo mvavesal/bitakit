@@ -11,6 +11,15 @@ export type ContributionKindSpec = {
   normalize: string;
   /** Optional package-owned type map populated from discovered files and module IDs. */
   types?: { entry: string; map: string };
+  /**
+   * Where the kind's files run (default `client`). `server`: files live in
+   * `server/contributions/<directory>` and only the server file (`src/bitakit.gen.server.ts`)
+   * imports them. `both`: files live in `contributions/<directory>` and both generated files import
+   * them, so `from` must be safe in the browser and on the server. A file on the wrong side is a
+   * generation error naming the path it belongs at, and so is a server kind's contribution left
+   * in the old `<directory>/` folder.
+   */
+  runtime?: 'client' | 'server' | 'both';
 };
 export type DiscoveryConfig = {
   /** Known application bundles and optional display labels; IDs compare in lowercase. */
@@ -53,6 +62,14 @@ export type DiscoveryConfig = {
     autoEnable?: boolean;
     overrides?: Record<string, { enabled: boolean }>;
   };
+  /** The server half (`server/` folders, `src/bitakit.gen.server.ts`). */
+  server?: {
+    /**
+     * The URL path the RPC route serves and the client's `remote` calls; `/api/rpc` by default.
+     * Generated into the server file's `createServer` call and the client file's `remote`.
+     */
+    endpoint?: string;
+  };
 };
 export function defineBitaKit(config: DiscoveryConfig): DiscoveryConfig;
 
@@ -65,6 +82,11 @@ export type GenerateResult = {
   /** The generated TypeScript file. */
   generated: string;
   framework: 'next' | 'tanstack' | 'none';
+  /**
+   * `src/bitakit.gen.server.ts`, present when an enabled module has server content (server
+   * Actions, services, interceptors or server-kind files); otherwise the file is removed.
+   */
+  server?: string;
 };
 export function generateBitaKit(
   root: string,
@@ -99,13 +121,27 @@ export function loadDiscoveryConfig(
 ): Promise<{ config: DiscoveryConfig; file?: string; legacy: boolean }>;
 
 export type DescribedEntry = { path: string; file: string };
+/** A module's `server/` folder (the app's `src/server/`), as discovery reads it. */
+export type DescribedServer = {
+  /** `server/actions/**`: the operations, IDs `<plugin>.<path>` (the app's unprefixed). */
+  actions: DescribedEntry[];
+  services: DescribedEntry[];
+  interceptors: DescribedEntry[];
+  /**
+   * Files of the server-only contribution kinds (`server/contributions/<directory>`), by kind
+   * name. Only kinds known to the caller are listed: `describeBitaKit` knows `kinds` of
+   * bitakit.config.ts and, unless `packageMetadataOnly`, the kinds packages declare.
+   */
+  contributions: Record<string, DescribedEntry[]>;
+};
 /**
  * Non-executing static hints. Computed/imported records remain explicitly unresolved.
  * `inspect` reads further fields of each object-form definition: `fields` maps field names to
  * their TypeScript syntax nodes, `unwrap` follows local variables and `as`/`satisfies`,
  * `literal` returns a string literal's text and `ts` is the TypeScript instance that parsed the
  * nodes; classify them with it, since SyntaxKind numbers differ between TypeScript versions. Its
- * result is merged into the definition.
+ * result is merged into the definition. `keys: true` adds `key`, the record path of the
+ * definition inside its file (`''` for the file's own definition).
  */
 export function describeDefinitions<Extra extends object>(
   entries: DescribedEntry[],
@@ -113,6 +149,7 @@ export function describeDefinitions<Extra extends object>(
     helper: string;
     moduleId?: string;
     properties?: string[];
+    keys?: boolean;
     inspect: (
       fields: ReadonlyMap<string, unknown>,
       helpers: {
@@ -128,7 +165,7 @@ export function describeDefinitions<Extra extends object>(
 }>;
 export function describeDefinitions(
   entries: DescribedEntry[],
-  options: { helper: string; moduleId?: string; properties?: string[] },
+  options: { helper: string; moduleId?: string; properties?: string[]; keys?: boolean },
 ): Promise<{
   definitions: { id: string; file: string; [property: string]: string }[];
   unresolved: string[];
@@ -158,6 +195,8 @@ export type DescribedModule = {
   providers: DescribedEntry[];
   configs: DescribedEntry[];
   interceptors: DescribedEntry[];
+  /** The server half; every other file under `server/` is the module's own code. */
+  server: DescribedServer;
 };
 export type BitaKitDescription = {
   root: string;
@@ -224,8 +263,10 @@ export function describeBitaKit(
   root: string,
   options?: { packageMetadataOnly?: boolean; auditPackageStyles?: boolean },
 ): Promise<BitaKitDescription>;
+/** `kinds` lists integration kinds whose server-only files go into `server.contributions`. */
 export function describeModule(
   directory: string,
+  options?: { kinds?: readonly ContributionKindSpec[] },
 ): Promise<Omit<DescribedModule, 'id'> & { setup?: string; locales: string[]; warnings: string[] }>;
 
 export type MigrationChange = {

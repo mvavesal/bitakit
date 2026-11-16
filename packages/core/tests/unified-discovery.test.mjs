@@ -1126,6 +1126,7 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
       events: [{ path: '', file: 'src/events.ts' }],
       settings: [],
       layouts: [],
+      server: { actions: [], services: [], interceptors: [], contributions: {} },
     });
     assert.deepEqual(description.plugins, [
       {
@@ -1148,6 +1149,7 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
         interceptors: [],
         events: [],
         settings: [],
+        server: { actions: [], services: [], interceptors: [], contributions: {} },
       },
     ]);
     assert.deepEqual(description.packages, ['@acme/shell/plugin']);
@@ -1169,6 +1171,7 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
       'locales',
       'pages',
       'providers',
+      'server',
       'services',
       'settings',
       'setup',
