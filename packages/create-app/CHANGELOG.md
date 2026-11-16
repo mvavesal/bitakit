@@ -1,5 +1,13 @@
 # @bitakit/create-app
 
+## 0.3.1
+
+### Patch Changes
+
+- 8ba91f5: Start an app from a template: `--template <directory>` copies a template folder's files into the new app, adds its packages to `package.json` and its environment names to `.env.example`. A template is described by `bitakit.template.json` (name, frameworks, features, dependencies, env, next) and is checked before anything is written.
+- Updated dependencies [926d99a]
+  - @bitakit/cli@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

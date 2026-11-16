@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "BitaKit project commands: add plugins and contributions, check a project with doctor.",
   "type": "module",
   "bin": {
