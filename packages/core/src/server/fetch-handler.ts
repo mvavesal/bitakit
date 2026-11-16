@@ -63,6 +63,15 @@ async function readBody(request: Request, limit: number): Promise<Uint8Array | u
   return body;
 }
 
+/** The `host[:port]` of an Origin header value, or undefined for anything that is not a URL. */
+function hostOf(origin: string): string | undefined {
+  try {
+    return new URL(origin).host || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * The built-in HTTP transport: `POST <server.endpoint>/<operation id>` with a JSON body, answered
  * with `{ "data": result }` or `{ "error": { code, message, issues?, reason?, requestId? } }`.
@@ -97,7 +106,15 @@ export function fetchHandler(
     const site = request.headers.get('sec-fetch-site');
     if (
       origin !== null
-        ? origin !== (ownOrigin ?? url.origin) && !trusted.has(origin)
+        ? // The browser's own Sec-Fetch-Site (pages cannot set it) settles it; otherwise the Origin
+          // must be the app's. Hosts may hand route handlers another URL than the browser used
+          // (Next.js gives `localhost` for a page at 127.0.0.1), so without an explicit `origin`
+          // the Host header the browser sent counts as the app's origin too.
+          site !== 'same-origin' &&
+          !trusted.has(origin) &&
+          (ownOrigin !== undefined
+            ? origin !== ownOrigin
+            : origin !== url.origin && hostOf(origin) !== request.headers.get('host'))
         : site !== null && site !== 'same-origin' && site !== 'none'
     )
       return failure(new OperationError('FORBIDDEN', 'Cross-origin requests are not allowed.'));

@@ -164,6 +164,36 @@ test('method, content type essence, Origin, Sec-Fetch-Site, size and JSON are ch
   }
 });
 
+test('same-origin browser calls pass when the host hands the handler another URL (Next.js: localhost for 127.0.0.1)', async () => {
+  const { server, handle } = setup();
+  try {
+    const local = (headers) =>
+      new Request('http://localhost:3103/api/rpc/todos.clear', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-who': 'member', ...headers },
+      });
+    const page = 'http://127.0.0.1:3103';
+    for (const [headers, expected] of [
+      [{ origin: page, host: '127.0.0.1:3103' }, 200],
+      [{ origin: page, 'sec-fetch-site': 'same-origin' }, 200],
+      [{ origin: page }, 403],
+      [{ origin: 'https://evil.example.com', host: '127.0.0.1:3103' }, 403],
+      [
+        {
+          origin: 'https://evil.example.com',
+          host: '127.0.0.1:3103',
+          'sec-fetch-site': 'cross-site',
+        },
+        403,
+      ],
+      [{ origin: 'null', host: '127.0.0.1:3103' }, 403],
+    ])
+      assert.equal((await handle(local(headers))).status, expected, JSON.stringify(headers));
+  } finally {
+    await server.stop();
+  }
+});
+
 test('the public origin option replaces the request origin behind a proxy; bad origins throw at creation', async () => {
   const { server, handle } = setup({ origin: 'https://public.example.com' });
   try {
