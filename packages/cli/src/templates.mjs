@@ -524,6 +524,142 @@ export default defineInterceptor({
 `;
 }
 
+/** `remote.todos.add` or `remote["user-notes"].archive` for an operation ID. */
+const remotePath = (id) => `remote${id.split('.').map(member).join('')}`;
+
+/**
+ * The operation `<plugin>.<name>` (`bitakit add action … --server`): a server Action in
+ * `server/actions/<name>.ts` that only organization members may call, exposed to the browser.
+ * `button` is the plugin's file that declares the button, relative to the plugin folder, when it
+ * already exists (`actions.ts`, `actions.add.ts`); by default `actions/<name>.ts`.
+ */
+export function serverActionFile(name, plugin, { button = `actions/${name}.ts` } = {}) {
+  const segments = name.split('/');
+  const id = `${plugin}.${segments.join('.')}`;
+  // A record file such as actions.ts declares the button under a key: "the button add in actions.ts".
+  const spelled = button
+    .replace(/\.[cm]?[jt]sx?$/, '')
+    .split(/[\\/.]/)
+    .slice(1);
+  const key = segments.slice(spelled.length);
+  const where =
+    spelled.join('.') === segments.join('.')
+      ? `the button in ${button}`
+      : `the button ${key.join('.')} in ${button}`;
+  return `// The operation ${id}. It runs only on the server; ${where} calls it
+// with ${remotePath(id)}(input). Tests: tests/${id}.server.test.ts.
+import { defineAction } from '@bitakit/core/server';
+import { z } from 'zod';
+
+export default defineAction({
+  // Who may call it: 'public', 'user', 'organization' or { permission: { <resource>: ['<operation>'] } }.
+  access: 'organization',
+  // The browser may call it over HTTP; without expose it is callable on the server only.
+  expose: true,
+  input: z.object({ title: z.string().min(1) }),
+  // The caller receives exactly this shape; other keys are left out.
+  output: z.object({ title: z.string(), organizationId: z.string() }),
+  execute: ({ input, ctx }) => {
+    // Read and change data here, always scoped to ctx.organization.id.
+    return { title: input.title, organizationId: ctx.organization.id };
+  },
+});
+`;
+}
+
+/** The button for a server operation: a client Action that calls it through `remote`. */
+export function remoteActionFile(name, plugin) {
+  const segments = name.split('/');
+  const id = `${plugin}.${segments.join('.')}`;
+  return `import { defineAction } from '@bitakit/core';
+
+// The button. The operation runs on the server (server/actions/${name}.ts); remote calls it over HTTP.
+export default defineAction<{ title: string }>({
+  title: '${titleOf(segments.at(-1))}',
+  execute: ({ input, remote }) => ${remotePath(id)}(input),
+});
+`;
+}
+
+/** A server service (`bitakit add service … --server`): logic shared by the plugin's operations. */
+export function serverServiceFile(name, plugin) {
+  const id = `${plugin}.${name.split('/').join('.')}`;
+  return `import { defineService } from '@bitakit/core/server';
+
+/**
+ * Server logic for this plugin's operations: services.${id} in server Actions, interceptors and
+ * other server services. One instance serves every request, so keep data per organization or
+ * user (ctx.organization.id), never in one shared field.
+ */
+export default defineService(() => {
+  const counts = new Map<string, number>();
+  return {
+    increment(organizationId: string) {
+      const next = (counts.get(organizationId) ?? 0) + 1;
+      counts.set(organizationId, next);
+      return next;
+    },
+  };
+});
+`;
+}
+
+/** A server interceptor (`bitakit add interceptor … --server`): runs around the plugin's operations. */
+export function serverInterceptorFile(plugin, name) {
+  return `import { defineInterceptor } from '@bitakit/core/server';
+
+// Runs around this plugin's server operations after the access and input checks, with the
+// caller's ctx. Returning false refuses the call; after and onError only observe.
+export default defineInterceptor({
+  action: '${plugin}.*',
+  before: ({ id, ctx }) => {
+    console.debug('[${plugin}] ${name}', id, ctx.user?.id ?? 'anonymous');
+  },
+});
+`;
+}
+
+/**
+ * The test of one server operation (`bitakit add action … --server`), run from the app root with
+ * `node --test`: a member of the organization, a member of another one and a signed-out caller.
+ * `directory` is the plugin folder relative to that root; `id` is only needed when the folder is
+ * not under a `plugins` directory.
+ */
+export function serverTestFile(name, plugin, { directory, id }) {
+  const operation = `${plugin}.${name.split('/').join('.')}`;
+  const call = (caller) => `${caller}${operation.split('.').map(member).join('')}`;
+  return `import assert from 'node:assert/strict';
+import { after, test } from 'node:test';
+import { identity, mountServer } from '@bitakit/core/testing';
+
+// The server half of ${plugin}, booted once; as() calls it as different people.
+const server = await mountServer('${directory}'${id ? `, { id: '${id}' }` : ''});
+after(() => server.stop());
+
+test('a member of the organization can call ${operation}', async () => {
+  const member = server.as(identity({ organization: 'org-1' }));
+  assert.deepEqual(await ${call('member')}({ title: 'First' }), {
+    title: 'First',
+    organizationId: 'org-1',
+  });
+});
+
+test('a member of another organization works in that organization only', async () => {
+  const other = server.as(identity({ user: 'user-2', organization: 'org-2' }));
+  assert.equal((await ${call('other')}({ title: 'Theirs' })).organizationId, 'org-2');
+  // A page loaded for org-1 cannot write once the session has moved to org-2.
+  await assert.rejects(${call('other')}({ title: 'Stale' }, { organizationId: 'org-1' }), {
+    code: 'CONFLICT',
+  });
+});
+
+test('a signed-out caller is refused', async () => {
+  const anonymous = server.as(identity({ user: null }));
+  await assert.rejects(${call('anonymous')}({ title: 'Nope' }), { code: 'UNAUTHORIZED' });
+});
+`;
+}
+
 /**
  * A headless test of one app plugin (`bitakit add test`), run from the app root with `node --test`.
  * `directory` is the plugin folder relative to that root; `id` is only needed when the folder is

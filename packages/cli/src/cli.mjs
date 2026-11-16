@@ -4,7 +4,7 @@ import path from 'node:path';
 import { styleText } from 'node:util';
 import { Command } from 'commander';
 import { describeBitaKit, generateBitaKit, migrateProject, watchBitaKit } from '@bitakit/discovery';
-import { addContribution, addPlugin, contributionKinds } from './add.mjs';
+import { addContribution, addPlugin, contributionKinds, serverKinds } from './add.mjs';
 import { inspectionFromDescription } from './inventory.mjs';
 import { buildPlugin } from './build.mjs';
 import { CheckPageSetupError, checkPage, formatPageReport } from './check-page.mjs';
@@ -65,6 +65,13 @@ for (const kind of contributionKinds) {
       '--plugin <id>',
       "write the layout into an app plugin's ui/layouts instead of src/layouts",
     );
+  if (serverKinds.includes(kind))
+    command.option(
+      '--server',
+      kind === 'action'
+        ? 'write the operation into server/actions/ (runs only on the server), with its test, a button that calls it through remote, and the RPC route when the app has none'
+        : `write the ${kind} into the plugin's server/ folder (runs only on the server)`,
+    );
   command
     .argument(
       kind === 'events' || kind === 'settings' || kind === 'settings-page'
@@ -96,16 +103,44 @@ for (const kind of contributionKinds) {
               : `Create ${/^[aeiou]/.test(kind) ? 'an' : 'a'} ${kind} file. Its ID comes from the file path.`,
     )
     .action(async (target, options) => {
-      const result = await addContribution(kind, target, { plugin: options?.plugin });
+      const result = await addContribution(kind, target, {
+        plugin: options?.plugin,
+        server: options?.server,
+      });
       if (result.createdPlugin) console.log(`\nCreated plugin "${result.plugin}".`);
       console.log(
         kind === 'slot'
           ? `\nCreated a component of plugin "${result.plugin}" for slot "${result.id}":`
           : kind === 'test'
             ? `\nCreated a test for plugin "${result.plugin}":`
-            : `\nCreated ${kind} ${kind === 'page' ? result.path : `"${result.id}"`}:`,
+            : result.server
+              ? `\nCreated server ${kind} "server:${result.id}":`
+              : `\nCreated ${kind} ${kind === 'page' ? result.path : `"${result.id}"`}:`,
       );
       created(result.created);
+      for (const file of result.kept ?? [])
+        console.log(
+          `\nKept the existing button ${relative(file)}; call ${result.remote}(input) from its execute.`,
+        );
+      if (result.route && !result.route.created)
+        console.log(
+          `\n${relative(path.join(result.project.root, result.route.file))} already answers ${result.project.serverEndpoint}/<operation id>.`,
+        );
+      if (result.noHost)
+        console.log(`\nThis app's framework has no server route BitaKit writes. ${result.noHost}`);
+      if (result.remote)
+        console.log(
+          `\nThe operation runs only on the server; the browser calls it with ${result.remote}(input).\nRun npx bitakit generate (the dev server does it on save) so remote knows it.`,
+        );
+      if (result.needsProvider) {
+        const file = path.join(
+          path.relative(result.project.root, result.project.appDirectory),
+          'server/services/request-context.ts',
+        );
+        console.log(
+          `\nBefore the browser can call it: add ${file.split(path.sep).join('/')} with defineService(() => ({ resolve: (request) => ({ user, organization }) }), { provides: requestContext }) from '@bitakit/core/server', reading your auth session. Until then the server refuses to start (npx bitakit doctor shows it). The test passes without it because mountServer brings its own.`,
+        );
+      }
       if (result.setup?.length)
         console.log(
           `\nBefore the first run:\n${result.setup.map((line) => `  ${line}`).join('\n')}`,
@@ -169,7 +204,7 @@ program
     }
     const result = await generateBitaKit(project.root);
     console.log(
-      `\nGenerated ${relative(result.generated)} (${result.framework === 'none' ? 'no framework provider' : result.framework}).${result.warnings.length ? ` ${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'} above.` : ''}\n`,
+      `\nGenerated ${relative(result.generated)}${result.server ? ` and ${relative(result.server)}` : ''} (${result.framework === 'none' ? 'no framework provider' : result.framework}).${result.warnings.length ? ` ${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'} above.` : ''}\n`,
     );
   });
 
@@ -377,7 +412,14 @@ program
           console.log(
             `  ${kind}: ${plugin.declarations
               .filter((entry) => entry.kind === kind)
-              .map((entry) => entry.id ?? entry.source)
+              // Server declarations print as server:<id>, apart from the client's.
+              .map((entry) =>
+                entry.id === null
+                  ? entry.source
+                  : kind.startsWith('server-')
+                    ? `server:${entry.id}`
+                    : entry.id,
+              )
               .join(', ')}`,
           );
     }

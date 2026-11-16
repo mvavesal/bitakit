@@ -1,5 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import ts from 'typescript';
 import { exists } from './project.mjs';
 
 /**
@@ -105,6 +106,113 @@ export default function Page() {
   };
 }
 
+/**
+ * Whether the app's framework runs the route `serverRoute` writes: Next route handlers, or the
+ * server handlers of TanStack Start. TanStack Router alone, Vite and other setups have no server
+ * host BitaKit writes a route for.
+ */
+export const hostsServerRoute = (project) =>
+  project.framework === 'next' || (project.framework === 'tanstack' && Boolean(project.start));
+
+/** A route that hands requests to BitaKit: it calls `fetchHandler` or imports the generated server. */
+const callsBitaKit = /\bfetchHandler\b|bitakit\.gen\.server/;
+
+/**
+ * The app routes that catch POST requests under `endpoint` (`/api/rpc/x`): Next route handlers
+ * (`route.ts`, never a page) or TanStack routes with server `handlers` whose path matches. Each
+ * `{ file, pattern, catchAll, bitakit }`, where `bitakit` tells whether the route hands the call
+ * to BitaKit. A broader API catch-all (Hono's `api/[[...route]]`) catches it too but answers on
+ * its own; the more specific RPC route wins over it in both frameworks.
+ */
+export async function routesCatching(project, endpoint) {
+  const probe = `${endpoint}/x`;
+  const found = [];
+  for (const route of await appRoutes(project)) {
+    if (!route.pattern.test(probe)) continue;
+    if (project.framework === 'next' && !/^route\./.test(path.basename(route.file))) continue;
+    const source = await readFile(path.join(project.root, route.file), 'utf8').catch(() => '');
+    if (project.framework === 'tanstack' && !/\bhandlers\b/.test(source)) continue;
+    found.push({ ...route, bitakit: callsBitaKit.test(source) });
+  }
+  return found;
+}
+
+/** The app route that answers POST `<endpoint>/x` with BitaKit's `fetchHandler`, if any. */
+export async function serverRouteFor(project, endpoint) {
+  return (await routesCatching(project, endpoint)).find((route) => route.bitakit);
+}
+
+/** Whether the app's tsconfig.json maps `@/*` to its `src` folder, as create-next-app writes it. */
+async function aliasesSource(project) {
+  const file = path.join(project.root, 'tsconfig.json');
+  const text = await readFile(file, 'utf8').catch(() => undefined);
+  if (text === undefined) return false;
+  const { config } = ts.parseConfigFileTextToJson(file, text);
+  const target = config?.compilerOptions?.paths?.['@/*']?.[0];
+  return (
+    typeof target === 'string' &&
+    path.resolve(project.root, target) ===
+      path.join(project.appDirectory ?? path.join(project.root, 'src'), '*')
+  );
+}
+
+/**
+ * The RPC route `bitakit add action … --server` writes when no route answers `<endpoint>/x`:
+ * every POST under the endpoint goes to the generated server's `fetchHandler`, which takes its
+ * prefix from the same `server.endpoint`. `{ file, content }`, the file relative to the root;
+ * `undefined` when the framework has no server host for it (see `hostsServerRoute`).
+ */
+export async function serverRoute(project, { endpoint = '/api/rpc' } = {}) {
+  if (!hostsServerRoute(project)) return undefined;
+  const segments = endpoint.split('/').filter(Boolean);
+  const generated = path.join(
+    project.appDirectory ?? path.join(project.root, 'src'),
+    'bitakit.gen.server',
+  );
+  const from = (file) => {
+    const relative = path
+      .relative(path.dirname(path.join(project.root, file)), generated)
+      .split(path.sep)
+      .join('/');
+    return relative.startsWith('.') ? relative : `./${relative}`;
+  };
+  if (project.framework === 'tanstack') {
+    const file = `src/routes/${[...segments.slice(0, -1), `${segments.at(-1)}.$.ts`].join('/')}`;
+    return {
+      file,
+      content: `import { createFileRoute } from '@tanstack/react-router';
+// Types the server option even when tsr generate wrote routeTree.gen.ts without Start's types.
+import type {} from '@tanstack/react-start';
+import { fetchHandler } from '@bitakit/core/server';
+import { server } from '${from(file)}';
+
+const handle = fetchHandler(server);
+
+// Every BitaKit server operation the browser calls: POST ${endpoint}/<operation id>.
+export const Route = createFileRoute('/${segments.join('/')}/$')({
+  server: { handlers: { POST: ({ request }) => handle(request) } },
+});
+`,
+    };
+  }
+  const app = (await exists(path.join(project.root, 'src/app')))
+    ? 'src/app'
+    : (await exists(path.join(project.root, 'app')))
+      ? 'app'
+      : 'src/app';
+  const file = `${app}/${segments.join('/')}/[...path]/route.ts`;
+  const specifier = (await aliasesSource(project)) ? '@/bitakit.gen.server' : from(file);
+  return {
+    file,
+    content: `import { fetchHandler } from '@bitakit/core/server';
+import { server } from '${specifier}';
+
+// Every BitaKit server operation the browser calls: POST ${endpoint}/<operation id>.
+export const POST = fetchHandler(server);
+`,
+  };
+}
+
 /** The root layout files that mount the provider, per framework. */
 export const rootLayouts = (project) =>
   project.framework === 'tanstack'
@@ -122,3 +230,10 @@ export async function shellGroup(project) {
   }
   return undefined;
 }
+
+/**
+ * What an app whose framework has no server host does instead of the route `serverRoute`
+ * writes; `generated` is the generated server file relative to the project root.
+ */
+export const serverHostNote = (endpoint, generated) =>
+  `Serve POST ${endpoint}/<operation id> in your HTTP server with fetchHandler(server) from '@bitakit/core/server' and server from ${generated}.`;

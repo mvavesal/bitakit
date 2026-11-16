@@ -1,5 +1,11 @@
 /** Programmatic API shared by the `bitakit` CLI and the project generator. */
-export { addPlugin, addContribution, writeNewFiles, contributionKinds } from './add.mjs';
+export {
+  addPlugin,
+  addContribution,
+  writeNewFiles,
+  contributionKinds,
+  serverKinds,
+} from './add.mjs';
 export {
   agentRules,
   agentRulesBegin,
@@ -27,7 +33,7 @@ export {
   wrapNextConfig,
 } from './init.mjs';
 export { findProject, findProjectRoot, packagePluginId } from './project.mjs';
-export { appRoutes, catchAllRoute } from './routes.mjs';
+export { appRoutes, catchAllRoute, serverRoute, serverRouteFor } from './routes.mjs';
 export { describeSlots, formatSlots } from './slots.mjs';
 export {
   actionFile,
@@ -36,7 +42,12 @@ export {
   interceptorFile,
   pageFile,
   pluginFiles,
+  remoteActionFile,
   sampleFiles,
+  serverActionFile,
+  serverInterceptorFile,
+  serverServiceFile,
+  serverTestFile,
   starterFiles,
   serviceFile,
   titleOf,
