@@ -68,7 +68,7 @@ test('a client Action with a server field is rejected at registration with the b
     assert.match(
       error.message,
       new RegExp(
-        `\`${name}\` is a server field\\. This file is the button; put the operation in server/actions/add\\.ts and call it with remote\\.todos\\.add\\(\\)\\.`,
+        `\`${name}\` is a server field\\. This file is the button; put the operation, with \`expose: true\`, in server/actions/add\\.ts and call it with remote\\.todos\\.add\\(\\)\\.`,
       ),
     );
     assert.equal(error.plugin, 'todos');

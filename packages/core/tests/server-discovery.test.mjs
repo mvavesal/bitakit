@@ -895,7 +895,7 @@ export default defineAction({ title: 'Add', access: 'public', execute: () => 1 }
     );
     await assert.rejects(
       generateBitaKit(root, { quiet: true }),
-      /^Error: src\/plugins\/todos\/actions\/add\.ts: `access` is a server field\. This file is the button; put the operation in server\/actions\/add\.ts and call it with remote\.todos\.add\(\)\.$/,
+      /^Error: src\/plugins\/todos\/actions\/add\.ts: `access` is a server field\. This file is the button; put the operation, with `expose: true`, in server\/actions\/add\.ts and call it with remote\.todos\.add\(\)\.$/,
     );
     await rm(path.join(root, 'src/plugins/todos/actions/add.ts'));
     await put(
@@ -906,7 +906,7 @@ export default { team: { save: action({ output: { parse: (value: unknown) => val
     );
     await assert.rejects(
       generateBitaKit(root, { quiet: true }),
-      /src\/actions\.ts: `output` is a server field\. This file is the button; put the operation in server\/actions\/team\/save\.ts and call it with remote\.team\.save\(\)\./,
+      /src\/actions\.ts: `output` is a server field\. This file is the button; put the operation, with `expose: true`, in server\/actions\/team\/save\.ts and call it with remote\.team\.save\(\)\./,
     );
     await rm(path.join(root, 'src/actions.ts'));
 

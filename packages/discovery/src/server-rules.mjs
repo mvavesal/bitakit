@@ -127,7 +127,7 @@ export async function rejectServerFields(entries, { moduleId, relativeTo }) {
     const entry = entries.find((item) => item.file === definition.file);
     const local = [...(entry?.path ?? []), ...(definition.key ? definition.key.split('.') : [])];
     throw new Error(
-      `${path.relative(relativeTo, definition.file).split(path.sep).join('/')}: \`${definition.serverField}\` is a server field. This file is the button; put the operation in server/actions/${local.join('/') || 'index'}.ts and call it with remote.${definition.id}().`,
+      `${path.relative(relativeTo, definition.file).split(path.sep).join('/')}: \`${definition.serverField}\` is a server field. This file is the button; put the operation, with \`expose: true\`, in server/actions/${local.join('/') || 'index'}.ts and call it with remote.${definition.id}().`,
     );
   }
 }

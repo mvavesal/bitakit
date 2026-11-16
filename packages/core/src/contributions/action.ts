@@ -70,7 +70,7 @@ function rejectServerFields(resolved: ResolvedContribution) {
   if (!field) return;
   const path = (contributionPath(resolved) ?? resolved.id.split('.')).join('/');
   throw new Error(
-    `\`${field}\` is a server field. This file is the button; put the operation in server/actions/${path}.ts and call it with remote.${resolved.id}().`,
+    `\`${field}\` is a server field. This file is the button; put the operation, with \`expose: true\`, in server/actions/${path}.ts and call it with remote.${resolved.id}().`,
   );
 }
 
