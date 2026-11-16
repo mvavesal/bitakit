@@ -12,6 +12,13 @@ import { doctor } from './doctor.mjs';
 import { initProject } from './init.mjs';
 import { findProject, findProjectRoot } from './project.mjs';
 import { describeSlots, formatSlots } from './slots.mjs';
+import {
+  chooseCandidate,
+  describeShell,
+  formatShell,
+  framePart,
+  resolveCandidate,
+} from './shell.mjs';
 
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 const relative = (file) => path.relative(process.cwd(), file) || '.';
@@ -405,6 +412,81 @@ program
     for (const line of formatSlots(result, { dim: (text) => styleText('dim', text) }))
       console.log(line);
     console.log('');
+  });
+
+// The app's frame is the replaceable part `layout.app`; a shell is a candidate for it.
+const shell = program
+  .command('shell')
+  .description(
+    "The app's frame (the replaceable part layout.app): see the shells this app can use and pick one.",
+  );
+const partOption = ['--part <id>', 'another replaceable part, for example layout.auth', framePart];
+const shellState = async (part) => {
+  const project = await findProject();
+  if (project.kind !== 'app') throw new Error('Run "bitakit shell" inside an app.');
+  const slots = await describeSlots(await describeBitaKit(project.root));
+  return { project, state: describeShell(slots, part) };
+};
+/** The generated wiring follows the choice at once; a failure there leaves the written choice in place. */
+const regenerate = async (root) => {
+  try {
+    await generateBitaKit(root);
+    console.log('Generated the wiring again. A running dev server may need a restart.\n');
+  } catch (error) {
+    console.log(`The choice is written, but generating failed: ${error.message}\n`);
+  }
+};
+
+shell
+  .command('list', { isDefault: true })
+  .description('Show the frame that renders, the candidates and the choice in bitakit.config.ts.')
+  .option(...partOption)
+  .option('--json', 'machine-readable output')
+  .action(async (options) => {
+    const { state } = await shellState(options.part);
+    if (options.json) {
+      console.log(JSON.stringify(state, null, 2));
+      return;
+    }
+    console.log('');
+    for (const line of formatShell(state)) console.log(line);
+    console.log('');
+  });
+
+shell
+  .command('use')
+  .argument('<name>', 'a candidate: "plugin:variant", a plugin or a variant')
+  .description(
+    "Choose the frame: writes choose: { 'layout.app': '<name>' } into bitakit.config.ts.",
+  )
+  .option(...partOption)
+  .action(async (name, options) => {
+    const { project, state } = await shellState(options.part);
+    if (!state.exists) throw new Error(formatShell(state).join(' '));
+    const candidate = resolveCandidate(state.candidates, name);
+    const { changed } = await chooseCandidate(project.root, options.part, candidate);
+    console.log(
+      changed
+        ? `\n${options.part} now uses ${candidate} (bitakit.config.ts).`
+        : `\n${options.part} already uses ${candidate}.\n`,
+    );
+    if (changed) await regenerate(project.root);
+  });
+
+shell
+  .command('reset')
+  .description('Remove the choice, so the default frame (or the only candidate) renders again.')
+  .option(...partOption)
+  .action(async (options) => {
+    const project = await findProject();
+    if (project.kind !== 'app') throw new Error('Run "bitakit shell" inside an app.');
+    const { changed } = await chooseCandidate(project.root, options.part, undefined);
+    console.log(
+      changed
+        ? `\n${options.part} has no choice any more (bitakit.config.ts).`
+        : `\n${options.part} had no choice.\n`,
+    );
+    if (changed) await regenerate(project.root);
   });
 
 try {

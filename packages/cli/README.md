@@ -150,6 +150,8 @@ npx bitakit doctor          # human-readable report, exit code 1 on problems
 npx bitakit doctor --json   # for CI
 npx bitakit info [--json]   # the plugins, services, actions, events and pages discovery finds
 npx bitakit slots [--json]  # every slot you can fill: owner, accepts and this app's contributions
+npx bitakit shell           # the app's frame: what renders, the candidates, the choice
+npx bitakit shell use <name>  # pick a frame: writes choose in bitakit.config.ts (reset removes it)
 ```
 
 ### Explicit update checks
