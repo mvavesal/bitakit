@@ -5,18 +5,19 @@ description: Create or wire an app, add plugins and files, generate, check and m
 
 Two tools cover the whole lifecycle. `npm create @bitakit/app` (or `pnpm create`, `yarn create`, `bunx @bitakit/create-app`) creates a new project; `npx bitakit` works inside a project with any package manager. Apps made by the generator already have `@bitakit/cli` as a dev dependency; elsewhere add it as a dev dependency.
 
-The command groups below are independent examples; use a new plugin name when scaffolding a complete feature. Use a matching 0.2 package set, or the [local checkout workflow](/docs/local-development). Only the reference tables use `<placeholders>` to describe what a command accepts.
+The command groups below are independent examples; use a new plugin name when scaffolding a complete feature. Use a matching 0.3 package set, or the [local checkout workflow](/docs/local-development). Only the reference tables use `<placeholders>` to describe what a command accepts.
 
-| You want to                            | Run                                     |
-| -------------------------------------- | --------------------------------------- |
-| Start a new app                        | `npm create @bitakit/app@latest my-app` |
-| Add BitaKit to an app you already have | `npx @bitakit/cli init`                 |
-| Add a feature to your app              | `npx bitakit add plugin notes`          |
-| Add one file to a feature              | `npx bitakit add action notes/archive`  |
-| Write the generated files              | `npx bitakit generate`                  |
-| Find problems                          | `npx bitakit doctor`                    |
-| Update BitaKit                         | [Update BitaKit](#update-bitakit)       |
-| Check that a page renders              | `npx bitakit check-page /notes`         |
+| You want to                            | Run                                             |
+| -------------------------------------- | ----------------------------------------------- |
+| Start a new app                        | `npm create @bitakit/app@latest my-app`         |
+| Add BitaKit to an app you already have | `npx @bitakit/cli init`                         |
+| Add a feature to your app              | `npx bitakit add plugin notes`                  |
+| Add one file to a feature              | `npx bitakit add action notes/archive`          |
+| Add a server operation and its button  | `npx bitakit add action notes/archive --server` |
+| Write the generated files              | `npx bitakit generate`                          |
+| Find problems                          | `npx bitakit doctor`                            |
+| Update BitaKit                         | [Update BitaKit](#update-bitakit)               |
+| Check that a page renders              | `npx bitakit check-page /notes`                 |
 
 ## Create a new app
 
@@ -214,6 +215,30 @@ npx bitakit add test notes
 
 `tests/notes.test.ts` mounts `src/plugins/notes` with `mountPlugin`, checks that the plugin starts, then stops it. When the plugin places Actions in `shell.*` slots, the file includes a stand-in for Shell. The command then prints what the app still needs to run the test, as commands: the missing dev dependencies, `"type": "module"` and a `test` script. It never changes `package.json`. Extend the file with the behavior you want to keep, as [Testing plugins](/docs/reference/testing) shows.
 
+## Server operations
+
+`--server` writes into the plugin's [server half](/docs/concepts/server) instead, for the kinds
+`action`, `service` and `interceptor`:
+
+```sh
+npx bitakit add action notes/archive --server
+```
+
+| Command                                    | Files it creates                                                                                                                                                                                  |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add action <plugin>/<name> --server`      | `server/actions/<name>.ts` (the operation), `tests/<plugin>.<name>.server.test.ts`, the button `actions/<name>.ts` when the plugin has none, and the RPC route when no route answers the endpoint |
+| `add service <plugin>/<name> --server`     | `server/services/<name>.ts`                                                                                                                                                                       |
+| `add interceptor <plugin>/<name> --server` | `server/interceptors/<name>.ts`                                                                                                                                                                   |
+
+The operation starts with `access: 'organization'`, `expose: true` and zod `input` and `output`
+schemas; its test calls it as a member, a member of another organization and a signed-out caller.
+The button calls it with `remote.notes.archive(input)`. The route is
+`src/app/api/rpc/[...path]/route.ts` in Next.js and `src/routes/api/rpc.$.ts` in TanStack Start;
+an app without a server host (a plain Vite app) gets none and a note instead. The command prints
+what is still missing: `npm install zod`, the test setup, and the `requestContext` provider when
+no service provides it. It refuses inside a plugin package (packages have no server half yet) and
+for reserved names such as `then` or `subscribe`.
+
 ## Generate, check and migrate
 
 After changing plugins, regenerate the typed files and check the project:
@@ -227,15 +252,17 @@ You rarely run `generate` yourself: the framework adapters run it during `dev` a
 
 | Command                | What it does                                                                                                                                                                                                                                    | Useful switch                      |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `npx bitakit generate` | Writes `src/bitakit.gen.*` from your plugin folders                                                                                                                                                                                             | `--watch` keeps regenerating       |
+| `npx bitakit generate` | Writes `src/bitakit.gen.*` from your plugin folders, including `src/bitakit.gen.server.ts` while a plugin has a server half                                                                                                                     | `--watch` keeps regenerating       |
 | `npx bitakit doctor`   | Reports local health with fixes and available updates; registry failures do not change the local-health exit status                                                                                                                             | `--json` for CI                    |
-| `npx bitakit info`     | Lists every plugin with the IDs you type: Actions, services, page URLs, events, settings and slots                                                                                                                                              | `--json`                           |
+| `npx bitakit info`     | Lists every plugin with the IDs you type: Actions, services, page URLs, events, settings and slots; server Actions, services and interceptors print as `server:<id>` (JSON kinds `server-action`, `server-service`, `server-interceptor`)       | `--json`                           |
 | `npx bitakit slots`    | Lists every slot you can fill, including those of installed packages, with its owner, what it accepts, what your files already put there and, for replaceable parts, which candidate renders                                                    | `--json`                           |
 | `npx bitakit migrate`  | Rewrites a 0.1 project to the 0.2 layout and API spellings: setup `{ scope }`, placement `slot`, `attach({ slot })`, `Foundation*` → `BitaKit*` (also in root config files), and Core names imported from `@bitakit/ui` move to `@bitakit/core` | `--dry-run` only lists the changes |
 
 Moving from 0.1? [Upgrade from 0.1](/docs/upgrade) walks through `migrate` and the few steps it leaves to you.
 
 `doctor` checks package versions, provider wiring, ignored generated files, pages and links no route reaches, colliding service names, `requires` entries that name nothing, plugin dependency cycles, slot files that target no layout, missing package styles and agent files that are out of sync.
+
+For the server half it fails when browser code imports server code: it follows value imports from the generated client files, the discovered client files and every `'use client'` file, and reports one that reaches a `server/` folder, `@bitakit/core/server` or `bitakit.gen.server` (type-only imports and `'use server'` modules are fine). It also fails when server code imports React, `@bitakit/ui` or its plugin's `ui/`, and when code imports the generated server file although no plugin has a server half. It warns when exposed operations have no route that calls `fetchHandler`, when operations need a signed-in caller and no service provides `requestContext`, and when the installed `@bitakit/discovery` does not read `server/` folders.
 
 ## Check a page without a browser
 

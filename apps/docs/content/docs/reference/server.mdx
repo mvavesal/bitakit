@@ -1,0 +1,236 @@
+---
+title: Server reference
+description: Server Actions, the request context, error codes, remote, the RPC route and the server kernel.
+---
+
+Read [The server half](/docs/concepts/server) first for the design. Everything on this page is
+imported from `@bitakit/core/server` unless it says `@bitakit/core`. Never import
+`@bitakit/core/server`, a `server/` file or `src/bitakit.gen.server.ts` from browser code;
+`npx bitakit doctor` reports it.
+
+## Files
+
+| File                                      | What it is                                                                                     |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `server/actions/<name>.ts`                | Server Action (operation) `<plugin>.<name>`, printed as `server:<plugin>.<name>`               |
+| `server/services/<name>.ts`               | Server service `<plugin>.<name>`, one instance for the process                                 |
+| `server/interceptors/<name>.ts`           | Server interceptor around operations                                                           |
+| `server/contributions/<folder>/<name>.ts` | A file of a contribution kind declared with `runtime: 'server'` ([kinds](#contribution-kinds)) |
+| `src/server/...`                          | The app module's server half; its operation IDs have no prefix                                 |
+| `src/bitakit.gen.server.ts`               | Generated while a module has server content: `createBitaKitServerConfig()` and `server`        |
+
+After `server/`, the client's spellings apply: `server/actions.add.ts` and a record file
+`server/actions.ts` exporting `{ add }` declare the same ID. Every other file under `server/` is
+the module's own code (a database module, helpers) and is not discovered. Shared declarations
+(`events.ts`, `settings.ts`, `permissions.ts`, `configs/`) are read on both sides.
+
+## Server Action properties
+
+| Property      | Type                                                     | Default       | What it does                                                                              |
+| ------------- | -------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------- |
+| `access`      | `'public' \| 'user' \| 'organization' \| { permission }` | required      | Who may call it; see [access](#access-and-ctx)                                            |
+| `expose`      | `boolean`                                                | `false`       | Publishes the operation over HTTP and in `remote`; otherwise in-process only              |
+| `input`       | schema (zod, valibot, Standard Schema, `{ parse }`)      | none          | Validates and types the input once; without it the input must be absent                   |
+| `output`      | schema                                                   | none          | Checks the result and returns the validator's value (zod/valibot objects drop extra keys) |
+| `execute`     | `(context) => result`                                    | required      | The operation                                                                             |
+| `requires`    | `string[]`                                               | none          | Server services of other plugins it uses; checked at startup                              |
+| `title`       | `string`                                                 | none          | Shown by `server.operations()` and tools; static only                                     |
+| `description` | `string`                                                 | none          | As `title`                                                                                |
+| `metadata`    | any                                                      | none          | Your own data; Core never reads it                                                        |
+| `id`          | `string`                                                 | from the file | Explicit ID for manual composition                                                        |
+
+Client-only fields (`enabled`, `visible`, `href`, `dialog`, `confirm`, `slots`, `groups`,
+`order`, `shortcut`, `icon`, `tooltip`, `variant`, `checked`, `value`, `concurrency`, `success`,
+`failure`, `internal`, ...) are type errors and startup errors. `access`, `expose` and `output`
+in a client Action fail too: that file is the button. Name segments `then`, `catch`, `finally`,
+`subscribe`, `toJSON`, `valueOf`, `toString`, `constructor` and `prototype` cannot name an
+operation. Two operations whose IDs differ only in case are a startup error.
+
+`execute` receives:
+
+| Field      | What it is                                                                                                |
+| ---------- | --------------------------------------------------------------------------------------------------------- |
+| `input`    | The validated input                                                                                       |
+| `ctx`      | The caller's identity, typed by `access`                                                                  |
+| `services` | Server services: `services.<plugin>.<name>`, never the client's                                           |
+| `config`   | `config.plugin` and `config.action`, as on the client                                                     |
+| `events`   | Emit this plugin's events; listeners receive this call's `ctx`                                            |
+| `settings` | Setting handles with `load()` for this call ([settings](/docs/reference/settings#settings-on-the-server)) |
+| `signal`   | Aborts when the request is aborted                                                                        |
+| `id`       | The operation ID                                                                                          |
+
+## Access and `ctx`
+
+| `access`                                | Admits                                                       | `ctx`                                                      |
+| --------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
+| `'public'`                              | Everyone; the provider is not asked                          | `{ requestId, signal }`                                    |
+| `'user'`                                | A signed-in user                                             | plus `user` (`id`, `name?`, `email?`)                      |
+| `'organization'`                        | A user with a verified active organization                   | plus `organization` (`id`), `member` and `can(permission)` |
+| `{ permission: { todos: ['delete'] } }` | As `'organization'`, and the provider's `can` answers `true` | as `'organization'`                                        |
+
+Permission resources and operations are typed against the plugins' `permissions.ts` and checked
+at startup. `ctx.can()` resolves to `true` only when the provider's `can` answers exactly
+`true`; a missing `can` or a throw denies. `ctx` and its parts are frozen.
+
+The identity comes from the app's `requestContext` provider
+([authentication reference](/docs/reference/authentication#server-identity-the-requestcontext-provider)).
+While any operation is not `public` and no service provides `requestContext`, the server refuses
+to start and names the operation and the fix. A provider that throws answers 500 and grants
+nothing.
+
+When the request carries the header `x-bitakit-organization` (`remote` sends it) or a call passes
+`organizationId`, an organization-scoped operation answers `CONFLICT` with the reason
+`ORGANIZATION_CHANGED` if the session's organization differs. An empty value means "no
+organization"; an absent one skips the check.
+
+## Errors
+
+```ts title="server/actions/remove.ts (excerpt)"
+throw new OperationError('NOT_FOUND', 'This bookmark no longer exists.');
+```
+
+`new OperationError(code, safeMessage, { issues?, reason?, requestId?, cause? })`. Only
+`code`, `message` (the safe message), `issues`, `reason` and `requestId` leave the server; `cause`
+and the stack stay in the log. The kernel passes only real `OperationError`s through: any other
+error, also an object with a `code` field, answers `INTERNAL_SERVER_ERROR` with a `requestId`
+and is logged once with it. `isOperationError(value)` checks the brand, across package copies.
+Both are also exported from `@bitakit/core` for client code.
+
+| Code                     | Status | Raised by                                                                                           |
+| ------------------------ | ------ | --------------------------------------------------------------------------------------------------- |
+| `BAD_REQUEST`            | 400    | Invalid input (`issues: [{ path, message }]`), input for an operation without `input`, invalid JSON |
+| `UNAUTHORIZED`           | 401    | No signed-in user for a non-public operation                                                        |
+| `FORBIDDEN`              | 403    | `reason` `NO_ACTIVE_ORGANIZATION`, `NOT_A_MEMBER`, `PERMISSION` or `INTERCEPTED`; a foreign origin  |
+| `NOT_FOUND`              | 404    | An unknown or private operation (identical answers)                                                 |
+| `METHOD_NOT_SUPPORTED`   | 405    | Any method but `POST` (`Allow: POST`)                                                               |
+| `CONFLICT`               | 409    | `reason: 'ORGANIZATION_CHANGED'`                                                                    |
+| `PAYLOAD_TOO_LARGE`      | 413    | A body over `maxBodyBytes`                                                                          |
+| `UNSUPPORTED_MEDIA_TYPE` | 415    | A body that is not `application/json`                                                               |
+| `TOO_MANY_REQUESTS`      | 429    | Your code; there is no built-in rate limit                                                          |
+| `INTERNAL_SERVER_ERROR`  | 500    | Any other error, an invalid `output`, a throwing provider or schema                                 |
+| `SERVICE_UNAVAILABLE`    | 503    | The server failed to start or is stopping, the network failed, or no operations are configured      |
+
+Kernel-made 4xx answers carry no `requestId`; 500 and 503 answers do. An Action's default
+failure message shows an `OperationError`'s `safeMessage` in every environment.
+
+## `remote`
+
+Client Actions and services receive `remote` in their context: one function per exposed
+operation, typed from `ServerActionMap`. A private operation is a type error.
+
+```ts title="services/list.ts (excerpt)"
+const bookmarks = await remote.bookmarks.list(undefined, { signal });
+```
+
+| Option           | What it does                                                                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `signal`         | Aborts the request; the call rejects with the abort reason                                                                                          |
+| `organizationId` | The organization the data was loaded under; `null` or `''` means none. Defaults to the `auth` snapshot's `organizationId` while a user is signed in |
+
+A call resolves with `data` of a 2xx `{ "data": ... }` answer (or `undefined` for `{}`). An
+`{ "error": ... }` answer rejects with the rebuilt `OperationError`. Anything else, such as a
+proxy's HTML page, rejects with the code of its HTTP status and "The server sent an unexpected
+answer." A network failure rejects with `SERVICE_UNAVAILABLE`. When the app has no exposed
+operations, every call rejects with `SERVICE_UNAVAILABLE` instead of a `TypeError`.
+`createRuntime(config, { remote })` and `mountPlugin(folder, { remote })` replace it, for
+example with a server's in-process caller in a test.
+
+## The route
+
+`POST <endpoint>/<operation id>` with a JSON body serves every exposed operation. The endpoint is
+`/api/rpc` unless `bitakit.config.ts` sets `server: { endpoint }`; the generated server file and
+`remote` both follow it. `npx bitakit add action <plugin>/<name> --server` writes the route when
+no route answers the endpoint yet.
+
+```ts title="src/app/api/rpc/[...path]/route.ts"
+import { fetchHandler } from '@bitakit/core/server';
+import { server } from '@/bitakit.gen.server';
+
+// Every BitaKit server operation the browser calls: POST /api/rpc/<operation id>.
+export const POST = fetchHandler(server);
+```
+
+```ts title="src/routes/api/rpc.$.ts"
+import { createFileRoute } from '@tanstack/react-router';
+// Types the server option even when tsr generate wrote routeTree.gen.ts without Start's types.
+import type {} from '@tanstack/react-start';
+import { fetchHandler } from '@bitakit/core/server';
+import { server } from '../../bitakit.gen.server';
+
+const handle = fetchHandler(server);
+
+// Every BitaKit server operation the browser calls: POST /api/rpc/<operation id>.
+export const Route = createFileRoute('/api/rpc/$')({
+  server: { handlers: { POST: ({ request }) => handle(request) } },
+});
+```
+
+| `fetchHandler(server, options)` option | Default           | What it does                                                                        |
+| -------------------------------------- | ----------------- | ----------------------------------------------------------------------------------- |
+| `origin`                               | the request's URL | The app's public origin, when a proxy changes the request URL                       |
+| `trustedOrigins`                       | none              | Further exact origins (`https://admin.example.com`); `*`, patterns and `null` throw |
+| `maxBodyBytes`                         | `1048576` (1 MiB) | Largest body; must be a whole number                                                |
+
+The operation ID is the last path segment, matched exactly (no case folding, no decoding; more
+segments answer 404). A browser request must come from the app's own origin or an exact trusted origin: the
+browser's `Sec-Fetch-Site: same-origin` settles it, otherwise the `Origin` must equal `origin`
+(when set, for apps behind a proxy) or, without it, the request URL's origin or the `Host` the
+browser sent (hosts such as Next.js may hand the handler `localhost` for a page served at
+`127.0.0.1`). A cross-site request is refused with 403, and a request with neither an `Origin`
+nor a `Sec-Fetch-Site` header (a server-to-server client) is allowed. Every answer has `cache-control: no-store`. Cross-origin browser calls are not supported yet: there is no CORS
+preflight (`OPTIONS` answers 405).
+
+## The server kernel
+
+`src/bitakit.gen.server.ts` exports `server`, created with
+`createServer(createBitaKitServerConfig(), { instance: 'bitakit', endpoint, stamp, operations })`.
+Importing it boots nothing.
+
+| Member                                      | What it does                                                                                                                                                           |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server.as(request)`                        | An in-process caller (`caller.bookmarks.list()`) with the request's identity; every operation, also private ones, with the same checks. Takes a `Request` or `Headers` |
+| `server.call(id, input, request, options?)` | One call by ID; `exposedOnly` (default `true`) admits only exposed operations by exact ID                                                                              |
+| `server.operations()`                       | The compiled operations: `{ id, plugin, access, exposed, title?, description?, source? }`                                                                              |
+| `server.ready`                              | Resolves when every server service's `onStart` finished; the first use boots                                                                                           |
+| `server.stop()`                             | Waits for in-flight calls, then stops the services; later calls answer `SERVICE_UNAVAILABLE`                                                                           |
+| `server.endpoint`                           | The HTTP prefix `fetchHandler` serves                                                                                                                                  |
+
+Call options: `signal`, `organizationId`, `requestId`. `createServer(config, options)` also
+accepts `services` (host services, as in `createRuntime`) and `plugins` (extra host plugins), for
+a manually composed server. A failed start answers `SERVICE_UNAVAILABLE` to every call and logs
+the startup error once.
+
+With `instance`, the kernel is registered for the whole process with its `stamp`, so several
+copies of the generated module share one kernel. In development a changed stamp (a changed file
+under `server/`) replaces the kernel on the next call after in-flight calls finish; in production
+the first kernel stays.
+
+## Services, settings, events and interceptors on the server
+
+- **Services** (`defineService` from `@bitakit/core/server`) get
+  `{ services, config, events, settings, store, onStart, onStop }`, without `remote`. One
+  instance serves every request; take the owner as a method argument. See [Service reference](/docs/reference/services#server-services).
+- **Settings** load per request: `await settings.<plugin>.<name>.load()`; see
+  [Settings on the server](/docs/reference/settings#settings-on-the-server).
+- **Events** are delivered in the server process; listeners receive `(event, { signal, ctx })`.
+  They never reach the browser.
+- **Interceptors** (`defineInterceptor` from `@bitakit/core/server`, `action: 'bookmarks.*'`)
+  run after the access check and input validation. `before` sees the validated input and `ctx`;
+  a throw rejects the call and `false` rejects it with `FORBIDDEN` (`INTERCEPTED`). `after` and
+  `onError` observe and are not awaited. Plugin interceptors see their own plugin's operations
+  unless `scope: 'global'`. Client interceptors never match server operations.
+
+## Contribution kinds
+
+An integration kind in `bitakit.config.ts` `kinds` (or a package's discovery metadata) may declare
+where its files run:
+
+| `runtime`          | Files live in                             | Imported by                                                    |
+| ------------------ | ----------------------------------------- | -------------------------------------------------------------- |
+| `client` (default) | `<module>/contributions/<folder>/`        | The client files                                               |
+| `server`           | `<module>/server/contributions/<folder>/` | Only `src/bitakit.gen.server.ts`                               |
+| `both`             | `<module>/contributions/<folder>/`        | Both; the kind's `from` module must work in browser and server |
+
+A file on the wrong side is a generation error that names the path it belongs at. On the server
+an installer for the kind is optional: `contributionsOf(server config or plugins, kind)` returns
+`{ plugin, value }` for every file.

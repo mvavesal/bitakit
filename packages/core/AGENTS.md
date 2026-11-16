@@ -10,6 +10,8 @@ rarely call the runtime directly: files in `src/plugins/<id>/` are discovered, a
 
 ## The define helpers (import from `@bitakit/core`)
 
+Files under `server/` import the same helpers from `@bitakit/core/server` (see below).
+
 | File (in a plugin)       | Helper                                                         | ID                 |
 | ------------------------ | -------------------------------------------------------------- | ------------------ |
 | `services/<name>.ts`     | `defineService(({ store, events, settings, onStart }) => ...)` | `<plugin>.<name>`  |
@@ -23,6 +25,47 @@ rarely call the runtime directly: files in `src/plugins/<id>/` are discovered, a
 | `setup.ts`               | `Setup` function (`scope.slots.attach`, cleanup)               | —                  |
 
 The app declares its base roles once in `src/roles.ts` with `defineRoles({ ... }, { customRoles })`.
+
+## The server half (`@bitakit/core/server`)
+
+A plugin's `server/` folder runs only on the server and is never bundled for the browser.
+
+| File (in a plugin)              | Helper (from `@bitakit/core/server`)                           | ID                                    |
+| ------------------------------- | -------------------------------------------------------------- | ------------------------------------- |
+| `server/actions/<name>.ts`      | `defineAction({ access, expose?, input?, output?, execute })`  | `<plugin>.<name>`, `server:` in tools |
+| `server/services/<name>.ts`     | `defineService(() => ...)`: one instance for the whole process | `<plugin>.<name>` (server services)   |
+| `server/interceptors/<name>.ts` | `defineInterceptor({ action: '<plugin>.*', before, after })`   | —                                     |
+| `server/contributions/<dir>/…`  | Files of a contribution kind declared with `runtime: 'server'` | —                                     |
+
+- `access` is required: `'public'`, `'user'`, `'organization'` or
+  `{ permission: { resource: ['operation'] } }`. `expose: true` publishes the operation over
+  HTTP and in the client's typed `remote` (`remote.<plugin>.<name>(input)` in client Actions
+  and services); without it the operation is callable only in-process (`server.as(request)`).
+- `execute({ id, input, ctx, services, config, events, settings, signal })`: `ctx` is the frozen,
+  verified identity (`requestId`, `signal`, plus `user`, `organization`, `member`, `can()` by
+  access). Filter every query by `ctx.user.id` or `ctx.organization.id`; server services take
+  `ctx` or the owner ID as a method argument and never hold per-user state.
+- Identity comes from one app service with `provides: requestContext` (`resolve(request)` →
+  `{ user, organization?, member?, reason?, can? }`). It returns an organization only for a
+  verified, active membership; `can` grants only by answering exactly `true`. Without a provider
+  the server refuses to start while a non-public operation exists.
+- Throw `OperationError(code, safeMessage, { issues?, reason? })` for expected failures (codes
+  `BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `TOO_MANY_REQUESTS`, ...);
+  anything else answers 500 with a `requestId` and is logged. `remote` rejects with the same
+  `OperationError` (also exported from `@bitakit/core`, with `isOperationError`), and an Action's
+  default failure message shows its `safeMessage`.
+- On the server, settings load per request: `await settings.<plugin>.<name>.load()` (in an
+  operation; `load(ctx)` elsewhere) through a `settings.storage` provider; `get()` throws.
+  `store()` is process-wide. Events reach in-process listeners with `{ signal, ctx }` and never
+  the browser. Interceptor `before` sees validated input; returning `false` rejects the call
+  (`FORBIDDEN`, reason `INTERCEPTED`). Client interceptors never match server Actions.
+- The route: `export const POST = fetchHandler(server)` with `server` from the generated
+  `src/bitakit.gen.server.ts` (Next.js: `src/app/api/rpc/[...path]/route.ts`). It accepts only
+  `POST <endpoint>/<operation id>` with JSON from the app's origin (`trustedOrigins` for exact
+  others), up to 1 MiB; `server.endpoint` (default `/api/rpc`) comes from `bitakit.config.ts`
+  `server.endpoint`.
+- Reserved name segments (`then`, `catch`, `finally`, `subscribe`, `toJSON`, `valueOf`,
+  `toString`, `constructor`, `prototype`) cannot name a server Action.
 
 ## Roles and permissions
 
@@ -57,13 +100,25 @@ The app declares its base roles once in `src/roles.ts` with `defineRoles({ ... }
 one plugin under Node (no browser); `plugin.execute(id, input)` resolves to the outcome
 (`completed` or `skipped`) and rejects on failure; `plugin.events.recorded` lists emitted events.
 
+`mountServer(folder, { plugins?, services?, configOverrides?, kinds?, app? })` boots a folder's
+server half (shared files plus `server/`, loaded with the app's tsconfig `paths`);
+`mounted.as(identity({ user, organization, member, permissions, reason }))` calls every
+operation, also private ones, with the same checks as over HTTP. A test `requestContext`
+provider answers it and replaces the folder's own. Test each exposed operation as a member, a
+member of another organization and signed out (`user: null`). `mountPlugin(folder, { remote })`
+connects a client half to `mounted.as(...)` or a stub. `mountServer` needs
+`@bitakit/discovery` 0.3.1 or later.
+
 ## Rules
 
 - One `defineAction` shape; state belongs in a service `store()`, replaced with `state.set`.
 - Reading a missing service throws; list other plugins' services in `requires`, or check
   `app.has(name)` for optional ones.
 - Only the declaring plugin emits its events; others listen.
-- `enabled`, `visible` and interceptors are client rules; authorize on the server.
+- `enabled`, `visible` and interceptors are client rules; authorize in the server operation's
+  `access` and filter its data by `ctx`.
+- Browser code never imports `server/` files, `@bitakit/core/server` or
+  `src/bitakit.gen.server.ts`; server code never imports React or `ui/` (`bitakit doctor` checks).
 
 ## Identifier compatibility and integration contexts
 
@@ -106,7 +161,8 @@ Origin records may carry `metadataLocation` for diagnostics. Rebinding a definit
 existing `metadataWarnings`. The runtime's application module has local origin; unknown
 replacement plugins remain unknown. Static inventory may include `selected` and
 `diagnostics.identityConflicts`; physical record keys are not portable package identities.
-The optional `@bitakit/core/testing` entry requires Discovery 0.2.5 or later.
+The optional `@bitakit/core/testing` entry requires Discovery 0.2.5 or later; `mountServer`
+needs 0.3.1 or later.
 
 ### Complete cohort replacement
 

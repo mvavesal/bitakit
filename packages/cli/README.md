@@ -127,10 +127,31 @@ the plugin starts, then stops it; a stand-in for Shell is included when the plug
 in `shell.*` slots. The command prints the setup the app still lacks as commands (missing dev
 dependencies, `"type": "module"`, a `test` script) and never edits `package.json`.
 
+### Server operations
+
+`--server` writes into a plugin's server half (`server/`, never bundled for the browser):
+
+```sh
+npx bitakit add action notes/archive --server      # server/actions/archive.ts → server:notes.archive
+npx bitakit add service notes/store --server       # server/services/store.ts
+npx bitakit add interceptor notes/audit --server   # server/interceptors/audit.ts
+```
+
+`add action … --server` also writes `tests/notes.archive.server.test.ts` (a member, a member of
+another organization and a signed-out caller, through `mountServer`), the button
+`actions/archive.ts` that calls `remote.notes.archive(input)` when the plugin has no button with
+that ID, and the RPC route when no route calls `fetchHandler`: `src/app/api/rpc/[...path]/route.ts`
+in Next.js (`app/` without `src/app`), `src/routes/api/rpc.$.ts` with TanStack Start, none in an
+app without a server host. The endpoint follows `server.endpoint` of `bitakit.config.ts`. The
+command prints the missing setup: `npm install zod`, the test setup, the `requestContext` provider
+when no server service provides it, and newer `@bitakit/core`/`@bitakit/discovery` when the
+installed ones lack the server half. It refuses inside a plugin package and for reserved names
+(`then`, `catch`, `finally`, `subscribe`, `constructor`, `prototype`).
+
 ## Generate and migrate
 
 ```sh
-npx bitakit generate            # write src/bitakit.gen.* from the plugin folders and installed packages
+npx bitakit generate            # write src/bitakit.gen.* (and bitakit.gen.server.ts for server halves)
 npx bitakit generate --watch    # keep regenerating while files change
 npx bitakit migrate --dry-run   # list the changes from a 0.1 layout
 npx bitakit migrate             # apply them: bitakit.config.ts, folder-only files, ui/, generated imports,
@@ -148,7 +169,7 @@ dev dependency if the project does not list it yet.
 ```sh
 npx bitakit doctor          # human-readable report, exit code 1 on problems
 npx bitakit doctor --json   # for CI
-npx bitakit info [--json]   # the plugins, services, actions, events and pages discovery finds
+npx bitakit info [--json]   # the plugins, services, actions, events and pages; server ones as server:<id>
 npx bitakit slots [--json]  # every slot you can fill: owner, accepts and this app's contributions
 npx bitakit shell           # the app's frame: what renders, the candidates, the choice
 npx bitakit shell use <name>  # pick a frame: writes choose in bitakit.config.ts (reset removes it)
@@ -196,6 +217,18 @@ files, plugin pages and links no route reaches, colliding service names, `requir
 name nothing, plugin dependency cycles, missing package styles, deprecated layouts, replaceable
 parts without a decision (several candidates in the app's files, or `choose` entries for unknown
 or non-single slots) and agent files that are out of sync, and prints a fix for each problem.
+
+For plugins' server halves, doctor walks the browser's import graph: from the generated client
+files, the discovered client files and every `'use client'` file (in TanStack apps also the
+route files, without the code Start strips) it follows value imports through tsconfig `paths`
+and fails when one reaches a `server/` folder, `@bitakit/core/server` or `bitakit.gen.server`.
+Type-only imports and `'use server'` modules are not followed. It also fails when server code
+imports React, `@bitakit/ui` or its own module's `ui/`, and when code imports the generated server
+file while no module has a server half. It warns when exposed operations have no route that calls
+`fetchHandler`, when non-public operations have no `requestContext` provider (skipped when a
+`provides` cannot be read statically), and when the installed `@bitakit/discovery` does not read
+`server/` folders. `info` reports server Actions, services and interceptors with the kinds
+`server-action`, `server-service` and `server-interceptor` and prints them as `server:<id>`.
 
 The `requires` check reads the string literals of `requires` in services, actions, interceptors
 and in `export const requires` of provider files. A name must be a service ID, an `exposeAs`

@@ -149,17 +149,18 @@ With a schema, `input` and the result are inferred; there is nothing to repeat i
 
 The operation itself. It receives one context object:
 
-| Field           | What it is                                                                                    |
-| --------------- | --------------------------------------------------------------------------------------------- |
-| `input`         | The value the binding or caller passed, validated when the action has a schema                |
-| `services`      | Every service: `services.todos.list`, `services.auth`                                         |
-| `config`        | `config.plugin` and `config.action` scopes; see [configuration](/docs/concepts/configuration) |
-| `app`           | The app: `app.services`, `app.actions`, `app.events`, `app.config`, `app.has()`               |
-| `events`        | Emit this plugin's events                                                                     |
-| `signal`        | Aborts when the registration is disposed or a newer `latest` run supersedes this one          |
-| `id`            | This action's ID                                                                              |
-| `get()`         | The current snapshot of this registration                                                     |
-| `update(patch)` | Changes this registration's registered values, for example `update({ checked: true })`        |
+| Field           | What it is                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| `input`         | The value the binding or caller passed, validated when the action has a schema                        |
+| `services`      | Every service: `services.todos.list`, `services.auth`                                                 |
+| `config`        | `config.plugin` and `config.action` scopes; see [configuration](/docs/concepts/configuration)         |
+| `app`           | The app: `app.services`, `app.actions`, `app.events`, `app.config`, `app.has()`                       |
+| `events`        | Emit this plugin's events                                                                             |
+| `remote`        | The app's exposed server operations: `remote.todos.add(input)`; see [Server Actions](#server-actions) |
+| `signal`        | Aborts when the registration is disposed or a newer `latest` run supersedes this one                  |
+| `id`            | This action's ID                                                                                      |
+| `get()`         | The current snapshot of this registration                                                             |
+| `update(patch)` | Changes this registration's registered values, for example `update({ checked: true })`                |
 
 ```ts
 // src/plugins/todos/actions/add.ts
@@ -253,14 +254,14 @@ export default defineAction<string>({
 
 Each accepts:
 
-| Value                             | Meaning                                                                                                                                                                               |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| omitted                           | The `<id>.success` or `<id>.failure` catalog key when the catalog has it; otherwise silent success, and for failures the error message in development or a generic text in production |
-| `'Text'`                          | The text; it is tried as a translation key first                                                                                                                                      |
-| `{ messageKey, values }`          | A translation key with values, for example `{ messageKey: 'todos.added', values: { title: input } }`                                                                                  |
-| `{ message, closeDialog: false }` | Text that keeps a dialog open                                                                                                                                                         |
-| `false`                           | No message                                                                                                                                                                            |
-| a function                        | Receives `{ result, input, services }` or `{ error, input, services }` and returns one of the above                                                                                   |
+| Value                             | Meaning                                                                                                                                                                                                                           |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| omitted                           | The `<id>.success` or `<id>.failure` catalog key when the catalog has it; otherwise silent success, and for failures an `OperationError`'s safe message, or else the error message in development or a generic text in production |
+| `'Text'`                          | The text; it is tried as a translation key first                                                                                                                                                                                  |
+| `{ messageKey, values }`          | A translation key with values, for example `{ messageKey: 'todos.added', values: { title: input } }`                                                                                                                              |
+| `{ message, closeDialog: false }` | Text that keeps a dialog open                                                                                                                                                                                                     |
+| `false`                           | No message                                                                                                                                                                                                                        |
+| a function                        | Receives `{ result, input, services }` or `{ error, input, services }` and returns one of the above                                                                                                                               |
 
 Messages go to your provider's `notify(message, kind)` callback, for example a toast; Shell supplies one. Bindings also receive the failure as an `ActionFailure` in `onError`: its `message` is the failure text and its `cause` the original error. Messages never change the outcome of a run.
 
@@ -701,6 +702,41 @@ export default defineService(({ store }) => {
   };
 });
 ```
+
+## Server Actions
+
+An Action in a plugin's `server/actions/` folder is a server Action: the operation behind a
+button, run only on the server. It uses the same `defineAction`, imported from
+`@bitakit/core/server`, with server fields instead of presentation fields:
+
+```ts title="src/plugins/todos/server/actions/add.ts (excerpt)"
+import { defineAction } from '@bitakit/core/server';
+import { z } from 'zod';
+
+export default defineAction({
+  access: 'organization',
+  expose: true,
+  input: z.object({ title: z.string().min(1) }),
+  execute: ({ input, ctx }) => ({ title: input.title, organizationId: ctx.organization.id }),
+});
+```
+
+| Property  | What it does                                                                                   |
+| --------- | ---------------------------------------------------------------------------------------------- |
+| `access`  | Required: `'public'`, `'user'`, `'organization'` or `{ permission: { todos: ['delete'] } }`    |
+| `expose`  | `true` makes it callable from the browser through `remote`; otherwise it is server-only        |
+| `input`   | Validated once on the server; without it the operation takes no input                          |
+| `output`  | Checks the result and returns the validator's value                                            |
+| `execute` | Receives `{ id, input, ctx, services, config, events, settings, signal }`; `ctx` is the caller |
+
+The button (`actions/add.ts`) and the operation (`server/actions/add.ts`) may share the ID
+`todos.add`: they live in separate maps, and tools print the operation as `server:todos.add`.
+Client Actions call exposed operations with `remote.todos.add(input)`, which rejects with an
+`OperationError`; client interceptors never match server Actions. Client-only fields (`enabled`,
+`confirm`, `slots`, ...) in a server Action, and `access`, `expose` or `output` in a client
+Action, are startup errors. The
+[Server reference](/docs/reference/server) has every property, the error codes and the route;
+[The server half](/docs/concepts/server) explains the design.
 
 ## Owning a standalone ActionList
 

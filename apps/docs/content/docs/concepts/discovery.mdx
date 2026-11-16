@@ -75,7 +75,7 @@ A folder and a dot mean the same in a file path, so a flat layout works as well:
 
 ## What is discovered
 
-A TypeScript or TSX file participates when it has a default export; discovery detects the export with the TypeScript parser and never executes ordinary contribution modules. Manifests (`plugin.config.ts`) and `bitakit.config.ts` are loaded and must be trusted code. Files without a default export are reported as skipped; prefix helper files with `-` to silence that. Declaration files and anything under `server/` are excluded. Under `ui/`, discovery reads `pages/`, `slots/`, `providers/` and the special `settings/page.tsx`; other files, including dialogs, are ordinary components referenced by contributions. React imports belong under `ui/`.
+A TypeScript or TSX file participates when it has a default export; discovery detects the export with the TypeScript parser and never executes ordinary contribution modules. Manifests (`plugin.config.ts`) and `bitakit.config.ts` are loaded and must be trusted code. Files without a default export are reported as skipped; prefix helper files with `-` to silence that. Declaration files are excluded. Files under `server/` are read only for the [server half](/docs/concepts/server) and never enter the browser's files: `server/actions`, `server/services`, `server/interceptors` and `server/contributions/<folder>` follow the same spellings as their client folders, and every other file there is the plugin's own code. Under `ui/`, discovery reads `pages/`, `slots/`, `providers/` and the special `settings/page.tsx`; other files, including dialogs, are ordinary components referenced by contributions. React imports belong under `ui/`.
 
 | File                       | Meaning                                                                   |
 | -------------------------- | ------------------------------------------------------------------------- |
@@ -89,13 +89,15 @@ A TypeScript or TSX file participates when it has a default export; discovery de
 | `ui/pages/[id].tsx`        | Page `/todos/:id`, receives `params.id`                                   |
 | `ui/slots/app-bar.end.tsx` | Component in slot `app-bar.end`                                           |
 | `ui/providers/query.tsx`   | React provider `todos.query`                                              |
+| `server/actions/add.ts`    | Server Action (operation) `todos.add`, printed as `server:todos.add`      |
+| `server/services/store.ts` | Server service `todos.store`, used by the operations                      |
 
 A default export may also be a record of definitions (`actions/index.ts` exporting `{ add, clear }` equals two files). Duplicate logical paths are errors that name both files. Class and factory action exports are not discovered.
 
 ## Automatic loading, step by step
 
 1. The framework adapter (`withBitaKit` in `next.config.ts`, `bitakit()` in `vite.config.ts`) runs discovery before the build and watches during development.
-2. Discovery writes `src/bitakit.gen.tsx` (the React provider) and `src/bitakit.gen.config.ts` (`createBitaKitConfig()` and the typed maps), `src/bitakit.gen.css` (styles of installed packages) and `src/bitakit.gen.messages.json` (plugin locales).
+2. Discovery writes `src/bitakit.gen.tsx` (the React provider) and `src/bitakit.gen.config.ts` (`createBitaKitConfig()` and the typed maps), `src/bitakit.gen.css` (styles of installed packages) and `src/bitakit.gen.messages.json` (plugin locales). While a plugin has a server half it also writes `src/bitakit.gen.server.ts`, the server kernel that the RPC route imports; browser code never imports it.
 3. The root layout renders `<BitaKitProvider>` from `@/bitakit.gen`, which mounts the runtime.
 4. Core creates the services, registers the actions and installs interceptors and UI.
 5. Bindings read the live action state and service stores.
@@ -153,7 +155,7 @@ export default defineBitaKit({
 });
 ```
 
-Other options: `directory` and `plugins.directory` move the roots, `plugins.autoEnable: false` turns plugins off unless enabled, `interceptors.enabled` selects app interceptors, `strict: false` allows unknown action IDs, `groups` declares action groups and `kinds` adds integration contribution kinds. See [overrides](/docs/concepts/overrides).
+Other options: `directory` and `plugins.directory` move the roots, `plugins.autoEnable: false` turns plugins off unless enabled, `interceptors.enabled` selects app interceptors, `strict: false` allows unknown action IDs, `groups` declares action groups, `kinds` adds integration contribution kinds (with `runtime: 'server'` their files live in `server/contributions/<folder>`) and `server.endpoint` moves the RPC route from `/api/rpc`. See [overrides](/docs/concepts/overrides).
 
 ## Installed packages
 

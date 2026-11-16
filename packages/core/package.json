@@ -46,7 +46,7 @@
     "zustand": "^5.0.0"
   },
   "peerDependencies": {
-    "@bitakit/discovery": "^0.3.0",
+    "@bitakit/discovery": "^0.3.1",
     "jiti": "^2.7.0"
   },
   "peerDependenciesMeta": {

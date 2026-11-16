@@ -3,6 +3,7 @@
   "pages": [
     "actions",
     "services",
+    "server",
     "slots",
     "settings",
     "scheduler",

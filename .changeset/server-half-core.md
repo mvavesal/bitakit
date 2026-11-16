@@ -1,0 +1,5 @@
+---
+'@bitakit/core': patch
+---
+
+A plugin's server half. `@bitakit/core/server` runs the operations in a plugin's `server/actions/` folder: `defineAction` (the same helper, with server types) takes a required `access` (`'public'`, `'user'`, `'organization'` or `{ permission }`), `expose`, `input` and `output`, and `execute` receives the caller's verified, frozen `ctx`. `createServer` compiles every operation once into a stateless kernel; `fetchHandler(server)` serves `POST /api/rpc/<operation id>` with JSON, same-origin checks and a 1 MiB body limit; `requestContext` is the contract the app's authentication provider implements; `OperationError` carries safe error codes and messages to the browser. Client Actions and services receive a typed `remote` for the exposed operations, and an Action's default failure message shows an `OperationError`'s safe message. On the server, settings load per request with `load()` and event listeners receive `ctx`. `@bitakit/core/testing` adds `mountServer` and `identity` and a `remote` option for `mountPlugin`. A client Action with `access`, `expose` or `output` is now a startup error.

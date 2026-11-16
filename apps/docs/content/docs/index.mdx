@@ -38,7 +38,7 @@ the **TypeScript API**. Both use the same plugin model and runtime.
 | A framework or a router | Your framework keeps routes, rendering and deployment; one catch-all route renders plugin pages.                                                                           |
 | A component library     | Core has no UI. `@bitakit/ui/components` is an optional set of standard components.                                                                                        |
 | A sandbox               | Plugins are trusted code in the same app. A failing plugin is reported at startup and a failing slot component is contained, but plugins are not isolated from each other. |
-| A backend               | Plugins run in your client app. Server-side plugins are planned, not shipped.                                                                                              |
+| A backend framework     | A plugin's optional `server/` folder holds its server operations, but your app keeps its database, authentication and other server code.                                   |
 
 ## Is it a fit?
 
@@ -122,6 +122,6 @@ Your added pieces stay until you reset.
   </Card>
 </Cards>
 
-These guides describe the **0.2 API in this checkout**. Keep the generator and BitaKit packages
+These guides describe the **0.3 API in this checkout**. Keep the generator and BitaKit packages
 on matching versions. The [local package workflow](/docs/local-development) runs this source
 without requiring a published release. TanStack Start support remains experimental.

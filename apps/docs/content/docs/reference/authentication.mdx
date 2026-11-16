@@ -1,12 +1,13 @@
 ---
-title: Client authentication
-description: The shared session contract, login destinations and client rendering boundaries.
+title: Authentication
+description: The client session contract, login destinations, client rendering boundaries and the server's request context.
 ---
 
 Core owns the `AuthService` contract. Optional provider plugins supply the session;
 `@bitakit/ui` observes it and uses the existing framework navigation binding.
 There is no second session store. Server authentication and authorization remain
-with the provider and application server.
+with the provider; server operations receive the verified identity from the app's
+[`requestContext` provider](#server-identity-the-requestcontext-provider).
 
 ## Better Auth and application paths
 
@@ -146,3 +147,77 @@ are working references.
 is not proof of organization membership. Server access checks remain with the provider.
 See [Integrations](/docs/integrations) for available adapters and
 [manual composition](/docs/concepts/manual-composition) for providing a contract without discovery.
+
+## Server identity: the `requestContext` provider
+
+[Server operations](/docs/concepts/server) learn who is calling from one server service in the
+app that `provides: requestContext`. Its `resolve(request)` reads the request with the app's own
+authentication and answers a `RequestIdentity`:
+
+| Field          | Meaning                                                                                        |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `user`         | The verified user (`id`, optional `name`, `email`), or `null` when signed out                  |
+| `organization` | `{ id }` only for an active, enabled membership of this user; never just an ID the client sent |
+| `member`       | The membership record (`id`, `role`), passed on as `ctx.member`                                |
+| `reason`       | Why there is no organization: `'NO_ACTIVE_ORGANIZATION'` or `'NOT_A_MEMBER'`                   |
+| `can`          | `(permission) => boolean \| Promise<boolean>` for `access: { permission }`; only `true` grants |
+
+With Better Auth and its organization plugin:
+
+```ts title="src/server/services/request-context.ts"
+import { defineService, requestContext, type RequestIdentity } from '@bitakit/core/server';
+import { auth } from '@/lib/auth'; // the app's Better Auth server instance
+
+export default defineService(
+  () => ({
+    async resolve(request: Request): Promise<RequestIdentity> {
+      const { headers } = request;
+      const session = await auth.api.getSession({ headers });
+      if (!session) return { user: null };
+      const { id, name, email } = session.user;
+      const user = { id, name, email };
+      const organizationId = session.session.activeOrganizationId;
+      if (!organizationId) return { user, organization: null };
+      // Only an active, enabled membership of this user in this organization counts.
+      const member = await auth.api.getActiveMember({ headers }).catch(() => null);
+      if (
+        !member ||
+        member.organizationId !== organizationId ||
+        member.userId !== id ||
+        member.disabled === true
+      )
+        return { user, organization: null, reason: 'NOT_A_MEMBER' };
+      return {
+        user,
+        organization: { id: organizationId },
+        member: { id: member.id, role: member.role },
+        can: async (permission) => {
+          const permissions = Object.fromEntries(
+            Object.entries(permission).map(([resource, operations]) => [resource, [...operations]]),
+          );
+          const result = await auth.api.hasPermission({ headers, body: { permissions } });
+          return result.success === true;
+        },
+      };
+    },
+  }),
+  { provides: requestContext },
+);
+```
+
+`member.disabled` exists when the Better Auth member schema declares it
+(`additionalFields: { disabled: { type: 'boolean', required: false, input: false } }`). Any other
+authentication works the same way: verify the cookie, bearer token or gateway header with the
+library you use, and answer `{ user, organization?, member?, can? }`.
+
+The kernel copies and freezes the answer: a user only with a non-empty string `id`, an
+organization only with a user and a non-empty `id`. It asks the provider once per call and only
+for non-public operations; a provider that throws answers 500 and grants nothing. While an
+operation needs a signed-in caller and no service provides `requestContext`, the server refuses
+to start and names the file to add. Tests use the provider of `mountServer` instead
+([testing](/docs/reference/testing#test-a-server-half)).
+
+On the client, `remote` sends the `organizationId` of the `auth` snapshot with every call while a
+user is signed in. The server compares it with the session's organization and answers `CONFLICT`
+when the session has moved on, so a stale page never writes to another organization. The
+snapshot's `organizationId` is still not proof of membership; only the provider decides.

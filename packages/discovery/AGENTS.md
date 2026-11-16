@@ -18,9 +18,35 @@ only need its file conventions and `bitakit.config.ts`.
 | `src/layouts/auth.tsx`, `src/layouts/auth/split.tsx` | Candidates for `layout.auth` (variant `default`, `split`) |
 | `src/plugins/brand/ui/layouts/auth/brand.tsx`        | A plugin's candidate for `layout.auth`                    |
 | `src/themes/<id>.json`                               | An app theme (with `@bitakit/shell`)                      |
+| `src/plugins/notes/server/actions/add.ts`            | Server Action `notes.add` (`server:notes.add` in tools)   |
+| `src/plugins/notes/server/services/store.ts`         | Server service `notes.store`                              |
+| `src/server/services/request-context.ts`             | The app's server service `request-context`                |
 
 Dots and folders mean the same (`actions.add.ts` equals `actions/add.ts`). Prefix helper files
 with `-`. Layout families no package declares become app-owned `layout.<family>` slots.
+
+## The server half
+
+- After the leading `server` segment, `server/actions`, `server/services`, `server/interceptors`
+  and `server/contributions/<directory>` follow the client's spellings (folders, dotted files,
+  record files). Every other file under `server/` is the module's own code and stays silent.
+- While an enabled module has server content, discovery writes `src/bitakit.gen.server.ts`:
+  `createBitaKitServerConfig()` (every enabled local module's shared `events.ts`, `settings.ts`,
+  `permissions.ts`, `configs/` and its `server/` files; no package plugins) and
+  `export const server = createServer(...)`, plus the `ServerActionMap` and `ServerServiceMap`
+  types. Without server content the file is removed. The client file then gets
+  `remote: { endpoint, operations }` with the exposed operation IDs.
+- Generation fails, naming the file, when a server Action has a client-only field, no `access`, an
+  `expose` that is not a boolean literal or a reserved name (`then`, `subscribe`, `toJSON`, ...),
+  when two server Actions differ only in case, and when a client Action has `access`, `expose` or
+  `output`. It also fails when the installed `@bitakit/core` has no `./server` entry (0.3.2 or
+  later is needed).
+- A contribution kind may declare `runtime`: `client` (default, `contributions/<directory>`),
+  `server` (`server/contributions/<directory>`, imported only by the server file) or `both`
+  (`contributions/<directory>`, imported by both files). A file on the wrong side is a generation
+  error naming the path it belongs at.
+- `bitakit.config.ts` `server: { endpoint: '/api/bitakit' }` moves the RPC endpoint (default
+  `/api/rpc`) for the server file and `remote`.
 
 ## `bitakit.config.ts` (next to package.json)
 
@@ -32,12 +58,15 @@ export default defineBitaKit({
   choose: { 'layout.auth': 'split', 'screen.not-found': 'brand' },
   plugins: { overrides: { legacy: { enabled: false } } },
   interceptors: { enabled: ['action-log'] },
+  server: { endpoint: '/api/rpc' }, // the default
 });
 ```
 
 ## Rules
 
 - Never edit `src/bitakit.gen.*`; change source files and run `npm run typecheck`.
+- Never import `src/bitakit.gen.server.ts` from browser code; only the RPC route and other server
+  code do.
 - `npx bitakit info --json` and `npx bitakit slots --json` show what discovery found.
 
 ## Identifier spelling and extension types

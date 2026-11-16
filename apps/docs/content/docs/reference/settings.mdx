@@ -50,6 +50,27 @@ export default defineAction<string>({
 Existing Action bindings handle visibility, disabled/pending state and execution. A destination
 Action with `href` can instead join `app-preferences.navigation`; groups do not select placement.
 
+## Settings on the server
+
+The same `settings.ts` declarations are read on the server, but one server process serves every
+user, so there is no current value. Server code loads a value per request:
+
+```ts title="server/actions/add.ts (excerpt)"
+execute: async ({ input, ctx, settings, services }) => {
+  const limit = await settings.todos.limit.load(); // this caller's value
+  return services.todos.store.add(ctx.organization.id, input.title, limit);
+},
+```
+
+- In an operation, `load()` uses the call's `ctx`; services and listeners pass it: `load(ctx)`.
+- `load` asks the `settings.storage` provider for the owner the setting's scope needs (the user
+  for `user`, the organization for `organization`). Without that owner in `ctx` it returns the
+  declared default and never asks the storage. A stored value that fails the setting's schema
+  also returns the default.
+- Without a service that `provides: settingsStorage` on the server, `load` throws and names the
+  fix; there is no in-memory fallback. `device` settings belong to the browser and throw.
+- `get()`, `set()`, `reset()` and `subscribe()` throw on the server.
+
 ## Customize a page
 
 `ui/settings/page.tsx` replaces generated content and receives `{ section, renderField }`.

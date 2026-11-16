@@ -1,10 +1,11 @@
 ---
 title: Testing plugins
-description: Mount a plugin folder, exercise its Actions and inspect state with automatic cleanup.
+description: Mount a plugin folder or its server half, exercise its Actions and inspect state with automatic cleanup.
 ---
 
 `mountPlugin` from `@bitakit/core/testing` runs one plugin folder without React or a framework.
 It uses the same discovery conventions as an app and awaits service startup before returning.
+`mountServer` does the same for a plugin's [server half](#test-a-server-half).
 
 ## Generate a first test
 
@@ -98,14 +99,95 @@ await plugin.execute('notes.add', 'Ship');
 assert.deepEqual(getService(plugin.services, feedService).state.get().titles, ['Ship']);
 ```
 
+## Test a server half
+
+`mountServer` boots a folder's server half: its `events.ts`, `settings.ts`, `permissions.ts` and
+`configs/`, plus `server/services`, `server/actions`, `server/interceptors` and the files of
+server-only contribution kinds. `as(identity)` calls every operation, also private ones, with the
+same access checks, input validation and interceptors as over HTTP. No route or HTTP server runs.
+
+`npx bitakit add action todos/add --server` writes a test like this one next to the operation:
+
+```ts title="tests/todos.add.server.test.ts"
+import assert from 'node:assert/strict';
+import { after, test } from 'node:test';
+import { identity, mountServer } from '@bitakit/core/testing';
+
+// The server half of todos, booted once; as() calls it as different people.
+const server = await mountServer('src/plugins/todos');
+after(() => server.stop());
+
+test('a member of the organization can call todos.add', async () => {
+  const member = server.as(identity({ organization: 'org-1' }));
+  assert.deepEqual(await member.todos.add({ title: 'First' }), {
+    title: 'First',
+    organizationId: 'org-1',
+  });
+});
+
+test('a member of another organization works in that organization only', async () => {
+  const other = server.as(identity({ user: 'user-2', organization: 'org-2' }));
+  assert.equal((await other.todos.add({ title: 'Theirs' })).organizationId, 'org-2');
+  // A page loaded for org-1 cannot write once the session has moved to org-2.
+  await assert.rejects(other.todos.add({ title: 'Stale' }, { organizationId: 'org-1' }), {
+    code: 'CONFLICT',
+  });
+});
+
+test('a signed-out caller is refused', async () => {
+  const anonymous = server.as(identity({ user: null }));
+  await assert.rejects(anonymous.todos.add({ title: 'Nope' }), { code: 'UNAUTHORIZED' });
+});
+```
+
+Test every exposed operation as a member, a member of another organization and a signed-out
+caller. A test `requestContext` provider answers every `as()` caller with its identity and
+replaces any provider the mounted folders declare, so the app's real provider is not needed.
+
+| `identity()` option | Default            | Meaning                                                                            |
+| ------------------- | ------------------ | ---------------------------------------------------------------------------------- |
+| `user`              | `{ id: 'user-1' }` | A user ID or user object; `null` is a signed-out caller                            |
+| `organization`      | none               | The organization of a verified, active membership: an ID or `{ id }`               |
+| `member`            | `null`             | The membership record `ctx.member` receives                                        |
+| `permissions`       | nothing            | Exactly what `can()` grants: `{ todos: ['delete'] }`, a resource's `'*'`, or `'*'` |
+| `reason`            | none               | `'NO_ACTIVE_ORGANIZATION'` or `'NOT_A_MEMBER'` when there is no organization       |
+
+| `mountServer` option | Purpose                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| `id`                 | Override the plugin ID (or the app module's)                                            |
+| `app`                | Mount the folder as the app module (unprefixed IDs) or as a plugin; detected by default |
+| `plugins`            | Further plugin folders (their server halves) or `definePlugin` objects                  |
+| `services`           | Host services; `requestContext` belongs to the test provider and cannot be passed       |
+| `configOverrides`    | Override developer configuration                                                        |
+| `kinds`              | Contribution kinds besides `kinds` of `bitakit.config.ts`, such as a package's          |
+
+The result has `id`, `server` (the handle with `operations()` and `call()`), `as()`,
+`import(specifier)` and `stop()`. Server files load through jiti with the nearest
+`tsconfig.json`'s `paths`, so `@/server/db` and extensionless imports work.
+`await mounted.import('src/server/db.ts')` returns the same module instance the operations use,
+to seed or inspect data; a native `import` would be a second copy. A folder keeps only its
+dependencies on mounted modules: mount a local plugin the code needs through `plugins`.
+`mountServer` needs `@bitakit/discovery` 0.3.1 or later and says so when it is older.
+
+To run a plugin's client half against its real server half, pass the in-process caller as
+`remote`:
+
+```ts
+const server = await mountServer('src/plugins/todos');
+const plugin = await mountPlugin('src/plugins/todos', {
+  remote: server.as(identity({ organization: 'org-1' })),
+});
+```
+
 ## Options and returned handles
 
-| Option            | Purpose                                                                        |
-| ----------------- | ------------------------------------------------------------------------------ |
-| `id`              | Override the ID inferred from the manifest, plugin folder or package.          |
-| `plugins`         | Other plugins for this test: plugin folders or `definePlugin` objects (stubs). |
-| `services`        | Supply host-owned services, for example a fake `auth` implementation.          |
-| `configOverrides` | Override developer configuration for the test.                                 |
+| Option            | Purpose                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| `id`              | Override the ID inferred from the manifest, plugin folder or package.                   |
+| `plugins`         | Other plugins for this test: plugin folders or `definePlugin` objects (stubs).          |
+| `services`        | Supply host-owned services, for example a fake `auth` implementation.                   |
+| `configOverrides` | Override developer configuration for the test.                                          |
+| `remote`          | Replaces `remote`: a server's in-process caller (`mountServer(...).as(...)`) or a stub. |
 
 The result contains `id`, `runtime`, `app`, `actions`, `services`, `events`, `execute` and
 `stop`. `execute('increment')` uses the mounted plugin's prefix; full Action IDs also work.

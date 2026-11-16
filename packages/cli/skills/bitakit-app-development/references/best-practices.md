@@ -161,7 +161,8 @@ events.emit('bookmarks.added', { id: bookmark.id, url: bookmark.url });
 ## Enforce permissions on the server
 
 `enabled`, `visible`, `confirm` and interceptors shape the UI in the browser. Anyone can call
-the API directly, so the API route checks the session and the input again.
+an exposed operation directly, so the server operation decides with its `access` and `input`,
+and filters every query by `ctx.user.id` or `ctx.organization.id` ([server.md](server.md)).
 
 ## Give every list its states
 
