@@ -2,11 +2,13 @@
   "name": "todo-preview",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3103",
     "build": "next build",
     "start": "next start",
     "typecheck": "bitakit generate && next typegen && tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
     "test:preview": "node verify.mjs && node verify-clear.mjs",
     "test:settings": "node verify-settings.mjs",
     "test:search": "node verify-search.mjs"

@@ -3,7 +3,7 @@ import { authService, defineService, getService } from '@bitakit/core';
 export type Item = { id: string; title: string; completed: boolean };
 
 export default defineService(
-  ({ store, services, onStart, onStop }) => {
+  ({ store, services, remote, onStart, onStop }) => {
     const auth = getService(services, authService);
     const state = store({ items: [] as Item[], pending: false, error: '', organizationId: '' });
     let revision = 0;
@@ -13,16 +13,17 @@ export default defineService(
       const snapshot = auth.getSnapshot();
       return `${snapshot.user?.id ?? ''}:${snapshot.organizationId ?? ''}`;
     };
-    /** Read current organization tasks through the existing authorized endpoint. */
+    /** Reads the current organization's tasks from the server (todos.list). */
     async function read(signal?: AbortSignal): Promise<Item[]> {
       const snapshot = auth.getSnapshot();
       if (!snapshot.user || !snapshot.organizationId) return [];
       const started = current();
-      const response = await fetch('/api/tasks', { signal });
-      if (!response.ok) throw new Error(await response.text());
-      const data = (await response.json()) as { items: Item[] };
+      const { items } = await remote.todos.list(undefined, {
+        signal,
+        organizationId: snapshot.organizationId,
+      });
       signal?.throwIfAborted();
-      return current() === started ? data.items : [];
+      return current() === started ? items : [];
     }
     async function load() {
       const run = ++revision;
@@ -63,25 +64,27 @@ export default defineService(
       // Readiness does not wait for the network; the page shows `pending` while tasks load.
       void load();
     });
-    async function change(body: Record<string, unknown>) {
+    /**
+     * Runs one operation for the organization the list was loaded under (the server answers
+     * CONFLICT once the session has moved to another one) and shows the list it answers, unless
+     * the account or organization changed meanwhile.
+     */
+    async function change(
+      operation: (options: { organizationId: string }) => Promise<{ items: Item[] }>,
+    ) {
       const started = current();
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      const data = (await response.json()) as { items: Item[] };
-      if (current() === started) state.set((value) => ({ ...value, items: data.items, error: '' }));
+      const { items } = await operation({ organizationId: state.get().organizationId });
+      if (current() === started) state.set((value) => ({ ...value, items, error: '' }));
     }
     return {
       state,
       read,
-      add: (title: string) => change({ operation: 'add', title }),
-      edit: (id: string, title: string) => change({ operation: 'edit', id, title }),
+      add: (title: string) => change((options) => remote.todos.add({ title }, options)),
+      edit: (id: string, title: string) =>
+        change((options) => remote.todos.edit({ id, title }, options)),
       complete: (id: string, completed: boolean) =>
-        change({ operation: 'complete', id, completed }),
-      remove: (id: string) => change({ operation: 'remove', id }),
+        change((options) => remote.todos.complete({ id, completed }, options)),
+      remove: (id: string) => change((options) => remote.todos.remove({ id }, options)),
       confirmClear() {
         const value = state.get();
         clearTarget = { identity: current(), revision, organizationId: value.organizationId };
@@ -96,7 +99,8 @@ export default defineService(
         clearTarget = undefined;
         if (!target || target.identity !== current() || target.revision !== revision)
           throw new Error('The account or organization changed. Confirm again to clear its tasks.');
-        return change({ operation: 'clear', organizationId: target.organizationId });
+        const { organizationId } = target;
+        return change(() => remote.todos.clear({ organizationId }, { organizationId }));
       },
     };
   },

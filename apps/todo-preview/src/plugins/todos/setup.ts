@@ -9,7 +9,10 @@ const result = (item: Item): SearchResult => ({
   href: `/todos#task-${encodeURIComponent(item.id)}`,
 });
 
-/** Extend search locally; the existing Todo service and server retain access ownership. */
+/**
+ * Extend search locally. Results come from the Todo service's `read` (the server operation
+ * todos.list), so the server keeps access ownership and a changed account drops stale answers.
+ */
 const setup: Setup = ({ scope, services }) => {
   if (!scope.slots.has('quick-search.sources')) return;
   const source: SearchSource = {
