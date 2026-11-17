@@ -20,8 +20,18 @@ export type SettingsAccess = Namespace<{
 
 const reserved = new Set(['then', 'toJSON', 'constructor', '__proto__']);
 type Branch = { children: Map<string, Branch>; handle?: SettingHandle; path: string };
-/** Validates declarations; namespace proxies follow the current store without copying values. */
-export function createSettingsAccess(store: SettingsStore): SettingsAccess {
+/**
+ * Validates declarations; namespace proxies follow the current store without copying values.
+ * `makeHandle` builds each leaf; server mode passes handles that load per request.
+ */
+export function createSettingsAccess(
+  store: SettingsStore,
+  makeHandle: (
+    store: SettingsStore,
+    key: string,
+    definition: SettingSpec<any>,
+  ) => SettingHandle = handle,
+): SettingsAccess {
   const root: Branch = { children: new Map(), path: '' };
   for (const entry of store.entries()) {
     const segments = entry.key.split('.');
@@ -37,7 +47,7 @@ export function createSettingsAccess(store: SettingsStore): SettingsAccess {
           throw new Error(
             `Setting "${entry.key}" clashes with the settings of plugin "${path}". Rename the app setting.`,
           );
-        child.handle = handle(store, entry.key, entry.spec);
+        child.handle = makeHandle(store, entry.key, entry.spec);
       } else if (child.handle)
         throw new Error(
           `Plugin "${path}" declares settings, but the app also declares a setting named "${path}". Rename the app setting.`,
@@ -67,7 +77,7 @@ export function createSettingsAccess(store: SettingsStore): SettingsAccess {
         if (store.has(key)) {
           const spec = store.definition(key).spec;
           if (handles.get(key)?.spec !== spec)
-            handles.set(key, { spec, value: handle(store, key, spec) });
+            handles.set(key, { spec, value: makeHandle(store, key, spec) });
           return handles.get(key)!.value;
         }
         if (keys().includes(resolveName(name, keys()))) return project(key);

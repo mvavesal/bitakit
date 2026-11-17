@@ -1,26 +1,26 @@
 # BitaKit packages
 
 BitaKit is a composition layer for building apps with AI agents. Its packages are published on
-npm under `@bitakit/`; this checkout is the 0.2 release line.
+npm under `@bitakit/`; this checkout is the 0.3 release line.
 
-| Package                                      | Responsibility                                                                              |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| [core](core/README.md)                       | Headless runtime, Actions, typed services and plugin lifecycle                              |
-| [discovery](discovery/README.md)             | Node-only discovery: scans plugin folders and packages, generates `src/bitakit.gen.*` (0.2) |
-| [ui](ui/README.md)                           | React providers, reactive bindings and optional standard themed components                  |
-| [next](next/README.md)                       | Next.js routing, nuqs adapter and build integration                                         |
-| [tanstack](tanstack/README.md)               | Experimental TanStack Router/Start integration                                              |
-| [app-preferences](app-preferences/README.md) | Settings UI: generated pages, controls, the settings route and plugin overview              |
-| [shell](shell/README.md)                     | Application frame: compound AppShell, layouts, slots, notifications, appearance             |
-| [quick-search](quick-search/README.md)       | A Mod+K dialog listing pages, Settings pages and plugins, plus an App Bar button            |
-| [next-intl](next-intl/README.md)             | Translation integration and optional language preferences                                   |
-| [organizations](organizations/README.md)     | Shared organization service contracts and a local test adapter                              |
-| [scheduler](scheduler/README.md)             | UI-free tasks, runtime schedule sources and in-process execution                            |
-| [email](email/README.md)                     | Provider-independent message and sending contract                                           |
-| [nodemailer](nodemailer/README.md)           | Server-side SMTP implementation of the email contract                                       |
-| [create-app](create-app/README.md)           | Native frontend scaffolding with installed BitaKit packages                                 |
-| [cli](cli/README.md)                         | `bitakit` CLI: add plugins and contributions, doctor, build plugin packages (0.2)           |
-| [devtools](devtools/README.md)               | Live Inspector for one plugin: pages, actions, services, events and config (0.2)            |
+| Package                                      | Responsibility                                                                         |
+| -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [core](core/README.md)                       | Headless runtime, Actions, typed services, plugin lifecycle and plugins' server halves |
+| [discovery](discovery/README.md)             | Node-only discovery: scans plugin folders and packages, generates `src/bitakit.gen.*`  |
+| [ui](ui/README.md)                           | React providers, reactive bindings and optional standard themed components             |
+| [next](next/README.md)                       | Next.js routing, nuqs adapter and build integration                                    |
+| [tanstack](tanstack/README.md)               | Experimental TanStack Router/Start integration                                         |
+| [app-preferences](app-preferences/README.md) | Settings UI: generated pages, controls, the settings route and plugin overview         |
+| [shell](shell/README.md)                     | Application frame: compound AppShell, layouts, slots, notifications, appearance        |
+| [quick-search](quick-search/README.md)       | A Mod+K dialog listing pages, Settings pages and plugins, plus an App Bar button       |
+| [next-intl](next-intl/README.md)             | Translation integration and optional language preferences                              |
+| [organizations](organizations/README.md)     | Shared organization service contracts and a local test adapter                         |
+| [scheduler](scheduler/README.md)             | UI-free tasks, runtime schedule sources and in-process execution                       |
+| [email](email/README.md)                     | Provider-independent message and sending contract                                      |
+| [nodemailer](nodemailer/README.md)           | Server-side SMTP implementation of the email contract                                  |
+| [create-app](create-app/README.md)           | Native frontend scaffolding with installed BitaKit packages                            |
+| [cli](cli/README.md)                         | `bitakit` CLI: add plugins and contributions, doctor, build plugin packages (0.2)      |
+| [devtools](devtools/README.md)               | Live Inspector for one plugin: pages, actions, services, events and config (0.2)       |
 
 Provider integrations such as `@bitakit/better-auth` and `@bitakit/better-auth-ui` are maintained
 and released in [bitakit-integrations](https://github.com/mvavesal/bitakit-integrations).

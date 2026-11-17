@@ -4,10 +4,13 @@ import { memoryAdapter } from 'better-auth/adapters/memory';
 import { organization, multiSession, twoFactor } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 
+/** The one origin the preview is served at; Better Auth and the RPC route accept only it. */
+export const previewOrigin = 'http://127.0.0.1:3103';
+
 /** This sample uses native auth with disposable local data, never a production database. */
 const createAuth = () =>
   betterAuth({
-    baseURL: 'http://127.0.0.1:3103',
+    baseURL: previewOrigin,
     secret: randomBytes(32).toString('hex'),
     database: memoryAdapter({
       user: [],
@@ -23,7 +26,20 @@ const createAuth = () =>
       apikey: [],
     }),
     emailAndPassword: { enabled: true },
-    plugins: [organization({ teams: { enabled: true } }), multiSession(), twoFactor(), apiKey()],
+    plugins: [
+      organization({
+        teams: { enabled: true },
+        // A suspended membership; src/server/request-context.ts grants no organization access for it.
+        schema: {
+          member: {
+            additionalFields: { disabled: { type: 'boolean', required: false, input: false } },
+          },
+        },
+      }),
+      multiSession(),
+      twoFactor(),
+      apiKey(),
+    ],
   });
 
 // Next route modules share this native memory adapter, including across development reloads.

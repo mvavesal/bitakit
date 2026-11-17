@@ -1,0 +1,269 @@
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { createEmitter, generatedHeader } from './emitter.mjs';
+import { serverActionsOf } from './server-rules.mjs';
+
+const quote = JSON.stringify;
+/** The first `@bitakit/core` release with the `./server` entry the server file imports. */
+export const serverCoreVersion = '0.3.2';
+export const defaultEndpoint = '/api/rpc';
+
+/** `server.endpoint` of bitakit.config.ts as a URL path without a trailing slash. */
+export function serverEndpoint(config) {
+  const endpoint = config.server?.endpoint ?? defaultEndpoint;
+  if (
+    typeof endpoint !== 'string' ||
+    !/^\/[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)*\/?$/.test(endpoint) ||
+    endpoint.split('/').some((segment) => segment === '.' || segment === '..')
+  )
+    throw new Error(
+      `server.endpoint in bitakit.config.ts must be a URL path such as "${defaultEndpoint}", got ${JSON.stringify(endpoint)}.`,
+    );
+  return endpoint.replace(/\/$/, '');
+}
+
+/**
+ * The installed `@bitakit/core` must have the `./server` entry the server file imports. Looks it
+ * up from the project root the way Node would, without running it.
+ */
+async function assertServerCore(root, reason) {
+  const lookup = createRequire(path.join(root, 'package.json')).resolve.paths('@bitakit/core');
+  for (const directory of lookup ?? []) {
+    const manifest = await readFile(
+      path.join(directory, '@bitakit', 'core', 'package.json'),
+      'utf8',
+    )
+      .then(JSON.parse)
+      .catch((error) => {
+        if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return undefined;
+        throw error;
+      });
+    if (!manifest) continue;
+    if (manifest.exports?.['./server']) return;
+    throw new Error(
+      `${reason} needs @bitakit/core ${serverCoreVersion} or newer (the @bitakit/core/server entry), but the installed @bitakit/core ${manifest.version ?? '(unknown version)'} does not have it. Update @bitakit/core to ${serverCoreVersion} or newer.`,
+    );
+  }
+  throw new Error(
+    `${reason} needs @bitakit/core ${serverCoreVersion} or newer (the @bitakit/core/server entry), but @bitakit/core is not installed. Install @bitakit/core ${serverCoreVersion} or newer.`,
+  );
+}
+
+/**
+ * The server half of the app, `src/bitakit.gen.server.ts`, or `null` when no enabled module has
+ * server content (server Actions, services, interceptors or server-kind files).
+ *
+ * `modules` lists the app first, then every enabled local plugin in the client file's order:
+ * `{ id, prefix, parent?, dependencies, origin?, events?, settings?, permissions?, configs,
+ * actions, services, interceptors, kinds, code }`, where `actions`, `services` and
+ * `interceptors` are the `server/` entries, `kinds[index]` the files of `kinds[index]` this file
+ * imports and `code` every other source file under the module's `server/` folder.
+ * `localPlugins` names every local plugin, also disabled ones.
+ *
+ * Package plugins have no server entries yet and stay out, so a dependency or parent naming one
+ * is dropped, and so is a `configOverrides` entry for any module outside the file (the kernel
+ * would refuse to boot on it; the client file still checks the whole object). A dependency or
+ * parent naming a disabled local plugin stays, so the kernel refuses to start exactly as the
+ * client runtime does. The server Actions are checked statically first (see
+ * `serverActionsOf`); duplicates, also ones that differ only in case, are an error.
+ *
+ * The `stamp` hashes the file without itself plus the content of every file it imports and of
+ * every source file under each module's `server/` folder, so editing a server Action, service or
+ * helper there changes it and a development reload boots the new code. Code imported from
+ * elsewhere (a shared `src/lib/` helper) does not move it; restart the dev server after such an
+ * edit.
+ *
+ * Returns `{ content, exposed }`: `exposed` lists the exposed operation IDs read statically,
+ * which the client file's `remote` and the kernel's missing-from-remote warning use.
+ */
+export async function serverHalf({
+  modules,
+  kinds,
+  appId,
+  configOverrides,
+  localPlugins,
+  endpoint,
+  root,
+  output,
+  relativeTo,
+}) {
+  const hasContent = modules.some(
+    (module) =>
+      module.actions.length ||
+      module.services.length ||
+      module.interceptors.length ||
+      kinds.some((kind, index) => kind.runtime === 'server' && module.kinds[index].length),
+  );
+  if (!hasContent) return null;
+  const operations = [];
+  const seen = new Map();
+  for (const module of modules)
+    for (const operation of await serverActionsOf(module.actions, {
+      moduleId: module.prefix,
+      relativeTo: root,
+    })) {
+      const key = operation.id.toLowerCase();
+      if (seen.has(key))
+        throw new Error(
+          `Two server Actions are named "${operation.id}"${seen.get(key).id === operation.id ? '' : ` ("${seen.get(key).id}" differs only in case)`}: ${relativeTo(seen.get(key).file)} and ${relativeTo(operation.file)}. Rename one file (or record key).`,
+        );
+      seen.set(key, operation);
+      operations.push({ ...operation, module });
+    }
+  const firstFile = modules
+    .flatMap((module) => [
+      ...module.actions,
+      ...module.services,
+      ...module.interceptors,
+      ...module.kinds.filter((_, index) => kinds[index].runtime === 'server').flat(),
+    ])
+    .map((entry) => entry.file)[0];
+  await assertServerCore(root, relativeTo(firstFile));
+
+  const emitter = createEmitter(output, relativeTo, {
+    typedKind: (kind) => kind.runtime === 'server',
+  });
+  const ids = new Set(modules.map((module) => module.id));
+  const local = new Set(localPlugins.map((id) => id.toLowerCase()));
+  // Package plugins are absent by design; a disabled local plugin must still fail the boot.
+  const kept = (id) => ids.has(id) || local.has(id.toLowerCase());
+  const lowerIds = new Set([...ids].map((id) => id.toLowerCase()));
+  // Core matches override keys case-insensitively and rejects one naming a missing module.
+  const serverOverrides = Object.fromEntries(
+    Object.entries(configOverrides).filter(([id]) => lowerIds.has(id.toLowerCase())),
+  );
+  const actionTypes = [];
+  const serviceTypes = [];
+  let permissionsUsed = false;
+  const single = (kind, file, moduleId) =>
+    emitter.emit(kind, file ? [{ file, path: [] }] : [], moduleId);
+  const emitModule = (module) => {
+    const events = single('events', module.events, module.id);
+    const settings = single('settings', module.settings, module.id);
+    let permissions;
+    if (module.permissions) {
+      permissionsUsed = true;
+      const [name] = emitter.fileEntries([{ file: module.permissions, path: [] }]);
+      permissions = `discoverPermissions([${name}])`;
+    }
+    const config = emitter.emit('configs', module.configs, module.id);
+    const serviceNames = emitter.fileEntries(module.services);
+    serviceTypes.push(
+      ...serviceNames.map(
+        (name) => `DiscoveredServiceEntry<typeof ${name}, ${quote(module.prefix)}>`,
+      ),
+    );
+    const actionNames = emitter.fileEntries(module.actions);
+    for (const operation of operations.filter((item) => item.module === module))
+      actionTypes.push(
+        `    ${quote(operation.id)}: ServerActionEntry<typeof ${actionNames[module.actions.indexOf(operation.entry)]}, ${quote(module.id)}, ${operation.exposed}${operation.key ? `, ${quote(operation.key)}` : ''}>;`,
+      );
+    return {
+      events,
+      settings,
+      permissions,
+      config,
+      services: `discoverServices([${serviceNames.join(', ')}], ${quote(module.prefix)})`,
+      actions: `discoverActions([${actionNames.join(', ')}], ${quote(module.prefix)})`,
+      interceptors: emitter.emit('interceptors', module.interceptors, module.id),
+      contributions: emitter.contributions(kinds, module.kinds, module.id),
+      dependencies: module.dependencies.filter(kept),
+    };
+  };
+  const [app, ...plugins] = modules;
+  const own = emitModule(app);
+  const definitions = plugins.map((module) => {
+    const parts = emitModule(module);
+    const parent = module.parent && kept(module.parent) ? module.parent : undefined;
+    return `withPluginOrigin({ id: ${quote(module.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}dependencies: ${quote(parts.dependencies)}, events: ${parts.events}, settings: ${parts.settings}, ${parts.permissions ? `permissions: ${parts.permissions}, ` : ''}config: ${parts.config}, services: ${parts.services}, actions: ${parts.actions}, interceptors: ${parts.interceptors}, contributions: ${parts.contributions} }, ${quote(module.origin)})`;
+  });
+  const exposed = operations.filter((item) => item.exposed).map((item) => item.id);
+  const values = [
+    'createServer',
+    emitter.imports.some((line) => line.includes('discoveredFile(')) && 'discoveredFile',
+    'discoverActions',
+    'discoverServices',
+    'discoverInterceptors',
+    'discoverConfig',
+    'discoverEvents',
+    'discoverSettings',
+    permissionsUsed && 'discoverPermissions',
+    'withPluginOrigin',
+    'type ServerConfig',
+    actionTypes.length && 'type ServerActionEntry',
+    serviceTypes.length && 'type DiscoveredServiceEntry',
+  ].filter(Boolean);
+  const kindDeclarations = emitter.kindDeclarations();
+  const source = (stamp) => `${generatedHeader}
+// Server only: never import this file from browser code.
+import {
+${values.map((value) => `  ${value},`).join('\n')}
+} from '@bitakit/core/server';
+${emitter.imports.join('\n')}
+
+type DiscoveredServerServices = ${serviceTypes.join(' & ') || '{}'};
+${kindDeclarations ? `${kindDeclarations}\n` : ''}declare module '@bitakit/core' {
+  interface ServerActionMap {${actionTypes.length ? `\n${actionTypes.join('\n')}\n  ` : ''}}
+  interface ServerServiceMap extends DiscoveredServerServices {}
+}
+
+/** The app's server half: every enabled local module's shared files and server/ folder. */
+export function createBitaKitServerConfig() {
+  const configOverrides: Record<string, Record<string, unknown>> = ${quote(serverOverrides)};
+  return {
+    appId: ${quote(appId)},
+    dependencies: ${quote(own.dependencies)},
+    config: ${own.config},
+    configOverrides,
+    events: ${own.events},
+    settings: ${own.settings},
+${own.permissions ? `    permissions: ${own.permissions},\n` : ''}    services: ${own.services},
+    actions: ${own.actions},
+    interceptors: ${own.interceptors},
+    contributions: ${own.contributions},
+    plugins: [${definitions.length ? `\n      ${definitions.join(',\n      ')}\n    ` : ''}],
+  } satisfies ServerConfig;
+}
+
+/** The app's server kernel. Importing it boots nothing; the first call does. */
+export const server = createServer(createBitaKitServerConfig(), {
+  instance: 'bitakit',
+  endpoint: ${quote(endpoint)},
+  stamp: ${quote(stamp)},
+  operations: ${quote(exposed)},
+});
+`;
+  // Same code, same stamp, one boot; a changed server file or helper boots the new code in dev.
+  const hash = createHash('sha256').update(source(''));
+  for (const file of serverSources(modules)) {
+    const text = await readFile(file).catch((error) => {
+      // An editor can remove a file between traversal and hashing; the watcher runs again.
+      if (error.code === 'ENOENT') return '';
+      throw error;
+    });
+    hash.update(`\0${relativeTo(file)}\0`).update(text);
+  }
+  const stamp = hash.digest('hex').slice(0, 16);
+  return { content: source(stamp), exposed };
+}
+
+/** Every file the server file imports and every other source file under a `server/` folder. */
+function serverSources(modules) {
+  const sources = new Set();
+  for (const module of modules) {
+    for (const file of [module.events, module.settings, module.permissions])
+      if (file) sources.add(file);
+    for (const entry of [
+      ...module.configs,
+      ...module.actions,
+      ...module.services,
+      ...module.interceptors,
+      ...module.kinds.flat(),
+    ])
+      sources.add(entry.file);
+    for (const file of module.code) sources.add(file);
+  }
+  return [...sources].sort();
+}

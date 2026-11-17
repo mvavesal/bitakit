@@ -21,7 +21,10 @@ export type InventoryKind =
   | 'widget'
   | 'provider'
   | 'config'
-  | 'interceptor';
+  | 'interceptor'
+  | 'server-action'
+  | 'server-service'
+  | 'server-interceptor';
 export type InventoryDeclaration = Readonly<{
   kind: InventoryKind;
   id: string | null;

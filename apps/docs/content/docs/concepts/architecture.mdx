@@ -12,9 +12,10 @@ You do not need to configure every layer to create a plugin.
 | ----------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------- |
 | Discovery               | File parsing, generated imports/types and package metadata                         | Browser execution or runtime package installation |
 | Core                    | Lifecycle, services, Action execution, events, Settings values and slot attachment | React or rendering                                |
+| Core server kernel      | Server operations: access checks, input validation, server interceptors, `ctx`     | Authentication, data storage or a router          |
 | UI bindings             | Reactive reads, bound controls, contextual slot selection                          | Product layout or a second value store            |
 | Shell / App Preferences | App frame, region outlets and Settings presentation                                | A second runtime or routing engine                |
-| Host                    | Composition, native routes, central theme and trusted server integration           | Per-plugin bootstrap registries                   |
+| Host                    | Composition, native routes, the RPC route, the `requestContext` provider and theme | Per-plugin bootstrap registries                   |
 
 ## Read the flow you need
 
@@ -32,7 +33,8 @@ You do not need to configure every layer to create a plugin.
 | Where does a contributed widget appear?          | [Slots](/docs/concepts/slots) and [layout anatomy](/docs/reference/layouts)          |
 | How does a declaration become a Settings page?   | [Settings](/docs/concepts/settings)                                                  |
 | What survives a compatible plugin update?        | [Runtime management](/docs/concepts/runtime-management)                              |
+| How does a button reach the server?              | [The server half](/docs/concepts/server#what-happens-on-a-call)                      |
 
 The diagrams describe this checkout's implemented APIs. They do not imply arbitrary hot code
-loading, server Action transports or a Harness layer. Exact guarantees and limits remain next
+loading, transports other than the built-in JSON route, or a Harness layer. Exact guarantees and limits remain next
 to the examples in each guide. Use [Patterns at a glance](/docs/concepts/patterns) to choose a mechanism.

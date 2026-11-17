@@ -124,6 +124,31 @@ export {
   type NormalizedPlugin,
 } from './runtime.js';
 export { BitaKitStartupError, isBitaKitStartupError } from './startup-error.js';
+export {
+  OperationError,
+  isOperationError,
+  type OperationErrorCode,
+  type OperationErrorReason,
+  type OperationErrorJSON,
+  type OperationIssue,
+} from './operation-error.js';
+export type {
+  ServerActionMap,
+  ServerServiceMap,
+  Remote,
+  RemoteConfig,
+  RemoteCallOptions,
+  OperationFunction,
+} from './remote.js';
+export type { RuntimeMode, RuntimeOptions } from './runtime-mode.js';
+export type {
+  Access,
+  PermissionRequest,
+  RequestContext,
+  PublicContext,
+  UserContext,
+  OrganizationContext,
+} from './request-context.js';
 export type { Cleanup } from './lifecycle/cleanup.js';
 export type {
   LifecyclePhase,

@@ -35,17 +35,29 @@ when removing historical research from the project.
 
 ## Parity rules
 
-These keep the later server side cheap and are enforced from Phase 1 on.
+These keep the client and the server half one model. Phase 26 (16 November 2026) amended rules
+1, 4 and 5 with the accepted decisions D1, D2, D9, D10 and D12; the server half below has the
+details.
 
 1. Every headless primitive takes one context object with the same keys everywhere:
-   `({ services, config, events, store, ... })`. The server later adds a request `ctx`
-   as a method argument, nothing else.
-2. React only under `ui/`, Node only under `server/`. `server/` is reserved and never bundled.
+   `({ services, config, events, store, settings, ... })`. The server half adds exactly these
+   (D9), nothing else: the context keys `ctx` (server Actions, server interceptors and event
+   listeners as `(event, { signal, ctx })`; server services take it as a method argument) and
+   `remote` (client Actions and services); the server Action fields `access`, `expose` and
+   `output`; settings `load()`; `OperationError`; the `requestContext` contract; the runtime's
+   server mode; and the stateless kernel. `type` (query/mutation) stays reserved until a
+   transport gives it meaning. Any further addition is a new decision.
+2. React only under `ui/`, Node only under `server/`. Discovery never bundles `server/` for the
+   browser, and `bitakit doctor` checks both directions (see the server half).
 3. Shared files are isomorphic by construction: `events.ts`, `settings.ts`, `config.ts`.
-4. Services are the unit of logic on both sides. Actions exist only on the client.
+4. Services are the unit of logic on both sides and stay in-process. Server Actions are the only
+   remotely callable unit (D1): private unless `expose: true`, never a proxy over services.
    Interceptors have one shape.
-5. One generator writes `src/bitakit.gen.tsx` now and `src/bitakit.server.gen.ts` later.
-6. One error model: a startup error always names the plugin and the file.
+5. One generator writes the client files (`src/bitakit.gen.tsx`, `bitakit.gen.config.ts`) and the
+   server file `src/bitakit.gen.server.ts`, which every `bitakit.gen.*` glob already covers.
+6. One error model per phase: a startup error always names the plugin and the file (server
+   Actions as `server:<id>`); a server call's error is an `OperationError` (code, safe message),
+   a request-error model beside the startup one, never a replacement.
 
 One documented way per concept. A convention that does not fit on the generated AGENTS.md
 page (`packages/create-app/src/project-files.mjs`) is too complicated.
@@ -101,7 +113,10 @@ and are candidates of the single slot `layout.<family>`; pages opt in with
   blocked, and enabling a parent restores only the descendants its disable switched off
   (`disabledWithParent`). IDs stay globally unique; ownership is not a path prefix.
 - Files need a default export; discovery parses, never executes, and warns about skipped
-  files. Prefix helpers with `-`. `.d.ts` and `server/` are skipped.
+  files. Prefix helpers with `-`. `.d.ts` files are skipped; `server/` belongs to the server
+  side only (`server/actions`, `server/services`, `server/interceptors` and
+  `server/contributions/<dir>` with the same spellings; every other file there is the module's
+  own code and stays silent).
 - The app module uses the same folders directly under `src/` with the ID `app` and
   unprefixed IDs; events and configuration use the app module ID as their owner segment
   (`app.<name>` events, `app.config.app.<file>`), because Core names an event's owner by its
@@ -112,7 +127,7 @@ and are candidates of the single slot `layout.<family>`; pages opt in with
   `interceptors.enabled`, `slots`, `strict`, `kinds`, `catalog`. Integration kinds live under
   `contributions/<folder>/` of each module; `settings/`, `providers/` and similar names are
   not reserved at the app root.
-- Generated output is `src/bitakit.gen.tsx` (component-only `BitaKitProvider`) and `src/bitakit.gen.config.ts` (`createBitaKitConfig`, type augmentations), `src/bitakit.gen.css` and `src/bitakit.gen.messages.json`, ignored by Git.
+- Generated output is `src/bitakit.gen.tsx` (component-only `BitaKitProvider`) and `src/bitakit.gen.config.ts` (`createBitaKitConfig`, type augmentations), `src/bitakit.gen.css` and `src/bitakit.gen.messages.json`, ignored by Git. `src/bitakit.gen.server.ts` (server only) is written while a module has server content and removed otherwise.
   Nothing is aliased, so Turbopack and Webpack behave the same; no `--webpack` flags.
 - Plugin packages use the same folders under `src/`, declare `bitakit: { plugin: './plugin' }`
   and build with `bitakit build` (`dist/plugin.js`). A plugin moves between
@@ -130,6 +145,8 @@ defineInterceptor({ action: 'todos.*', before, after, onError, order, scope }) |
 defineConfig({ schema?, defaults? });
 defineSlot({ accepts: 'actions' | 'component' | 'data', policy: 'list' | 'single' | 'keyed', payload?, schema? });
 definePlugin({ id, dependencies, services: { name }, actions: { name }, events, config, slots: { name }, interceptors, setup, ui: { pages, slots, providers } });
+// server/actions/<name>.ts: the same defineAction, imported from '@bitakit/core/server'.
+defineAction({ access, expose?, input?, output?, requires?, title?, description?, execute({ id, input, ctx, services, config, events, settings, signal }) });
 ```
 
 - **Services** own behavior and state. `store(initial)` returns `{ get, set, subscribe,
@@ -299,6 +316,84 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   the rendered element's HTML attribute); only the generic `Action` component uses `id`. Both
   sugar bindings accept `onError`, `onExecuted` and `pending`.
 
+## Server half (Phase 26)
+
+A plugin's `server/` folder is its server half: operations (server Actions), server services,
+server interceptors and server-only contribution kinds. The user decided on 16 November 2026 to
+build it with the blueprint's decisions D1–D14 as recommended; the build spec and the as-built
+notes are in `.private/bitakit-enhancement/proposals/phase-26-build-spec.md`.
+
+- **One helper (D12).** `@bitakit/core/server` re-exports the root `defineAction`,
+  `defineService` and `defineInterceptor` with server types, plus the shared `define*` helpers.
+  Never implement a second helper. Client-only Action fields are type errors and kernel startup
+  errors; `access`, `expose` and `output` in a client Action are rejected by the client Action
+  adapter and by discovery with the button-vs-operation message.
+- **Separate maps (D10).** Client IDs live in `ActionMap`/`ServiceMap`; the server file augments
+  only `ServerActionMap` and `ServerServiceMap`. A button and its operation may share an ID
+  (`todos.add`); tools print the operation as `server:<id>` (info, doctor, warnings, startup
+  errors). Server IDs are unique, also ignoring case. Client interceptors never match server
+  Actions. Server contexts type `services` from `ServerServiceMap`, never the client map.
+- **Kernel next to the ActionList (D2).** `packages/core/src/server` compiles every operation once
+  at boot into a frozen entry (access rule, schemas, interceptor chain, scoped events, config).
+  Per call it keeps no shared mutable state: no locks, statuses or pending maps, only in-flight
+  tracking so `stop()` drains. The ActionList stays the client executor; never route server
+  calls through it. Server mode of the runtime skips ActionList installation, store
+  observation, identity sync, the local settings fallback, slot placements and confirm
+  interceptors; structural updates throw; an uninstalled contribution kind is not a startup
+  error (`contributionsOf` reads it). The client path must behave exactly as before.
+- **Order of a call:** boot (lazy, first access) → lookup (HTTP and `exposedOnly` use the exact
+  ID; in-process `as()` also folds case) → access → one input validation → `before`
+  interceptors (validated input and `ctx`; a throw or `false` rejects, `false` as FORBIDDEN
+  `INTERCEPTED`) → `execute` → `output` schema → `after`/`onError` observers (not awaited).
+  Interceptor contexts are frozen. Only a branded `OperationError` passes through; anything else
+  is a logged 500 with a reference. Kernel 4xx bodies carry no `requestId`, so unknown and
+  private operations answer identical 404s.
+- **Access and identity.** `access` is required (`public`, `user`, `organization`,
+  `{ permission }` checked against the composed catalog). No `requestContext` provider while a
+  non-public operation exists is a startup error. The kernel normalizes and freezes the
+  provider's answer, resolves it lazily once per caller and only for non-public operations; `can`
+  grants only on `=== true`, a throw denies. Core decides nothing about roles; the provider does.
+  The organization header `x-bitakit-organization` (sent by `remote`, overridable per call) makes
+  a stale page answer CONFLICT `ORGANIZATION_CHANGED`; an empty value means "none".
+- **Settings and events.** Server settings load per request (`load()`, or `load(ctx)` outside an
+  operation) through the `settings.storage` provider, never without the owner ID the scope needs
+  (the default answers instead), never from process memory; `get/set/subscribe` throw, `device`
+  scope throws. Events carry `ctx` to listeners, stay in-process and best effort, and never reach
+  the browser.
+- **Transport (D13).** `fetchHandler(server, { trustedOrigins, origin, maxBodyBytes })` is the
+  built-in JSON handler (the user's approval of custom transport code is D13): `POST
+  <endpoint>/<id>`, JSON only, exact Origin or trusted origins, `Sec-Fetch-Site`, 1 MiB, `{ data }`
+  or `{ error }`, `no-store`. No CORS preflight yet. oRPC/OpenAPI/MCP adapters are follow-ups in
+  their own packages, never Core.
+- **`remote`.** Built once per client runtime: nested plain frozen functions, never observable;
+  only the unconfigured fallback is a guarded Proxy. It resolves only a 2xx `{ data }` (or `{}`),
+  rebuilds `OperationError`s and maps everything else by HTTP status. Name segments `then`,
+  `catch`, `finally`, `subscribe`, `toJSON`, `valueOf`, `toString`, `constructor` and
+  `prototype` are reserved (startup error in the kernel, generation error in discovery, left out
+  of `remote`). `defaultFailure` shows an `OperationError`'s `safeMessage` in every environment.
+- **Boot and development.** `createServer` never boots at import. With `instance`, live kernels
+  are registered process-wide with their `stamp` (a hash of the server file and the server
+  sources); in development a new stamp swaps the kernel after the old one drains, in production
+  the first kernel wins. A helper imported from outside `server/` does not change the stamp.
+- **Discovery.** The server side strips the leading `server` segment and applies the client's
+  segment rules; kinds declare `runtime: 'client' | 'server' | 'both'`, and a misplaced file is a
+  generation error naming its target path. Static field rules run on both sides. Only local and
+  app modules enter the server file (packages have no server halves until a `bitakit.server`
+  entry exists); an operation is exposed only when its owner is not a package. A missing
+  `@bitakit/core/server` export is a generation error naming `serverCoreVersion`
+  (`packages/discovery/src/server-file.mjs`); `mountServer` names `serverDiscoveryVersion`
+  (`packages/core/testing/index.mjs`). Raise both with the release that changes the contract.
+- **Tooling.** `mountServer(folder, { app, plugins, services, configOverrides, kinds })` and
+  `identity(...)` from `@bitakit/core/testing`: the test `requestContext` provider wins over the
+  folder's own; `mounted.import()` shares the mounted files' jiti instance; `mountPlugin(folder,
+  { remote })` connects a client half to it. Doctor walks the client import graph (generated
+  client files, discovered client entries, every `'use client'` file; TanStack route files; not
+  `'use server'` modules or code Start strips) and fails on `server/`, `@bitakit/core/server` or
+  `bitakit.gen.server`; server code importing React, `@bitakit/ui` or its own `ui/` fails too. It
+  warns about a missing route or provider. `bitakit add action|service|interceptor … --server`
+  writes the operation, its test, the button and the route (`serverRoute` in `cli/src/routes.mjs`);
+  `init` and `create-app` write no route.
+
 ## Lifecycle state and hosts
 
 - `runtime.lifecycle.get()/subscribe()/watch()` expose immutable status, including current
@@ -458,7 +553,9 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   `@bitakit/next` and `@bitakit/tanstack`. Discovery is Node-only and lives in
   `@bitakit/discovery`, which carries `typescript` and `jiti` so Core does not;
   `@bitakit/core/discovery` is a one-release re-export (optional peer). Internal code imports
-  `@bitakit/discovery` directly.
+  `@bitakit/discovery` directly. `@bitakit/core/server` is Core's server entry: no React, no
+  `jiti`, no discovery and no new runtime dependency; it reuses Core modules by relative import so
+  module-level WeakMaps stay shared.
 - Optional packages are ordinary plugins (Better Auth, next-intl, organizations, email,
   nodemailer, Shell, App Preferences, Quick Search, devtools). No second integration
   lifecycle, registry, provider bootstrap, session store or preference store. Contracts via
@@ -592,11 +689,13 @@ definePlugin({ id, dependencies, services: { name }, actions: { name }, events, 
   actions, events, configs and `setup.ts` free of JSX and guarded against browser-only APIs.
   `bitakit add test <plugin>` writes an app's first such test (with the Shell stub when its
   Actions target `shell.*` slots) and prints the missing setup without editing `package.json`.
+  Server halves use `mountServer(directory, options)` and `identity(...)` (see the server half);
+  test every exposed operation as a member, a member of another organization and signed out.
 - Auth providers check themselves with `assertAuthContract(service, { signIn })` from
   `@bitakit/core/testing`; it fails with the broken contract rule (snapshot stability,
   unsubscribe, string `user.id`, awaited `signOut`, valid `paths`).
-- Chain: `npm test` (every package), `npm run check` (web typecheck and lint),
-  `npm run verify:generated` (packed packages, every generated shape, install, types, build,
+- Chain: `npm test` (every package, including Core's server type test and kernel performance
+  gate), `npm run format:check`, `npm run verify:generated` (packed packages, every generated shape, install, types, build,
   browser smoke), `bitakit doctor` in generated apps, `npm run build:docs` for the docs site.
   Run the checks relevant to the change; do not rerun green suites without new changes.
 - When adding cross-package imports, verify the exports of the oldest accepted published
@@ -939,12 +1038,16 @@ preserved whole; `init --update-agent-files` replaces it only when its frontmatt
 the BitaKit-owned `AGENTS.md` block. Compare installed copies with `readSkillFiles` and
 `bundledSkillFiles` (stamp ignored), never byte by byte; the source SKILL.md has no `metadata`.
 Its recipes extend the `--sample` Todo plugins (`todos`, `activity`) with `about`, `summary`,
-`print` and `todos.toolbar`; keep those names consistent. `worked-example.md`, `data-and-api.md`
-and `best-practices.md` instead build a standalone `bookmarks` feature (plus `sharing` and
-`src/app/api/bookmarks/route.ts`) in a create-app app without the sample. Each full file is
-introduced by a line ending in its backticked path and a colon; when changing them, write those
-blocks into a fresh `create-app --no-sample` app and run typecheck, doctor and both tests
-(the data recipe's test replaces the worked example's). Templates and docs name their data
+`print` and `todos.toolbar`; keep those names consistent. `worked-example.md`, `data-and-api.md`,
+`server.md` and `best-practices.md` instead build a standalone `bookmarks` feature (plus
+`sharing`) in a create-app app without the sample; `server.md` holds its server half
+(`server/services/store.ts`, `server/actions/add.ts` and `remove.ts`, the route and the
+`requestContext` provider, its server test) and `data-and-api.md` adds `server/actions/list.ts`,
+the client service and the test of both halves. Each full file is introduced by a line ending in
+its backticked path and a colon (server.md marks excerpts with a `// path` comment); when
+changing them, write those blocks into a fresh `create-app --no-sample` app with zod (and
+better-auth for the provider example) and run typecheck, doctor and the tests (the data recipe's
+test replaces the worked example's). Templates and docs name their data
 concretely: the sample service is `todos.list` (state `todos`), and `add plugin --example` writes
 `<plugin>.list` (state `entries`, type `Entry`). Keep this repository skill focused on package and
 framework implementation, not
@@ -993,9 +1096,13 @@ generated README and AGENTS.md, create-app help) preserves this positioning:
   local changes and get Actions, events, slots and settings without rebuilding them.
 - Pillars: a layer, not a framework · one map for humans and AI agents · extend, don't rewire ·
   mechanisms included, not rebuilt · honest boundaries.
-- Do not claim: "any framework"; that one Action appears everywhere automatically; "extend
-  without touching anything"; "isolated plugins" or a sandbox; server plugins; `npx …@0.2`
-  before publication; that plugin pages are ordinary framework or server pages (they are client
+- Server plugins may be claimed as shipped (16 November 2026): a plugin's `server/` folder with
+  operations, `access`, `remote` and the built-in JSON transport, proven on Next.js (TanStack
+  Start has a route template). Do not claim OpenAPI, oRPC, MCP, streaming, package server halves
+  or a backend framework.
+- Do not claim: "any framework" (only Next.js is proven, also for the server half); that one
+  Action appears everywhere automatically; "extend without touching anything"; "isolated
+  plugins" or a sandbox; `npx …@0.2` before publication; that plugin pages are ordinary framework or server pages (they are client
   components behind the adapter's catch-all route); that every app ships agent rules (create-app and
   `bitakit init` write them); that `settings.ts` alone gives a Settings page (App Preferences
   renders it); that BitaKit makes agents safe or correct. Never cite probe or test-log numbers.
@@ -1114,8 +1221,10 @@ with a preserved document token and page draft. This is bundler Fast Refresh fol
 awaited composition replacement, not `reconcilePlugins` or arbitrary code hot replacement.
 Affected slot/form state can remount during composition replacement; compatible explicit
 runtime updates retain Phase 8's owner-specific guarantees. Named components are the supported
-React refresh path. Structural provider changes, server code, dependency installation and
-changes outside a React refresh boundary can require a host restart/reload. Restart the dev
+React refresh path. Structural provider changes, server code outside the server half,
+dependency installation and changes outside a React refresh boundary can require a host
+restart/reload. Server-half files swap the server kernel on the next call (its stamp); a helper
+they import from outside `server/` needs a restart. Restart the dev
 server after changing Node-loaded generator/integration code. No universal HMR promise.
 
 

@@ -20,6 +20,7 @@ the file path is the ID. Discovery generates `src/bitakit.gen.*`; there is no re
 | A page | `ui/pages/<path>.tsx`, served at `/<name>/<path>` |
 | A button, link or menu entry | `actions/<file>.ts`: `defineAction({ title, execute })`, ID `<name>.<file>` |
 | Shared state or logic | `services/<file>.ts`: `defineService(({ store }) => ({ ... }))`, `services.<name>.<file>` |
+| Server data or secrets | `server/actions/<file>.ts` (`access`, `expose: true`); buttons call `remote.<name>.<file>()` |
 | A user setting | `settings.ts`: `defineSettings({ size: setting({ default: 20 }) })`, `settings.<name>.size` |
 | Tell other features something happened | `events.ts`: `defineEvents({ changed: event<T>() })`, `<name>.changed` |
 | Let other features add UI here | `slots/<file>.ts`: `defineSlot(...)`; others fill it from `ui/slots/<slot>.tsx` |
@@ -33,12 +34,26 @@ the file path is the ID. Discovery generates `src/bitakit.gen.*`; there is no re
 - In React: `useServiceState('<name>.<file>', (state) => ...)`, `useSetting('<name>.<key>')`, `useEvent('<name>.changed', fn)`.
   React only under `ui/`. Use `@bitakit/ui/components` and the app theme; do not restyle locally or
   import package CSS from JavaScript (discovery writes `src/bitakit.gen.css`).
-- Do not rebuild what BitaKit provides: no own registries, event buses, settings stores or button state.
-- Shell: place an Action with `slots: ['shell.navigation']` or `['shell.toolbar']`; header content goes in `ui/slots/shell.header.end.tsx`.
-- App-owned routes stay native framework routes in `src/app`; layouts live in `src/layouts/<name>.tsx`.
-- Create files with `npx bitakit add plugin <name>` and `npx bitakit add <kind> <name>/<file>`; list IDs with
-  `npx bitakit info --json`; check with `npx bitakit doctor` and `npm run typecheck`.
+- Do not rebuild BitaKit: no own registries, event buses, settings stores or button state.
+- Shell: place an Action with `slots: ['shell.navigation']` or `['shell.toolbar']`; header content in `ui/slots/shell.header.end.tsx`.
+- App-owned routes stay native framework routes in `src/app`; layouts live in `src/layouts/<family>.tsx` (pages pick one with `export const layout`).
+- Each `@bitakit/*` package explains itself in `node_modules/@bitakit/<name>/AGENTS.md`; read it first.
+- Create files with `npx bitakit add plugin <name>` and `npx bitakit add <kind> <name>/<file>` (`--server` for
+  `server/`; `events` and `settings` take only `<name>`); list IDs with `npx bitakit info --json` and slots with `npx bitakit slots`; check with `npx bitakit doctor` and `npm run typecheck`.
+- For feature work, use the project-local `bitakit-app-development` skill (`$bitakit-app-development` in Codex,
+  `/bitakit-app-development` in Claude Code, otherwise read `.agents/skills/bitakit-app-development/SKILL.md`):
+  recipes for each task above and checks in the browser.
 - Advanced, only when needed: interceptors, configs, providers, dialogs, `setup.ts`, `plugin.config.ts`.
 - Never edit generated files: `src/bitakit.gen.*`.
 
 <!-- END:bitakit-agent-rules -->
+
+## This sample
+
+- Tasks live on the server: `src/plugins/todos/server/` holds the store and the operations
+  `todos.list|add|edit|complete|remove|clear`; `services/items.ts` calls them with `remote.todos.*`.
+  `POST /api/rpc/<operation id>` (`src/app/api/rpc/[...path]/route.ts`) serves them.
+- `src/server/request-context.ts` turns the Better Auth session into the caller's identity: an
+  organization only for an enabled membership of the session's user in the active organization.
+- `npm test` runs the headless tests in `tests/` (no server needed); the `test:*` scripts are
+  browser checks against a running preview.

@@ -223,14 +223,17 @@ search, short lessons and separate API references.
 | Trusted build-included package activation | [Package host adapter](packages/packages/README.md)                          |
 | In-process tasks and scheduling           | [Scheduler](packages/scheduler/README.md)                                    |
 | Headless runtime composition              | [Core](packages/core/README.md)                                              |
+| Server operations in a plugin             | [The server half](apps/docs/content/docs/concepts/server.mdx)                |
 | CLI commands                              | [CLI](packages/cli/README.md)                                                |
 
 ## Boundaries
 
 - Adapters: Next.js is the main walkthrough; TanStack Start is experimental. Core runs without
   React; UI bindings and framework adapters are separate packages.
-- Plugin pages are React client components served through the adapter's catch-all route. Server
-  Components, loaders, server actions and authorization stay in your framework's native routes.
+- Plugin pages are React client components served through the adapter's catch-all route. A
+  plugin's server operations live in its `server/` folder and are served by one RPC route (proven
+  on Next.js); Server Components, loaders, framework server actions and your authentication stay
+  in your framework. BitaKit ships no database or authentication server.
 - Plugins are trusted application code in one runtime; discovery is not a remote installer or
   sandbox. Tests and review still decide whether a change is correct.
 - Service stores are in memory. Settings use their storage contract. Domain persistence is yours.

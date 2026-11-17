@@ -3,6 +3,7 @@
   "pages": [
     "../concepts/architecture",
     "../concepts/discovery",
+    "../concepts/server",
     "../concepts/patterns",
     "../concepts/type-safety",
     "../concepts/runtime-management",

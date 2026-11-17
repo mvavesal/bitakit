@@ -1,67 +1,50 @@
-# Load and save data through an API
+# Load and save data on the server
 
 Use this when data must survive a reload, be shared across devices or users, or needs the
 server (a database, secrets, permission checks). Service stores live in browser memory, so the
-server owns the data and the service keeps the client's copy. The example continues the
-Bookmarks feature from [worked-example.md](worked-example.md); all code type-checks in a
-create-app Next.js app.
+plugin's server half owns the data and the client service keeps the browser's copy. The example
+continues the Bookmarks feature from [worked-example.md](worked-example.md); the server half's
+rules, the route and the identity provider are in [server.md](server.md). All code type-checks in
+a create-app Next.js app with zod installed.
 
 ## Who does what
 
-| Part               | File                                       | Responsibility                                         |
-| ------------------ | ------------------------------------------ | ------------------------------------------------------ |
-| API route (server) | `src/app/api/bookmarks/route.ts`           | Validate input, check permissions, read and write data |
-| Service (browser)  | `src/plugins/bookmarks/services/list.ts`   | Call the API, hold the list and its loading state      |
-| Actions            | `src/plugins/bookmarks/actions/*.ts`       | Run operations: pending state, failure message         |
-| Page               | `src/plugins/bookmarks/ui/pages/index.tsx` | Show loading, error, empty and loaded states           |
+| Part                           | File                                                                           | Responsibility                                     |
+| ------------------------------ | ------------------------------------------------------------------------------ | -------------------------------------------------- |
+| Operations (server)            | `src/plugins/bookmarks/server/actions/{list,add,remove}.ts`                    | Check who calls, validate input, read and write    |
+| Store (server)                 | `src/plugins/bookmarks/server/services/store.ts`                               | Data access, always filtered by the owner          |
+| Route and identity (app, once) | `src/app/api/rpc/[...path]/route.ts`, `src/server/services/request-context.ts` | Serve every operation; verify the caller           |
+| Service (browser)              | `src/plugins/bookmarks/services/list.ts`                                       | Call `remote`, hold the list and its loading state |
+| Actions                        | `src/plugins/bookmarks/actions/*.ts`                                           | Run operations: pending state, failure message     |
+| Page                           | `src/plugins/bookmarks/ui/pages/index.tsx`                                     | Show loading, error, empty and loaded states       |
 
-API routes are native framework routes in `src/app`, not plugin files; plugins have no server
-part yet. Keep secrets and database code there only.
+Everything for the feature stays in its plugin folder. `server/` is never bundled for the
+browser; the browser reaches it only through the exposed operations.
 
-## The API route
+## The server half
 
-`src/app/api/bookmarks/route.ts`:
+Write `server/services/store.ts`, `server/actions/add.ts` and `server/actions/remove.ts` as in
+[server.md](server.md), plus the operation that lists the caller's bookmarks.
+`src/plugins/bookmarks/server/actions/list.ts`:
 
 ```ts
-import { randomUUID } from 'node:crypto';
+import { defineAction } from '@bitakit/core/server';
 
-type Bookmark = { id: string; title: string; url: string };
-
-// Example storage: one list in server memory, lost on restart and shared by every visitor.
-// Replace it with your database, and check the signed-in user before reading or changing data.
-const bookmarks: Bookmark[] = [];
-
-export async function GET() {
-  return Response.json({ bookmarks });
-}
-
-export async function POST(request: Request) {
-  // The client's enabled rule is a convenience; the server validates again.
-  const { url } = (await request.json().catch(() => ({}))) as { url?: unknown };
-  if (typeof url !== 'string' || !URL.canParse(url))
-    return new Response('Send a full URL such as https://example.com.', { status: 400 });
-  const address = new URL(url);
-  const bookmark = { id: randomUUID(), title: address.hostname, url: address.href };
-  bookmarks.push(bookmark);
-  return Response.json({ bookmark }, { status: 201 });
-}
-
-export async function DELETE(request: Request) {
-  const id = new URL(request.url).searchParams.get('id');
-  const index = bookmarks.findIndex((bookmark) => bookmark.id === id);
-  if (index === -1) return new Response('This bookmark no longer exists.', { status: 404 });
-  bookmarks.splice(index, 1);
-  return new Response(null, { status: 204 });
-}
+// The operation bookmarks.list: the signed-in user's bookmarks, nobody else's.
+export default defineAction({
+  access: 'user',
+  expose: true,
+  execute: ({ ctx, services }) => services.bookmarks.store.list(ctx.user.id),
+});
 ```
 
-- The example list also resets whenever the dev server reloads after a file change; a database
-  does not.
-- Answer errors with a short, user-readable text: the service passes it on and the Action shows it.
-- Use the schema library the app already has (for example zod) for larger inputs; follow
-  existing dependency authorization when adding one.
-- For per-user data, read the session in the route and filter by the user. Client rules
-  (`enabled`, `visible`, interceptors) only shape the UI.
+- `npx bitakit add action bookmarks/add --server` writes the RPC route when the app has none and
+  keeps the existing Save button; replace its template body with server.md's `add.ts`.
+- Add the app's `requestContext` provider ([server.md](server.md#the-requestcontext-provider)).
+  Until one exists, the server refuses to start because these operations need a signed-in user;
+  doctor warns about it. The tests below pass without it: `mountServer` brings its own.
+- The store is example storage in server memory. It resets when the server restarts (and in
+  development when a server file changes); replace it with the app's database client.
 
 ## The service
 
@@ -74,22 +57,14 @@ export type Bookmark = { id: string; title: string; url: string };
 
 type State = { bookmarks: Bookmark[]; status: 'loading' | 'ready' | 'error'; error: string };
 
-/** Throws the server's message so a failing Action shows it. */
-async function send(path: string, init?: RequestInit): Promise<Response> {
-  const response = await fetch(path, init);
-  if (!response.ok) throw new Error((await response.text()) || response.statusText);
-  return response;
-}
-
-// Bookmarks stored by the app's API route, src/app/api/bookmarks/route.ts.
-export default defineService(({ store, events, onStart }) => {
+// The browser's copy of the signed-in user's bookmarks; the server half (server/) owns them.
+export default defineService(({ store, events, remote, onStart }) => {
   const state = store<State>({ bookmarks: [], status: 'loading', error: '' });
 
   async function load(signal?: AbortSignal) {
     state.set((current) => ({ ...current, status: 'loading', error: '' }));
     try {
-      const response = await send('/api/bookmarks', { signal });
-      const { bookmarks } = (await response.json()) as { bookmarks: Bookmark[] };
+      const bookmarks = await remote.bookmarks.list(undefined, { signal });
       state.set({ bookmarks, status: 'ready', error: '' });
     } catch (error) {
       if (signal?.aborted) return;
@@ -107,17 +82,12 @@ export default defineService(({ store, events, onStart }) => {
     state,
     reload: () => load(),
     async add(url: string) {
-      const response = await send('/api/bookmarks', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-      const { bookmark } = (await response.json()) as { bookmark: Bookmark };
+      const bookmark = await remote.bookmarks.add({ url });
       state.set((current) => ({ ...current, bookmarks: [...current.bookmarks, bookmark] }));
       events.emit('bookmarks.added', { id: bookmark.id, url: bookmark.url });
     },
     async remove(id: string) {
-      await send(`/api/bookmarks?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      await remote.bookmarks.remove(id);
       state.set((current) => ({
         ...current,
         bookmarks: current.bookmarks.filter((bookmark) => bookmark.id !== id),
@@ -128,19 +98,22 @@ export default defineService(({ store, events, onStart }) => {
 });
 ```
 
+- `remote.bookmarks.list` is typed from the operation: its input, its result and the fact that it
+  is exposed. `npx bitakit generate` (the dev server does it on save) updates it.
+- Failures reject with an `OperationError` whose `message` is written for users ("Sign in to
+  continue.", "This bookmark no longer exists."); the store keeps it for the page.
 - Start loading with `void load(signal)` in `onStart`. Awaiting it would hold up the whole
   app's startup until the network answers.
-- Keep `status` and `error` in the store, next to the data, so every page shows the same state.
 - Change the store only after the server confirmed the change, and emit events after that. On
-  a failure the list stays as it was.
-- The `signal` is aborted when the runtime stops; a cancelled load leaves the store alone.
+  a failure the list stays as it was. Events stay in the browser; the server's own events never
+  reach it.
 
 ## The Actions
 
 `src/plugins/bookmarks/actions/add.ts` returns the service's promise:
 
 ```ts
-import { defineAction } from '@bitakit/core';
+import { defineAction, isOperationError } from '@bitakit/core';
 
 export default defineAction<string>({
   title: 'Save',
@@ -148,7 +121,10 @@ export default defineAction<string>({
   // Return the promise: the button stays pending until the server answers, and a throw fails the run.
   execute: ({ services, input }) => services.bookmarks.list.add(input.trim()),
   success: 'Bookmark saved',
-  failure: ({ error }) => (error instanceof Error ? error.message : 'Could not save the bookmark.'),
+  failure: ({ error }) =>
+    isOperationError(error) && error.code === 'UNAUTHORIZED'
+      ? 'Sign in to save bookmarks.'
+      : 'Could not save the bookmark.',
 });
 ```
 
@@ -163,9 +139,10 @@ export default defineAction({
 });
 ```
 
-- Without `failure`, a failed run still shows the error's message. Set it to word the message
-  for users.
+- Without `failure`, a failed run shows the `OperationError`'s message. Set it to word messages
+  per code ([server.md](server.md#errors-the-ui-shows) lists the codes).
 - `remove.ts` stays as in the worked example; returning `remove(input)` already returns the promise.
+- The Save button's `enabled` rule is a convenience; the operation's `input` schema checks again.
 
 ## The page states
 
@@ -260,17 +237,17 @@ export default function BookmarksPage() {
   render already shows the placeholder.
 - The error state offers the `bookmarks.reload` Action instead of asking for a page reload.
 
-## Test without a server
+## Test both halves
 
-`mountPlugin` runs no server, so answer `fetch` in the test. This replaces the worked example's
-test, which calls the in-memory service.
-`tests/bookmarks-api.test.ts`:
+The server half has its own test ([server.md](server.md#test-it)). This one runs the client half
+against it in one process: `remote` becomes the server's in-process caller for one person. It
+replaces the worked example's test. `tests/bookmarks.test.ts`:
 
 ```ts
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { defineContract, definePlugin, defineSlot, getService } from '@bitakit/core';
-import { mountPlugin } from '@bitakit/core/testing';
+import { identity, mountPlugin, mountServer } from '@bitakit/core/testing';
 import type list from '../src/plugins/bookmarks/services/list';
 
 const bookmarks = defineContract('bookmarks.list').of<ReturnType<typeof list.create>>();
@@ -279,43 +256,81 @@ const shell = definePlugin({
   slots: { navigation: defineSlot({ accepts: 'actions' }) },
 });
 
-test('the list loads from the API and shows server errors on save', async (t) => {
-  // No server runs in a headless test: answer the service's requests here.
-  t.mock.method(globalThis, 'fetch', async (_url: string, init?: RequestInit) =>
-    init?.method === 'POST'
-      ? new Response('Send a full URL such as https://example.com.', { status: 400 })
-      : Response.json({
-          bookmarks: [{ id: '1', title: 'example.com', url: 'https://example.com/' }],
-        }),
-  );
-  const plugin = await mountPlugin('src/plugins/bookmarks', { plugins: [shell] });
+// The client half with remote calling the real server half as the given person.
+async function mountAs(person: ReturnType<typeof identity>) {
+  const server = await mountServer('src/plugins/bookmarks');
+  const plugin = await mountPlugin('src/plugins/bookmarks', {
+    plugins: [shell],
+    remote: server.as(person),
+  });
+  return {
+    list: getService(plugin.services, bookmarks),
+    plugin,
+    stop: async () => {
+      await plugin.stop();
+      await server.stop();
+    },
+  };
+}
+
+test('saving goes through the server, and its errors reach the page state', async () => {
+  const { list, plugin, stop } = await mountAs(identity({ user: 'ada' }));
   try {
-    const list = getService(plugin.services, bookmarks);
     await list.reload();
     assert.equal(list.state.get().status, 'ready');
-    assert.equal(list.state.get().bookmarks.length, 1);
 
-    // A failed run rejects with the Action's failure message; the list stays unchanged.
-    await assert.rejects(plugin.execute('add', 'https://example.org'), /full URL/);
+    assert.equal((await plugin.execute('add', 'https://example.com/docs')).status, 'completed');
+    assert.equal(list.state.get().bookmarks[0]?.title, 'example.com');
+    assert.equal(plugin.events.recorded.at(-1)?.type, 'bookmarks.added');
+
+    // The server refuses an unknown ID; the list stays as it was.
+    await assert.rejects(list.remove('missing'), /no longer exists/);
     assert.equal(list.state.get().bookmarks.length, 1);
   } finally {
-    await plugin.stop();
+    await stop();
+  }
+});
+
+test('a signed-out visitor sees the server message instead of a list', async () => {
+  const { list, stop } = await mountAs(identity({ user: null }));
+  try {
+    await list.reload();
+    assert.equal(list.state.get().status, 'error');
+    assert.equal(list.state.get().error, 'Sign in to continue.');
+  } finally {
+    await stop();
   }
 });
 ```
 
+- No HTTP server and no route run: `mountServer` boots the server half with a test identity, and
+  `server.as(...)` checks access and input exactly as over HTTP.
+- To test the client half alone, pass a stub instead:
+  `remote: { bookmarks: { list: async () => [] } }` (with a cast, since it covers one operation).
+
 ## Data that belongs to the signed-in user
 
-- The route reads the session and returns only that user's data; it rejects requests without
-  one (401) or without access (403).
+- The operations read the owner from `ctx` (`ctx.user.id`, or `ctx.organization.id` with
+  `access: 'organization'`) and filter every query by it. Anything the browser sends, such as an
+  organization ID kept in a store, is never proof of access.
 - When the user or organization can change while the app is open, reload in the service when
   the `auth` service reports a different identity, and ignore answers that arrive for the
-  previous one. Check `app.has('auth')` (Actions) or declare `requires` (services) first.
-- Never decide access from client state alone, such as an organization ID kept in a store.
+  previous one. Check `app.has('auth')` (Actions) or declare `requires` (services) first. For
+  organization data, `remote` sends the organization the page shows; a stale page gets
+  `CONFLICT` instead of writing to another organization.
+
+## When a native route still fits
+
+Keep a framework route in `src/app` (or `src/routes`) for what is not a call from this app's
+browser: a webhook from another service, a file download or upload, a streamed answer, or a
+public API for other clients. Such a route can reuse an operation with the caller's identity:
+`await server.as(request).bookmarks.list()` (import `server` from `@/bitakit.gen.server`).
 
 ## Explain it to the user
 
-Say where the data lives ("the server keeps the bookmarks in `src/app/api/bookmarks/route.ts`;
-the `bookmarks.list` service loads them when the app starts"), what the user sees while it loads
-or fails ("a placeholder, then the list; on an error a message with Try again"), and what still
-needs work, such as replacing the example's in-memory storage with the app's database.
+Say where the data lives ("the `bookmarks` plugin's server half keeps each user's bookmarks;
+the operations in `server/actions/` are the only part the browser can call, and each one checks
+the signed-in user"), what the user sees while it loads or fails ("a placeholder, then the
+list; on an error a message with Try again; signed out, 'Sign in to continue.'"), and what still
+needs work, such as replacing the example's in-memory store with the app's database and adding
+the app's `requestContext` provider.

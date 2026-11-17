@@ -16,7 +16,10 @@ const jobs = getService(services, scheduler);
 await jobs.run('reports.weekly', { audience: 'team' });
 ```
 
-No server generator exists yet. Use explicit server composition as in `examples/server/main.ts`.
+The generated server file (`src/bitakit.gen.server.ts`) does not install the scheduler yet: task
+files stay in `contributions/tasks/` (a task under `server/contributions/tasks/` is a generation
+error until tasks become a server-only kind), and a server runs them through explicit composition
+as in `examples/server/main.ts`.
 Never import `@bitakit/scheduler/server` into browser code. Install the scheduler once per
 runtime; installing it on both server and browser executes two independent sets of jobs.
 

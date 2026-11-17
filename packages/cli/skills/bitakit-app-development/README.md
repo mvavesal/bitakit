@@ -2,8 +2,8 @@
 
 An [Agent Skill](https://agentskills.io) that teaches Codex, Claude Code and other coding agents
 to build BitaKit apps the BitaKit way. Ask for a feature in plain words; the agent creates the
-plugin, adds pages, Actions, services, events, settings, interceptors and slots in the right
-files, checks the result in the browser and explains what it built.
+plugin, adds pages, Actions, services, events, settings, interceptors, slots and server
+operations in the right files, checks the result in the browser and explains what it built.
 
 This README is for people. Agents read [SKILL.md](SKILL.md) and the recipes in
 [references/](references/).
@@ -86,7 +86,8 @@ save a recipe with a title and ingredients" works the same way.
 | Block, check or observe Actions                                            | [interceptors.md](references/interceptors.md)               |
 | Add a user setting                                                         | [settings.md](references/settings.md)                       |
 | Replace a layout, the frame, a 404 or error page, or another plugin's part | [layouts-and-screens.md](references/layouts-and-screens.md) |
-| Load and save data through an API route                                    | [data-and-api.md](references/data-and-api.md)               |
+| Load and save data through the plugin's server half                        | [data-and-api.md](references/data-and-api.md)               |
+| Run code on the server: operations, `access`, `remote`, the identity       | [server.md](references/server.md)                           |
 | Avoid common mistakes; naming                                              | [best-practices.md](references/best-practices.md)           |
 | Change the app's colors, fonts or theme                                    | Theme files in the `@bitakit/shell` README                  |
 | Test a plugin and check it in the browser                                  | [testing-and-preview.md](references/testing-and-preview.md) |

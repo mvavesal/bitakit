@@ -8,7 +8,8 @@ Start with [one service and one store](/docs/concepts/services). Use this refere
 ## Factory context and store
 
 `defineService(factory, options?)` calls the factory with one context object:
-`{ services, config, settings, events, store, onStart, onStop }`. The returned object
+`{ services, config, settings, events, remote, store, onStart, onStop }`. `remote` calls the
+app's exposed [server operations](/docs/reference/server#remote). The returned object
 is the service instance. `store(initial)` supplies `get`, `set`, `subscribe` and `optimistic`.
 `set` accepts a value or updater; `optimistic(apply, commit, { reconcile, revert })` applies
 a tentative change and reconciles or rolls it back after the commit. These operations do
@@ -97,6 +98,36 @@ export default defineService(() => createAuthClient(), { provides: authService }
 ```
 
 Most application features only need the files above. For packages or standalone programs without discovery, see [Manual composition](/docs/concepts/manual-composition).
+
+## Server services
+
+A file in a plugin's `server/services/` folder is a server service, used by the plugin's
+operations, server interceptors and other server services. It uses the same `defineService`,
+imported from `@bitakit/core/server`:
+
+```ts title="src/plugins/bookmarks/server/services/store.ts (excerpt)"
+import { defineService } from '@bitakit/core/server';
+
+type Bookmark = { id: string; title: string; url: string };
+
+export default defineService(() => {
+  const byUser = new Map<string, Bookmark[]>();
+  return {
+    list: (userId: string) => byUser.get(userId) ?? [],
+    add: (userId: string, bookmark: Bookmark) =>
+      byUser.set(userId, [...(byUser.get(userId) ?? []), bookmark]),
+  };
+});
+```
+
+- One instance serves every request and every user. Take the owner (`ctx.user.id`,
+  `ctx.organization.id`) as a method argument; never keep a "current user" in the service.
+- `store()` is shared by all requests: use it for caches, never for user data.
+- Server services are never remotely callable and have no `remote`; the browser reaches them only
+  through an exposed [server Action](/docs/reference/server).
+- Settings load per request with `load(ctx)`; `get()` throws on the server.
+- `requires`, `provides`, `onStart` and `onStop` work as on the client. Server services are in
+  `ServerServiceMap`, apart from the client's services; the same ID on both sides is two services.
 
 ## Compatible identifier lookup
 

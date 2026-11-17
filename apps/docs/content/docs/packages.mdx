@@ -7,7 +7,7 @@ Start with the [minimal app](/docs/quickstart), then choose the capabilities you
 For ready-made app features, see [Plugins](/docs/plugins). For authentication, translation and
 email, see [Integrations](/docs/integrations).
 
-These guides describe the **0.2 API in this checkout**. Use matching package versions; the
+These guides describe the **0.3 API in this checkout**. Use matching package versions; the
 [local package setup](/docs/local-development) lets you try unpublished changes.
 All package names below use the `@bitakit/` prefix.
 
@@ -15,14 +15,14 @@ All package names below use the `@bitakit/` prefix.
 
 These packages support the app and its plugins; they are not all installable app features.
 
-| Package      | Responsibility                                                                                   |
-| ------------ | ------------------------------------------------------------------------------------------------ |
-| `core`       | Framework-independent runtime, Actions and typed service registration                            |
-| `ui`         | React bindings and optional standard themed components                                           |
-| `packages`   | Trusted catalogs and optional external artifact activation/recovery through the existing runtime |
-| `discovery`  | File conventions, package discovery and generated app composition                                |
-| `cli`        | Scaffolding, inspection, migration and plugin package builds                                     |
-| `create-app` | Frontend project generator                                                                       |
+| Package      | Responsibility                                                                                                                                                                                                           |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `core`       | Framework-independent runtime, Actions and typed service registration; `@bitakit/core/server` runs plugins' [server halves](/docs/concepts/server) and `@bitakit/core/testing` mounts plugins and server halves in tests |
+| `ui`         | React bindings and optional standard themed components                                                                                                                                                                   |
+| `packages`   | Trusted catalogs and optional external artifact activation/recovery through the existing runtime                                                                                                                         |
+| `discovery`  | File conventions, package discovery and generated app composition, including the server file                                                                                                                             |
+| `cli`        | Scaffolding (also of server operations), inspection, migration and plugin package builds                                                                                                                                 |
+| `create-app` | Frontend project generator                                                                                                                                                                                               |
 
 ## Framework adapters
 
@@ -33,6 +33,10 @@ build, mounts the generated provider and renders plugin pages from one catch-all
 | ---------- | ------------------------- | ------------ |
 | `next`     | Next.js App Router        | Supported    |
 | `tanstack` | TanStack Start and Router | Experimental |
+
+A plugin's server half needs no adapter: one route in the app hands requests to the generated
+server (`src/app/api/rpc/[...path]/route.ts` in Next.js). It is proven on Next.js; TanStack
+Start has a route template, and a plain Vite app has no server to host it.
 
 ## Framework ownership
 

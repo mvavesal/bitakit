@@ -1,0 +1,167 @@
+---
+title: The server half
+description: How a plugin keeps its server code in its own folder, and how a button reaches it.
+---
+
+A feature that saves data, uses a secret or checks who may do something needs the server.
+Without a place for that code, the feature leaves its plugin folder: a framework route, a session
+check, a membership check and a hand-written `fetch` client, spread over the app. Every new
+feature repeats that plumbing, and an agent has to find it again each time.
+
+A plugin's **server half** keeps that code next to the rest of the feature. Its `server/`
+folder runs only on the server and is never bundled for the browser:
+
+```text
+src/plugins/bookmarks/
+├── events.ts, settings.ts       shared declarations, read on both sides
+├── actions/add.ts               the button: title, enabled, confirmation, messages
+├── services/list.ts             the browser's copy of the list
+├── ui/pages/index.tsx           the page
+└── server/
+    ├── services/store.ts        data access with the app's own database client
+    └── actions/
+        ├── add.ts               the operation bookmarks.add (access: user)
+        └── list.ts              the operation bookmarks.list (access: user)
+```
+
+The [Server reference](/docs/reference/server) lists every option. This page explains the design.
+
+## The button and the operation
+
+`actions/add.ts` and `server/actions/add.ts` are both called `bookmarks.add`, but they do
+different jobs. The first is the button: its label, when it is enabled, whether it asks for
+confirmation and what message follows. The second is the operation: what input it accepts, who
+may run it and what it changes. To change how the button looks, edit the first file; to change
+what it does or who may do it, edit the second.
+
+The two live in separate maps (`ActionMap` and `ServerActionMap`) and separate runtimes, so the
+shared name never collides. Tools print the operation as `server:bookmarks.add`.
+
+```ts title="src/plugins/bookmarks/server/actions/add.ts (excerpt)"
+import { randomUUID } from 'node:crypto';
+import { defineAction } from '@bitakit/core/server';
+import { z } from 'zod';
+
+export default defineAction({
+  access: 'user',
+  expose: true,
+  input: z.object({ url: z.url() }),
+  execute: ({ input, ctx, services }) => {
+    const address = new URL(input.url);
+    const bookmark = { id: randomUUID(), title: address.hostname, url: address.href };
+    services.bookmarks.store.add(ctx.user.id, bookmark);
+    return bookmark;
+  },
+});
+```
+
+`defineAction` is the same function as on the client. Imported from `@bitakit/core/server`, its
+type admits the server fields (`access`, `expose`, `output`) and rejects the client-only ones
+(`enabled`, `confirm`, `slots`, ...). Startup checks both again, so a mix-up fails with a message
+that names the file.
+
+The button calls the operation through `remote`, a typed client generated from the exposed
+operations:
+
+```ts title="src/plugins/bookmarks/actions/add.ts (excerpt)"
+import { defineAction } from '@bitakit/core';
+
+export default defineAction<string>({
+  title: 'Save',
+  enabled: ({ input }) => URL.canParse(input?.trim() ?? ''),
+  execute: ({ input, remote }) => remote.bookmarks.add({ url: input.trim() }),
+});
+```
+
+## What happens on a call
+
+1. `remote.bookmarks.add(input)` sends `POST /api/rpc/bookmarks.add` with a JSON body. One route
+   in the app hands every such request to the server kernel.
+2. The HTTP handler accepts only a JSON `POST` of up to 1 MiB; a browser request must come from
+   the app's own origin or one the app trusts.
+3. The kernel looks the operation up by its exact ID. A private or unknown operation answers the
+   same 404, so the browser cannot tell them apart.
+4. It checks `access`. For anything but `public` it asks the app's `requestContext` provider
+   who sent the request: the verified user, and an organization only for an active membership.
+5. It validates the input once with the operation's schema.
+6. Server interceptors' `before` hooks run with the validated input and the caller's `ctx`.
+7. `execute` runs with `{ input, ctx, services, config, events, settings, signal }`.
+8. The answer is `{ "data": ... }`, or `{ "error": { code, message, ... } }`, which `remote`
+   turns back into an `OperationError`.
+
+The kernel compiles every operation once at startup and keeps no state per call, so concurrent
+calls never wait for each other. Server code can call the same operations in-process with
+`server.as(request)`; they pass the same checks and can also reach private operations.
+
+## Who decides access
+
+`access` is required on every operation; there is no default. `'public'` admits anyone, `'user'`
+a signed-in user, `'organization'` a member of the active organization, and
+`{ permission: { todos: ['delete'] } }` a member the provider grants those operations.
+
+The identity comes from one service in the app, the `requestContext` provider. It reads the
+request with the app's own authentication (Better Auth, another library, a gateway header) and
+answers `{ user, organization?, member?, can? }`. BitaKit has no authentication server and makes
+no role decisions; it calls the provider and passes the result on as `ctx`. The
+[authentication reference](/docs/reference/authentication#server-identity-the-requestcontext-provider)
+shows a provider.
+
+`ctx` is frozen and passed explicitly. BitaKit never filters your data: every query names its
+owner (`ctx.user.id`, `ctx.organization.id`). An organization ID the browser sends is never
+proof of membership. It only protects against a stale page: `remote` sends the organization the
+page shows, and when the session has moved to another one meanwhile, the server answers
+`CONFLICT` instead of writing to the wrong organization.
+
+## Same model, different rules
+
+The server half uses the same files and helpers as the client. A few rules differ, because one
+server process serves every user:
+
+| Concept      | In the browser                              | On the server                                                                         |
+| ------------ | ------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Settings     | `settings.todos.limit.get()`                | `await settings.todos.limit.load()`, per request from the `settings.storage` provider |
+| `store()`    | One user's UI state                         | Shared by every request: a cache, never user data                                     |
+| Services     | One user's state and logic                  | One instance for the process; take the owner as a method argument                     |
+| Interceptors | `before` returning `false` skips the Action | `before` returning `false` rejects the call (`FORBIDDEN`)                             |
+| Events       | Delivered to listeners in the browser       | Delivered in the server process with the caller's `ctx`; never sent to the browser    |
+| Remote calls | `remote` calls exposed operations           | Only operations are remotely callable; services never are                             |
+
+Client interceptors never see server operations; a server interceptor lives in
+`server/interceptors/`. Contribution kinds that run only on the server keep their files in
+`server/contributions/<folder>/`.
+
+## Development and production
+
+Importing the generated server file boots nothing; the first call does. The generated file
+carries a stamp computed from the files under the plugins' `server/` folders. In development a
+regenerated file with a new stamp replaces the kernel on the next call, once in-flight calls have
+finished. A helper the server files import from outside `server/` does not change the stamp;
+restart the dev server after changing it. In production the kernel started first stays for the
+life of the process.
+
+`npx bitakit doctor` checks the boundary in both directions: browser code that reaches a
+`server/` file, `@bitakit/core/server` or the generated server file is an error, and so is server
+code that imports React or the plugin's `ui/`.
+
+## What it does not include
+
+- **No database or ORM.** Server services use the app's own client (Prisma, Drizzle, SQL, an
+  HTTP API). Reusable plugins define their own storage contract.
+- **No authentication server.** The `requestContext` provider uses the app's authentication.
+- **One built-in transport.** JSON calls over one route. No OpenAPI, streaming, batching, file
+  uploads or rate limiting yet, and no CORS preflight for calls from another origin.
+- **App plugins only.** Installed plugin packages do not ship server halves yet.
+- **Next.js is proven.** `bitakit add action … --server` writes the Next.js route and a TanStack
+  Start route; other hosts are not covered.
+
+Keep a framework route for what is not a call from this app's browser: webhooks, file downloads,
+streamed answers or a public API for other clients. Keep your own backend when it is a separate
+service owned by another team, when the work is queues or long-running jobs, or when you already
+have a backend you like; the client side of BitaKit works against any API.
+
+## Next
+
+- [Server reference](/docs/reference/server): every property, error code and option.
+- [Test a server half](/docs/reference/testing#test-a-server-half) as a member, a member of
+  another organization and a signed-out visitor.
+- [Command line](/docs/cli#server-operations): `npx bitakit add action <plugin>/<name> --server`.

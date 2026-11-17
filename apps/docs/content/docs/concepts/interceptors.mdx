@@ -29,7 +29,8 @@ before: ({ services }) => services.counter.value.state.get().count < 10,
 ```
 
 `false` skips execution with reason `intercepted`. A promise from `before` is awaited.
-This is a client execution rule; server authorization still belongs on the server.
+This is a client execution rule; server authorization still belongs on the server, in the
+operation's `access` ([server interceptors](/docs/reference/server#services-settings-events-and-interceptors-on-the-server) also run there).
 
 <Figure name="action-interceptors" />
 

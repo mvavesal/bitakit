@@ -40,6 +40,12 @@ const kinds = {
   configs: 'config',
   interceptors: 'interceptor',
 };
+/** A module's `server/` half (`description.<module>.server`), as Core's server inventory kinds. */
+const serverKinds = {
+  actions: 'server-action',
+  services: 'server-service',
+  interceptors: 'server-interceptor',
+};
 
 /** The literal keys of the first object passed to `helper(...)` in the default export. */
 async function recordKeys(file, helper) {
@@ -114,18 +120,23 @@ export async function inspectionFromDescription(description) {
   for (const module of [description.app, ...description.plugins]) {
     const app = module === description.app;
     const declarations = [];
-    for (const [key, kind] of Object.entries(kinds))
-      for (const entry of module[key] ?? []) {
-        const ids = await idsOf(key, entry, module, {
-          root: description.root,
-          app,
-          slotDeclarations: description.slotDeclarations,
-        }).catch(() => null);
-        if (ids?.length)
-          for (const id of ids)
-            declarations.push({ kind, id, source: entry.file, resolution: 'resolved' });
-        else declarations.push({ kind, id: null, source: entry.file, resolution: 'file' });
-      }
+    // Server Actions and services follow the client's naming rules: unprefixed in the app.
+    for (const [side, map] of [
+      [module, kinds],
+      [module.server ?? {}, serverKinds],
+    ])
+      for (const [key, kind] of Object.entries(map))
+        for (const entry of side[key] ?? []) {
+          const ids = await idsOf(key, entry, module, {
+            root: description.root,
+            app,
+            slotDeclarations: description.slotDeclarations,
+          }).catch(() => null);
+          if (ids?.length)
+            for (const id of ids)
+              declarations.push({ kind, id, source: entry.file, resolution: 'resolved' });
+          else declarations.push({ kind, id: null, source: entry.file, resolution: 'file' });
+        }
     plugins.push({
       id: module.id,
       pluginId: module.id,

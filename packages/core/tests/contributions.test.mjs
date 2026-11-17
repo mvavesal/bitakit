@@ -9,7 +9,7 @@ import {
   isActionSpec,
 } from '../dist/core.js';
 
-test('execute receives one context: input, services, config, app, events, signal, id, get and update', async () => {
+test('execute receives one context: input, services, config, app, events, remote, signal, id, get and update', async () => {
   let seen;
   const runtime = createRuntime({
     configOverrides: { demo: { actions: { inspect: { label: 'Inspector' } } } },
@@ -64,6 +64,7 @@ test('execute receives one context: input, services, config, app, events, signal
       'get',
       'id',
       'input',
+      'remote',
       'services',
       'settings',
       'signal',

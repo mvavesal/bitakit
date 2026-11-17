@@ -1,9 +1,16 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
-import { contributionSegments, describeBitaKit, describeModule } from '@bitakit/discovery';
+import {
+  contributionSegments,
+  describeBitaKit,
+  describeDefinitions,
+  describeModule,
+} from '@bitakit/discovery';
 import { exists, findProject } from './project.mjs';
 import { appPluginAgentRules, claudeFileFor } from './agent-rules.mjs';
+import { providedKeys } from './doctor.mjs';
+import { serverHostNote, serverRoute, serverRouteFor } from './routes.mjs';
 import {
   actionFile,
   configFile,
@@ -18,6 +25,11 @@ import {
   dialogFile,
   providerFile,
   pluginFiles,
+  remoteActionFile,
+  serverActionFile,
+  serverInterceptorFile,
+  serverServiceFile,
+  serverTestFile,
   serviceFile,
   starterFiles,
   testFile,
@@ -107,16 +119,31 @@ const singleFile = {
   'settings-page': 'ui/settings/page.tsx',
 };
 
+/** The kinds `--server` writes into a plugin's `server/` folder. */
+export const serverKinds = ['action', 'service', 'interceptor'];
+
 /**
  * `bitakit add <kind> <plugin>/<name>` in an app, or `<name>` in a plugin package. Nested names
  * such as `notes/team/invite` create `actions/team/invite.ts` with the ID `notes.team.invite`.
  * `events` takes only the plugin: a plugin declares its events once in `events.ts`. `test` also
  * takes only an existing plugin of an app and writes `tests/<plugin>.test.ts` at the app root.
+ * `server: true` writes an action, service or interceptor into the plugin's `server/` folder
+ * instead (see `addServer`).
  */
-export async function addContribution(kind, target, { cwd, plugin: layoutPlugin } = {}) {
+export async function addContribution(
+  kind,
+  target,
+  { cwd, plugin: layoutPlugin, server = false } = {},
+) {
   if (!contributionKinds.includes(kind))
     throw new Error(`Unknown kind "${kind}". Use ${contributionKinds.join(', ')}.`);
+  if (server && !serverKinds.includes(kind))
+    throw new Error(`--server applies to ${serverKinds.join(', ')}, not to ${kind}.`);
   const project = await configuredProject(cwd);
+  if (server && project.kind !== 'app')
+    throw new Error(
+      'Plugin packages have no server half yet. Run "bitakit add <kind> <plugin>/<name> --server" inside an app.',
+    );
   if (kind === 'test') return addTest(project, target);
   if (kind === 'layout') return addLayout(project, target, layoutPlugin);
   const single = Object.hasOwn(singleFile, kind);
@@ -159,6 +186,8 @@ export async function addContribution(kind, target, { cwd, plugin: layoutPlugin 
   }
   const segments = name ? name.split('/') : [];
   const dotted = segments.join('.');
+  if (server)
+    return addServer(kind, project, { plugin, name, segments, moduleRoot, createdPlugin });
   // ui/pages/team/index.tsx serves /<plugin>/team, exactly as discovery derives it.
   const pageSegments = segments.at(-1) === 'index' ? segments.slice(0, -1) : segments;
   const pagePath = `/${plugin}${pageSegments.map((segment) => `/${segment}`).join('')}`;
@@ -187,6 +216,163 @@ export async function addContribution(kind, target, { cwd, plugin: layoutPlugin 
     id: single ? `${plugin}.*` : kind === 'slot' ? dotted : `${plugin}.${dotted}`,
     plugin,
     path: kind === 'page' ? pagePath : undefined,
+  };
+}
+
+/**
+ * Name segments no server operation may use: as properties of `remote` they would make it
+ * thenable, observable or converting. The lowercase ones of Core's list; the others are not
+ * valid file names here anyway.
+ */
+const reservedSegments = new Set([
+  'then',
+  'catch',
+  'finally',
+  'subscribe',
+  'constructor',
+  'prototype',
+]);
+
+/** The file of the plugin's client Action `id` (its button) in any spelling, if it has one. */
+async function buttonOf(moduleRoot, id, plugin) {
+  if (!(await exists(moduleRoot))) return undefined;
+  const { directory, actions } = await describeModule(moduleRoot);
+  const { definitions, unresolved } = await describeDefinitions(actions, {
+    helper: 'defineAction',
+    moduleId: plugin,
+  });
+  // A file that cannot be read statically may declare it; its path decides then.
+  const file =
+    definitions.find((definition) => definition.id === id)?.file ??
+    actions.find((entry) => unresolved.includes(entry.file) && `${plugin}.${entry.path}` === id)
+      ?.file;
+  // Discovery reports real paths; name the file as the caller knows the folder.
+  return file && path.join(moduleRoot, path.relative(directory, file));
+}
+
+/** Whether `@bitakit/core` as installed has the `./server` entry server files import. */
+async function coreHasServer(root) {
+  for (let folder = root; ; folder = path.dirname(folder)) {
+    const manifest = await readFile(
+      path.join(folder, 'node_modules/@bitakit/core/package.json'),
+      'utf8',
+    )
+      .then(JSON.parse)
+      .catch(() => undefined);
+    if (manifest) return Boolean(manifest.exports?.['./server']);
+    if (path.dirname(folder) === folder) return true;
+  }
+}
+
+/** Whether the CLI's `@bitakit/discovery` reads `server/` folders (0.3.1 and newer). */
+async function discoveryHasServer(project, moduleRoot) {
+  for (const directory of [moduleRoot, project.appDirectory])
+    if (await exists(directory)) return (await describeModule(directory)).server !== undefined;
+  return true;
+}
+
+/**
+ * Whether no server service of the app or an enabled plugin provides `requestContext`, read
+ * statically. Without a provider the server refuses to start once a non-public operation exists;
+ * a key whose name cannot be read counts as a provider.
+ */
+async function needsRequestContext(project) {
+  // Only a hint: a project discovery cannot describe gets none (generate reports the problem).
+  const description = await describeBitaKit(project.root).catch(() => undefined);
+  if (!description) return false;
+  const entries = [description.app, ...description.plugins.filter((item) => item.enabled)].flatMap(
+    (module) => module.server?.services ?? [],
+  );
+  const { names, unresolved } = await providedKeys(description.root, entries);
+  return !unresolved && !names.includes('requestContext');
+}
+
+/**
+ * `bitakit add <action|service|interceptor> <plugin>/<name> --server`: the file in the plugin's
+ * `server/` folder. An action also gets its test (`tests/<id>.server.test.ts`, which mounts the
+ * server half), the button that calls it through `remote` when the plugin has none with that ID,
+ * and the RPC route when no app route hands `<endpoint>/x` to BitaKit yet and the framework has
+ * a server host for it (`noHost` otherwise). `needsProvider` tells that no server service
+ * provides `requestContext` yet. Nothing is written when any of these files exists; nothing is
+ * ever overwritten.
+ */
+async function addServer(kind, project, { plugin, name, segments, moduleRoot, createdPlugin }) {
+  const id = `${plugin}.${segments.join('.')}`;
+  const folder = path.relative(project.root, moduleRoot).split(path.sep).join('/');
+  const files = {};
+  const kept = [];
+  let route;
+  let noHost;
+  let needsProvider = false;
+  let setup = [];
+  let run;
+  if (kind === 'service')
+    files[`${folder}/server/services/${name}.ts`] = serverServiceFile(name, plugin);
+  else if (kind === 'interceptor')
+    files[`${folder}/server/interceptors/${name}.ts`] = serverInterceptorFile(plugin, name);
+  else {
+    const reserved = id.split('.').find((segment) => reservedSegments.has(segment));
+    if (reserved)
+      throw new Error(
+        `"${reserved}" cannot name a server operation: remote.${id} would make remote thenable or observable. Choose another name.`,
+      );
+    const button = await buttonOf(moduleRoot, id, plugin);
+    files[`${folder}/server/actions/${name}.ts`] = serverActionFile(name, plugin, {
+      button: button && path.relative(moduleRoot, button).split(path.sep).join('/'),
+    });
+    if (button) kept.push(button);
+    else files[`${folder}/actions/${name}.ts`] = remoteActionFile(name, plugin);
+    const test = `tests/${id}.server.test.ts`;
+    files[test] = serverTestFile(name, plugin, {
+      directory: folder,
+      // Under plugins/, mountServer reads the same ID from plugin.config.ts or the folder name.
+      id: path.basename(project.pluginsDirectory) === 'plugins' ? undefined : plugin,
+    });
+    const caught = await serverRouteFor(project, project.serverEndpoint);
+    const written = caught
+      ? undefined
+      : await serverRoute(project, { endpoint: project.serverEndpoint });
+    if (caught) route = { file: caught.file, created: false };
+    else if (written) {
+      files[written.file] = written.content;
+      route = { file: written.file, created: true };
+    } else
+      noHost = serverHostNote(
+        project.serverEndpoint,
+        path
+          .relative(project.root, path.join(project.appDirectory, 'bitakit.gen.server.ts'))
+          .split(path.sep)
+          .join('/'),
+      );
+    needsProvider = await needsRequestContext(project);
+    ({ setup, run } = testSetup(project.manifest, test));
+    const installed = { ...project.manifest.dependencies, ...project.manifest.devDependencies };
+    // Server files need Core's /server entry, and discovery 0.3.1 to generate and test them.
+    const core = await coreHasServer(project.root);
+    const discovery = await discoveryHasServer(project, moduleRoot);
+    setup = [
+      ...(installed.zod ? [] : ['npm install zod']),
+      ...(core && discovery
+        ? []
+        : [`npm install ${core ? '' : '@bitakit/core@latest '}@bitakit/discovery@latest`]),
+      ...setup,
+    ];
+  }
+  const created = await writeNewFiles(project.root, files);
+  return {
+    project,
+    created,
+    createdPlugin,
+    id,
+    plugin,
+    server: true,
+    kept,
+    route,
+    noHost,
+    needsProvider,
+    remote: kind === 'action' ? `remote.${id}` : undefined,
+    setup,
+    run,
   };
 }
 

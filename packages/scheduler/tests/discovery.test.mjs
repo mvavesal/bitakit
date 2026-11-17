@@ -50,12 +50,22 @@ test('installed discovery wires folder/dotted/record tasks and strict mixed-case
       "import { defineSchedule } from '@bitakit/scheduler'; export default defineSchedule({ task: 'REPORTS.WEEKLY', cron: '0 9 * * MON', input: { count: 1 } });",
     );
     await put(
-      'src/plugins/Reports/server/contributions/tasks/secret.ts',
+      'src/plugins/Reports/server/tasks/secret.ts',
       "throw new Error('Server code entered discovery'); export default {};",
     );
     const result = await generateBitaKit(root, { quiet: true });
     assert.deepEqual(result.warnings, []);
     assert.doesNotMatch(await readFile(result.generated, 'utf8'), /secret\.ts/);
+    // Tasks are a client kind: under server/contributions/ they are an error naming their place.
+    await put(
+      'src/plugins/Reports/server/contributions/tasks/nightly.ts',
+      "throw new Error('Server code entered discovery'); export default {};",
+    );
+    await assert.rejects(
+      generateBitaKit(root, { quiet: true }),
+      /move it to src\/plugins\/Reports\/contributions\/tasks\/nightly\.ts\./,
+    );
+    await rm(join(root, 'src/plugins/Reports/server/contributions'), { recursive: true });
     await put(
       'src/check.ts',
       `

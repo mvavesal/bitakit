@@ -2,8 +2,9 @@
 
 Node-only BitaKit discovery. It scans an app's `src` and `src/plugins/<id>` folders and the
 installed plugin packages, then writes the typed `src/bitakit.gen.*` wiring (provider, config,
-`ActionMap`, `ServiceMap`, `EventMap`, `ConfigMap`, `SlotMap` and package styles). It never runs in
-the browser and never executes plugin contribution files.
+`ActionMap`, `ServiceMap`, `EventMap`, `ConfigMap`, `SlotMap` and package styles), and
+`src/bitakit.gen.server.ts` for plugins' server halves. It never runs in the browser and never
+executes plugin contribution files.
 
 It is its own package so that `typescript` (checks contribution files for a default export) and
 `jiti` (loads `bitakit.config.ts` and plugin manifests) stay out of the headless `@bitakit/core`
@@ -22,12 +23,42 @@ export default defineBitaKit({ groups: ['navigation'] });
   `generateBitaKit` and `watchBitaKit` around the framework build.
 - `@bitakit/cli` uses `generateBitaKit`, `watchBitaKit`, `describeBitaKit`, `describeModule`,
   `loadDiscoveryConfig` and `migrateProject` for `generate`, `info`, `doctor`, `build` and `migrate`.
-- `@bitakit/core/testing` (`mountPlugin`) uses `describeModule` to find a plugin folder's files.
+- `@bitakit/core/testing` (`mountPlugin`, `mountServer`) uses `describeModule` to find a plugin
+  folder's files; `mountServer` needs its `server` field (0.3.1 or later).
 - Apps and plugin playgrounds import `defineBitaKit` in `bitakit.config.ts`; generated apps list
   this package as a dev dependency.
 
 `@bitakit/core/discovery` re-exports this package for one release, with `@bitakit/discovery` as an
 optional peer dependency of Core. Import `@bitakit/discovery` directly.
+
+## The server file
+
+While an enabled module has server content (`server/actions`, `server/services`,
+`server/interceptors` or files of a `runtime: 'server'` contribution kind), `generateBitaKit`
+writes `src/bitakit.gen.server.ts` and returns its path as `GenerateResult.server`; otherwise it
+removes the file. The file imports from `@bitakit/core/server` (never React), composes every
+enabled local module (its shared declarations even without a server half; no package plugins),
+augments `ServerActionMap` and `ServerServiceMap`, and exports
+`server = createServer(createBitaKitServerConfig(), { instance: 'bitakit', endpoint, stamp, operations })`.
+The `stamp` hashes the file and every source under the modules' `server/` folders, so a changed
+server file replaces the kernel in development. `configOverrides` keep only the keys of modules
+in the file; dependencies on package plugins are dropped. The client file gets
+`remote: { endpoint, operations }` with the exposed operation IDs read statically.
+
+- `discoverEntries(..., { side: 'server' })` strips the leading `server` segment and applies the
+  client's segment rules; the client side still skips `server/`.
+- `ContributionKindSpec.runtime` (`client`, `server` or `both`) places a kind's files; a misplaced
+  file, also one left in a server kind's old root folder, is a generation error naming its target.
+- Static field rules (`src/server-rules.mjs`) reject client-only fields, a missing `access`, a
+  non-literal `expose`, reserved name segments and case-insensitive duplicates in server Actions,
+  and `access`/`expose`/`output` in client Actions. Unresolvable definitions are left to Core's
+  startup checks.
+- A missing `./server` export of the installed `@bitakit/core` is an error naming
+  `serverCoreVersion` (0.3.2).
+- `describeBitaKit` and `describeModule(directory, { kinds })` report
+  `server: { actions, services, interceptors, contributions }` per module;
+  `describeDefinitions(entries, { keys: true })` adds each definition's record key.
+- `defineBitaKit({ server: { endpoint } })` moves the RPC endpoint (default `/api/rpc`).
 
 ## Trusted lazy package catalog
 
@@ -82,6 +113,10 @@ verified by `scripts/verify-generated.mjs` in clean packed-package consumers.
 - `src/index.mjs`, `src/index.d.ts`: the only public entry and its types, including the
   `bitakit.config.ts` options.
 - `src/generate.mjs`: configuration loading, framework detection and emission of `src/bitakit.gen.*`.
+- `src/emitter.mjs`: the import/serial emitter shared by the client and the server file.
+- `src/server-file.mjs`: the server file, its stamp, the endpoint and the installed-Core check;
+  `src/server-rules.mjs`: the static field rules of server and client Actions.
+- `src/source-trees.mjs`: the shared parse cache that `entries.mjs` and `definition-info.mjs` reuse.
 - `src/entries.mjs`: folder, dotted-name and index-file conventions of contribution files and the
   integration-defined contribution kinds.
 - `src/describe.mjs`: read-only summaries of an app (`describeBitaKit`) or one module folder

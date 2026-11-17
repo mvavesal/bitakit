@@ -10,7 +10,17 @@ import {
 } from '@bitakit/discovery';
 import { checkAgentFiles } from './doctor-agent-files.mjs';
 import { exists, findProject } from './project.mjs';
-import { appRoutes, catchAllRoute, rootLayouts, shellGroup } from './routes.mjs';
+import {
+  appRoutes,
+  catchAllRoute,
+  hostsServerRoute,
+  rootLayouts,
+  routesCatching,
+  serverHostNote,
+  serverRoute,
+  shellGroup,
+} from './routes.mjs';
+import { checkServerBoundary, generatedServerImporters } from './server-boundary.mjs';
 import { describeSlots } from './slots.mjs';
 import { identityConflictsFromDescription } from './inventory.mjs';
 
@@ -124,6 +134,16 @@ export async function doctor({ cwd } = {}) {
   results.push(...(await checkTailwind(project, description)));
   results.push(checkIgnored(description), checkDeprecated(description), checkSlots(description));
   results.push(await checkParts(description));
+  try {
+    results.push(...(await checkServerBoundary(project, description)));
+  } catch (error) {
+    results.push({
+      status: 'error',
+      title: 'The server boundary could not be checked',
+      details: [error.message],
+    });
+  }
+  results.push(...(await checkServerWiring(project, description)));
   if (shell) {
     const missing = [];
     for (const module of modules)
@@ -471,9 +491,10 @@ const coreKeys = new Map([
   ['authService', 'auth'],
   ['translationService', 'i18n'],
   ['settingsStorage', 'settings.storage'],
+  ['requestContext', 'requestContext'],
 ]);
 /** Contract names that services register with `provides`; `unresolved` when a key's name cannot be read. */
-async function providedKeys(root, entries) {
+export async function providedKeys(root, entries) {
   const names = [];
   let unresolved = false;
   for (const entry of entries) {
@@ -712,6 +733,154 @@ async function checkRequirements(project, description, scanned) {
             ? 'The service requirement can be satisfied'
             : `All ${count} service requirements can be satisfied`,
       };
+}
+/** A module folder's `server/` holds Actions, services or interceptors (any spelling). */
+async function hasServerKinds(folder) {
+  const entries = await readdir(path.join(folder, 'server')).catch(() => []);
+  return entries.some((name) => /^(?:actions|services|interceptors)(?:\.|$)/.test(name));
+}
+
+/**
+ * Wiring of the server half, read statically (best effort): exposed server Actions need an app
+ * route that hands `<endpoint>/x` to BitaKit (a broader API catch-all that answers on its own
+ * does not count), and operations that are not public need a server service with
+ * `provides: requestContext`, or the server refuses to start. In a framework without a server
+ * host for that route, a file that calls `fetchHandler` with the generated server counts.
+ * Definitions that cannot be read statically are not counted. Without any server half, code
+ * that imports the generated server file is an error: discovery removes that file. A discovery
+ * that does not read `server/` folders (before 0.3.1) is reported when such folders exist.
+ */
+async function checkServerWiring(project, description) {
+  const root = description.root;
+  const modules = [
+    { ...description.app, isApp: true },
+    ...description.plugins.filter((plugin) => plugin.enabled),
+  ];
+  const generated = `${description.appDirectory ?? description.app.directory}/bitakit.gen.server.ts`;
+  if (description.app.server === undefined) {
+    const folders = [];
+    for (const module of modules)
+      if (await hasServerKinds(path.join(root, module.directory)))
+        folders.push(`${module.directory}/server`);
+    return folders.length
+      ? [
+          {
+            status: 'warn',
+            title: 'This @bitakit/discovery does not read server/ folders',
+            details: [
+              `${folders.join(', ')} hold${folders.length === 1 ? 's' : ''} server Actions, services or interceptors, but the installed @bitakit/discovery predates server halves: it generates no ${generated} and checks nothing on the server side.`,
+            ],
+            fix: 'npm install @bitakit/discovery@latest (0.3.1 or newer), then npx bitakit generate.',
+          },
+        ]
+      : [];
+  }
+  const operations = [];
+  let unresolved = false;
+  let provided = false;
+  let content = false;
+  for (const module of modules) {
+    const server = module.server;
+    content ||=
+      server.actions.length > 0 ||
+      server.services.length > 0 ||
+      server.interceptors.length > 0 ||
+      Object.values(server.contributions ?? {}).some((entries) => entries.length > 0);
+    const found = await describeDefinitions(
+      server.actions.map((entry) => ({ ...entry, file: path.join(root, entry.file) })),
+      {
+        helper: 'defineAction',
+        moduleId: module.isApp ? '' : module.id,
+        inspect: (fields, { unwrap, literal, ts: syntax }) => ({
+          exposed: unwrap(fields.get('expose'))?.kind === syntax.SyntaxKind.TrueKeyword,
+          access: fields.has('access') ? (literal(fields.get('access')) ?? 'rule') : undefined,
+        }),
+      },
+    );
+    operations.push(...found.definitions);
+    const keys = await providedKeys(root, server.services);
+    provided ||= keys.names.includes('requestContext');
+    unresolved ||= keys.unresolved;
+  }
+  if (!content) {
+    const importers = await generatedServerImporters(root);
+    return importers.length
+      ? [
+          {
+            status: 'error',
+            title: 'Code imports the generated server file, but no module has a server half',
+            details: importers.map(
+              ({ file }) =>
+                `${file} imports ${generated}, which discovery writes only while a server half exists.`,
+            ),
+            fix: 'Delete the route (or the import), or add a server Action: npx bitakit add action <plugin>/<name> --server.',
+          },
+        ]
+      : [];
+  }
+  if (!operations.length) return [];
+  const results = [];
+  const exposed = operations.filter((operation) => operation.exposed);
+  if (exposed.length) {
+    const endpoint = project.serverEndpoint ?? '/api/rpc';
+    const caught = await routesCatching(project, endpoint);
+    const route = caught.find((item) => item.bitakit);
+    const listed = `${exposed.map((operation) => `server:${operation.id}`).join(', ')} ${exposed.length === 1 ? 'is' : 'are'} exposed`;
+    if (route)
+      results.push({ status: 'ok', title: `${route.file} answers ${endpoint}/<operation id>` });
+    else if (!hostsServerRoute(project)) {
+      const host = (await generatedServerImporters(root)).find(({ code }) =>
+        /\bfetchHandler\b/.test(code),
+      );
+      results.push(
+        host
+          ? {
+              status: 'ok',
+              title: `${host.file} serves ${endpoint}/<operation id> with fetchHandler`,
+            }
+          : {
+              status: 'warn',
+              title: 'No server answers the exposed server Actions',
+              details: [
+                `${listed}, but this app's framework has no server route BitaKit writes, and no file calls fetchHandler with the generated server, so remote calls fail.`,
+              ],
+              fix: serverHostNote(endpoint, generated),
+            },
+      );
+    } else {
+      const file = await serverRoute(project, { endpoint });
+      results.push({
+        status: 'warn',
+        title: 'No route answers the exposed server Actions',
+        details: [
+          `${listed}, but no app route hands POST ${endpoint}/<operation id> to BitaKit, so remote calls fail.`,
+          ...caught.map(
+            (item) =>
+              `${item.file} catches ${endpoint}/<operation id> but does not call fetchHandler; the more specific route below takes precedence over it.`,
+          ),
+        ],
+        fix: `Create ${file.file}:\n\n${file.content}`,
+      });
+    }
+  }
+  const guarded = operations.filter((operation) => operation.access !== 'public');
+  if (guarded.length && !provided && !unresolved)
+    results.push({
+      status: 'warn',
+      title: 'No service provides requestContext',
+      details: [
+        `${guarded
+          .slice(0, 3)
+          .map((operation) => `server:${operation.id}`)
+          .join(
+            ', ',
+          )}${guarded.length > 3 ? ` and ${guarded.length - 3} more` : ''} need${guarded.length === 1 ? 's' : ''} a signed-in caller, so the server refuses to start without a provider.`,
+      ],
+      fix: "Add src/server/services/request-context.ts: defineService(() => ({ resolve: (request) => ({ user, organization, member, can }) }), { provides: requestContext }) from '@bitakit/core/server', reading the session of your auth provider. The organization only for an active, verified membership.",
+    });
+  else if (guarded.length && provided)
+    results.push({ status: 'ok', title: 'A server service provides requestContext' });
+  return results;
 }
 /** Plugin `dependencies` must not form a cycle, and the plugins they name must be enabled. */
 function checkGraph(description) {

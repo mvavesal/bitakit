@@ -1,5 +1,6 @@
 import type { NamedValue, NameKey } from '../name-resolution.js';
 import type { GeneratedName, CheckedName } from '../names.js';
+import type { RequestContext } from '../request-context.js';
 
 /** Event names and payloads. Generated from every plugin's `events.ts`; may also be augmented by hand. */
 export interface EventMap {}
@@ -44,7 +45,8 @@ export type BitaKitEvent<Name extends string = string> = Name extends string
   : never;
 export type EventHandler<Name extends string = string> = (
   event: BitaKitEvent<EventsMatching<Name>>,
-  context: { signal: AbortSignal },
+  /** `ctx` is the request context when a server operation emitted the event, else absent. */
+  context: { signal: AbortSignal; ctx?: RequestContext },
 ) => void | Promise<void>;
 export type EventErrorHandler = (error: unknown, event: BitaKitEvent) => void;
 export type EmitResult<Name extends string> = [NameKey<CancelableEventMap, Name>] extends [never]

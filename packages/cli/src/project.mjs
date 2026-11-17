@@ -74,12 +74,24 @@ async function describeProject(root, manifest) {
     root,
     manifest,
     framework,
+    // TanStack Router alone renders in the browser; Start adds the server that runs handlers.
+    start: Boolean(dependencies['@tanstack/react-start']),
     configFile: file,
     legacyConfig: legacy,
     configError,
     pluginsDirectory: path.resolve(root, config.plugins?.directory ?? './src/plugins'),
     appDirectory: path.resolve(root, config.directory ?? './src'),
+    // Where the browser calls server operations (`server.endpoint`); discovery validates it.
+    serverEndpoint: serverEndpointOf(config),
   };
+}
+
+/** `server.endpoint` of bitakit.config.ts as a path without a trailing slash; `/api/rpc` by default. */
+function serverEndpointOf(config) {
+  const endpoint = config.server?.endpoint;
+  return typeof endpoint === 'string' && endpoint.replace(/^\/+|\/+$/g, '')
+    ? `/${endpoint.replace(/^\/+|\/+$/g, '')}`
+    : '/api/rpc';
 }
 
 export async function exists(file) {

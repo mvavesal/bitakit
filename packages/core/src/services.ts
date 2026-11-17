@@ -1,6 +1,6 @@
 import { EventService, createEventScope } from './events/service.js';
 import { ConfigService, type ConfigContext } from './config-service.js';
-import type { ServiceDefinition, Services } from './definitions.js';
+import type { ServiceContext, ServiceDefinition, Services } from './definitions.js';
 import type { SettingsAccess } from './settings/access.js';
 import type { ServiceNames } from './service-names.js';
 import { BitaKitStartupError, isBitaKitStartupError, moduleLabel } from './startup-error.js';
@@ -41,6 +41,8 @@ export function createServices(
   idOf: (definition: ServiceDefinition<any>) => string = (definition) => definition.id!,
   settings: SettingsAccess = Object.freeze({}) as SettingsAccess,
   onPhase: (id: string, phase: LifecyclePhase, error?: unknown) => void = () => {},
+  /** Extra context keys every factory receives; the client runtime passes `remote`. */
+  extras: { readonly remote?: unknown } = {},
 ) {
   let active = true;
   let initialized = false;
@@ -110,7 +112,9 @@ export function createServices(
         onPhase(id, 'starting');
         let instance: unknown;
         try {
+          // Server services get no `remote`; the client runtime always passes one.
           instance = definition.create({
+            ...(extras.remote ? { remote: extras.remote } : {}),
             events: eventScope.events,
             services: view,
             config: configFor(definition),
@@ -131,7 +135,7 @@ export function createServices(
                 throw new Error('Service cleanup registration is closed.');
               service.stops.push(hook);
             },
-          });
+          } as ServiceContext);
         } catch (error) {
           onPhase(id, 'failed', error);
           if (!scope || isBitaKitStartupError(error)) throw error;

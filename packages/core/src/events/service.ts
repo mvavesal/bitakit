@@ -1,14 +1,45 @@
 import { resolveName } from '../name-resolution.js';
 import type { Events, EventHandler, EventErrorHandler, BitaKitEvent } from './types.js';
 import type { EventsDefinition } from './define.js';
+import type { RequestContext } from '../request-context.js';
 
-type Listener = (event: BitaKitEvent) => void | Promise<void>;
+type Listener = (event: BitaKitEvent, ctx?: RequestContext) => void | Promise<void>;
 type Declared = {
   plugin: string;
   names: string[];
   cancelable: Set<string>;
   schemas: Map<string, { parse(input: unknown): unknown }>;
 };
+/**
+ * Name lookups derived from the declarations. Built on first use and dropped whenever a name is
+ * declared, released or reserved (in server mode that set is fixed after boot), so an emit costs
+ * map lookups and the prefix scan, not a pass over every declared name per listener.
+ */
+type Lookup = {
+  /** What `resolve` folds against: reserved events and declared event names. */
+  readonly names: readonly string[];
+  /** Declared and reserved namespaces. */
+  readonly namespaces: readonly string[];
+  readonly events: Map<string, string>;
+  readonly owners: Map<string, string>;
+  /** Exact listener sets by the name their key resolves to; dropped when a key is added or removed. */
+  exact?: {
+    readonly byName: ReadonlyMap<string, readonly Set<Listener>[]>;
+    /** Keys that no longer resolve (ambiguous); reported on every emit, as before. */
+    readonly failures: readonly unknown[];
+  };
+};
+/** Cached resolutions are per declaration state; the cap bounds dynamic names between changes. */
+const cacheLimit = 1024;
+function cached(cache: Map<string, string>, name: string, candidates: readonly string[]) {
+  let resolved = cache.get(name);
+  if (resolved === undefined) {
+    resolved = resolveName(name, candidates);
+    if (cache.size >= cacheLimit) cache.clear();
+    cache.set(name, resolved);
+  }
+  return resolved;
+}
 
 /**
  * One bus per runtime. Delivery is synchronous and ordered; async handlers are awaited only
@@ -23,6 +54,7 @@ export class EventService implements Events {
   private declared = new Map<string, Declared>();
   private reserved = new Set<string>();
   private reservedEvents = new Set<string>();
+  private lookupCache?: Lookup;
   constructor(
     private onError: EventErrorHandler = (error, event) => {
       console.error(`Event handler failed for "${event.type}".`, error);
@@ -48,22 +80,39 @@ export class EventService implements Events {
       cancelable,
       schemas,
     });
+    this.lookupCache = undefined;
   }
   /** Release a stopped owner’s declaration without removing other owners’ listeners. */
   undeclare(plugin: string) {
     this.declared.delete(resolveName(plugin, this.declared.keys()));
+    this.lookupCache = undefined;
+  }
+
+  private get lookup(): Lookup {
+    return (this.lookupCache ??= {
+      names: [
+        ...this.reservedEvents,
+        ...[...this.declared.values()].flatMap((entry) => entry.names),
+      ],
+      namespaces: [...this.declared.keys(), ...this.reserved],
+      events: new Map(),
+      owners: new Map(),
+    });
+  }
+  /** The declared or reserved namespace a (case-folded) namespace reference names. */
+  private namespace(name: string): string {
+    const lookup = this.lookup;
+    return cached(lookup.owners, name, lookup.namespaces);
   }
 
   /** The plugin that declared the namespace of an event name, if any. */
   ownerOf(name: string): string | undefined {
-    const prefix = resolveName(name.split('.')[0], [...this.declared.keys(), ...this.reserved]);
+    const prefix = this.namespace(name.split('.')[0]);
     return this.declared.has(prefix) ? prefix : undefined;
   }
   resolve(name: string): string {
-    return resolveName(name, [
-      ...this.reservedEvents,
-      ...[...this.declared.values()].flatMap((entry) => entry.names),
-    ]);
+    const lookup = this.lookup;
+    return cached(lookup.events, name, lookup.names);
   }
   isCancelable(name: string) {
     name = this.resolve(name);
@@ -75,25 +124,36 @@ export class EventService implements Events {
     if (this.declared.has(namespace) || this.reserved.has(namespace))
       throw new Error(`Event namespace "${namespace}" is already owned.`);
     this.reserved.add(namespace);
+    this.lookupCache = undefined;
     return (name, data) => {
       if (!name.startsWith(`${namespace}.`))
         throw new Error('Event is outside the reserved namespace.');
-      this.reservedEvents.add(name);
+      if (!this.reservedEvents.has(name)) {
+        this.reservedEvents.add(name);
+        this.lookupCache = undefined;
+      }
       this.dispatch(name, data);
     };
   }
 
-  emit = ((name: string, data?: unknown) => {
-    if (
-      this.reserved.has(
-        resolveName(name.split('.')[0], [...this.reserved, ...this.declared.keys()]),
-      )
-    )
-      throw new Error(`Event "${name}" is emitted only by the runtime.`);
-    return this.dispatch(name, data);
-  }) as Events['emit'];
+  emit = ((name: string, data?: unknown) =>
+    this.emitWithContext(undefined, name, data)) as Events['emit'];
 
-  private dispatch = (name: string, data?: unknown): void | Promise<boolean> => {
+  /**
+   * Emits on behalf of a server call: listeners receive `ctx` as `{ signal, ctx }`. It is never
+   * part of the event object. `undefined` behaves exactly like `emit`.
+   */
+  emitWithContext(ctx: RequestContext | undefined, name: string, data?: unknown) {
+    if (this.reserved.has(this.namespace(name.split('.')[0])))
+      throw new Error(`Event "${name}" is emitted only by the runtime.`);
+    return this.dispatch(name, data, ctx);
+  }
+
+  private dispatch = (
+    name: string,
+    data?: unknown,
+    ctx?: RequestContext,
+  ): void | Promise<boolean> => {
     name = this.resolve(name);
     const schema = this.declared.get(name.split('.')[0])?.schemas.get(name);
     if (this.isCancelable(name)) {
@@ -104,13 +164,13 @@ export class EventService implements Events {
       } catch (error) {
         return Promise.reject(error);
       }
-      return this.emitCancelable(name, checked);
+      return this.emitCancelable(name, checked, ctx);
     }
     const payload = schema ? schema.parse(data) : data;
     const event = Object.freeze({ type: name, data: payload }) as BitaKitEvent;
     for (const listener of this.listenersFor(name)) {
       try {
-        const result = listener(event);
+        const result = listener(event, ctx);
         if (result && typeof (result as Promise<void>).then === 'function')
           void (result as Promise<void>).catch((error) => this.report(error, event));
       } catch (error) {
@@ -126,7 +186,11 @@ export class EventService implements Events {
     }
   };
 
-  private async emitCancelable(name: string, data: unknown): Promise<boolean> {
+  private async emitCancelable(
+    name: string,
+    data: unknown,
+    ctx?: RequestContext,
+  ): Promise<boolean> {
     let cancelled = false;
     const event = Object.freeze({
       type: name,
@@ -141,7 +205,7 @@ export class EventService implements Events {
     const pending: Promise<void>[] = [];
     for (const listener of this.listenersFor(name)) {
       try {
-        const result = listener(event);
+        const result = listener(event, ctx);
         if (result && typeof (result as Promise<void>).then === 'function')
           pending.push((result as Promise<void>).catch((error) => this.report(error, event)));
       } catch (error) {
@@ -159,23 +223,41 @@ export class EventService implements Events {
     return !cancelled;
   }
 
+  /** Exact listeners (in subscription order), then prefix listeners; each listener once. */
   private listenersFor(name: string): Listener[] {
+    const lookup = this.lookup;
+    const exact = (lookup.exact ??= this.indexExact());
+    const failed = (error: unknown) =>
+      this.report(error, Object.freeze({ type: name, data: undefined }));
+    exact.failures.forEach(failed);
     const result: Listener[] = [];
-    const select = (listeners: Set<Listener>, matches: () => boolean) => {
+    for (const listeners of exact.byName.get(name) ?? []) result.push(...listeners);
+    for (const [prefix, listeners] of this.prefixes) {
       try {
-        if (matches()) result.push(...listeners);
+        if (name.startsWith(prefix ? `${this.namespace(prefix.slice(0, -1))}.` : ''))
+          result.push(...listeners);
       } catch (error) {
-        this.report(error, Object.freeze({ type: name, data: undefined }));
+        failed(error);
       }
-    };
-    for (const [requested, listeners] of this.exact)
-      select(listeners, () => this.resolve(requested) === name);
-    const namespaces = [...this.declared.keys(), ...this.reserved];
-    for (const [prefix, listeners] of this.prefixes)
-      select(listeners, () =>
-        name.startsWith(prefix ? `${resolveName(prefix.slice(0, -1), namespaces)}.` : ''),
-      );
+    }
     return [...new Set(result)];
+  }
+  private indexExact(): NonNullable<Lookup['exact']> {
+    const byName = new Map<string, Set<Listener>[]>();
+    const failures: unknown[] = [];
+    for (const [requested, listeners] of this.exact) {
+      let name: string;
+      try {
+        name = this.resolve(requested);
+      } catch (error) {
+        failures.push(error);
+        continue;
+      }
+      const sets = byName.get(name);
+      if (sets) sets.push(listeners);
+      else byName.set(name, [listeners]);
+    }
+    return { byName, failures };
   }
   private report(error: unknown, event: BitaKitEvent) {
     try {
@@ -189,13 +271,15 @@ export class EventService implements Events {
     const controller = new AbortController();
     const keys = [...new Set(typeof names === 'string' ? [names] : names)];
     for (const name of keys) {
-      if (name.endsWith('.*'))
-        resolveName(name.slice(0, -2), [...this.declared.keys(), ...this.reserved]);
+      if (name.endsWith('.*')) this.namespace(name.slice(0, -2));
       else if (name !== '*') this.resolve(name);
     }
-    const invoke: Listener = (event) => {
+    const invoke: Listener = (event, ctx) => {
       if (controller.signal.aborted) return;
-      return handler(event as never, { signal: controller.signal });
+      return handler(
+        event as never,
+        ctx === undefined ? { signal: controller.signal } : { signal: controller.signal, ctx },
+      );
     };
     const targets: { map: Map<string, Set<Listener>>; key: string }[] = keys.map((key) =>
       key.endsWith('.*')
@@ -206,7 +290,10 @@ export class EventService implements Events {
     );
     for (const { map, key } of targets) {
       let set = map.get(key);
-      if (!set) map.set(key, (set = new Set()));
+      if (!set) {
+        map.set(key, (set = new Set()));
+        if (map === this.exact && this.lookupCache) this.lookupCache.exact = undefined;
+      }
       set.add(invoke);
     }
     const unsubscribe = () => {
@@ -214,7 +301,10 @@ export class EventService implements Events {
       for (const { map, key } of targets) {
         const set = map.get(key);
         set?.delete(invoke);
-        if (set && !set.size) map.delete(key);
+        if (set && !set.size) {
+          map.delete(key);
+          if (map === this.exact && this.lookupCache) this.lookupCache.exact = undefined;
+        }
       }
       this.subscriptions.delete(unsubscribe);
       controller.abort();
@@ -240,6 +330,7 @@ export class EventService implements Events {
     this.prefixes.clear();
     this.observers.clear();
     this.declared.clear();
+    this.lookupCache = undefined;
   }
 }
 
@@ -250,8 +341,8 @@ export class EventService implements Events {
 export function createEventScope(events: EventService, owner?: string) {
   let active = true;
   const cleanups = new Set<() => void>();
-  const scoped: Events = {
-    emit: ((name: string, ...data: unknown[]) => {
+  const emitter = (ctx: RequestContext | undefined) =>
+    ((name: string, data?: unknown) => {
       if (!active) return undefined as never;
       const declaredBy = events.ownerOf(name);
       if (
@@ -262,8 +353,10 @@ export function createEventScope(events: EventService, owner?: string) {
         throw new Error(
           `"${owner}" cannot emit "${name}": that event belongs to plugin "${declaredBy}". Only the declaring plugin emits its events; listen with events.on instead.`,
         );
-      return (events.emit as (name: string, ...data: unknown[]) => unknown)(name, ...data);
-    }) as Events['emit'],
+      return events.emitWithContext(ctx, name, data);
+    }) as Events['emit'];
+  const scoped: Events = {
+    emit: emitter(undefined),
     on: ((names, handler) => {
       if (!active) throw new Error('Event scope is no longer active.');
       const unsubscribe = events.on(names as never, handler as never);
@@ -277,6 +370,8 @@ export function createEventScope(events: EventService, owner?: string) {
   };
   return {
     events: scoped,
+    /** The same view whose `emit` hands a server call's `ctx` to listeners. */
+    withContext: (ctx: RequestContext): Events => ({ emit: emitter(ctx), on: scoped.on }),
     dispose() {
       if (!active) return;
       active = false;

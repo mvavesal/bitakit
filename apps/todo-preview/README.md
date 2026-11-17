@@ -33,19 +33,33 @@ configured. Do not use real passwords or customer data.
 - Mod+K: search actual tasks through the Todo source. The compact All categories dropdown
   narrows only this dialog. `/settings/quick-search` owns the persistent source choice and shows
   its icon/title/description beside a Switch. Results link to the task's native hash anchor;
-  recent results are re-read through the existing authenticated API and scoped to the active organization.
+  recent results are re-read through the server operation `todos.list`, scoped to the active organization.
   The AppBar trigger keeps its native button behavior with the central input appearance and Search icon.
 - `src/plugins/todos/setup.ts`: the owned optional search contribution; no host search registry.
 - `src/plugins/todos`: service-owned state and operations, with ordinary `defineAction`
   bindings. No copied action registry or separate client session store.
-- `src/app/api/tasks/route.ts`: app-owned server data, scoped by the verified native
-  session and organization membership. Task IDs alone do not grant access.
+- `src/plugins/todos/server/`: the plugin's server half. `services/store.ts` keeps the tasks in
+  memory per organization; `actions/` holds the operations `todos.list`, `add`, `edit`,
+  `complete`, `remove` and `clear` (`access: 'organization'`, zod input and output). Task IDs
+  alone do not grant access, and `clear` refuses when the confirmed organization is no longer the
+  session's. The client service calls them with `remote.todos.*` through
+  `src/app/api/rpc/[...path]/route.ts`.
+- `src/server/request-context.ts`: the caller's identity from the verified Better Auth session.
+  The active organization counts only for an enabled membership of that user in it
+  (`member.disabled` is declared in `src/server/auth.ts`).
 - `src/server/auth.ts`: the local native memory adapter and seed, shared across Next route
   modules and development reloads.
 - `src/components/workspace.tsx`: native composition. Public auth forms remain mounted
   during session revalidation, so switching browser focus does not erase typed input.
 
 ## Verify
+
+The headless tests need no server: they call the operations in-process as different people,
+check the Better Auth request context, and run the client service against its server half.
+
+```sh
+npm test
+```
 
 With the preview server running, from this directory:
 

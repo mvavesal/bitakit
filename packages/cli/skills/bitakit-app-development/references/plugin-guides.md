@@ -45,7 +45,7 @@ the documented test setup is installed. In `/bookmarks`, save a URL and confirm 
 Change `openInNewTab` in Settings and check the link's target.
 ```
 
-The example describes only the in-memory version. After following the API recipe, update
+The example describes only the in-memory version. After following the data recipe, update
 the ownership and persistence paragraph, the `reload` Action and its checks to match that
 implementation. A server-memory example still resets on server restart; do not call it a
 durable database.

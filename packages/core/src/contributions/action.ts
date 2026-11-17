@@ -17,6 +17,7 @@ import type {
 import type { Events } from '../events/types.js';
 import type { ContributionHost, OpenableDefinition, Override } from './host.js';
 import { isThenable, validate, validateSync } from '../schema.js';
+import { contributionPath } from '../contribution-origin.js';
 
 export type Registration = {
   id: string;
@@ -60,6 +61,19 @@ export function cap(presentation: ActionPresentation, override: Override): Actio
  * input in `resolve`, `href` executes as navigation, `dialog` opens the host dialog and
  * `execute` runs with validation, feedback and the shared execution guards.
  */
+/** Fields only a server Action has; in a client Action they would silently not apply. */
+const serverFields = ['access', 'expose', 'output'] as const;
+function rejectServerFields(resolved: ResolvedContribution) {
+  const field = serverFields.find(
+    (name) => (resolved as Record<string, unknown>)[name] !== undefined,
+  );
+  if (!field) return;
+  const path = (contributionPath(resolved) ?? resolved.id.split('.')).join('/');
+  throw new Error(
+    `\`${field}\` is a server field. This file is the button; put the operation, with \`expose: true\`, in server/actions/${path}.ts and call it with remote.${resolved.id}().`,
+  );
+}
+
 export function adaptAction(
   resolved: ResolvedContribution,
   host: ContributionHost,
@@ -67,6 +81,7 @@ export function adaptAction(
   events: Events,
   available: () => boolean = () => true,
 ): Adapted {
+  rejectServerFields(resolved);
   const override = host.override(resolved.id);
   // Only `false` caps apply to the definition; `true` never bypasses the action's own guards.
   const definition = override
@@ -145,6 +160,7 @@ export function adaptAction(
               settings: host.app.settings,
               app: host.app,
               events,
+              remote: host.remote,
             };
             let result: unknown;
             try {

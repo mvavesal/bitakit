@@ -2,7 +2,7 @@ import { resolveName, resolveOverrides } from './name-resolution.mjs';
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { createJiti } from 'jiti';
-import { files, discoverEntries } from './entries.mjs';
+import { files, discoverEntries, mergedKindSpecs, serverKindNames } from './entries.mjs';
 import { parentDirectory, pluginManifests } from './modules.mjs';
 import { installedContributions } from './packages.mjs';
 import { detectFramework, loadDiscoveryConfig } from './generate.mjs';
@@ -16,7 +16,7 @@ import {
   folderMetadata,
 } from './plugin-metadata.mjs';
 
-const kinds = [
+const builtInKinds = [
   'actions',
   'services',
   'pages',
@@ -33,10 +33,10 @@ async function contributionsOf(
   relative,
   warnings,
   relativeTo = base,
-  { app = false, entries = {} } = {},
+  { app = false, entries = {}, kinds = [] } = {},
 ) {
   const result = {};
-  for (const kind of kinds) {
+  for (const kind of builtInKinds) {
     const override = entries[kind];
     if (override === false) {
       result[kind] = [];
@@ -78,7 +78,32 @@ async function contributionsOf(
       variant,
       file: relative(file),
     }));
+  result.server = await serverOf(base, list, relative, warnings, relativeTo, kinds);
   return result;
+}
+
+/**
+ * The module's server half: `server/` actions, services and interceptors, and the files of the
+ * server-only contribution kinds it knows, by kind name. Other files under `server/` are the
+ * module's own code. Placement and field rules are generation errors, not reported here.
+ */
+async function serverOf(base, list, relative, warnings, relativeTo, kinds) {
+  const server = {};
+  const describe = async (kind) => {
+    const found = await discoverEntries(base, list, kind, { relativeTo, side: 'server' });
+    warnings.push(...found.warnings);
+    return found.entries.map((entry) => ({
+      path: entry.path.join('.'),
+      file: relative(entry.file),
+    }));
+  };
+  for (const kind of serverKindNames) server[kind] = await describe(kind);
+  server.contributions = {};
+  for (const kind of kinds.filter((item) => item.runtime === 'server')) {
+    const entries = await describe(kind);
+    if (entries.length) server.contributions[kind.name] = entries;
+  }
+  return server;
 }
 
 /**
@@ -96,6 +121,12 @@ export async function describeBitaKit(
   const warnings = [];
   const metadataWarnings = [];
   const { config } = await loadDiscoveryConfig(root, jiti);
+  const installed = await installedContributions(root, config.packages, jiti, {
+    metadataOnly: packageMetadataOnly,
+    auditStyles: auditPackageStyles,
+  });
+  // Package kinds are known only when their discovery hooks run (not with packageMetadataOnly).
+  const kinds = mergedKindSpecs(installed.kinds, config.kinds);
   const directory = path.resolve(root, config.plugins?.directory ?? './src/plugins');
   const appRoot = path.resolve(root, config.directory ?? './src');
   const included = Object.entries(config.plugins?.include ?? {}).map(([id, folder]) => ({
@@ -136,7 +167,7 @@ export async function describeBitaKit(
       relative(appPackageFile),
       { application: true },
     ),
-    ...(await contributionsOf(appRoot, appFiles, relative, warnings, root, { app: true })),
+    ...(await contributionsOf(appRoot, appFiles, relative, warnings, root, { app: true, kinds })),
   };
   const plugins = [];
   const manifestOf = async ({ manifestFile, id }) => ({
@@ -194,13 +225,10 @@ export async function describeBitaKit(
       enabled: pluginOverrides[manifest.id]?.enabled ?? config.plugins?.autoEnable ?? true,
       ...(await contributionsOf(base, own, relative, warnings, root, {
         entries: manifest.entries,
+        kinds,
       })),
     });
   }
-  const installed = await installedContributions(root, config.packages, jiti, {
-    metadataOnly: packageMetadataOnly,
-    auditStyles: auditPackageStyles,
-  });
   metadataWarnings.push(...(installed.metadataWarnings ?? []));
   const packageWarnings = installed.packageWarnings ?? [];
   warnings.push(...metadataWarnings, ...packageWarnings);
@@ -269,12 +297,18 @@ export async function describeBitaKit(
   };
 }
 
-/** The contribution files of one module folder, such as a plugin package's `src`, using app conventions. */
-export async function describeModule(directory) {
+/**
+ * The contribution files of one module folder, such as a plugin package's `src`, using app
+ * conventions. `kinds` (integration kind specs) adds the files of server-only kinds to
+ * `server.contributions`.
+ */
+export async function describeModule(directory, { kinds = [] } = {}) {
   const base = await realpath(directory);
   const list = await files(base);
   const warnings = [];
-  const entries = await contributionsOf(base, list, (file) => file, warnings);
+  const entries = await contributionsOf(base, list, (file) => file, warnings, base, {
+    kinds: mergedKindSpecs([], kinds),
+  });
   const setup = list.find((file) => file === path.join(base, 'setup.ts'));
   const locales = list.filter(
     (file) => path.dirname(file) === path.join(base, 'locales') && file.endsWith('.json'),
