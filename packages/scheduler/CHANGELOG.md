@@ -1,5 +1,13 @@
 # @bitakit/scheduler
 
+## 0.3.1
+
+### Patch Changes
+
+- 40e8687: The agent guide says where task files go now that apps have a server half: keep them in `contributions/tasks/`; a task under `server/contributions/tasks/` is a generation error until tasks become a server-only kind.
+- Updated dependencies [40e8687]
+  - @bitakit/core@0.3.2
+
 ## 0.3.0
 
 ### Minor Changes
