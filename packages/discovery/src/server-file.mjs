@@ -136,6 +136,25 @@ export async function serverHalf({
   );
   const actionTypes = [];
   const serviceTypes = [];
+  // A file whose default export is one `defineService(…)` without `provides`/`exposeAs` has exactly one key, its
+  // path: it is written out, so the service map's keys never wait for a file's type (a factory reading `services`
+  // would otherwise reference itself). Records and aliased services keep the inferred entry.
+  const serviceSources = new Map(
+    await Promise.all(
+      modules
+        .flatMap((module) => module.services.map((entry) => entry.file))
+        .map(async (file) => [file, await readFile(file, 'utf8').catch(() => '')]),
+    ),
+  );
+  const singleService = (file) => {
+    const text = serviceSources.get(file) ?? '';
+    return (
+      /export\s+default\s+defineService\s*\(/.test(text) &&
+      !/\b(?:provides|exposeAs)\s*:/.test(text)
+    );
+  };
+  let serviceValuesUsed = false;
+  let serviceEntriesUsed = false;
   let permissionsUsed = false;
   const single = (kind, file, moduleId) =>
     emitter.emit(kind, file ? [{ file, path: [] }] : [], moduleId);
@@ -151,9 +170,16 @@ export async function serverHalf({
     const config = emitter.emit('configs', module.configs, module.id);
     const serviceNames = emitter.fileEntries(module.services);
     serviceTypes.push(
-      ...serviceNames.map(
-        (name) => `DiscoveredServiceEntry<typeof ${name}, ${quote(module.prefix)}>`,
-      ),
+      ...serviceNames.map((name, index) => {
+        const entry = module.services[index];
+        if (singleService(entry.file)) {
+          serviceValuesUsed = true;
+          const key = [module.prefix, entry.path.join('.')].filter(Boolean).join('.');
+          return `{ readonly ${quote(key)}: DiscoveredServiceValue<typeof ${name}> }`;
+        }
+        serviceEntriesUsed = true;
+        return `DiscoveredServiceEntry<typeof ${name}, ${quote(module.prefix)}>`;
+      }),
     );
     const actionNames = emitter.fileEntries(module.actions);
     for (const operation of operations.filter((item) => item.module === module))
@@ -193,7 +219,8 @@ export async function serverHalf({
     'withPluginOrigin',
     'type ServerConfig',
     actionTypes.length && 'type ServerActionEntry',
-    serviceTypes.length && 'type DiscoveredServiceEntry',
+    serviceEntriesUsed && 'type DiscoveredServiceEntry',
+    serviceValuesUsed && 'type DiscoveredServiceValue',
   ].filter(Boolean);
   const kindDeclarations = emitter.kindDeclarations();
   const source = (stamp) => `${generatedHeader}

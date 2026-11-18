@@ -326,6 +326,13 @@ type ServiceTree<T, P extends string> = [ServiceInstance<T>] extends [never]
   : { readonly [K in ServiceId<T, P>]: ServiceInstance<T> } & ServiceAlias<T, ServiceInstance<T>>;
 export type DiscoveredServiceEntry<F, Module extends string = ''> =
   F extends DiscoveredFile<infer T, infer P> ? ServiceTree<T, Join<Module, P>> : {};
+/**
+ * The instance of a discovered file whose default export is one service. Discovery writes such a service's key
+ * itself (`{ 'billing.ledger': DiscoveredServiceValue<typeof file3> }`), so the map's keys never depend on a
+ * file's type: a factory may read `services` – even this map – without writing its return type.
+ */
+export type DiscoveredServiceValue<F> =
+  F extends DiscoveredFile<infer T, string> ? ServiceInstance<T> : never;
 
 export type SlotTree<T, P extends string> = T extends { kind: 'slot' }
   ? SlotEntry<T, P>

@@ -19,8 +19,31 @@ import type {
 import type { Access, ContextFor, RequestContext } from '../request-context.js';
 import type { ServerSettingsAccess } from '../settings/server.js';
 
-/** Server services as server contexts see them; never the client `ServiceMap`. */
-export type ServerServices = Namespace<ServerServiceMap>;
+type ServiceHeads<K extends string, Prefix extends string> = K extends `${Prefix}${infer Rest}`
+  ? Rest extends `${infer Head}.${string}`
+    ? Head
+    : Rest
+  : never;
+/**
+ * `Namespace` as a mapped type: dotted names become nested members, each resolved only when it is read.
+ * A server service may therefore read `services` in its own factory (e.g. `getService(services, …)`)
+ * without writing its return type, although the discovered map also describes that service.
+ */
+export type LazyNamespace<Entries extends object, Prefix extends string = ''> = {
+  readonly [Head in ServiceHeads<
+    keyof Entries & string,
+    Prefix
+  >]: (`${Prefix}${Head}` extends keyof Entries ? Entries[`${Prefix}${Head}`] : unknown) &
+    ([Extract<keyof Entries & string, `${Prefix}${Head}.${string}`>] extends [never]
+      ? unknown
+      : LazyNamespace<Entries, `${Prefix}${Head}.`>);
+};
+/**
+ * Server services as server contexts see them; never the client `ServiceMap`. An interface, so its members are
+ * resolved only when read: a factory can hand `services` on (`getService(services, …)`) while the discovered map
+ * that describes this very service is still being inferred.
+ */
+export interface ServerServices extends LazyNamespace<ServerServiceMap> {}
 
 /** What a server Action's `execute` receives. `ctx` follows the Action's `access`. */
 export type ServerExecuteContext<Input = unknown, A = Access> = {

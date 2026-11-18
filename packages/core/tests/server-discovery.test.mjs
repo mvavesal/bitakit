@@ -206,6 +206,17 @@ export default defineAction({ access: 'public', expose: true, execute: () => 'po
 test('the server file holds every enabled module with its server half; it loads, type-checks, answers and goes with the last server file', () =>
   fixture(async (root, put) => {
     await todoApp(put);
+    // Reads `services` in its own factory without a return type: the map's keys are written out, so the
+    // service's type never waits for itself (found by KnightCMS, 2026-11-17).
+    await put(
+      'src/plugins/todos/server/services/summary.ts',
+      `import { defineService } from '@bitakit/core/server';
+export default defineService(({ services }) => {
+  const store = services.todos.store;
+  return { count: () => store.titles().length };
+});
+`,
+    );
     const result = await generateBitaKit(root, { quiet: true });
     const serverFile = path.join(root, 'src/bitakit.gen.server.ts');
     assert.equal(result.server, serverFile);
@@ -222,7 +233,7 @@ test('the server file holds every enabled module with its server half; it loads,
       /"todos\.count": ServerActionEntry<typeof file\d+, "todos", false, "count">;/,
       /"todos\.clear": ServerActionEntry<typeof file\d+, "todos", false>;/,
       /interface ServerServiceMap extends DiscoveredServerServices \{\}/,
-      /type DiscoveredServerServices = DiscoveredServiceEntry<typeof file\d+, ""> & DiscoveredServiceEntry<typeof file\d+, "todos">;/,
+      /type DiscoveredServerServices = DiscoveredServiceEntry<typeof file\d+, ""> & \{ readonly "todos\.store": DiscoveredServiceValue<typeof file\d+> \} & \{ readonly "todos\.summary": DiscoveredServiceValue<typeof file\d+> \};/,
     ])
       assert.match(source, entry);
     assert.doesNotMatch(source, /interface (ServiceMap|ActionMap)\b/);
@@ -326,7 +337,10 @@ export const appId: string | undefined = createBitaKitServerConfig().appId;
         { path: 'clear', file: 'src/plugins/todos/server/actions.clear.ts' },
         { path: '', file: 'src/plugins/todos/server/actions.ts' },
       ],
-      services: [{ path: 'store', file: 'src/plugins/todos/server/services/store.ts' }],
+      services: [
+        { path: 'store', file: 'src/plugins/todos/server/services/store.ts' },
+        { path: 'summary', file: 'src/plugins/todos/server/services/summary.ts' },
+      ],
       interceptors: [{ path: 'audit', file: 'src/plugins/todos/server/interceptors/audit.ts' }],
       contributions: {},
     });

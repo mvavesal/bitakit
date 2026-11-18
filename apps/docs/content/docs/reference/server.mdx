@@ -209,7 +209,11 @@ the first kernel stays.
 
 - **Services** (`defineService` from `@bitakit/core/server`) get
   `{ services, config, events, settings, store, onStart, onStop }`, without `remote`. One
-  instance serves every request; take the owner as a method argument. See [Service reference](/docs/reference/services#server-services).
+  instance serves every request; take the owner as a method argument. A factory may read `services`
+  (also `getService(services, contract)`) without writing its own return type: discovery writes the key
+  of each one-service file itself, so the map never waits for the file it describes. A file exporting a
+  record of services, or one with `provides`/`exposeAs`, still needs the return type when its factory
+  reads `services` directly. See [Service reference](/docs/reference/services#server-services).
 - **Settings** load per request: `await settings.<plugin>.<name>.load()`; see
   [Settings on the server](/docs/reference/settings#settings-on-the-server).
 - **Events** are delivered in the server process; listeners receive `(event, { signal, ctx })`.
