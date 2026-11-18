@@ -1,3 +1,4 @@
+import { defineContract } from '../service-key.js';
 import { OperationError } from '../operation-error.js';
 
 /**
@@ -51,6 +52,18 @@ export function memoryRateLimitStore(): RateLimitStore {
     },
   };
 }
+
+/**
+ * Who the client is and where the counts live, from code: one server service provides it
+ * (`provides: rateLimit`, usually `src/server/services/rate-limit.ts`), so the generated server
+ * uses them too. The numbers stay in `ServerOptions.rateLimit` (`server.rateLimit` in
+ * bitakit.config.ts); a `key` or `store` given there wins over the provider's.
+ */
+export type RateLimitProvider = {
+  key?(request: Request): string | undefined;
+  readonly store?: RateLimitStore;
+};
+export const rateLimit = defineContract('rateLimit').of<RateLimitProvider>();
 
 const defaultKey = (request: Request) =>
   request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||

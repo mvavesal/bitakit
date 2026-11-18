@@ -21,7 +21,7 @@ import type {
   ServerServices,
 } from './types.js';
 import { check, type Checked } from './validate.js';
-import { rateLimiter } from './rate-limit.js';
+import { rateLimit, rateLimiter } from './rate-limit.js';
 
 /** One caller's request and its identity, resolved at most once (memoized promise). */
 export type CallerState = { readonly request: Request; identity?: Promise<Identity> };
@@ -60,7 +60,7 @@ export class Kernel {
   private inflight = 0;
   private drained?: () => void;
   /** Exposed `public` operations over HTTP are counted per client (ServerOptions.rateLimit). */
-  private readonly limit?: (operation: string, request: Request) => Promise<void>;
+  private limit?: (operation: string, request: Request) => Promise<void>;
 
   constructor(
     private readonly config: ServerConfig,
@@ -98,6 +98,17 @@ export class Kernel {
       this.services = runtime.services as unknown as ServerServices;
       if (runtime.hasService(requestContext))
         this.provider = getService(runtime.services as object, requestContext);
+      // A service that provides `rateLimit` supplies the client key and the store; explicit
+      // options win.
+      if (this.options.rateLimit !== false && runtime.hasService(rateLimit)) {
+        const provider = getService(runtime.services as object, rateLimit);
+        const own = this.options.rateLimit ?? {};
+        this.limit = rateLimiter({
+          ...own,
+          key: own.key ?? (provider.key ? (request) => provider.key!(request) : undefined),
+          store: own.store ?? provider.store,
+        });
+      }
       this.state = 'ready';
     } catch (error) {
       this.state = 'failed';
@@ -127,10 +138,11 @@ export class Kernel {
       ? this.operations.get(id)
       : (this.operations.get(id) ?? this.folded.get(id.toLowerCase()));
     if (!operation || (options.exposedOnly && !operation.exposed)) throw notFound();
-    if (options.exposedOnly && operation.access === 'public' && this.limit)
-      await this.limit(operation.id, caller.request);
+    // Counted from here: `stop()` also waits for a call still inside an (async) rate-limit store.
     this.inflight++;
     try {
+      if (options.exposedOnly && operation.access === 'public' && this.limit)
+        await this.limit(operation.id, caller.request);
       return await this.run(operation, input, caller, options, requestId);
     } finally {
       if (--this.inflight === 0) this.drained?.();

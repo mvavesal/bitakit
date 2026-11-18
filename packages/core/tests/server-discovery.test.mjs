@@ -9,6 +9,7 @@ import { generateBitaKit, describeBitaKit, describeModule } from '@bitakit/disco
 // Internal module: the package exports only its public entry.
 import { contributionKindSpecs, discoverEntries } from '../../discovery/src/entries.mjs';
 import { createRuntime } from '../dist/core.js';
+import { fetchHandler } from '../dist/server/index.js';
 
 const coreRuntime = new URL('../dist/core.js', import.meta.url).pathname;
 const coreServer = new URL('../dist/server/index.js', import.meta.url).pathname;
@@ -995,6 +996,52 @@ export default defineAction({ access: 'public', expose: true, execute: () => 1 }
     const { server } = await loadGenerated(result.server);
     assert.equal(server.endpoint, '/rpc/v1');
     await server.stop();
+    // server.rateLimit: the numbers reach the generated server; code supplies key and store.
+    await put(
+      'bitakit.config.ts',
+      `export default { server: { rateLimit: { limit: 1, windowMs: 30000 } } };`,
+    );
+    const limited = await generateBitaKit(root, { quiet: true });
+    assert.match(
+      await readFile(limited.server, 'utf8'),
+      /endpoint: "\/api\/rpc",\n {2}rateLimit: \{"limit":1,"windowMs":30000\},/,
+    );
+    const { server: once } = await loadGenerated(limited.server);
+    try {
+      const call = () =>
+        fetchHandler(once)(
+          new Request('http://app.test/api/rpc/todos.add', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-forwarded-for': '1.1.1.1' },
+          }),
+        );
+      assert.notEqual((await call()).status, 429);
+      assert.equal((await call()).status, 429);
+    } finally {
+      await once.stop();
+    }
+    await put('bitakit.config.ts', `export default { server: { rateLimit: false } };`);
+    assert.match(
+      await readFile((await generateBitaKit(root, { quiet: true })).server, 'utf8'),
+      /rateLimit: false,/,
+    );
+    for (const rateLimit of [
+      true,
+      { limit: 0 },
+      { limit: 1.5 },
+      { windowMs: '1m' },
+      { key: 'ip' },
+      [],
+    ]) {
+      await put(
+        'bitakit.config.ts',
+        `export default { server: { rateLimit: ${JSON.stringify(rateLimit)} } };`,
+      );
+      await assert.rejects(
+        generateBitaKit(root, { quiet: true }),
+        /server\.rateLimit in bitakit\.config\.ts is false or \{ limit\?, windowMs\? \}/,
+      );
+    }
     for (const endpoint of ['api/rpc', '/api rpc', '/api/../rpc', 7]) {
       await put(
         'bitakit.config.ts',

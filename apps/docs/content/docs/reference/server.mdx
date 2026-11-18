@@ -107,7 +107,7 @@ Both are also exported from `@bitakit/core` for client code.
 | `CONFLICT`               | 409    | `reason: 'ORGANIZATION_CHANGED'`                                                                    |
 | `PAYLOAD_TOO_LARGE`      | 413    | A body over `maxBodyBytes`                                                                          |
 | `UNSUPPORTED_MEDIA_TYPE` | 415    | A body that is not `application/json`                                                               |
-| `TOO_MANY_REQUESTS`      | 429    | Your code; there is no built-in rate limit                                                          |
+| `TOO_MANY_REQUESTS`      | 429    | The [rate limit](#rate-limits) for public operations (`retryAfter`, `Retry-After`), or your code    |
 | `INTERNAL_SERVER_ERROR`  | 500    | Any other error, an invalid `output`, a throwing provider or schema                                 |
 | `SERVICE_UNAVAILABLE`    | 503    | The server failed to start or is stopping, the network failed, or no operations are configured      |
 
@@ -188,9 +188,10 @@ origin gets no CORS headers (`*` is never sent). Route `OPTIONS` to the handler 
 
 Exposed `public` operations called over HTTP – through `fetchHandler` or any adapter – are counted
 per client and operation: 120 calls a minute by default, then 429 `TOO_MANY_REQUESTS` with
-`Retry-After`. Signed-in operations, private ones and in-process calls are never counted. Set it
-with `createServer(config, { rateLimit })`. The generated `server` uses the defaults; to change
-them, create your server from the generated `createBitaKitServerConfig()` with `rateLimit`:
+`Retry-After`. Signed-in operations, private ones and in-process calls are never counted. The
+generated `server` takes the numbers from `bitakit.config.ts`
+(`server: { rateLimit: { limit, windowMs } }`, or `rateLimit: false`); a server you create
+yourself takes all of them in `createServer(config, { rateLimit })`:
 
 | `rateLimit` option  | Default                                   | What it does                                                                                       |
 | ------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -198,6 +199,24 @@ them, create your server from the generated `createBitaKitServerConfig()` with `
 | `key(request)`      | first `x-forwarded-for`, then `x-real-ip` | Who the client is; use what your host verifies                                                     |
 | `store`             | in this process                           | `{ hit(key, windowMs) }`, e.g. Redis for several instances (`memoryRateLimitStore` is the default) |
 | `false`             | –                                         | Off, when a proxy or gateway limits instead                                                        |
+
+The default key is right on hosts and proxies that overwrite `x-forwarded-for` (Vercel does);
+where the caller can send it unchanged, every call could claim a new address. `key` and `store`
+are code, so the generated server gets them from one server service that provides `rateLimit`
+(`@bitakit/core/server`); what you pass to `createServer` wins over it:
+
+```ts title="src/server/services/rate-limit.ts"
+import { defineService, rateLimit } from '@bitakit/core/server';
+
+export default defineService(
+  () => ({
+    // A header your proxy overwrites, never one the caller sends unchecked (Cloudflare here).
+    key: (request: Request) => request.headers.get('cf-connecting-ip') ?? undefined,
+    store: redisRateLimitStore, // your `{ hit(key, windowMs) }`, shared by every instance
+  }),
+  { provides: rateLimit },
+);
+```
 
 ### Jobs and webhooks: the system principal
 

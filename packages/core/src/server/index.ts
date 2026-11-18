@@ -42,7 +42,13 @@ export {
   originRule,
   type FetchHandlerOptions,
 } from './fetch-handler.js';
-export { memoryRateLimitStore, type RateLimitOptions, type RateLimitStore } from './rate-limit.js';
+export {
+  memoryRateLimitStore,
+  rateLimit,
+  type RateLimitOptions,
+  type RateLimitProvider,
+  type RateLimitStore,
+} from './rate-limit.js';
 export { contributionsOf } from './contributions.js';
 export type {
   Server,

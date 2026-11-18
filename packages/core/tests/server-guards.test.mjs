@@ -6,12 +6,13 @@ import {
   definePlugin,
   defineService,
   fetchHandler,
+  rateLimit,
   requestContext,
 } from '../dist/server/index.js';
 
 // 2026-11-18: CORS for trusted origins, rate limits for public operations over HTTP, and a system
 // principal for jobs and webhooks. `resolved` counts the requestContext provider's calls.
-function app(options = {}) {
+function app(options = {}, extraServices = {}) {
   const resolved = [];
   const ping = defineAction({ access: 'public', expose: true, execute: () => 'pong' });
   const mine = defineAction({ access: 'user', expose: true, execute: ({ ctx }) => ctx.user.id });
@@ -47,7 +48,7 @@ function app(options = {}) {
         definePlugin({
           id: 'billing',
           actions: { ping, mine, invoice, purge, members },
-          services: { identity },
+          services: { identity, ...extraServices },
         }),
       ],
     },
@@ -159,6 +160,91 @@ test('rate limits: public operations over HTTP per client, 429 with Retry-After;
   } finally {
     await unlimited.stop();
   }
+});
+
+test('rate limits: a service that provides rateLimit supplies the client key and the store', async () => {
+  const hits = [];
+  const memory = new Map();
+  const shared = {
+    hit(key, windowMs) {
+      hits.push(key);
+      const count = (memory.get(key) ?? 0) + 1;
+      memory.set(key, count);
+      return { count, resetAt: Date.now() + windowMs };
+    },
+  };
+  // The host's verified client address, never a header the caller can set.
+  const limits = defineService(
+    () => ({ key: (request) => request.headers.get('x-verified-ip') ?? undefined, store: shared }),
+    { provides: rateLimit },
+  );
+  const { server } = app({ rateLimit: { limit: 1 } }, { limits });
+  const handle = fetchHandler(server);
+  const from = (verified, forwarded) =>
+    handle(
+      at('billing.ping', {
+        headers: { ...json, 'x-verified-ip': verified, 'x-forwarded-for': forwarded },
+      }),
+    );
+  try {
+    assert.equal((await from('9.9.9.9', '1.1.1.1')).status, 200);
+    assert.equal(
+      (await from('9.9.9.9', '2.2.2.2')).status,
+      429,
+      'a new forwarded address is no escape',
+    );
+    assert.deepEqual(hits, ['billing.ping\u00009.9.9.9', 'billing.ping\u00009.9.9.9']);
+  } finally {
+    await server.stop();
+  }
+  // Options given by hand win over the provider; `false` ignores it.
+  const own = [];
+  const explicit = app(
+    {
+      rateLimit: {
+        limit: 1,
+        key: () => 'own',
+        store: { hit: (key) => (own.push(key), { count: 1, resetAt: Date.now() + 1000 }) },
+      },
+    },
+    { limits },
+  ).server;
+  try {
+    assert.equal((await fetchHandler(explicit)(at('billing.ping', { headers: json }))).status, 200);
+    assert.deepEqual(own, ['billing.ping\u0000own']);
+    assert.equal(hits.length, 2);
+  } finally {
+    await explicit.stop();
+  }
+  const off = app({ rateLimit: false }, { limits }).server;
+  try {
+    for (let index = 0; index < 3; index++)
+      assert.equal((await fetchHandler(off)(at('billing.ping', { headers: json }))).status, 200);
+    assert.equal(hits.length, 2);
+  } finally {
+    await off.stop();
+  }
+});
+
+test('stop() waits for a public call that is still inside an async rate-limit store', async () => {
+  let release;
+  const slow = {
+    hit: (key, windowMs) =>
+      new Promise(
+        (resolve) => (release = () => resolve({ count: 1, resetAt: Date.now() + windowMs })),
+      ),
+  };
+  const { server } = app({ rateLimit: { store: slow } });
+  await server.ready;
+  const answer = fetchHandler(server)(at('billing.ping', { headers: json }));
+  while (!release) await new Promise((resolve) => setImmediate(resolve));
+  let stopped = false;
+  const stopping = server.stop().then(() => (stopped = true));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(stopped, false, 'stop() drains the call first');
+  release();
+  assert.equal((await answer).status, 200);
+  await stopping;
 });
 
 test('the system principal: in-process only, its own name, exactly the granted permissions', async () => {

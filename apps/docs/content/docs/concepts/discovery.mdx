@@ -155,7 +155,7 @@ export default defineBitaKit({
 });
 ```
 
-Other options: `directory` and `plugins.directory` move the roots, `plugins.autoEnable: false` turns plugins off unless enabled, `interceptors.enabled` selects app interceptors, `strict: false` allows unknown action IDs, `groups` declares action groups, `kinds` adds integration contribution kinds (with `runtime: 'server'` their files live in `server/contributions/<folder>`) and `server.endpoint` moves the RPC route from `/api/rpc`. See [overrides](/docs/concepts/overrides).
+Other options: `directory` and `plugins.directory` move the roots, `plugins.autoEnable: false` turns plugins off unless enabled, `interceptors.enabled` selects app interceptors, `strict: false` allows unknown action IDs, `groups` declares action groups, `kinds` adds integration contribution kinds (with `runtime: 'server'` their files live in `server/contributions/<folder>`) `server.endpoint` moves the RPC route from `/api/rpc` and `server.rateLimit` sets the limits for public operations ([server](/docs/reference/server#rate-limits)). See [overrides](/docs/concepts/overrides).
 
 ## Installed packages
 
