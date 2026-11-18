@@ -305,6 +305,23 @@ export default defineService(
 - A throwing `resolve` answers 500 and grants nothing. The provider runs only for non-public
   operations, once per call.
 
+## Another transport (oRPC, REST, OpenAPI)
+
+Third parties or an oRPC client call the same operations through `@bitakit/orpc`; never write a
+transport of your own:
+
+```ts
+import { openapiDocument, orpcHandler } from '@bitakit/orpc';
+import { server } from '@/bitakit.gen.server';
+
+export const rest = orpcHandler(server, { prefix: '/api/rest', protocol: 'openapi' });
+export const spec = () => openapiDocument(server, { prefix: '/api/rest' });
+```
+
+Only exposed operations are reachable. Mark reading operations `type: 'query'` (GET in REST; give
+their input schema coercion, query values arrive as strings) and use zod 4 schemas so the document
+describes inputs and outputs.
+
 ## Test it
 
 The test `add action … --server` writes calls the operation as three people. The same pattern:

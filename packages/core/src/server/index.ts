@@ -36,7 +36,7 @@ export {
   type PermissionRequest,
 } from '../request-context.js';
 export { createServer } from './create-server.js';
-export { fetchHandler, type FetchHandlerOptions } from './fetch-handler.js';
+export { fetchHandler, originRule, type FetchHandlerOptions } from './fetch-handler.js';
 export { contributionsOf } from './contributions.js';
 export type {
   Server,

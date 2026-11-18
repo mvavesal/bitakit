@@ -24,7 +24,7 @@ const failure = (error: OperationError, extra?: Record<string, string>) =>
   reply(operationStatus(error.code), { error: operationErrorBody(error) }, extra);
 const notFound = () => failure(new OperationError('NOT_FOUND', 'Operation not found.'));
 
-function exactOrigin(value: string, option: string): string {
+function exactOrigin(value: string, option: string, label: string): string {
   let parsed: URL | undefined;
   try {
     parsed = new URL(value);
@@ -33,7 +33,7 @@ function exactOrigin(value: string, option: string): string {
   }
   if (!parsed || value === 'null' || value.includes('*') || parsed.origin !== value)
     throw new TypeError(
-      `fetchHandler: ${option} "${value}" is not an exact origin such as https://app.example.com.`,
+      `${label}: ${option} "${value}" is not an exact origin such as https://app.example.com.`,
     );
   return value;
 }
@@ -79,15 +79,45 @@ function hostOf(origin: string): string | undefined {
  * requests must come from the app's origin or a trusted one; bodies are limited in size.
  * Invalid `trustedOrigins`, `origin` or `maxBodyBytes` throw when the handler is created.
  */
+/**
+ * The Origin rule of `fetchHandler`, for other transports over the same operations (2026-11-18):
+ * true when a request may call. A browser request must come from the app's origin or a trusted one;
+ * its own `Sec-Fetch-Site` settles it, else the Origin must be the app's (behind a proxy the given
+ * `origin`, otherwise the request URL's origin or the Host the browser sent). Requests without
+ * Origin and Sec-Fetch-Site (servers, scripts) pass. Invalid options throw when it is created.
+ */
+export function originRule(
+  options: Pick<FetchHandlerOptions, 'trustedOrigins' | 'origin'> = {},
+  label = 'originRule',
+): (request: Request) => boolean {
+  const trusted = new Set(
+    (options.trustedOrigins ?? []).map((origin) => exactOrigin(origin, 'trusted origin', label)),
+  );
+  const ownOrigin =
+    options.origin === undefined ? undefined : exactOrigin(options.origin, 'origin', label);
+  return (request) => {
+    const url = new URL(request.url);
+    const origin = request.headers.get('origin');
+    const site = request.headers.get('sec-fetch-site');
+    return !(origin !== null
+      ? // The browser's own Sec-Fetch-Site (pages cannot set it) settles it; otherwise the Origin
+        // must be the app's. Hosts may hand route handlers another URL than the browser used
+        // (Next.js gives `localhost` for a page at 127.0.0.1), so without an explicit `origin`
+        // the Host header the browser sent counts as the app's origin too.
+        site !== 'same-origin' &&
+        !trusted.has(origin) &&
+        (ownOrigin !== undefined
+          ? origin !== ownOrigin
+          : origin !== url.origin && hostOf(origin) !== request.headers.get('host'))
+      : site !== null && site !== 'same-origin' && site !== 'none');
+  };
+}
+
 export function fetchHandler(
   server: Server,
   options: FetchHandlerOptions = {},
 ): (request: Request) => Promise<Response> {
-  const trusted = new Set(
-    (options.trustedOrigins ?? []).map((origin) => exactOrigin(origin, 'trusted origin')),
-  );
-  const ownOrigin =
-    options.origin === undefined ? undefined : exactOrigin(options.origin, 'origin');
+  const allowed = originRule(options, 'fetchHandler');
   const limit = options.maxBodyBytes ?? 1024 * 1024;
   // NaN or Infinity would silently turn the limit off (`size > NaN` is never true).
   if (!Number.isSafeInteger(limit) || limit < 0)
@@ -102,21 +132,7 @@ export function fetchHandler(
       return failure(new OperationError('METHOD_NOT_SUPPORTED', 'Use POST.'), { allow: 'POST' });
     const id = url.pathname.slice(prefix.length);
     if (!actionIdPattern.test(id) || id.includes('/')) return notFound();
-    const origin = request.headers.get('origin');
-    const site = request.headers.get('sec-fetch-site');
-    if (
-      origin !== null
-        ? // The browser's own Sec-Fetch-Site (pages cannot set it) settles it; otherwise the Origin
-          // must be the app's. Hosts may hand route handlers another URL than the browser used
-          // (Next.js gives `localhost` for a page at 127.0.0.1), so without an explicit `origin`
-          // the Host header the browser sent counts as the app's origin too.
-          site !== 'same-origin' &&
-          !trusted.has(origin) &&
-          (ownOrigin !== undefined
-            ? origin !== ownOrigin
-            : origin !== url.origin && hostOf(origin) !== request.headers.get('host'))
-        : site !== null && site !== 'same-origin' && site !== 'none'
-    )
+    if (!allowed(request))
       return failure(new OperationError('FORBIDDEN', 'Cross-origin requests are not allowed.'));
     const type = (request.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
     if (type !== 'application/json')

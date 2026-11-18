@@ -30,6 +30,7 @@ the module's own code (a database module, helpers) and is not discovered. Shared
 | ------------- | -------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------- |
 | `access`      | `'public' \| 'user' \| 'organization' \| { permission }` | required      | Who may call it; see [access](#access-and-ctx)                                            |
 | `expose`      | `boolean`                                                | `false`       | Publishes the operation over HTTP and in `remote`; otherwise in-process only              |
+| `type`        | `'query' \| 'mutation'`                                  | `'mutation'`  | `query` only reads: transports that support it (oRPC's OpenAPI) answer it with GET        |
 | `input`       | schema (zod, valibot, Standard Schema, `{ parse }`)      | none          | Validates and types the input once; without it the input must be absent                   |
 | `output`      | schema                                                   | none          | Checks the result and returns the validator's value (zod/valibot objects drop extra keys) |
 | `execute`     | `(context) => result`                                    | required      | The operation                                                                             |
@@ -204,6 +205,21 @@ With `instance`, the kernel is registered for the whole process with its `stamp`
 copies of the generated module share one kernel. In development a changed stamp (a changed file
 under `server/`) replaces the kernel on the next call after in-flight calls finish; in production
 the first kernel stays.
+
+## Other transports
+
+`server.operations()` describes each operation: `id`, `plugin`, `access`, `exposed`, `type`,
+`title`, `description` and – when the schema implements Standard JSON Schema (zod 4) – `input` and
+`output` as JSON Schema 2020-12. Transport adapters are built from these descriptions and call
+`server.call(id, input, request, { exposedOnly: true })`, so access, validation and interceptors
+hold and private operations stay unreachable. Plugins never change for a transport.
+
+| Package                | Transport                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `@bitakit/core/server` | `fetchHandler(server)`: `POST <endpoint>/<id>`, used by `remote`                                                                |
+| `@bitakit/orpc`        | `orpcHandler(server, { prefix, protocol })`: oRPC's RPC protocol or REST (`openapi`), and `openapiDocument(server, { prefix })` |
+
+`originRule({ origin, trustedOrigins })` is `fetchHandler`'s Origin check for your own transport.
 
 ## Services, settings, events and interceptors on the server
 
