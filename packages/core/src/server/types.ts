@@ -241,6 +241,12 @@ export type ServerOptions = {
    * given, an exposed operation missing from it logs one warning at boot.
    */
   operations?: readonly string[];
+  /**
+   * Package plugins' operations the app serves over HTTP: operation IDs or `<plugin>.*`. A package
+   * operation with `expose: true` stays in-process until the app publishes it (`server.publish` in
+   * bitakit.config.ts); the app's own and local plugins' operations need no entry.
+   */
+  publish?: readonly string[];
 };
 /** In-process and HTTP entry to the server kernel. Importing it never boots anything. */
 export interface Server {

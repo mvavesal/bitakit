@@ -85,6 +85,7 @@ export class Kernel {
       const table = compileOperations(runtime.modules, plugins, appId, {
         providers,
         operations: this.options.operations,
+        publish: this.options.publish,
       });
       serverStartHooks.set(runtime, (parts) => linkOperations(table, parts));
       runtime.mount();

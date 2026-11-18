@@ -25,6 +25,28 @@ export function serverEndpoint(config) {
 }
 
 /**
+ * `server.publish` in bitakit.config.ts: which package plugins' exposed operations the app serves
+ * over HTTP – operation IDs or `<plugin>.*`. Installing a package never adds endpoints by itself.
+ */
+export function serverPublish(config) {
+  const publish = config.server?.publish ?? [];
+  if (
+    !Array.isArray(publish) ||
+    publish.some(
+      (item) =>
+        typeof item !== 'string' || !/^[A-Za-z][\w-]*(?:\.[A-Za-z][\w-]*)*(?:\.\*)?$/.test(item),
+    )
+  )
+    throw new Error(
+      `server.publish in bitakit.config.ts lists operation IDs or "<plugin>.*", got ${JSON.stringify(publish)}.`,
+    );
+  return publish;
+}
+/** Whether `id` is published by one of the `server.publish` patterns. */
+export const isPublished = (publish, id) =>
+  publish.some((item) => item === id || (item.endsWith('.*') && id.startsWith(item.slice(0, -1))));
+
+/**
  * The installed `@bitakit/core` must have the `./server` entry the server file imports. Looks it
  * up from the project root the way Node would, without running it.
  */
@@ -88,15 +110,19 @@ export async function serverHalf({
   root,
   output,
   relativeTo,
+  packageServers = [],
+  publish = [],
 }) {
-  const hasContent = modules.some(
-    (module) =>
-      module.actions.length ||
-      module.services.length ||
-      module.interceptors.length ||
-      module.installers.length ||
-      kinds.some((kind, index) => kind.runtime === 'server' && module.kinds[index].length),
-  );
+  const hasContent =
+    packageServers.length > 0 ||
+    modules.some(
+      (module) =>
+        module.actions.length ||
+        module.services.length ||
+        module.interceptors.length ||
+        module.installers.length ||
+        kinds.some((kind, index) => kind.runtime === 'server' && module.kinds[index].length),
+    );
   if (!hasContent) return null;
   const operations = [];
   const seen = new Map();
@@ -122,7 +148,10 @@ export async function serverHalf({
       ...module.kinds.filter((_, index) => kinds[index].runtime === 'server').flat(),
     ])
     .map((entry) => entry.file)[0];
-  await assertServerCore(root, relativeTo(firstFile));
+  await assertServerCore(
+    root,
+    firstFile ? relativeTo(firstFile) : `the server entry of ${packageServers[0].specifier}`,
+  );
 
   const emitter = createEmitter(output, relativeTo, {
     typedKind: (kind) => kind.runtime === 'server',
@@ -208,7 +237,26 @@ export async function serverHalf({
     const parent = module.parent && kept(module.parent) ? module.parent : undefined;
     return `withPluginOrigin({ id: ${quote(module.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}dependencies: ${quote(parts.dependencies)}, events: ${parts.events}, settings: ${parts.settings}, ${parts.permissions ? `permissions: ${parts.permissions}, ` : ''}config: ${parts.config}, services: ${parts.services}, actions: ${parts.actions}, interceptors: ${parts.interceptors}, installs: ${parts.installs}, contributions: ${parts.contributions} }, ${quote(module.origin)})`;
   });
-  const exposed = operations.filter((item) => item.exposed).map((item) => item.id);
+  // Package plugins' server halves (`bitakit.server`): imported, created once, with their exposed
+  // operations from the sidecar `bitakit build` wrote (the entry itself never runs here).
+  const packageImports = packageServers.map(
+    (item, index) => `import packageServer${index} from ${quote(item.specifier)};`,
+  );
+  for (const [index, item] of packageServers.entries())
+    definitions.push(`withPluginOrigin(packageServer${index}(), ${quote(item.origin)})`);
+  const exposed = [
+    ...operations.filter((item) => item.exposed).map((item) => item.id),
+    ...packageServers.flatMap((item) =>
+      item.operations
+        .filter((operation) => operation.exposed === true && isPublished(publish, operation.id))
+        .map((operation) => operation.id),
+    ),
+  ];
+  const twice = exposed.find((id, index) => exposed.indexOf(id) !== index);
+  if (twice)
+    throw new Error(
+      `Two server Actions are named "${twice}" (a package and the app, or two packages).`,
+    );
   const values = [
     'createServer',
     emitter.imports.some((line) => line.includes('discoveredFile(')) && 'discoveredFile',
@@ -233,6 +281,7 @@ import {
 ${values.map((value) => `  ${value},`).join('\n')}
 } from '@bitakit/core/server';
 ${emitter.imports.join('\n')}
+${packageImports.join('\n')}
 
 type DiscoveredServerServices = ${serviceTypes.join(' & ') || '{}'};
 ${kindDeclarations ? `${kindDeclarations}\n` : ''}declare module '@bitakit/core' {
@@ -264,7 +313,12 @@ export const server = createServer(createBitaKitServerConfig(), {
   instance: 'bitakit',
   endpoint: ${quote(endpoint)},
   stamp: ${quote(stamp)},
-  operations: ${quote(exposed)},
+  operations: ${quote(exposed)},${
+    publish.length
+      ? `
+  publish: ${quote(publish)},`
+      : ''
+  }
 });
 `;
   // Same code, same stamp, one boot; a changed server file or helper boots the new code in dev.

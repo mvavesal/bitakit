@@ -35,6 +35,8 @@ export async function installedContributions(
     });
   const pluginPackages = {};
   const imports = {};
+  /** Package plugins' server halves (`bitakit.server`), by plugin entry: `{ specifier, operations }`. */
+  const servers = {};
   const plugins = [];
   const kinds = [];
   const configurations = {};
@@ -195,6 +197,29 @@ export async function installedContributions(
             `Invalid plugin dependency in the bitakit manifest of package "${name}".`,
           );
       if (ids.length) dependencies[plugin] = [...new Set(ids)];
+      // The server half (2026-11-18): `bitakit build` writes `dist/server.js` and, beside it,
+      // `server.json` with the exposed operations, read statically – the server entry never runs here.
+      if (selected && direct && metadata.server !== undefined) {
+        const serverEntry = specifier(metadata.server);
+        let serverFile;
+        try {
+          serverFile = resolvePluginEntry(serverEntry, from);
+        } catch {
+          throw new Error(
+            `Cannot resolve the BitaKit server entry "${serverEntry}" from ${location}.`,
+          );
+        }
+        const sidecar = await readFile(serverFile.replace(/\.[cm]?[jt]sx?$/, '.json'), 'utf8')
+          .then(JSON.parse)
+          .catch((error) => {
+            if (error.code === 'ENOENT') return { operations: [] };
+            throw new Error(`Cannot read ${location}'s server operations: ${error.message}`);
+          });
+        const operations = Array.isArray(sidecar.operations)
+          ? sidecar.operations.filter((item) => typeof item?.id === 'string')
+          : [];
+        servers[plugin] = { specifier: serverEntry, operations };
+      }
     }
     if (selected)
       stylesheets.push({
@@ -235,6 +260,7 @@ export async function installedContributions(
     allPlugins: Object.keys(pluginPackages),
     pluginPackages,
     imports,
+    servers,
     kinds,
     configurations,
     dependencies,

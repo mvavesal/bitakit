@@ -98,7 +98,11 @@ export function compileOperations(
   modules: readonly NormalizedPlugin[],
   plugins: readonly Plugin[],
   appId: string,
-  options: { providers: readonly string[]; operations?: readonly string[] },
+  options: {
+    providers: readonly string[];
+    operations?: readonly string[];
+    publish?: readonly string[];
+  },
 ): OperationTable {
   let catalog: PermissionCatalog;
   try {
@@ -115,7 +119,8 @@ export function compileOperations(
   const known = options.operations ? new Set(options.operations) : undefined;
   for (const module of modules) {
     const original = plugins.find((plugin) => plugin.id === module.id);
-    const publishes = module.id === appId || pluginOrigin(original)?.kind !== 'package';
+    // A package's operations go over HTTP only once the app publishes them (ServerOptions.publish).
+    const local = module.id === appId || pluginOrigin(original)?.kind !== 'package';
     for (const spec of module.actions) {
       const id = spec.id;
       const source = contributionSource(spec);
@@ -147,7 +152,12 @@ export function compileOperations(
           { source, app: module.id === appId },
         );
       const access = freezeAccess(fields.access as Access);
-      const exposed = fields.expose === true && publishes;
+      const exposed =
+        fields.expose === true &&
+        (local ||
+          (options.publish ?? []).some(
+            (item) => item === id || (item.endsWith('.*') && id.startsWith(item.slice(0, -1))),
+          ));
       if (exposed && known && !known.has(id))
         console.warn(
           `[bitakit] ${label(id)} is exposed over HTTP but missing from the generated remote; discovery could not read its definition statically${source ? ` (${source})` : ''}.`,

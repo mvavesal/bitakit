@@ -1,8 +1,13 @@
 import { execFileSync } from 'node:child_process';
-import { cp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { describeModule, describeDefinitions, validatePackageStyles } from '@bitakit/discovery';
+import {
+  describeModule,
+  describeDefinitions,
+  serverActionsOf,
+  validatePackageStyles,
+} from '@bitakit/discovery';
 import { packageMetadataSources, projectPluginMetadataSources } from '@bitakit/core';
 import { findProject } from './project.mjs';
 
@@ -26,6 +31,22 @@ export async function buildPlugin({ cwd, check = false } = {}) {
   // Discovery resolves symlinks (macOS /var → /private/var); relate the files to the real root,
   // or the generated imports would leave the package and the type augmentation would not apply.
   const realRoot = await realpath(root);
+  // The server half's operations and one-service files, read statically before anything compiles.
+  const half = module.server ?? {};
+  const operations = await serverActionsOf(half.actions ?? [], {
+    moduleId: id,
+    relativeTo: module.directory,
+  });
+  const singleServices = new Set();
+  for (const entry of half.services ?? []) {
+    const text = await readFile(entry.file, 'utf8').catch(() => '');
+    if (
+      /export\s+default\s+defineService\s*\(/.test(text) &&
+      !/\b(?:provides|exposeAs)\s*:/.test(text)
+    )
+      singleServices.add(entry.file);
+  }
+  const server = { half, operations, singleServices };
   await mkdir(path.join(root, '.bitakit'), { recursive: true });
   await writeFile(
     path.join(root, '.bitakit/plugin.d.ts'),
@@ -38,7 +59,17 @@ export async function buildPlugin({ cwd, check = false } = {}) {
           .split(path.sep)
           .join('/')
           .replace(/\.tsx?$/, '')}`,
-    ),
+    ) +
+      serverAugmentation(
+        id,
+        server,
+        (file) =>
+          `../${path
+            .relative(realRoot, file)
+            .split(path.sep)
+            .join('/')
+            .replace(/\.tsx?$/, '')}`,
+      ),
   );
   const tsc = createRequire(path.join(root, 'package.json')).resolve('typescript/bin/tsc');
   const compile = (args) => {
@@ -100,6 +131,38 @@ declare const plugin: () => Plugin & { readonly id: ${quote(id)} };
 export default plugin;
 `,
   );
+  // The server half (2026-11-18): dist/server.js for the app's generated server file, its types and
+  // the operations it declares (read statically; apps publish package operations themselves).
+  const serverFiles = ['actions', 'services', 'interceptors', 'installers'].some(
+    (kind) => half[kind]?.length,
+  );
+  if (serverFiles) {
+    await writeFile(path.join(dist, 'server.js'), serverEntry(id, module, metadata, local));
+    await writeFile(
+      path.join(dist, 'server.d.ts'),
+      `${header}import type { Plugin } from '@bitakit/core';
+${serverAugmentation(id, server, local)}/** Creates the ${quote(id)} plugin's server half. Apps load it through package.json bitakit.server. */
+declare const serverPlugin: () => Plugin & { readonly id: ${quote(id)} };
+export default serverPlugin;
+`,
+    );
+    await writeFile(
+      path.join(dist, 'server.json'),
+      JSON.stringify(
+        {
+          version: 1,
+          pluginId: id,
+          operations: operations.map(({ id: operation, exposed }) => ({ id: operation, exposed })),
+        },
+        null,
+        2,
+      ) + '\n',
+    );
+    if (!metadata.server)
+      console.warn(
+        '[bitakit] This plugin has a server/ folder: add "server": "./dist/server.js" to bitakit in package.json (and to exports) so apps load its server half.',
+      );
+  }
   if (module.locales.length) {
     await mkdir(path.join(dist, 'locales'), { recursive: true });
     for (const file of module.locales)
@@ -199,6 +262,7 @@ function entry(id, module, manifest, metadata, local) {
   const actions = discovered(module.actions);
   const configs = discovered(module.configs);
   const interceptors = discovered(module.interceptors);
+  const installers = discovered(module.installers ?? []);
   const events = discovered(module.events);
   const pages = module.pages.map(
     (item) =>
@@ -213,7 +277,7 @@ function entry(id, module, manifest, metadata, local) {
   );
   const setup = module.setup ? load(module.setup) : 'undefined';
   return `'use client';
-${header}import { definePlugin, discoveredFile, discoverActions, discoverServices, discoverSlots, discoverConfig, discoverInterceptors, discoverEvents, discoverSettings, pluginSettingsPage, pluginPage, pluginSlot, pluginProvider } from '@bitakit/core';
+${header}import { definePlugin, discoveredFile, discoverActions, discoverServices, discoverSlots, discoverConfig, discoverInterceptors, discoverInstallers, discoverEvents, discoverSettings, pluginSettingsPage, pluginPage, pluginSlot, pluginProvider } from '@bitakit/core';
 ${imports.join('\n')}
 
 /** Creates the ${quote(id)} plugin; apps call this once per runtime. */
@@ -229,9 +293,88 @@ export default function plugin() {
     actions: discoverActions([${actions.join(', ')}], ${quote(id)}),
     config: discoverConfig([${configs.join(', ')}]),
     interceptors: discoverInterceptors([${interceptors.join(', ')}]),
+    installs: discoverInstallers([${installers.join(', ')}]),
     ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${settingsPage ? `, settings: ${settingsPage}` : ''} },
     setup: ${setup},
   });
+}
+`;
+}
+
+/** The published server half: the server normalizers over `server/` and the shared declarations. */
+function serverEntry(id, module, metadata, local) {
+  const imports = [];
+  let serial = 0;
+  const source = (file) => path.relative(module.directory, file).split(path.sep).join('/');
+  const discovered = (entries = []) =>
+    entries.map((item) => {
+      const name = `entry${serial++}`;
+      imports.push(`import ${name} from ${quote(local(item.file))};`);
+      return `discoveredFile(${name}, ${quote(item.path)}, ${quote(source(item.file))})`;
+    });
+  const half = module.server ?? {};
+  const events = discovered(module.events);
+  const settings = discovered(module.settings);
+  const configs = discovered(module.configs);
+  const services = discovered(half.services);
+  const actions = discovered(half.actions);
+  const interceptors = discovered(half.interceptors);
+  const installers = discovered(half.installers);
+  return `${header}// Server only: never import this file from browser code.
+import { discoveredFile, discoverActions, discoverServices, discoverInterceptors, discoverInstallers, discoverEvents, discoverSettings, discoverConfig } from '@bitakit/core/server';
+${imports.join('\n')}
+
+/** Creates the ${quote(id)} plugin's server half; the app's generated server file calls it once. */
+export default function serverPlugin() {
+  return {
+    id: ${quote(id)},
+    dependencies: ${quote(metadata?.dependencies ?? [])},
+    events: discoverEvents([${events.join(', ')}]),
+    settings: discoverSettings([${settings.join(', ')}]),
+    config: discoverConfig([${configs.join(', ')}]),
+    services: discoverServices([${services.join(', ')}], ${quote(id)}),
+    actions: discoverActions([${actions.join(', ')}], ${quote(id)}),
+    interceptors: discoverInterceptors([${interceptors.join(', ')}]),
+    installs: discoverInstallers([${installers.join(', ')}]),
+  };
+}
+`;
+}
+
+/**
+ * Types of the server half: its services in ServerServiceMap (one-service files with their key
+ * written out, so a factory may read `services`), its operations in ServerActionMap. Nothing for a
+ * package without a server/ folder.
+ */
+function serverAugmentation(id, { half, operations, singleServices }, specifier) {
+  if (!(half.services?.length || operations.length)) return '';
+  const lines = [];
+  const typed = (entries = [], kind) =>
+    new Map(
+      entries.map((entry, index) => {
+        const name = `Server${kind}${index}`;
+        lines.push(`import type ${name}Entry from ${quote(specifier(entry.file))};`);
+        lines.push(`type ${name} = DiscoveredFile<typeof ${name}Entry, ${quote(entry.path)}>;`);
+        return [entry.file, { name, entry }];
+      }),
+    );
+  const services = typed(half.services, 'Service');
+  const actions = typed(half.actions, 'Action');
+  const serviceTypes = [...services.values()].map(({ name, entry }) =>
+    singleServices.has(entry.file)
+      ? `{ readonly ${quote([id, entry.path].filter(Boolean).join('.'))}: DiscoveredServiceValue<${name}> }`
+      : `DiscoveredServiceEntry<${name}, ${quote(id)}>`,
+  );
+  const actionTypes = operations.map(
+    (operation) =>
+      `    ${quote(operation.id)}: ServerActionEntry<${actions.get(operation.file).name}, ${quote(id)}, ${operation.exposed}${operation.key ? `, ${quote(operation.key)}` : ''}>;`,
+  );
+  return `import type { DiscoveredFile, DiscoveredServiceEntry, DiscoveredServiceValue, ServerActionEntry } from '@bitakit/core/server';
+${lines.join('\n')}
+type PluginServerServices = ${serviceTypes.join(' & ') || '{}'};
+declare module '@bitakit/core' {
+  interface ServerServiceMap extends PluginServerServices {}
+  interface ServerActionMap {${actionTypes.length ? `\n${actionTypes.join('\n')}\n  ` : ''}}
 }
 `;
 }

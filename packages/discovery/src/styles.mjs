@@ -254,7 +254,14 @@ async function validateScriptStyles(entry, sources) {
       await inspect(target);
     }
   }
-  for (const value of candidates(entry.manifest.exports)) {
+  // The server half (`bitakit.server`) never reaches the browser, so its graph is not audited for CSS.
+  const metadata = entry.manifest.bitakit ?? entry.manifest.foundation;
+  const exported = entry.manifest.exports;
+  const browserExports =
+    metadata?.server && exported && typeof exported === 'object' && !Array.isArray(exported)
+      ? Object.fromEntries(Object.entries(exported).filter(([key]) => key !== metadata.server))
+      : exported;
+  for (const value of candidates(browserExports)) {
     if (!value.startsWith('./')) continue;
     if (value.includes('*')) {
       const pattern = new RegExp(

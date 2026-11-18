@@ -383,6 +383,110 @@ export const appId: string | undefined = createBitaKitServerConfig().appId;
     assert.doesNotMatch(await readFile(plain.generated, 'utf8'), /remote:/);
   }));
 
+test('a package plugin ships its server half through bitakit.server; the app publishes its operations', () =>
+  fixture(async (root, put) => {
+    await installCore(put);
+    await put('package.json', JSON.stringify({ dependencies: { '@acme/billing': '1.0.0' } }));
+    await put(
+      'node_modules/@acme/billing/package.json',
+      JSON.stringify({
+        name: '@acme/billing',
+        version: '1.0.0',
+        dependencies: { '@bitakit/core': '0.3.2' },
+        exports: {
+          './package.json': './package.json',
+          './plugin': { types: './plugin.d.mts', default: './plugin.mjs' },
+          './server': { types: './server.d.mts', default: './server.mjs' },
+        },
+        bitakit: { plugin: './plugin', server: './server' },
+      }),
+    );
+    await put('node_modules/@acme/billing/plugin.mjs', `export default () => ({ id: 'billing' });`);
+    await put(
+      'node_modules/@acme/billing/plugin.d.mts',
+      `export default function plugin(): import('@bitakit/core').Plugin & { readonly id: 'billing' };\n`,
+    );
+    // What `bitakit build` writes: the server entry and, beside it, the operations it exposes.
+    await put(
+      'node_modules/@acme/billing/server.mjs',
+      `import { defineAction, defineService, discoveredFile, discoverActions, discoverServices } from '@bitakit/core/server';
+const ledger = defineService(() => ({ total: () => 42 }));
+const charge = defineAction({ access: 'public', expose: true, execute: ({ services }) => services.billing.ledger.total() });
+const audit = defineAction({ access: 'public', execute: () => 'private' });
+export default function serverPlugin() {
+  return {
+    id: 'billing',
+    services: discoverServices([discoveredFile(ledger, 'ledger', 'server/services/ledger.ts')], 'billing'),
+    actions: discoverActions([discoveredFile(charge, 'charge', 'server/actions/charge.ts'), discoveredFile(audit, 'audit', 'server/actions/audit.ts')], 'billing'),
+  };
+}
+`,
+    );
+    await put(
+      'node_modules/@acme/billing/server.d.mts',
+      `export default function serverPlugin(): import('@bitakit/core').Plugin;\n`,
+    );
+    await put(
+      'node_modules/@acme/billing/server.json',
+      JSON.stringify({
+        version: 1,
+        pluginId: 'billing',
+        operations: [
+          { id: 'billing.charge', exposed: true },
+          { id: 'billing.audit', exposed: false },
+        ],
+      }),
+    );
+    // Installed alone, the package adds no endpoint: its exposed operation stays in-process.
+    let result = await generateBitaKit(root, { quiet: true });
+    let source = await readFile(result.server, 'utf8');
+    assert.match(source, /import packageServer0 from "@acme\/billing\/server";/);
+    assert.match(source, /withPluginOrigin\(packageServer0\(\), \{[^\n]*"@acme\/billing"/);
+    assert.deepEqual(operationsOf(source), []);
+    assert.doesNotMatch(await readFile(result.generated, 'utf8'), /billing\.charge/);
+    let loaded = await loadGenerated(result.server);
+    try {
+      assert.equal(await loaded.server.as(new Headers()).billing.charge(), 42);
+      assert.deepEqual(
+        (await loaded.server.operations()).map(({ id, exposed }) => [id, exposed]),
+        [
+          ['billing.charge', false],
+          ['billing.audit', false],
+        ],
+      );
+    } finally {
+      await loaded.server.stop();
+    }
+    // The app publishes it: now it is served over HTTP and remote knows it; private ones never.
+    await put('bitakit.config.ts', `export default { server: { publish: ['billing.*'] } };`);
+    result = await generateBitaKit(root, { quiet: true });
+    source = await readFile(result.server, 'utf8');
+    assert.deepEqual(operationsOf(source), ['billing.charge']);
+    assert.match(source, /publish: \["billing\.\*"\],/);
+    assert.match(
+      await readFile(result.generated, 'utf8'),
+      /remote: \{"endpoint":"\/api\/rpc","operations":\["billing\.charge"\]\}/,
+    );
+    assert.deepEqual(typeErrors([result.server, result.generated], root), []);
+    loaded = await loadGenerated(result.server);
+    try {
+      assert.deepEqual(
+        (await loaded.server.operations()).map(({ id, exposed }) => [id, exposed]),
+        [
+          ['billing.charge', true],
+          ['billing.audit', false],
+        ],
+      );
+    } finally {
+      await loaded.server.stop();
+    }
+    await put('bitakit.config.ts', `export default { server: { publish: ['billing/charge'] } };`);
+    await assert.rejects(
+      generateBitaKit(root, { quiet: true }),
+      /server\.publish in bitakit\.config\.ts/,
+    );
+  }));
+
 test('dependencies on package plugins are dropped from the server file; disabled and package plugins stay out', () =>
   fixture(async (root, put) => {
     await installCore(put);

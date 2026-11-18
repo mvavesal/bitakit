@@ -317,6 +317,23 @@ npx bitakit build
 
 It type-checks, compiles the sources and writes `dist/plugin.js`; `--check` only type-checks. The package's `package.json` declares `bitakit: { plugin: './plugin' }`, so apps that install it discover the plugin automatically. [Discovery](/docs/concepts/discovery) explains what the generator reads and [Plugins](/docs/concepts/plugins) what the files contain.
 
+A package with a `server/` folder also gets its server half: `dist/server.js` (server Actions, services,
+interceptors and installers, with the shared events, settings and config), `dist/server.d.ts` (its
+services and operations for the app's types) and `dist/server.json` (the operations it declares).
+Declare it with `bitakit: { plugin: './plugin', server: './server' }` and an `exports` entry
+`"./server": { "types": "./dist/server.d.ts", "default": "./dist/server.js" }`; the build warns while
+it is missing. An app that installs the package loads the server half in its generated server file.
+The package's operations stay in-process until the app publishes them – installing a package never
+adds HTTP endpoints by itself:
+
+```ts title="bitakit.config.ts (excerpt)"
+export default {
+  server: { publish: ['billing.charge', 'reports.*'] },
+};
+```
+
+Only published operations that declare `expose: true` are served and known to `remote`.
+
 ## Inspect and migrate slot placement
 
 ```sh

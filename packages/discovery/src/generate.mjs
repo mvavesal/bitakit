@@ -8,7 +8,7 @@ import { AccessConfigurationError, composeAccessConfiguration } from '@bitakit/c
 import { files, discoverEntries, mergedKindSpecs, serverKindNames } from './entries.mjs';
 import { createEmitter, generatedHeader, specifier } from './emitter.mjs';
 import { rejectServerFields } from './server-rules.mjs';
-import { serverEndpoint, serverHalf } from './server-file.mjs';
+import { serverEndpoint, serverHalf, serverPublish } from './server-file.mjs';
 import { pluginIdentityConflicts } from './package-identity.mjs';
 import { installedContributions } from './packages.mjs';
 import { parentDirectory, pluginManifests } from './modules.mjs';
@@ -611,6 +611,15 @@ ${installed.plugins
     root,
     output,
     relativeTo,
+    // Enabled package plugins that ship a server half (`bitakit.server`); catalog packages stay
+    // browser-only until they load.
+    packageServers: installed.plugins
+      .filter((entry) => !isLazy(entry) && installed.servers?.[entry])
+      .map((entry) => ({
+        ...installed.servers[entry],
+        origin: installed.pluginPackages[entry].origin,
+      })),
+    publish: serverPublish(config),
   });
   const remote = serverHalfFile?.exposed.length
     ? `    remote: ${quote({ endpoint, operations: serverHalfFile.exposed })},\n`
