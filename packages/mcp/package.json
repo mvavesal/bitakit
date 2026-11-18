@@ -1,0 +1,48 @@
+{
+  "name": "@bitakit/mcp",
+  "version": "0.3.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@bitakit/core": "^0.3.2",
+    "@modelcontextprotocol/sdk": "1.32.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "typescript": "^5"
+  },
+  "description": "Server-only MCP transport: a BitaKit server's allowlisted operations as MCP tools.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvavesal/bitakit.git",
+    "directory": "packages/mcp"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "bitakit",
+    "ai-agents",
+    "composition",
+    "email",
+    "smtp",
+    "nodemailer"
+  ]
+}

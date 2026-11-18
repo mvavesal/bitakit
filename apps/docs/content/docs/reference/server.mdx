@@ -218,6 +218,7 @@ hold and private operations stay unreachable. Plugins never change for a transpo
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `@bitakit/core/server` | `fetchHandler(server)`: `POST <endpoint>/<id>`, used by `remote`                                                                |
 | `@bitakit/orpc`        | `orpcHandler(server, { prefix, protocol })`: oRPC's RPC protocol or REST (`openapi`), and `openapiDocument(server, { prefix })` |
+| `@bitakit/mcp`         | `mcpHandler(server, { tools })`: the named operations as MCP tools for AI agents, the caller resolved per call                  |
 
 `originRule({ origin, trustedOrigins })` is `fetchHandler`'s Origin check for your own transport.
 
