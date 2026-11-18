@@ -778,7 +778,8 @@ async function checkServerWiring(project, description) {
   const operations = [];
   let unresolved = false;
   let provided = false;
-  let content = false;
+  // An installed package's server half (the scheduler's, say) makes a server file by itself.
+  let content = (description.packageServers ?? []).length > 0;
   for (const module of modules) {
     const server = module.server;
     content ||=

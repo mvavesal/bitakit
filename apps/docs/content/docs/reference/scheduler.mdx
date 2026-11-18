@@ -7,8 +7,10 @@ description: Tasks, in-process schedules, runtime data sources and execution obs
 and per-schedule overlap protection. Tasks and schedules run on the server: the package ships a
 server half, so the generated server file installs the scheduler with the files in
 `server/contributions/tasks|schedules/`. The kernel boots on its first call; boot it at process
-start (Next.js `instrumentation.ts`: `await (await import('./bitakit.gen.server')).server.ready`)
-so schedules fire from the start. Until the next minor version the old place
+start so schedules fire from the start (Next.js `instrumentation.ts`: in `register()`, only when
+`process.env.NEXT_RUNTIME === 'nodejs'`, `await (await import('./bitakit.gen.server')).server.ready`).
+A scheduled run has no request: pass what a task needs as `input`, and start a server task from
+the browser through a server Action. Until the next minor version the old place
 `contributions/tasks|schedules/` keeps running where it ran before, with a warning;
 `bitakit migrate` moves those files. The package requires Core's contribution
 installer context and ships its own `AGENTS.md` consumer guide and runnable server examples.

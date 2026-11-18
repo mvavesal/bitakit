@@ -277,6 +277,17 @@ export async function describeBitaKit(
       ),
     ),
     installedPackages: installed.packages,
+    /** Package plugins whose server half (`bitakit.server`) the generated server file loads. */
+    packageServers: installed.plugins.filter(
+      (entry) =>
+        installed.servers?.[entry] &&
+        !(config.catalog ?? []).some((name) =>
+          [
+            installed.pluginPackages?.[entry]?.name,
+            installed.pluginPackages?.[entry]?.dependencyName,
+          ].includes(name.toLowerCase()),
+        ),
+    ),
     styles: (installed.styles ?? []).map((value) =>
       path.isAbsolute(value) ? relative(value) : value,
     ),

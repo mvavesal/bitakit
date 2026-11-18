@@ -239,6 +239,8 @@ export type BitaKitDescription = {
   catalogPackages: string[];
   /** Names of installed packages with BitaKit metadata. */
   installedPackages: string[];
+  /** Package plugins (outside the catalog) whose server half the generated server file loads. */
+  packageServers: string[];
   styles: string[];
   /** Slot names installed layouts render, plus `slots` from bitakit.config.ts. */
   slots: string[];

@@ -116,6 +116,16 @@ test('tasks and schedules run in the generated server; the old place warns and m
     } finally {
       await stopClient();
     }
+    // One ID in the old place and in server/ would run twice: generation refuses it.
+    await put(
+      'src/plugins/Reports/contributions/tasks/weekly.ts',
+      `${imports} export default ${task};`,
+    );
+    await assert.rejects(
+      generateBitaKit(root, { quiet: true }),
+      /"weekly" of the contribution kind "scheduler\.tasks" is in src\/plugins\/Reports\/contributions\/tasks\/weekly\.ts and src\/plugins\/Reports\/server\/contributions\/tasks\/weekly\.ts; both would run/,
+    );
+    await rm(join(root, 'src/plugins/Reports/contributions/tasks/weekly.ts'));
     // A dry run reports the same moves and touches nothing.
     const dry = await migrateProject(root, { dryRun: true });
     assert.ok(dry.changes.some((change) => change.to?.endsWith('server/contributions/tasks.ts')));

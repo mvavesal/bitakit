@@ -739,6 +739,29 @@ test('doctor reports code that imports the generated server file once no module 
     'src/app/api/rpc/[...path]/route.ts imports src/bitakit.gen.server.ts, which discovery writes only while a server half exists.',
   ]);
   assert.match(problem.fix, /Delete the route/);
+  // An installed package's server half (the scheduler's, say) writes the server file by itself.
+  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  manifest.dependencies = { ...manifest.dependencies, '@acme/jobs': '1.0.0' };
+  await write(root, {
+    'package.json': manifest,
+    'node_modules/@acme/jobs/package.json': {
+      name: '@acme/jobs',
+      version: '1.0.0',
+      type: 'module',
+      exports: {
+        './plugin': './plugin.mjs',
+        './server': './server.mjs',
+        './package.json': './package.json',
+      },
+      bitakit: { plugin: './plugin', server: './server' },
+    },
+    'node_modules/@acme/jobs/plugin.mjs': "export default () => ({ id: 'jobs' });\n",
+    'node_modules/@acme/jobs/server.mjs': "export default () => ({ id: 'jobs' });\n",
+  });
+  assert.equal(
+    find((await doctor({ cwd: root })).results, /no module has a server half/),
+    undefined,
+  );
 });
 
 test('with a discovery that predates server/ folders, add --server asks for the update and doctor says so', async (t) => {

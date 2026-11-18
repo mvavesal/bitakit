@@ -207,6 +207,17 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     for (const [index, kind] of kinds.entries()) {
       const entries = await collect(base, list, kind, { side: 'server' });
       result.kinds.push(kind.runtime === 'both' ? clientKindEntries[index] : entries);
+      // A moved kind's old place still runs in the browser: one ID in both places would run twice.
+      if (kind.movedFrom)
+        for (const entry of entries) {
+          const twin = clientKindEntries[index].find(
+            (item) => item.path.join('.').toLowerCase() === entry.path.join('.').toLowerCase(),
+          );
+          if (twin)
+            throw new Error(
+              `"${entry.path.join('.')}" of the contribution kind "${kind.name}" is in ${path.relative(root, twin.file).split(path.sep).join('/')} and ${path.relative(root, entry.file).split(path.sep).join('/')}; both would run. Delete the old one (it runs on the server now).`,
+            );
+        }
     }
     const folder = path.join(base, 'server') + path.sep;
     result.code = list.filter(

@@ -10,6 +10,7 @@ manual hosts use the named `schedulerPlugin` with `createRuntime`. The plugin ID
 the service ID is `scheduler-engine`, and the shared contract is `scheduler`:
 
 ```ts
+// In server code, e.g. a server Action's execute({ services }).
 import { getService } from '@bitakit/core';
 import { scheduler } from '@bitakit/scheduler';
 const jobs = getService(services, scheduler);
@@ -19,7 +20,11 @@ await jobs.run('reports.weekly', { audience: 'team' });
 Tasks and schedules run on the server. The package ships a server half (`bitakit.server`), so
 the generated server file (`src/bitakit.gen.server.ts`) installs the scheduler with every file
 in `server/contributions/tasks/` and `server/contributions/schedules/`. A task there runs in the
-server composition: `requires`, `services` and `settings` are the plugin's server half. The
+server composition: `requires` and `services` are the plugin's server half. A scheduled run has
+no request, so a setting has no value for it (`settings.*.get()` and `load()` throw): pass what a
+task needs as `input` or read it in a server service. Browser code starts a server task through a
+server Action that calls `jobs.run`; `TaskMap` lists server tasks too, but the browser scheduler
+knows only the old place. The
 server kernel boots on its first call; to fire schedules from the start, boot it when the process
 starts, for example in Next.js `instrumentation.ts`:
 
@@ -48,7 +53,7 @@ A feature declares executable code with `defineTask({ input?, requires?, execute
 `events`, `settings`, parsed `input` and `signal`. `input` accepts Core's Zod/Standard Schema
 contract; `requires` checks available services at registration and each execution. Domain
 permissions belong in the task or the called business service and must be checked on every run.
-UI Actions are callers, not task definitions. Never load executable code from a schedule source.
+Actions are callers (browser Actions through a server Action), not task definitions. Never load executable code from a schedule source.
 
 Use `defineSchedule({ task, cron, input?, timezone?, paused? })` or `{ task, at, ... }` in
 `server/contributions/schedules/weekly.ts`. `at` is an ISO datetime with an explicit UTC offset.

@@ -1096,6 +1096,7 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
       'packages',
       'catalogPackages',
       'installedPackages',
+      'packageServers',
       'styles',
       'slotDeclarations',
       'unresolvedSlots',
@@ -2040,4 +2041,105 @@ test('layout files become layout.<family> candidates; undeclared families become
       generateBitaKit(root, { quiet: true }),
       /choose\["layout.auth"\] in bitakit.config.ts must name a candidate/,
     );
+  }));
+
+test('migrate moves a kind that moved to the server by discovery rules and never loses a file', () =>
+  fixture(async (root, put) => {
+    await put('package.json', JSON.stringify({ name: 'jobs-app' }));
+    await put(
+      'bitakit.config.ts',
+      `export default { kinds: [{ name: 'jobs', directory: 'jobs', from: 'x', normalize: 'discoverJobs', runtime: 'server', movedFrom: 'client' }], plugins: { include: { billing: './vendor/billing' } } };`,
+    );
+    const job = 'export default { kind: "job" };';
+    await put('src/plugins/r/plugin.config.ts', "export default { id: 'r' };");
+    await put('src/plugins/r/lib/x.ts', 'export const x = 1;');
+    // The kind folder moves whole: data files, query imports, .mjs helpers and what they import.
+    await put(
+      'src/plugins/r/contributions/jobs/a.ts',
+      "import raw from './tpl.txt?raw';\nimport { x } from './-legacy.mjs';\nexport default { kind: 'job', raw, x };",
+    );
+    await put('src/plugins/r/contributions/jobs/tpl.txt', 'hi');
+    await put(
+      'src/plugins/r/contributions/jobs/-legacy.mjs',
+      "export { x } from '../../lib/x.js';",
+    );
+    await put('src/plugins/r/contributions/jobs/coverage/lcov.info', 'TN:');
+    await put('src/plugins/r/contributions.jobs.daily.ts', job);
+    // Two files for one target: the first claims it, the second stays.
+    await put('src/plugins/r/contributions/jobs/weekly.ts', 'export const helper = 1;');
+    await put('src/plugins/r/jobs/weekly.ts', job);
+    // The server already has this ID: moving would give it twice.
+    await put('src/plugins/r/server/contributions/jobs/monthly.ts', job);
+    await put('src/plugins/r/contributions/jobs.monthly.ts', job);
+    // The old root place: only contributions move (default export by syntax, no "-" segment).
+    await put('src/plugins/r/jobs/nightly.ts', job);
+    await put('src/plugins/r/jobs/-format.ts', 'export default function format() {}');
+    await put('src/plugins/r/jobs/index.ts', "export { default as format } from './-format';");
+    await put('src/plugins/r/jobs/notes.ts', '// export default was here\nexport const n = 1;');
+    // An entries override decides for its module: nothing moves there.
+    await put(
+      'src/plugins/o/plugin.config.ts',
+      "export default { id: 'o', entries: { jobs: false } };",
+    );
+    await put('src/plugins/o/contributions/jobs/off.ts', job);
+    // Plugins included from outside the plugin directory move too.
+    await put('vendor/billing/plugin.config.ts', "export default { id: 'billing' };");
+    await put('vendor/billing/contributions/jobs/invoice.ts', job);
+
+    const { changes: planned } = await migrateProject(root, { dryRun: true });
+    const { changes } = await migrateProject(root);
+    assert.deepEqual(planned, changes, 'a dry run reports the same changes');
+    const r = 'src/plugins/r';
+    assert.deepEqual(
+      changes
+        .filter((change) => change.kind === 'rename' && change.detail?.includes('server'))
+        .map(({ from, to }) => [from, to])
+        .sort(),
+      [
+        [`${r}/contributions.jobs.daily.ts`, `${r}/server/contributions.jobs.daily.ts`],
+        [`${r}/contributions/jobs/-legacy.mjs`, `${r}/server/contributions/jobs/-legacy.mjs`],
+        [`${r}/contributions/jobs/a.ts`, `${r}/server/contributions/jobs/a.ts`],
+        [`${r}/contributions/jobs/tpl.txt`, `${r}/server/contributions/jobs/tpl.txt`],
+        [`${r}/contributions/jobs/weekly.ts`, `${r}/server/contributions/jobs/weekly.ts`],
+        [`${r}/jobs/nightly.ts`, `${r}/server/contributions/jobs/nightly.ts`],
+        [
+          'vendor/billing/contributions/jobs/invoice.ts',
+          'vendor/billing/server/contributions/jobs/invoice.ts',
+        ],
+      ],
+    );
+    const skipped = changes.filter((change) => change.kind === 'skip' && change.from);
+    const skippedFrom = (file) => skipped.find((change) => change.from === file)?.detail ?? '';
+    assert.match(
+      skippedFrom(`${r}/jobs/weekly.ts`),
+      /contributions\/jobs\/weekly\.ts moves there too/,
+    );
+    assert.match(
+      skippedFrom(`${r}/contributions/jobs.monthly.ts`),
+      /the server already has "monthly"/,
+    );
+    assert.match(skippedFrom('src/plugins/o/plugin.config.ts'), /an entries override names "jobs"/);
+    const read = (file) => readFile(path.join(root, file), 'utf8');
+    const a = await read(`${r}/server/contributions/jobs/a.ts`);
+    assert.match(a, /from '\.\/tpl\.txt\?raw'/);
+    assert.match(a, /from '\.\/-legacy\.mjs'/);
+    assert.match(
+      await read(`${r}/server/contributions/jobs/-legacy.mjs`),
+      /from '\.\.\/\.\.\/\.\.\/lib\/x\.js'/,
+    );
+    // Nothing is lost: the second claimant, coverage/, helpers and the override's files stay.
+    assert.equal(await read(`${r}/jobs/weekly.ts`), job);
+    assert.equal(
+      await read(`${r}/server/contributions/jobs/weekly.ts`),
+      'export const helper = 1;',
+    );
+    assert.equal(await read(`${r}/contributions/jobs/coverage/lcov.info`), 'TN:');
+    for (const file of [
+      'jobs/-format.ts',
+      'jobs/index.ts',
+      'jobs/notes.ts',
+      'contributions/jobs.monthly.ts',
+    ])
+      await read(`${r}/${file}`);
+    await read('src/plugins/o/contributions/jobs/off.ts');
   }));

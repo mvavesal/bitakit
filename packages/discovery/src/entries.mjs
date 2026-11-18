@@ -130,6 +130,12 @@ export const mergedKindSpecs = (installed, configured) =>
     ).values(),
   ]);
 
+/** Whether a source file exports a default value, by its syntax (as discovery decides). */
+export async function sourceHasDefaultExport(file) {
+  const text = await readFile(file, 'utf8');
+  return hasDefaultExport(ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true));
+}
+
 function hasDefaultExport(syntax) {
   return syntax.statements.some(
     (statement) =>
