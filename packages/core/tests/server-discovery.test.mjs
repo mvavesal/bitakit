@@ -960,6 +960,16 @@ test('contribution kinds keep their runtime; client is the default', () => {
     () => contributionKindSpecs([{ ...kind, runtime: 'edge' }]),
     /Contribution kind "widgets" has runtime "edge"; use "client", "server" or "both"\./,
   );
+  // A kind that moved to the server keeps its old place for one minor version.
+  assert.equal(
+    contributionKindSpecs([{ ...kind, runtime: 'server', movedFrom: 'client' }])[0].movedFrom,
+    'client',
+  );
+  for (const wrong of [{ movedFrom: 'client' }, { runtime: 'server', movedFrom: 'both' }])
+    assert.throws(
+      () => contributionKindSpecs([{ ...kind, ...wrong }]),
+      /only a server kind may name "client"/,
+    );
 });
 
 test('discoverEntries on the server side: the client segment rules after server/, everything else silent', () =>

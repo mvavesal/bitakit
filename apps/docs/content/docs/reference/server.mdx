@@ -235,6 +235,10 @@ where its files run:
 | `server`           | `<module>/server/contributions/<folder>/` | Only `src/bitakit.gen.server.ts`                               |
 | `both`             | `<module>/contributions/<folder>/`        | Both; the kind's `from` module must work in browser and server |
 
-A file on the wrong side is a generation error that names the path it belongs at. On the server
+A file on the wrong side is a generation error that names the path it belongs at. A kind that
+moves from `client` to `server` declares `movedFrom: 'client'` for one minor version: the server
+still reads its old place (`contributions/<folder>/`) with a warning, the browser ignores it, and
+`bitakit migrate` moves the files under `server/contributions/` (the scheduler's tasks and
+schedules use it). On the server
 an installer for the kind is optional: `contributionsOf(server config or plugins, kind)` returns
 `{ plugin, value }` for every file.

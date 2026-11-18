@@ -3,6 +3,7 @@ import { watch } from 'node:fs';
 import { dirname, basename, extname } from 'node:path';
 import { parseScheduleDocument } from '../sources.js';
 import type { ScheduleSource } from '../types.js';
+import { schedulerPlugin } from '../plugin.js';
 
 /** Node-only runtime file source. Watches the directory so atomic file replacement is observed. */
 export function fileSource(options: {
@@ -39,4 +40,12 @@ export function fileSource(options: {
           },
         }),
   };
+}
+
+/**
+ * The scheduler's server half (`bitakit.server`): the generated server file installs it, so the
+ * tasks and schedules under `server/contributions/` run there.
+ */
+export default function serverPlugin() {
+  return schedulerPlugin;
 }

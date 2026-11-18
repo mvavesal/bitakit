@@ -5,11 +5,10 @@ import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
-import { generateBitaKit } from '@bitakit/discovery';
+import { generateBitaKit, migrateProject } from '@bitakit/discovery';
 import { createJiti } from 'jiti';
-import { createRuntime } from '@bitakit/core';
 
-test('installed discovery wires folder/dotted/record tasks and strict mixed-case type maps', async () => {
+test('tasks and schedules run in the generated server; the old place warns and migrates', async () => {
   const root = await mkdtemp(join(tmpdir(), 'bitakit-scheduler-discovery-'));
   const put = async (name, value) => {
     const path = join(root, name);
@@ -33,39 +32,63 @@ test('installed discovery wires folder/dotted/record tasks and strict mixed-case
     const imports = "import { defineTask } from '@bitakit/scheduler'; import { z } from 'zod';";
     const task =
       'defineTask({ input: z.object({ count: z.number() }), execute: ({ input }) => input.count })';
+    // Tasks and schedules run on the server: folder, dotted and record forms under server/.
     await put(
-      'src/plugins/Reports/contributions/tasks/weekly.ts',
+      'src/plugins/Reports/server/contributions/tasks/weekly.ts',
       `${imports} export default ${task};`,
     );
     await put(
-      'src/plugins/Reports/contributions/tasks.daily.ts',
+      'src/plugins/Reports/server/contributions/tasks.daily.ts',
       `${imports} export default ${task};`,
     );
+    await put(
+      'src/plugins/Reports/server/contributions/schedules/weekly.ts',
+      "import { defineSchedule } from '@bitakit/scheduler'; export default defineSchedule({ task: 'REPORTS.WEEKLY', cron: '0 9 * * MON', input: { count: 1 } });",
+    );
+    // The old place still works on the server, with a warning, until the next minor version.
     await put(
       'src/plugins/Reports/contributions/tasks.ts',
       `${imports} export default { monthly: ${task} };`,
     );
     await put(
-      'src/plugins/Reports/contributions/schedules/weekly.ts',
-      "import { defineSchedule } from '@bitakit/scheduler'; export default defineSchedule({ task: 'REPORTS.WEEKLY', cron: '0 9 * * MON', input: { count: 1 } });",
+      'src/plugins/Reports/server/actions/monthly.ts',
+      "import { defineAction } from '@bitakit/core/server'; import { getService } from '@bitakit/core'; import { scheduler } from '@bitakit/scheduler'; export default defineAction({ access: 'public', execute: ({ services }) => getService(services, scheduler).run('reports.monthly', { count: 3 }) });",
     );
+    let result = await generateBitaKit(root, { quiet: true });
+    assert.deepEqual(result.warnings, [
+      'src/plugins/Reports/contributions/tasks.ts: the contribution kind "scheduler.tasks" runs on the server now; move it under server/contributions/tasks/ (run "bitakit migrate"). The old location stops working in the next minor version.',
+    ]);
+    // The browser never imports a task; the server file holds them all.
+    assert.doesNotMatch(await readFile(result.generated, 'utf8'), /tasks|schedules/);
+    const serverSource = await readFile(result.server, 'utf8');
+    assert.match(serverSource, /import packageServer0 from "@bitakit\/scheduler\/server";/);
+    for (const file of ['tasks/weekly', 'tasks.daily', 'schedules/weekly'])
+      assert.ok(serverSource.includes(`/Reports/server/contributions/${file}';`), file);
+    assert.ok(serverSource.includes(`/Reports/contributions/tasks';`));
+    // `bitakit migrate` moves the old place under server/, imports adjusted.
+    await put('src/plugins/Reports/lib/count.ts', 'export const count = 3;');
     await put(
-      'src/plugins/Reports/server/tasks/secret.ts',
-      "throw new Error('Server code entered discovery'); export default {};",
+      'src/plugins/Reports/contributions/tasks.ts',
+      `${imports} import { count } from '../lib/count'; export default { monthly: defineTask({ input: z.object({ count: z.number() }), execute: ({ input }) => input.count * count }) };`,
     );
-    const result = await generateBitaKit(root, { quiet: true });
+    const { changes } = await migrateProject(root);
+    assert.deepEqual(
+      changes
+        .filter((change) => change.detail?.includes('server'))
+        .map(({ from, to }) => [from, to]),
+      [
+        [
+          'src/plugins/Reports/contributions/tasks.ts',
+          'src/plugins/Reports/server/contributions/tasks.ts',
+        ],
+      ],
+    );
+    assert.match(
+      await readFile(join(root, 'src/plugins/Reports/server/contributions/tasks.ts'), 'utf8'),
+      /from '\.\.\/\.\.\/lib\/count'/,
+    );
+    result = await generateBitaKit(root, { quiet: true });
     assert.deepEqual(result.warnings, []);
-    assert.doesNotMatch(await readFile(result.generated, 'utf8'), /secret\.ts/);
-    // Tasks are a client kind: under server/contributions/ they are an error naming their place.
-    await put(
-      'src/plugins/Reports/server/contributions/tasks/nightly.ts',
-      "throw new Error('Server code entered discovery'); export default {};",
-    );
-    await assert.rejects(
-      generateBitaKit(root, { quiet: true }),
-      /move it to src\/plugins\/Reports\/contributions\/tasks\/nightly\.ts\./,
-    );
-    await rm(join(root, 'src/plugins/Reports/server/contributions'), { recursive: true });
     await put(
       'src/check.ts',
       `
@@ -84,14 +107,17 @@ test('installed discovery wires folder/dotted/record tasks and strict mixed-case
       void [weekly, monthly, daily];
     `,
     );
-    const program = ts.createProgram([result.generated, join(root, 'src/check.ts')], {
-      strict: true,
-      noEmit: true,
-      skipLibCheck: true,
-      target: ts.ScriptTarget.ES2022,
-      module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-    });
+    const program = ts.createProgram(
+      [result.server, result.generated, join(root, 'src/check.ts')],
+      {
+        strict: true,
+        noEmit: true,
+        skipLibCheck: true,
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.ESNext,
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
+      },
+    );
     const diagnostics = ts.getPreEmitDiagnostics(program);
     assert.equal(
       diagnostics.length,
@@ -102,16 +128,17 @@ test('installed discovery wires folder/dotted/record tasks and strict mixed-case
         getNewLine: () => '\n',
       }),
     );
-    const generated = await createJiti(import.meta.url, { moduleCache: false }).import(
-      result.generated,
+    const { server } = await createJiti(import.meta.url, { moduleCache: false }).import(
+      result.server,
     );
-    const runtime = createRuntime(generated.createBitaKitConfig());
-    const stop = runtime.mount();
     try {
-      await runtime.ready;
-      assert.equal(await runtime.services.scheduler.run('reports.DAILY', { count: 7 }), 7);
+      await server.ready;
+      assert.equal(
+        await server.call('reports.monthly', undefined, new Headers(), { exposedOnly: false }),
+        9,
+      );
     } finally {
-      await stop();
+      await server.stop();
     }
   } finally {
     await rm(root, { recursive: true, force: true });

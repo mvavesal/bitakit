@@ -16,29 +16,34 @@ const jobs = getService(services, scheduler);
 await jobs.run('reports.weekly', { audience: 'team' });
 ```
 
-The generated server file (`src/bitakit.gen.server.ts`) does not install the scheduler yet: task
-files stay in `contributions/tasks/` (a task under `server/contributions/tasks/` is a generation
-error until tasks become a server-only kind), and a server runs them through explicit composition
-as in `examples/server/main.ts`.
-Never import `@bitakit/scheduler/server` into browser code. Install the scheduler once per
-runtime; installing it on both server and browser executes two independent sets of jobs.
+Tasks and schedules run on the server. The package ships a server half (`bitakit.server`), so
+the generated server file (`src/bitakit.gen.server.ts`) installs the scheduler with every file
+in `server/contributions/tasks/` and `server/contributions/schedules/`; the browser never imports
+them. Until the next minor version the server still reads the old place
+`contributions/tasks|schedules/` with a warning; `bitakit migrate` moves those files (relative
+imports adjusted). A host without discovery composes the same declarations explicitly as in
+`examples/server/main.ts`.
+Never import `@bitakit/scheduler/server` into browser code. The browser plugin stays until the
+next minor version for code that registers tasks there by hand; discovered tasks and schedules
+never run in the browser. A runtime of its own (a worker) installs the scheduler once; each
+installation runs its own set of jobs.
 
 ## Tasks and default schedules
 
 A feature declares executable code with `defineTask({ input?, requires?, execute })` in
-`contributions/tasks/weekly.ts`. The execute context contains `services`, plugin-owned `config`,
+`server/contributions/tasks/weekly.ts`. The execute context contains `services`, plugin-owned `config`,
 `events`, `settings`, parsed `input` and `signal`. `input` accepts Core's Zod/Standard Schema
 contract; `requires` checks available services at registration and each execution. Domain
 permissions belong in the task or the called business service and must be checked on every run.
 UI Actions are callers, not task definitions. Never load executable code from a schedule source.
 
 Use `defineSchedule({ task, cron, input?, timezone?, paused? })` or `{ task, at, ... }` in
-`contributions/schedules/weekly.ts`. `at` is an ISO datetime with an explicit UTC offset.
+`server/contributions/schedules/weekly.ts`. `at` is an ISO datetime with an explicit UTC offset.
 [Croner](https://croner.56k.guru/usage/configuration/) validates cron patterns and IANA timezones. Croner 11 supports Node >=18 and browsers;
 the repository and example runner use Node 24. No custom cron syntax or parser is added.
 
 IDs derive from plugin + file: `reports.weekly` in two separate namespaces. Folder, dotted
-(`contributions/tasks.weekly.ts`) and record (`contributions/tasks.ts` exporting `{ weekly }`)
+(`server/contributions/tasks.weekly.ts`) and record (`server/contributions/tasks.ts` exporting `{ weekly }`)
 forms are equivalent. Generated `TaskMap` checks task string arguments and inputs;
 `ScheduleMap` supplies known schedule IDs. Schedule APIs also accept runtime source IDs.
 Registration IDs must be unique ignoring case in this new package; source snapshots also reject

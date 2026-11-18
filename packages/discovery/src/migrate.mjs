@@ -3,9 +3,11 @@ import { rewriteScopeAndSlots } from './scope-and-slots.mjs';
 import { exportedNames, importsFromUi, moveCoreImports } from './core-imports.mjs';
 import { readFile, writeFile, rename, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { files } from './entries.mjs';
+import { createJiti } from 'jiti';
+import { files, mergedKindSpecs } from './entries.mjs';
 import { pluginManifests } from './modules.mjs';
 import { loadDiscoveryConfig } from './generate.mjs';
+import { installedContributions } from './packages.mjs';
 
 const suffixes = {
   actions: ['form-action', 'dialog-action', 'action'],
@@ -85,6 +87,106 @@ async function exists(file) {
     () => true,
     () => false,
   );
+}
+
+const defaultExport = /\bexport\s+default\b|\bexport\s*\{[^}]*\bdefault\b/;
+
+/**
+ * Moves the files of contribution kinds that now run on the server (`movedFrom: 'client'`) from
+ * `contributions/<dir>` – or the old root folder `<dir>/`, only files with a default export – to
+ * `server/contributions/<dir>`. Relative imports in the moved files keep pointing at the same
+ * files; other files that import a moved one are reported, not rewritten.
+ */
+async function moveServerKinds(base, boundaries, kinds, apply, changes, relative) {
+  const sources = (await files(base, boundaries)).filter(
+    (file) => /\.tsx?$/.test(file) && !/\.d\.ts$/.test(file),
+  );
+  for (const kind of kinds) {
+    const folder = path.join(base, 'contributions', ...kind.directory.split('/'));
+    const rootFolder = path.join(base, ...kind.directory.split('/'));
+    const target = path.join(base, 'server', 'contributions', ...kind.directory.split('/'));
+    const plan = new Map();
+    for (const file of sources) {
+      if (file.startsWith(`${folder}${path.sep}`) || file.startsWith(`${folder}.`))
+        plan.set(file, target + file.slice(folder.length));
+      else if (
+        file.startsWith(`${rootFolder}${path.sep}`) &&
+        defaultExport.test(await readFile(file, 'utf8'))
+      )
+        plan.set(file, target + file.slice(rootFolder.length));
+    }
+    if (!plan.size) continue;
+    const moved = new Set();
+    // Where an import of the old place points now: the moved file, or the same file as before.
+    const resolveMoved = (absolute) => {
+      if (
+        absolute === folder ||
+        absolute.startsWith(`${folder}${path.sep}`) ||
+        absolute.startsWith(`${folder}.`)
+      )
+        return target + absolute.slice(folder.length);
+      const stem = absolute.replace(/\.[cm]?js$/, '');
+      for (const candidate of [absolute, `${stem}.ts`, `${stem}.tsx`])
+        if (plan.has(candidate)) return target + absolute.slice(rootFolder.length);
+      return absolute;
+    };
+    for (const [file, destination] of plan) {
+      if (await exists(destination)) {
+        changes.push({
+          kind: 'skip',
+          from: relative(file),
+          to: relative(destination),
+          detail: 'target exists',
+        });
+        continue;
+      }
+      const source = await readFile(file, 'utf8');
+      const rewritten = source.replace(
+        /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])(\.\.?\/[^'"]*)\2/g,
+        (match, lead, quote, specifier) => {
+          const next = resolveMoved(path.resolve(path.dirname(file), specifier));
+          let rel = path.relative(path.dirname(destination), next).split(path.sep).join('/');
+          if (!rel.startsWith('.')) rel = `./${rel}`;
+          return `${lead}${quote}${rel}${quote}`;
+        },
+      );
+      await apply(
+        {
+          kind: 'rename',
+          from: relative(file),
+          to: relative(destination),
+          detail: `"${kind.name}" runs on the server`,
+        },
+        async () => {
+          await mkdir(path.dirname(destination), { recursive: true });
+          await writeFile(destination, rewritten);
+          await rm(file);
+        },
+      );
+      moved.add(file);
+    }
+    for (const old of [folder, rootFolder])
+      if ((await exists(old)) && (await files(old)).every((file) => moved.has(file)))
+        await apply({ kind: 'delete', from: relative(old), detail: 'empty after the move' }, () =>
+          rm(old, { recursive: true, force: true }),
+        );
+    // Other files that import a moved one need a hand: report them.
+    for (const file of sources) {
+      if (plan.has(file)) continue;
+      const text = await readFile(file, 'utf8');
+      for (const [, specifier] of text.matchAll(
+        /(?:\bfrom\s*|\bimport\s*\(\s*)['"](\.\.?\/[^'"]*)['"]/g,
+      )) {
+        const absolute = path.resolve(path.dirname(file), specifier);
+        if (resolveMoved(absolute) !== absolute)
+          changes.push({
+            kind: 'skip',
+            from: relative(file),
+            detail: `imports ${specifier}, which moved to ${relative(resolveMoved(absolute))}; update the import`,
+          });
+      }
+    }
+  }
 }
 
 /**
@@ -249,6 +351,33 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
       });
     }
   }
+
+  // 2b. Contribution kinds that moved to the server (the scheduler's tasks and schedules in 0.3).
+  let movedKinds = [];
+  try {
+    const jiti = createJiti(import.meta.url, { moduleCache: false, fsCache: false });
+    const installed = await installedContributions(root, config.packages, jiti, {
+      auditStyles: false,
+    });
+    movedKinds = mergedKindSpecs(installed.kinds, config.kinds).filter(
+      (kind) => kind.movedFrom === 'client',
+    );
+  } catch (error) {
+    changes.push({
+      kind: 'skip',
+      detail: `installed packages could not be read, so server kinds were not moved: ${error.message}`,
+    });
+  }
+  if (movedKinds.length)
+    for (const base of moduleDirs)
+      await moveServerKinds(
+        base,
+        new Set(moduleDirs.filter((dir) => dir !== base && dir.startsWith(base))),
+        movedKinds,
+        apply,
+        changes,
+        relative,
+      );
 
   // 3. Source rewrites: generated-file imports and renamed helpers.
   const hasLocales = (

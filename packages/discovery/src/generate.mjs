@@ -209,12 +209,22 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       result.kinds.push(kind.runtime === 'both' ? clientKindEntries[index] : entries);
     }
     const folder = path.join(base, 'server') + path.sep;
-    result.code = list.filter(
-      (file) =>
-        file.startsWith(folder) &&
-        /\.(?:[cm]?[jt]sx?|json)$/.test(file) &&
-        !/\.d\.[cm]?ts$/.test(file),
-    );
+    result.code = [
+      ...list.filter(
+        (file) =>
+          file.startsWith(folder) &&
+          /\.(?:[cm]?[jt]sx?|json)$/.test(file) &&
+          !/\.d\.[cm]?ts$/.test(file),
+      ),
+      // A moved kind's files at their old place run on the server too.
+      ...kinds.flatMap((kind, index) =>
+        kind.movedFrom
+          ? result.kinds[index]
+              .map((entry) => entry.file)
+              .filter((file) => !file.startsWith(folder))
+          : [],
+      ),
+    ];
     return result;
   };
   const endpoint = serverEndpoint(config);

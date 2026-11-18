@@ -4,8 +4,10 @@ description: Tasks, in-process schedules, runtime data sources and execution obs
 ---
 
 `@bitakit/scheduler` is an optional UI-free plugin. Croner owns cron, one-shot dates, timezones
-and per-schedule overlap protection. Install it in the runtime that owns the work; installing
-it on server and browser runs independent jobs. The package requires Core's contribution
+and per-schedule overlap protection. Tasks and schedules run on the server: the package ships a
+server half, so the generated server file installs the scheduler with its tasks and schedules.
+Until the next minor version the server still reads the old place `contributions/tasks|schedules/`
+with a warning; `bitakit migrate` moves those files. The package requires Core's contribution
 installer context and ships its own `AGENTS.md` consumer guide and runnable server examples.
 
 ## Declarations
@@ -14,8 +16,8 @@ installer context and ships its own `AGENTS.md` consumer guide and runnable serv
 | ------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `defineTask`       | `{ input?, requires?, execute }`; parsed input, AbortSignal and feature-owned services/config/events/settings |
 | `defineSchedule`   | `{ task, cron, input?, timezone?, paused? }` or `{ task, at, ... }`; `at` includes a UTC offset               |
-| Task files         | `contributions/tasks/<name>.ts`; dotted and record forms are equivalent                                       |
-| Schedule files     | `contributions/schedules/<name>.ts`; separate namespace with the same ID convention                           |
+| Task files         | `server/contributions/tasks/<name>.ts`; dotted and record forms are equivalent                                |
+| Schedule files     | `server/contributions/schedules/<name>.ts`; separate namespace with the same ID convention                    |
 | Generated maps     | `TaskMap` and `ScheduleMap`; mixed-case string references retain input/result checking                        |
 | Manual composition | Named `schedulerPlugin` in `createRuntime`; `registerTask` accepts the same definition and feature context    |
 

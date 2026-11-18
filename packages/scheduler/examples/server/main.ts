@@ -1,20 +1,20 @@
 import { createRuntime, definePlugin, discoveredFile, getService } from '@bitakit/core';
 import { schedulerPlugin, scheduler, discoverTasks, discoverSchedules } from '@bitakit/scheduler';
-import task from '../reports/contributions/tasks/weekly.ts';
-import schedule from '../reports/contributions/schedules/weekly.ts';
+import task from '../reports/server/contributions/tasks/weekly.ts';
+import schedule from '../reports/server/contributions/schedules/weekly.ts';
 import fileSchedules from '../file-schedules/server/plugin.ts';
 import audit from '../audit/plugin.ts';
 
-// Server discovery is not generated yet: compose the same declarations explicitly.
+// Without discovery: compose the same declarations explicitly (the generated server file does this).
 const reports = definePlugin({
   id: 'reports',
   contributions: {
     'scheduler.tasks': discoverTasks(
-      [discoveredFile(task, 'weekly', 'reports/contributions/tasks/weekly.ts')],
+      [discoveredFile(task, 'weekly', 'reports/server/contributions/tasks/weekly.ts')],
       'reports',
     ),
     'scheduler.schedules': discoverSchedules(
-      [discoveredFile(schedule, 'weekly', 'reports/contributions/schedules/weekly.ts')],
+      [discoveredFile(schedule, 'weekly', 'reports/server/contributions/schedules/weekly.ts')],
       'reports',
     ),
   },
