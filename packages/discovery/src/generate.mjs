@@ -8,7 +8,7 @@ import { AccessConfigurationError, composeAccessConfiguration } from '@bitakit/c
 import { files, discoverEntries, mergedKindSpecs, serverKindNames } from './entries.mjs';
 import { createEmitter, generatedHeader, specifier } from './emitter.mjs';
 import { rejectServerFields } from './server-rules.mjs';
-import { serverEndpoint, serverHalf, serverPublish } from './server-file.mjs';
+import { serverEndpoint, serverHalf, serverPublish, serverRateLimit } from './server-file.mjs';
 import { pluginIdentityConflicts } from './package-identity.mjs';
 import { installedContributions } from './packages.mjs';
 import { parentDirectory, pluginManifests } from './modules.mjs';
@@ -621,6 +621,7 @@ ${installed.plugins
     configOverrides,
     localPlugins: pluginNames,
     endpoint,
+    rateLimit: serverRateLimit(config),
     root,
     output,
     relativeTo,

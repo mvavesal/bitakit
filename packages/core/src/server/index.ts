@@ -36,7 +36,19 @@ export {
   type PermissionRequest,
 } from '../request-context.js';
 export { createServer } from './create-server.js';
-export { fetchHandler, type FetchHandlerOptions } from './fetch-handler.js';
+export {
+  crossOrigin,
+  fetchHandler,
+  originRule,
+  type FetchHandlerOptions,
+} from './fetch-handler.js';
+export {
+  memoryRateLimitStore,
+  rateLimit,
+  type RateLimitOptions,
+  type RateLimitProvider,
+  type RateLimitStore,
+} from './rate-limit.js';
 export { contributionsOf } from './contributions.js';
 export type {
   Server,
@@ -45,6 +57,9 @@ export type {
   Caller,
   CallOptions,
   OperationInfo,
+  OperationType,
+  JsonSchema,
+  SystemPrincipalOptions,
   ServerActionEntry,
   ServerActionSpec,
   ServerActionSpecInput,

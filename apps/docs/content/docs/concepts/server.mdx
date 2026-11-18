@@ -148,9 +148,11 @@ code that imports React or the plugin's `ui/`.
 - **No database or ORM.** Server services use the app's own client (Prisma, Drizzle, SQL, an
   HTTP API). Reusable plugins define their own storage contract.
 - **No authentication server.** The `requestContext` provider uses the app's authentication.
-- **One built-in transport.** JSON calls over one route. No OpenAPI, streaming, batching, file
-  uploads or rate limiting yet, and no CORS preflight for calls from another origin.
-- **App plugins only.** Installed plugin packages do not ship server halves yet.
+- **One built-in transport.** JSON calls over one route; `@bitakit/orpc` (RPC, OpenAPI) and
+  `@bitakit/mcp` (MCP tools) are optional packages over the same operations. Public operations are
+  [rate-limited](/docs/reference/server#rate-limits) and trusted origins get CORS on every one.
+- **Packages publish nothing by themselves.** A package's server half (`bitakit.server`) runs
+  in-process; its operations go over HTTP only once the app lists them in `server.publish`.
 - **Next.js is proven.** `bitakit add action … --server` writes the Next.js route and a TanStack
   Start route; other hosts are not covered.
 

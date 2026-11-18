@@ -176,7 +176,7 @@ export default defineAction({
 | `FORBIDDEN`             | 403    | `reason`: `NO_ACTIVE_ORGANIZATION`, `NOT_A_MEMBER`, `PERMISSION`, `INTERCEPTED` |
 | `NOT_FOUND`             | 404    | Unknown or private operation, or your own "no such thing"                       |
 | `CONFLICT`              | 409    | `reason: 'ORGANIZATION_CHANGED'`, or your own conflict                          |
-| `TOO_MANY_REQUESTS`     | 429    | Yours to throw (no built-in rate limit)                                         |
+| `TOO_MANY_REQUESTS`     | 429    | The rate limit (`retryAfter` in seconds), or yours to throw                     |
 | `INTERNAL_SERVER_ERROR` | 500    | An unexpected error; `requestId` matches the server log                         |
 | `SERVICE_UNAVAILABLE`   | 503    | Server unreachable, failed to start, or no operations configured                |
 
@@ -221,7 +221,8 @@ export const POST = fetchHandler(server);
 - `fetchHandler(server, { trustedOrigins, origin, maxBodyBytes })`: browser calls must come from
   the app's origin (the browser's same-origin signal, the request URL or the `Host` it sent;
   `origin` names it behind a proxy) or an exact trusted origin; bodies are
-  limited to 1 MiB. Cross-origin browser calls are not supported yet (no CORS preflight).
+  limited to 1 MiB. A trusted origin's browser may call across origins: route `OPTIONS` to the
+  handler too (`export const OPTIONS = POST`); other origins get no CORS headers.
 - Server code reuses an operation in-process with the request's identity:
   `await server.as(request).bookmarks.list()`. It runs the same checks and also reaches private
   operations.
@@ -304,6 +305,51 @@ export default defineService(
   the client merely sent. Without `can`, permission rules deny.
 - A throwing `resolve` answers 500 and grants nothing. The provider runs only for non-public
   operations, once per call.
+
+## Rate limits
+
+Exposed `public` operations over HTTP are limited per client and operation (120 calls a minute
+by default, then 429 with `Retry-After`); signed-in, private and in-process calls never count.
+The numbers go in `bitakit.config.ts`: `server: { rateLimit: { limit: 30, windowMs: 60_000 } }`,
+or `rateLimit: false` when a proxy limits instead. Who the client is (by default the first
+`x-forwarded-for` address: right where the host or proxy overwrites it, as Vercel does; a caller
+can set it otherwise) and a shared store for several instances come from one server service:
+
+```ts
+// src/server/services/rate-limit.ts
+import { defineService, rateLimit } from '@bitakit/core/server';
+
+export default defineService(
+  () => ({
+    // A header your proxy overwrites, never one the caller sends unchecked (Cloudflare here).
+    key: (request: Request) => request.headers.get('cf-connecting-ip') ?? undefined,
+  }),
+  { provides: rateLimit },
+);
+```
+
+## Jobs and webhooks
+
+Code that runs without a person – a scheduled job, a webhook you verified – calls operations as
+`server.system('<plugin>.<job>', { organizationId, permissions: { resource: ['operation'] } })`.
+Grant only what that job needs; never build a user or identity by hand.
+
+## Another transport (oRPC, REST, OpenAPI)
+
+Third parties or an oRPC client call the same operations through `@bitakit/orpc`; never write a
+transport of your own:
+
+```ts
+import { openapiDocument, orpcHandler } from '@bitakit/orpc';
+import { server } from '@/bitakit.gen.server';
+
+export const rest = orpcHandler(server, { prefix: '/api/rest', protocol: 'openapi' });
+export const spec = () => openapiDocument(server, { prefix: '/api/rest' });
+```
+
+Only exposed operations are reachable. Mark reading operations `type: 'query'` (GET in REST; give
+their input schema coercion, query values arrive as strings) and use zod 4 schemas so the document
+describes inputs and outputs.
 
 ## Test it
 

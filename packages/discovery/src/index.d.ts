@@ -75,6 +75,18 @@ export type DiscoveryConfig = {
      * Generated into the server file's `createServer` call and the client file's `remote`.
      */
     endpoint?: string;
+    /**
+     * Limits for exposed `public` operations over HTTP: `{ limit?, windowMs? }` (120 calls per
+     * 60 000 ms by default, per client and operation) or `false` when a proxy limits instead.
+     * Generated into the server file's `createServer` call. Who the client is and a shared store
+     * come from a server service that provides `rateLimit` (`@bitakit/core/server`).
+     */
+    rateLimit?: false | { limit?: number; windowMs?: number };
+    /**
+     * Package plugins' exposed operations the app serves over HTTP: operation IDs or
+     * `<plugin>.*`. Installing a package never adds endpoints by itself.
+     */
+    publish?: readonly string[];
   };
 };
 export function defineBitaKit(config: DiscoveryConfig): DiscoveryConfig;

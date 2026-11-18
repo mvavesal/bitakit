@@ -29,7 +29,8 @@ the module's own code (a database module, helpers) and is not discovered. Shared
 | Property      | Type                                                     | Default       | What it does                                                                              |
 | ------------- | -------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------- |
 | `access`      | `'public' \| 'user' \| 'organization' \| { permission }` | required      | Who may call it; see [access](#access-and-ctx)                                            |
-| `expose`      | `boolean`                                                | `false`       | Publishes the operation over HTTP and in `remote`; otherwise in-process only              |
+| `expose`      | `boolean`                                                | `false`       | Publishes the operation over HTTP and in `remote` (a package's: once in `server.publish`) |
+| `type`        | `'query' \| 'mutation'`                                  | `'mutation'`  | `query` only reads: transports that support it (oRPC's OpenAPI) answer it with GET        |
 | `input`       | schema (zod, valibot, Standard Schema, `{ parse }`)      | none          | Validates and types the input once; without it the input must be absent                   |
 | `output`      | schema                                                   | none          | Checks the result and returns the validator's value (zod/valibot objects drop extra keys) |
 | `execute`     | `(context) => result`                                    | required      | The operation                                                                             |
@@ -106,7 +107,7 @@ Both are also exported from `@bitakit/core` for client code.
 | `CONFLICT`               | 409    | `reason: 'ORGANIZATION_CHANGED'`                                                                    |
 | `PAYLOAD_TOO_LARGE`      | 413    | A body over `maxBodyBytes`                                                                          |
 | `UNSUPPORTED_MEDIA_TYPE` | 415    | A body that is not `application/json`                                                               |
-| `TOO_MANY_REQUESTS`      | 429    | Your code; there is no built-in rate limit                                                          |
+| `TOO_MANY_REQUESTS`      | 429    | The [rate limit](#rate-limits) for public operations (`retryAfter`, `Retry-After`), or your code    |
 | `INTERNAL_SERVER_ERROR`  | 500    | Any other error, an invalid `output`, a throwing provider or schema                                 |
 | `SERVICE_UNAVAILABLE`    | 503    | The server failed to start or is stopping, the network failed, or no operations are configured      |
 
@@ -177,14 +178,74 @@ browser's `Sec-Fetch-Site: same-origin` settles it, otherwise the `Origin` must 
 (when set, for apps behind a proxy) or, without it, the request URL's origin or the `Host` the
 browser sent (hosts such as Next.js may hand the handler `localhost` for a page served at
 `127.0.0.1`). A cross-site request is refused with 403, and a request with neither an `Origin`
-nor a `Sec-Fetch-Site` header (a server-to-server client) is allowed. Every answer has `cache-control: no-store`. Cross-origin browser calls are not supported yet: there is no CORS
-preflight (`OPTIONS` answers 405).
+nor a `Sec-Fetch-Site` header (a server-to-server client) is allowed. Every answer has `cache-control: no-store`. A trusted origin's browser may call across origins (CORS): an `OPTIONS` preflight from it answers
+204 with exactly that origin, `POST`, the headers `content-type`, `authorization` and
+`x-bitakit-organization`, and credentials allowed; its answers carry the same headers. Any other
+origin gets no CORS headers (`*` is never sent). Route `OPTIONS` to the handler too where you use
+`trustedOrigins` (`export const OPTIONS = POST`).
+
+### Rate limits
+
+Exposed `public` operations called over HTTP – through `fetchHandler` or any adapter – are counted
+per client and operation: 120 calls a minute by default, then 429 `TOO_MANY_REQUESTS` with
+`Retry-After`. Signed-in operations, private ones and in-process calls are never counted. The
+generated `server` takes the numbers from `bitakit.config.ts`
+(`server: { rateLimit: { limit, windowMs } }`, or `rateLimit: false`); a server you create
+yourself takes all of them in `createServer(config, { rateLimit })`:
+
+| `rateLimit` option  | Default                                   | What it does                                                                                       |
+| ------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `limit`, `windowMs` | `120`, `60000`                            | Calls per window, per client and operation                                                         |
+| `key(request)`      | first `x-forwarded-for`, then `x-real-ip` | Who the client is; use what your host verifies                                                     |
+| `store`             | in this process                           | `{ hit(key, windowMs) }`, e.g. Redis for several instances (`memoryRateLimitStore` is the default) |
+| `false`             | –                                         | Off, when a proxy or gateway limits instead                                                        |
+
+The default key is right on hosts and proxies that overwrite `x-forwarded-for` (Vercel does);
+where the caller can send it unchanged, every call could claim a new address. `key` and `store`
+are code, so the generated server gets them from one server service that provides `rateLimit`
+(`@bitakit/core/server`); what you pass to `createServer` wins over it:
+
+```ts title="src/server/services/rate-limit.ts"
+import { defineService, rateLimit } from '@bitakit/core/server';
+
+export default defineService(
+  () => ({
+    // A header your proxy overwrites, never one the caller sends unchecked (Cloudflare here).
+    key: (request: Request) => request.headers.get('cf-connecting-ip') ?? undefined,
+    store: redisRateLimitStore, // your `{ hit(key, windowMs) }`, shared by every instance
+  }),
+  { provides: rateLimit },
+);
+```
+
+### Jobs and webhooks: the system principal
+
+Code that acts on its own – a scheduled job, a webhook whose signature you verified – calls
+operations as `server.system(name, { organizationId?, permissions? })`, never with an identity
+built by hand. `ctx.user` is `{ id: 'system:<name>', name, system: true }`, the organization is
+the given one (member role `system`), and `ctx.can(…)` grants exactly `permissions`. The
+`requestContext` provider is not asked, and no request can become this principal.
+
+```ts title="src/server/actions/stripe-webhook.ts (excerpt)"
+const billing = server.system('billing.stripe-webhook', {
+  organizationId: event.organizationId,
+  permissions: { invoices: ['write'] },
+});
+await billing.billing.markPaid({ invoiceId: event.invoiceId });
+```
 
 ## The server kernel
 
 `src/bitakit.gen.server.ts` exports `server`, created with
-`createServer(createBitaKitServerConfig(), { instance: 'bitakit', endpoint, stamp, operations })`.
-Importing it boots nothing.
+`createServer(createBitaKitServerConfig(), { instance: 'bitakit', endpoint, stamp, operations })`,
+plus `rateLimit` and `publish` when `bitakit.config.ts` sets `server.rateLimit` or
+`server.publish`. Importing it boots nothing.
+
+An installed package can ship a server half (`bitakit.server`); the server file loads it for every
+enabled package plugin. Its operations run in-process, and one with `expose: true` goes over HTTP
+(and into `remote`, the OpenAPI document and MCP) only once the app publishes it:
+`server: { publish: ['billing.charge', 'reports.*'] }`. The app's own and local plugins' operations
+need no entry.
 
 | Member                                      | What it does                                                                                                                                                           |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -204,6 +265,22 @@ With `instance`, the kernel is registered for the whole process with its `stamp`
 copies of the generated module share one kernel. In development a changed stamp (a changed file
 under `server/`) replaces the kernel on the next call after in-flight calls finish; in production
 the first kernel stays.
+
+## Other transports
+
+`server.operations()` describes each operation: `id`, `plugin`, `access`, `exposed`, `type`,
+`title`, `description` and – when the schema implements Standard JSON Schema (zod 4) – `input` and
+`output` as JSON Schema 2020-12. Transport adapters are built from these descriptions and call
+`server.call(id, input, request, { exposedOnly: true })`, so access, validation and interceptors
+hold and private operations stay unreachable. Plugins never change for a transport.
+
+| Package                | Transport                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `@bitakit/core/server` | `fetchHandler(server)`: `POST <endpoint>/<id>`, used by `remote`                                                                |
+| `@bitakit/orpc`        | `orpcHandler(server, { prefix, protocol })`: oRPC's RPC protocol or REST (`openapi`), and `openapiDocument(server, { prefix })` |
+| `@bitakit/mcp`         | `mcpHandler(server, { tools })`: the named operations as MCP tools for AI agents, the caller resolved per call                  |
+
+`originRule({ origin, trustedOrigins })` is `fetchHandler`'s Origin check for your own transport.
 
 ## Services, settings, events and interceptors on the server
 

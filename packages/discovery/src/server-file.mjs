@@ -47,6 +47,33 @@ export const isPublished = (publish, id) =>
   publish.some((item) => item === id || (item.endsWith('.*') && id.startsWith(item.slice(0, -1))));
 
 /**
+ * `server.rateLimit` of bitakit.config.ts: `undefined` (the defaults), `false` (off) or the numbers
+ * `{ limit?, windowMs? }`. The client key and a shared store are code: a server service provides
+ * `rateLimit`.
+ */
+export function serverRateLimit(config) {
+  const value = config.server?.rateLimit;
+  if (value === undefined || value === false) return value;
+  const fields = ['limit', 'windowMs'];
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    Object.keys(value).some((name) => !fields.includes(name)) ||
+    fields.some(
+      (name) =>
+        value[name] !== undefined && (!Number.isSafeInteger(value[name]) || value[name] < 1),
+    )
+  )
+    throw new Error(
+      `server.rateLimit in bitakit.config.ts is false or { limit?, windowMs? } with whole numbers of 1 or more, got ${JSON.stringify(value)}. The client key and a shared store come from a server service that provides rateLimit.`,
+    );
+  return Object.fromEntries(
+    fields.filter((name) => value[name] !== undefined).map((name) => [name, value[name]]),
+  );
+}
+
+/**
  * The installed `@bitakit/core` must have the `./server` entry the server file imports. Looks it
  * up from the project root the way Node would, without running it.
  */
@@ -107,6 +134,7 @@ export async function serverHalf({
   configOverrides,
   localPlugins,
   endpoint,
+  rateLimit,
   root,
   output,
   relativeTo,
@@ -311,7 +339,7 @@ ${own.permissions ? `    permissions: ${own.permissions},\n` : ''}    services: 
 /** The app's server kernel. Importing it boots nothing; the first call does. */
 export const server = createServer(createBitaKitServerConfig(), {
   instance: 'bitakit',
-  endpoint: ${quote(endpoint)},
+  endpoint: ${quote(endpoint)},${rateLimit === undefined ? '' : `\n  rateLimit: ${quote(rateLimit)},`}
   stamp: ${quote(stamp)},
   operations: ${quote(exposed)},${
     publish.length

@@ -29,7 +29,7 @@ export const clientOnlyFields = [
   'internal',
 ];
 /** Fields only a server Action has; in a client Action they would silently not apply. */
-export const serverOnlyFields = ['access', 'expose', 'output'];
+export const serverOnlyFields = ['access', 'expose', 'output', 'type'];
 /**
  * Name segments no server Action ID may use: as properties of `remote` they would make a
  * namespace thenable, observable or converting. A copy of Core's internal `reservedSegments`
