@@ -158,3 +158,10 @@ Such readers join affected update sets; see [Plugin manager](/docs/plugin-manage
 plugin. An integration can mark a projected destination with
 `destinationMetadata({ kind, plugin })`. Discovery reads custom kinds from `bitakit.config.ts`
 or a package's `bitakit.discovery` entry, using `contributions/<folder>/` in each module.
+
+In a discovered plugin folder the owner installs a kind from a file instead: `installers/<kind>.ts`
+for the browser runtime, `server/installers/<kind>.ts` for a server kind. The path is the kind
+(`installers/media/storage.ts` and `installers/media.storage.ts` both install `media.storage`); the
+default export is `defineInstaller<'media.storage'>((values, { module }) => cleanup)`, typed from
+`ContributionMap`. Discovery turns the files into the plugin's `installs`, and
+`npx bitakit add installer <plugin>/<kind> [--server]` writes one.

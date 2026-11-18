@@ -328,6 +328,7 @@ export const appId: string | undefined = createBitaKitServerConfig().appId;
       actions: [{ path: 'ping', file: 'src/server/actions/ping.ts' }],
       services: [{ path: 'request-context', file: 'src/server/services/request-context.ts' }],
       interceptors: [],
+      installers: [],
       contributions: {},
     });
     const todos = description.plugins.find((plugin) => plugin.id === 'todos');
@@ -342,12 +343,14 @@ export const appId: string | undefined = createBitaKitServerConfig().appId;
         { path: 'summary', file: 'src/plugins/todos/server/services/summary.ts' },
       ],
       interceptors: [{ path: 'audit', file: 'src/plugins/todos/server/interceptors/audit.ts' }],
+      installers: [],
       contributions: {},
     });
     assert.deepEqual(description.plugins.find((plugin) => plugin.id === 'notes').server, {
       actions: [],
       services: [],
       interceptors: [],
+      installers: [],
       contributions: {},
     });
     assert.deepEqual(description.warnings, []);
@@ -769,6 +772,79 @@ export const local: StorageMap['media.local'] = true;
     assert.deepEqual((await generateBitaKit(root, { quiet: true })).warnings, [
       'src/plugins/media/storage/notes.ts is in a media.storage folder but has no default export, so it is ignored. Export the contribution as default, or prefix the file name with "-" for helpers.',
     ]);
+  }));
+
+test('a local plugin installs a kind from installers/<kind>.ts: server/installers on the server, the root folder in the browser', () =>
+  fixture(async (root, put) => {
+    await installCore(put);
+    await put('package.json', JSON.stringify({ dependencies: { '@acme/kinds': '1.0.0' } }));
+    await put(
+      'node_modules/@acme/kinds/package.json',
+      JSON.stringify({ name: '@acme/kinds', bitakit: { discovery: './discovery.mjs' } }),
+    );
+    await put(
+      'node_modules/@acme/kinds/discovery.mjs',
+      `export default () => [
+  { name: 'media.storage', directory: 'storage', from: '@acme/kinds/normalizers.mjs', normalize: 'discoverStorage', runtime: 'server' },
+  { name: 'topics', directory: 'topics', from: '@acme/kinds/normalizers.mjs', normalize: 'discoverTopics', runtime: 'both' },
+];`,
+    );
+    await put(
+      'node_modules/@acme/kinds/normalizers.mjs',
+      `export const discoverStorage = (files) => files.map((file) => file.value);
+export const discoverTopics = (files) => files.map((file) => file.value);
+`,
+    );
+    await put(
+      'node_modules/@acme/kinds/normalizers.d.mts',
+      `export declare const discoverStorage: (files: readonly unknown[], moduleId: string) => unknown[];
+export declare const discoverTopics: (files: readonly unknown[], moduleId: string) => unknown[];
+`,
+    );
+    await put('src/plugins/media/server/contributions/storage/local.ts', 'export default "disk";');
+    await put('src/plugins/media/contributions/topics/uploaded.ts', 'export default "uploaded";');
+    // The plugin that owns the storage kind installs it from a file: the file name is the kind.
+    await put(
+      'src/plugins/drives/server/installers/media.storage.ts',
+      `import { defineInstaller } from '@bitakit/core/server';
+export default defineInstaller<'media.storage'>((values, { module }) => {
+  (globalThis as { installed?: unknown }).installed = { values: [...values], module };
+  return () => { (globalThis as { installed?: unknown }).installed = 'removed'; };
+});
+`,
+    );
+    await put(
+      'src/plugins/drives/installers/topics.ts',
+      `import { defineInstaller } from '@bitakit/core';
+export default defineInstaller<'topics'>(() => undefined);
+`,
+    );
+    const result = await generateBitaKit(root, { quiet: true });
+    assert.deepEqual(result.warnings, []);
+    const client = await readFile(result.generated, 'utf8');
+    const source = await readFile(result.server, 'utf8');
+    assert.match(source, /id: "drives"[^\n]*installs: discoverInstallers\(\[file\d+\]\)/);
+    assert.match(client, /id: "drives"[^\n]*installs: discoverInstallers\(\[file\d+\]\)/);
+    assert.doesNotMatch(
+      client,
+      /installers\/media\.storage/,
+      'a server installer never reaches the browser',
+    );
+    assert.deepEqual(typeErrors([result.server, result.generated], root), []);
+    const { server } = await loadGenerated(result.server);
+    try {
+      assert.deepEqual(await server.operations(), []);
+      assert.deepEqual(globalThis.installed, { values: ['disk'], module: 'media' });
+    } finally {
+      await server.stop();
+    }
+    assert.equal(globalThis.installed, 'removed', 'the cleanup runs on stop');
+    delete globalThis.installed;
+    // Two installers of the same kind in one plugin are refused; a file without defineInstaller too.
+    await put('src/plugins/drives/server/installers/media/storage.ts', 'export default 1;');
+    await assert.rejects(
+      generateBitaKit(root, { quiet: true }).then(() => loadGenerated(result.server)),
+    );
   }));
 
 test('contribution kinds keep their runtime; client is the default', () => {

@@ -82,6 +82,7 @@ export function createEmitter(output, relativeTo, { typedKind = () => true } = {
       services: 'discoverServices',
       slotDefinitions: 'discoverSlots',
       interceptors: 'discoverInterceptors',
+      installers: 'discoverInstallers',
       configs: 'discoverConfig',
       events: 'discoverEvents',
       settings: 'discoverSettings',

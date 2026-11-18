@@ -16,6 +16,7 @@ import {
   configFile,
   eventsFile,
   interceptorFile,
+  installerFile,
   layoutFile,
   pageFile,
   settingsFile,
@@ -101,6 +102,7 @@ export const contributionKinds = [
   'service',
   'page',
   'interceptor',
+  'installer',
   'config',
   'events',
   'settings',
@@ -120,7 +122,7 @@ const singleFile = {
 };
 
 /** The kinds `--server` writes into a plugin's `server/` folder. */
-export const serverKinds = ['action', 'service', 'interceptor'];
+export const serverKinds = ['action', 'service', 'interceptor', 'installer'];
 
 /**
  * `bitakit add <kind> <plugin>/<name>` in an app, or `<name>` in a plugin package. Nested names
@@ -198,6 +200,7 @@ export async function addContribution(
       [`ui/pages/${name}.tsx`]: pageFile(plugin, pagePath, titleOf(pageSegments.at(-1) ?? plugin)),
     }),
     interceptor: () => ({ [`interceptors/${name}.ts`]: interceptorFile(plugin, name) }),
+    installer: () => ({ [`installers/${name}.ts`]: installerFile(dotted, false) }),
     config: () => ({ [`configs/${name}.ts`]: configFile(dotted) }),
     events: () => ({ 'events.ts': eventsFile(plugin) }),
     settings: () => ({ 'settings.ts': settingsFile(plugin) }),
@@ -310,6 +313,8 @@ async function addServer(kind, project, { plugin, name, segments, moduleRoot, cr
     files[`${folder}/server/services/${name}.ts`] = serverServiceFile(name, plugin);
   else if (kind === 'interceptor')
     files[`${folder}/server/interceptors/${name}.ts`] = serverInterceptorFile(plugin, name);
+  else if (kind === 'installer')
+    files[`${folder}/server/installers/${name}.ts`] = installerFile(segments.join('.'), true);
   else {
     const reserved = id.split('.').find((segment) => reservedSegments.has(segment));
     if (reserved)

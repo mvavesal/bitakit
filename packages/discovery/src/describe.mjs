@@ -25,6 +25,7 @@ const builtInKinds = [
   'providers',
   'configs',
   'interceptors',
+  'installers',
 ];
 
 async function contributionsOf(

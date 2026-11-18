@@ -1,6 +1,7 @@
 export {
   defineService,
   defineAction,
+  defineInstaller,
   definePlugin,
   dialogOf,
   isActionSpec,

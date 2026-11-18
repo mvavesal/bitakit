@@ -511,7 +511,18 @@ test('add --server: services, interceptors, nested names, TanStack routes and re
   );
   await assert.rejects(
     addContribution('page', 'todos/stats', { cwd: root, server: true }),
-    /--server applies to action, service, interceptor, not to page\./,
+    /--server applies to action, service, interceptor, installer, not to page\./,
+  );
+  // An installer: the file name is the kind; --server puts it under server/installers.
+  await addContribution('installer', 'todos/media.storage', { cwd: root, server: true });
+  assert.match(
+    await read(root, 'src/plugins/todos/server/installers/media/storage.ts'),
+    /import \{ defineInstaller \} from '@bitakit\/core\/server';[\s\S]*defineInstaller<'media\.storage'>/,
+  );
+  await addContribution('installer', 'todos/topics', { cwd: root });
+  assert.match(
+    await read(root, 'src/plugins/todos/installers/topics.ts'),
+    /import \{ defineInstaller \} from '@bitakit\/core';[\s\S]*defineInstaller<'topics'>/,
   );
   const plugin = await project(
     { 'package.json': { name: '@acme/notes', bitakit: { plugin: './plugin' } } },

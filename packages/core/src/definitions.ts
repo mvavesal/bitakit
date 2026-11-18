@@ -321,6 +321,20 @@ export type ContributionInstaller<T = unknown> = (
   values: readonly T[],
   context: ContributionContext,
 ) => void | Cleanup;
+/** What `defineInstaller` returns: discovery turns `installers/<kind>.ts` files into the plugin's `installs`. */
+export type InstallerDefinition<T = unknown> = {
+  readonly kind: 'installer';
+  readonly install: ContributionInstaller<T>;
+};
+/**
+ * A contribution installer in its own file, `installers/<kind>.ts` or `server/installers/<kind>.ts`: the file name
+ * is the kind; name it again as the type argument so `values` is typed (`defineInstaller<'billing.gateways'>(…)`).
+ */
+export function defineInstaller<K extends string = string>(
+  install: ContributionInstaller<K extends keyof ContributionMap ? ContributionMap[K] : unknown>,
+): InstallerDefinition<K extends keyof ContributionMap ? ContributionMap[K] : unknown> {
+  return { kind: 'installer', install };
+}
 export type ContributionInstallers = {
   readonly [K in keyof ContributionMap]?: ContributionInstaller<ContributionMap[K]>;
 } & { readonly [kind: string]: ContributionInstaller<any> | undefined };

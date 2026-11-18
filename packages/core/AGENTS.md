@@ -21,6 +21,7 @@ Files under `server/` import the same helpers from `@bitakit/core/server` (see b
 | `permissions.ts`         | `definePermissions({ content: ['read', 'edit'] })`             | `<resource>`       |
 | `slots/<name>.ts`        | `defineSlot({ accepts, policy?, payload? })`                   | `<plugin>.<name>`  |
 | `interceptors/<name>.ts` | `defineInterceptor({ action or service, before, after })`      | —                  |
+| `installers/<kind>.ts`   | `defineInstaller<'<kind>'>((values, { module }) => cleanup)`   | the kind (path)    |
 | `configs/<name>.ts`      | `defineConfig({ defaults, schema? })`                          | `<plugin>.<name>`  |
 | `setup.ts`               | `Setup` function (`scope.slots.attach`, cleanup)               | —                  |
 
@@ -35,6 +36,7 @@ A plugin's `server/` folder runs only on the server and is never bundled for the
 | `server/actions/<name>.ts`      | `defineAction({ access, expose?, input?, output?, execute })`  | `<plugin>.<name>`, `server:` in tools |
 | `server/services/<name>.ts`     | `defineService(() => ...)`: one instance for the whole process | `<plugin>.<name>` (server services)   |
 | `server/interceptors/<name>.ts` | `defineInterceptor({ action: '<plugin>.*', before, after })`   | —                                     |
+| `server/installers/<kind>.ts`   | `defineInstaller<'<kind>'>(…)`: installs a server kind         | the kind (path)                       |
 | `server/contributions/<dir>/…`  | Files of a contribution kind declared with `runtime: 'server'` | —                                     |
 
 - `access` is required: `'public'`, `'user'`, `'organization'` or

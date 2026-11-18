@@ -150,6 +150,27 @@ export function discoverSlots(
     return definition;
   });
 }
+/**
+ * `installers/<kind>.ts` (browser) and `server/installers/<kind>.ts` (server): the file name is the kind the
+ * plugin installs, the default export `defineInstaller<'<kind>'>(…)`. Becomes the plugin's `installs`.
+ */
+export function discoverInstallers(
+  files: readonly DiscoveredFile[],
+): Record<string, (values: readonly any[], context: any) => any> {
+  const installs: Record<string, (values: readonly any[], context: any) => any> = {};
+  for (const file of files) {
+    const value = file.value as { kind?: unknown; install?: unknown } | null;
+    if (!value || value.kind !== 'installer' || typeof value.install !== 'function')
+      throw new Error(`${file.source}: an installer file default-exports defineInstaller(…).`);
+    if (!file.path)
+      throw new Error(`${file.source}: an installer's file name is the kind it installs.`);
+    if (installs[file.path])
+      throw new Error(`${file.source}: "${file.path}" is installed twice by this plugin.`);
+    installs[file.path] = value.install as (values: readonly any[], context: any) => any;
+  }
+  return installs;
+}
+
 export function discoverInterceptors(files: readonly DiscoveredFile[]): InterceptorSpec[] {
   return expandContributions(
     files,

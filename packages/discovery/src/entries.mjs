@@ -47,6 +47,7 @@ export const contributionKinds = {
   actions: { folder: 'actions', suffixes: ['form-action', 'dialog-action', 'action'] },
   services: { folder: 'services', suffixes: ['service'] },
   interceptors: { folder: 'interceptors', suffixes: ['interceptor'] },
+  installers: { folder: 'installers', suffixes: [] },
   configs: { folder: 'configs', suffixes: [] },
   slotDefinitions: { folder: 'slots', suffixes: [] },
   pages: { folder: 'ui/pages', legacy: 'pages', suffixes: ['page'] },
@@ -55,7 +56,7 @@ export const contributionKinds = {
 };
 export const builtInKindNames = Object.keys(contributionKinds);
 /** The built-in kinds a module's `server/` folder holds; everything else under `server/` is its own code. */
-export const serverKindNames = ['actions', 'services', 'interceptors'];
+export const serverKindNames = ['actions', 'services', 'interceptors', 'installers'];
 /**
  * Where an integration kind's files run: `client` (the default) in `contributions/<dir>`,
  * `server` in `server/contributions/<dir>` (only in the server file), `both` in

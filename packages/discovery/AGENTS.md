@@ -27,8 +27,8 @@ with `-`. Layout families no package declares become app-owned `layout.<family>`
 
 ## The server half
 
-- After the leading `server` segment, `server/actions`, `server/services`, `server/interceptors`
-  and `server/contributions/<directory>` follow the client's spellings (folders, dotted files,
+- After the leading `server` segment, `server/actions`, `server/services`, `server/interceptors`,
+  `server/installers` and `server/contributions/<directory>` follow the client's spellings (folders, dotted files,
   record files). Every other file under `server/` is the module's own code and stays silent.
 - While an enabled module has server content, discovery writes `src/bitakit.gen.server.ts`:
   `createBitaKitServerConfig()` (every enabled local module's shared `events.ts`, `settings.ts`,

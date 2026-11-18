@@ -1123,10 +1123,11 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
       providers: [{ path: 'query', file: 'src/ui/providers/query.tsx' }],
       configs: [{ path: 'shell', file: 'src/configs/shell.ts' }],
       interceptors: [{ path: 'log', file: 'src/interceptors/log.ts' }],
+      installers: [],
       events: [{ path: '', file: 'src/events.ts' }],
       settings: [],
       layouts: [],
-      server: { actions: [], services: [], interceptors: [], contributions: {} },
+      server: { actions: [], services: [], interceptors: [], installers: [], contributions: {} },
     });
     assert.deepEqual(description.plugins, [
       {
@@ -1147,9 +1148,10 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
         providers: [],
         configs: [],
         interceptors: [],
+        installers: [],
         events: [],
         settings: [],
-        server: { actions: [], services: [], interceptors: [], contributions: {} },
+        server: { actions: [], services: [], interceptors: [], installers: [], contributions: {} },
       },
     ]);
     assert.deepEqual(description.packages, ['@acme/shell/plugin']);
@@ -1167,6 +1169,7 @@ test('describeBitaKit and describeModule summarize modules, packages and warning
       'configs',
       'directory',
       'events',
+      'installers',
       'interceptors',
       'locales',
       'pages',

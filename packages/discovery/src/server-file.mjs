@@ -94,6 +94,7 @@ export async function serverHalf({
       module.actions.length ||
       module.services.length ||
       module.interceptors.length ||
+      module.installers.length ||
       kinds.some((kind, index) => kind.runtime === 'server' && module.kinds[index].length),
   );
   if (!hasContent) return null;
@@ -117,6 +118,7 @@ export async function serverHalf({
       ...module.actions,
       ...module.services,
       ...module.interceptors,
+      ...module.installers,
       ...module.kinds.filter((_, index) => kinds[index].runtime === 'server').flat(),
     ])
     .map((entry) => entry.file)[0];
@@ -194,6 +196,7 @@ export async function serverHalf({
       services: `discoverServices([${serviceNames.join(', ')}], ${quote(module.prefix)})`,
       actions: `discoverActions([${actionNames.join(', ')}], ${quote(module.prefix)})`,
       interceptors: emitter.emit('interceptors', module.interceptors, module.id),
+      installs: emitter.emit('installers', module.installers, module.id),
       contributions: emitter.contributions(kinds, module.kinds, module.id),
       dependencies: module.dependencies.filter(kept),
     };
@@ -203,7 +206,7 @@ export async function serverHalf({
   const definitions = plugins.map((module) => {
     const parts = emitModule(module);
     const parent = module.parent && kept(module.parent) ? module.parent : undefined;
-    return `withPluginOrigin({ id: ${quote(module.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}dependencies: ${quote(parts.dependencies)}, events: ${parts.events}, settings: ${parts.settings}, ${parts.permissions ? `permissions: ${parts.permissions}, ` : ''}config: ${parts.config}, services: ${parts.services}, actions: ${parts.actions}, interceptors: ${parts.interceptors}, contributions: ${parts.contributions} }, ${quote(module.origin)})`;
+    return `withPluginOrigin({ id: ${quote(module.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}dependencies: ${quote(parts.dependencies)}, events: ${parts.events}, settings: ${parts.settings}, ${parts.permissions ? `permissions: ${parts.permissions}, ` : ''}config: ${parts.config}, services: ${parts.services}, actions: ${parts.actions}, interceptors: ${parts.interceptors}, installs: ${parts.installs}, contributions: ${parts.contributions} }, ${quote(module.origin)})`;
   });
   const exposed = operations.filter((item) => item.exposed).map((item) => item.id);
   const values = [
@@ -212,6 +215,7 @@ export async function serverHalf({
     'discoverActions',
     'discoverServices',
     'discoverInterceptors',
+    'discoverInstallers',
     'discoverConfig',
     'discoverEvents',
     'discoverSettings',
@@ -249,6 +253,7 @@ export function createBitaKitServerConfig() {
 ${own.permissions ? `    permissions: ${own.permissions},\n` : ''}    services: ${own.services},
     actions: ${own.actions},
     interceptors: ${own.interceptors},
+    installs: ${own.installs},
     contributions: ${own.contributions},
     plugins: [${definitions.length ? `\n      ${definitions.join(',\n      ')}\n    ` : ''}],
   } satisfies ServerConfig;
@@ -287,6 +292,7 @@ function serverSources(modules) {
       ...module.actions,
       ...module.services,
       ...module.interceptors,
+      ...module.installers,
       ...module.kinds.flat(),
     ])
       sources.add(entry.file);

@@ -303,6 +303,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     });
   }
   const appInterceptors = emit('interceptors', interceptorEntries, appId);
+  const appInstallers = emit('installers', await appEntries('installers'), appId);
   const appPages = emitUI('pages', await appEntries('pages'), appId, true);
   const appSlots = [...emitUI('slots', await appEntries('slots'), appId, true), ...appLayouts];
   // Providers under ui/providers are included; the legacy providers/ folder needs the enabled list.
@@ -456,6 +457,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     const configEntries = await entriesFor('configs');
     const pluginConfig = emit('configs', configEntries, manifest.id);
     const pluginInterceptors = emit('interceptors', await entriesFor('interceptors'), manifest.id);
+    const pluginInstallers = emit('installers', await entriesFor('installers'), manifest.id);
     const pages = emitUI('pages', await entriesFor('pages'), manifest.id, false);
     const slots = [
       ...emitUI('slots', await entriesFor('slots'), manifest.id, false),
@@ -479,7 +481,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       ...(await serverSide(base, moduleFiles, kindEntries)),
     });
     definitions.push(
-      `withPluginOrigin({ id: ${quote(manifest.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}metadata: ${quote(metadata)}, dependencies: ${quote(dependencies)}, events: ${events}, settings: ${settings}, ${permissions ? `permissions: ${permissions}, ` : ''}actions: ${actions}, services: ${services}, slots: ${slotDefinitions}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${pluginSettingsPage ? `, settings: ${pluginSettingsPage}` : ''} }, setup: ${setup}, contributions: ${pluginContributions} }, ${quote(origin)})`,
+      `withPluginOrigin({ id: ${quote(manifest.id)}, ${parent ? `parent: ${quote(parent)}, ` : ''}metadata: ${quote(metadata)}, dependencies: ${quote(dependencies)}, events: ${events}, settings: ${settings}, ${permissions ? `permissions: ${permissions}, ` : ''}actions: ${actions}, services: ${services}, slots: ${slotDefinitions}, config: ${pluginConfig}, interceptors: ${pluginInterceptors}, installs: ${pluginInstallers}, ui: { pages: [${pages.join(', ')}], slots: [${slots.join(', ')}], providers: [${providers.join(', ')}]${pluginSettingsPage ? `, settings: ${pluginSettingsPage}` : ''} }, setup: ${setup}, contributions: ${pluginContributions} }, ${quote(origin)})`,
     );
     for (const file of await resolveEntry('locales', 'locales')) {
       if (!file.endsWith('.json')) continue;
@@ -703,6 +705,7 @@ ${usesFiles ? '  discoveredFile,\n' : ''}  discoverActions,
   withPluginOrigin,
   discoverSlots,
   discoverInterceptors,
+  discoverInstallers,
   discoverConfig,
   discoverEvents,
   discoverSettings,
@@ -762,6 +765,7 @@ ${appPermissions ? `    permissions: ${appPermissions},\n` : ''}${appRoles ? `  
     slots: ${appLayoutFamilies.length ? `[...${appSlotDefinitions}, ...layoutSlots(${quote(appLayoutFamilies)})]` : appSlotDefinitions},
     actions: ${appActions},
     interceptors: ${appInterceptors},
+    installs: ${appInstallers},
     ui: { pages: [${appPages.join(', ')}], slots: [${appSlots.join(', ')}], providers: [${appProviders.join(', ')}]${appSettingsPage ? `, settings: ${appSettingsPage}` : ''} },
     setup: ${appSetup},
     contributions: ${appContributions},

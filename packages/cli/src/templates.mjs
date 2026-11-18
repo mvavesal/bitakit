@@ -708,3 +708,19 @@ export default defineConfig({
 });
 `;
 }
+
+/** `installers/<kind>.ts` (or `server/installers/<kind>.ts`): installs a contribution kind; the file name is the kind. */
+export function installerFile(kind, server) {
+  return `import { defineInstaller } from '@bitakit/core${server ? '/server' : ''}';
+
+// Installs the contribution kind "${kind}": every enabled plugin's files of that kind arrive here at start
+// (values), each with the plugin that contributed it (context.module). Return the cleanup.
+export default defineInstaller<'${kind}'>((values, { module }) => {
+  const installed = [...values];
+  void module;
+  return () => {
+    installed.length = 0;
+  };
+});
+`;
+}

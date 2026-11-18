@@ -3,7 +3,7 @@
  * browser code. The `define*` helpers are the root entry's functions with server types.
  */
 export { defineAction, defineService, defineInterceptor } from './define.js';
-export { definePlugin } from '../definitions.js';
+export { defineInstaller, definePlugin } from '../definitions.js';
 export { defineEvents, event } from '../events/define.js';
 export { defineSettings, setting } from '../settings/define.js';
 export { defineContract, getService } from '../service-key.js';
