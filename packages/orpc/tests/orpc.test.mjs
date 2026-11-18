@@ -136,6 +136,15 @@ test('OpenAPI: queries answer GET, mutations POST; the same Origin rule as fetch
       new Request(`${base}/api/todos/list`, { headers: { origin: 'https://admin.example' } }),
     );
     assert.equal(fromAdmin.status, 200);
+    assert.equal(fromAdmin.headers.get('access-control-allow-origin'), 'https://admin.example');
+    const preflight = await trusted(
+      new Request(`${base}/api/todos/add`, {
+        method: 'OPTIONS',
+        headers: { origin: 'https://admin.example' },
+      }),
+    );
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get('access-control-allow-methods'), 'GET, POST');
   } finally {
     await server.stop();
   }

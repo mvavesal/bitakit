@@ -35,6 +35,8 @@ export type OperationErrorJSON = {
   issues?: readonly OperationIssue[];
   reason?: OperationErrorReason | (string & {});
   requestId?: string;
+  /** Seconds until a refused call may be tried again (TOO_MANY_REQUESTS); HTTP sends it as Retry-After. */
+  retryAfter?: number;
 };
 
 const brand = Symbol.for('bitakit.operation-error');
@@ -72,6 +74,8 @@ export class OperationError extends Error {
    * an input error whose cause the kernel logged.
    */
   readonly requestId?: string;
+  /** Seconds until the call may be tried again (TOO_MANY_REQUESTS); sent as `Retry-After`. */
+  readonly retryAfter?: number;
   readonly status: number;
   constructor(
     code: OperationErrorCode,
@@ -80,6 +84,7 @@ export class OperationError extends Error {
       issues?: readonly OperationIssue[];
       reason?: OperationErrorReason | (string & {});
       requestId?: string;
+      retryAfter?: number;
       cause?: unknown;
     } = {},
   ) {
@@ -93,6 +98,7 @@ export class OperationError extends Error {
     if (options.issues) this.issues = Object.freeze(options.issues.map(freezeIssue));
     if (options.reason !== undefined) this.reason = options.reason;
     if (options.requestId !== undefined) this.requestId = options.requestId;
+    if (options.retryAfter !== undefined) this.retryAfter = options.retryAfter;
     Object.defineProperty(this, brand, { value: true });
   }
   toJSON(): OperationErrorJSON {
@@ -132,6 +138,9 @@ export function operationErrorBody(error: OperationError): OperationErrorJSON {
       : {}),
     ...(typeof error.reason === 'string' ? { reason: error.reason } : {}),
     ...(typeof error.requestId === 'string' ? { requestId: error.requestId } : {}),
+    ...(typeof error.retryAfter === 'number' && Number.isFinite(error.retryAfter)
+      ? { retryAfter: Math.max(0, Math.ceil(error.retryAfter)) }
+      : {}),
   };
 }
 

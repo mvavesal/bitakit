@@ -16,7 +16,8 @@ import type {
   ServerActionMap,
   ServerServiceMap,
 } from '../remote.js';
-import type { Access, ContextFor, RequestContext } from '../request-context.js';
+import type { Access, ContextFor, PermissionRequest, RequestContext } from '../request-context.js';
+import type { RateLimitOptions } from './rate-limit.js';
 import type { ServerSettingsAccess } from '../settings/server.js';
 
 /** Server services as server contexts see them; never the client `ServiceMap`. */
@@ -234,6 +235,21 @@ export type ServerOptions = {
    * given, an exposed operation missing from it logs one warning at boot.
    */
   operations?: readonly string[];
+  /**
+   * Limits for exposed `public` operations called over HTTP (every transport), per client and
+   * operation; default 120 calls a minute. `false` turns it off (a proxy or gateway limits instead).
+   */
+  rateLimit?: RateLimitOptions | false;
+};
+/**
+ * What trusted server code acts as when no person calls – a scheduled job, a verified webhook:
+ * `server.system(name, options)`. It never comes from a request.
+ */
+export type SystemPrincipalOptions = {
+  /** The organization it acts in; required for `organization` and permission operations. */
+  organizationId?: string;
+  /** The only permissions it holds (`{ invoices: ['write'] }`); nothing else is granted. */
+  permissions?: PermissionRequest;
 };
 /** In-process and HTTP entry to the server kernel. Importing it never boots anything. */
 export interface Server {
@@ -246,6 +262,13 @@ export interface Server {
    * Every operation is callable, also private ones, with the same checks as over HTTP.
    */
   as(request: Request | Headers): Caller;
+  /**
+   * The caller for trusted server code acting on its own (a job, a verified webhook): `ctx.user` is
+   * `{ id: 'system:<name>', system: true }`, the organization is `organizationId`, and
+   * `ctx.can(…)` grants only `permissions`. The `requestContext` provider is not asked, and no
+   * request can produce this identity. Private operations are callable, as with `as()`.
+   */
+  system(name: string, options?: SystemPrincipalOptions): Caller;
   /**
    * One call by ID. `exposedOnly` (default true, always over HTTP) admits only exposed operations
    * by their exact ID; `false` also reaches private ones and folds case like Core.

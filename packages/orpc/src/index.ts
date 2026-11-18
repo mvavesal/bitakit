@@ -4,7 +4,7 @@ import { OpenAPIHandler } from '@orpc/openapi/fetch';
 import { OpenAPIGenerator, type ConditionalSchemaConverter } from '@orpc/openapi';
 import {
   OperationError,
-  originRule,
+  crossOrigin,
   type FetchHandlerOptions,
   type JsonSchema,
   type OperationInfo,
@@ -113,14 +113,14 @@ export type ORPCHandlerOptions = Pick<FetchHandlerOptions, 'trustedOrigins' | 'o
 /**
  * A fetch handler for one oRPC protocol over the server's exposed operations:
  * `(request) => Promise<Response>`, 404 for paths outside the prefix. Browser requests follow the
- * same Origin rule as `fetchHandler` (`originRule`); calls from other sites answer 403 before any
+ * same Origin rule and CORS as `fetchHandler` (`crossOrigin`); calls from other sites answer 403 before any
  * operation runs. The router is built on the first request.
  */
 export function orpcHandler(
   server: OperationsServer,
   options: ORPCHandlerOptions,
 ): (request: Request) => Promise<Response> {
-  const allowed = originRule(options, 'orpcHandler');
+  const policy = crossOrigin(options, 'orpcHandler');
   const protocol = options.protocol ?? 'rpc';
   let handler:
     | Promise<RPCHandler<BitaKitORPCContext> | OpenAPIHandler<BitaKitORPCContext>>
@@ -131,8 +131,10 @@ export function orpcHandler(
       ? new OpenAPIHandler<BitaKitORPCContext>(router)
       : new RPCHandler<BitaKitORPCContext>(router);
   };
-  return async (request) => {
-    if (!allowed(request))
+  const handle = async (request: Request): Promise<Response> => {
+    const preflight = policy.preflight(request, 'GET, POST');
+    if (preflight) return preflight;
+    if (!policy.allowed(request))
       return Response.json(
         { code: 'FORBIDDEN', status: 403, message: 'Cross-origin requests are not allowed.' },
         { status: 403, headers: { 'cache-control': 'no-store' } },
@@ -147,6 +149,19 @@ export function orpcHandler(
     return matched
       ? response
       : Response.json({ code: 'NOT_FOUND', status: 404, message: 'Not found.' }, { status: 404 });
+  };
+  // Trusted origins (CORS) may read the answer; nobody else's browser gets these headers.
+  return async (request) => {
+    const response = await handle(request);
+    const cors = request.method === 'OPTIONS' ? undefined : policy.headers(request);
+    if (!cors) return response;
+    const headers = new Headers(response.headers);
+    for (const [name, value] of Object.entries(cors)) headers.set(name, value);
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   };
 }
 

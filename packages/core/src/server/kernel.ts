@@ -21,6 +21,7 @@ import type {
   ServerServices,
 } from './types.js';
 import { check, type Checked } from './validate.js';
+import { rateLimiter } from './rate-limit.js';
 
 /** One caller's request and its identity, resolved at most once (memoized promise). */
 export type CallerState = { readonly request: Request; identity?: Promise<Identity> };
@@ -58,11 +59,14 @@ export class Kernel {
   private services!: ServerServices;
   private inflight = 0;
   private drained?: () => void;
+  /** Exposed `public` operations over HTTP are counted per client (ServerOptions.rateLimit). */
+  private readonly limit?: (operation: string, request: Request) => Promise<void>;
 
   constructor(
     private readonly config: ServerConfig,
     private readonly options: ServerOptions,
   ) {
+    if (options.rateLimit !== false) this.limit = rateLimiter(options.rateLimit ?? {});
     this.ready = this.boot();
     this.ready.catch(() => {});
   }
@@ -123,6 +127,8 @@ export class Kernel {
       ? this.operations.get(id)
       : (this.operations.get(id) ?? this.folded.get(id.toLowerCase()));
     if (!operation || (options.exposedOnly && !operation.exposed)) throw notFound();
+    if (options.exposedOnly && operation.access === 'public' && this.limit)
+      await this.limit(operation.id, caller.request);
     this.inflight++;
     try {
       return await this.run(operation, input, caller, options, requestId);

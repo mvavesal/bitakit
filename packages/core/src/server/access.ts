@@ -131,3 +131,26 @@ export function permissionCheck(identity: Identity, report: (error: unknown) => 
 }
 
 export const isOrganizationAccess = (access: Access) => access !== 'public' && access !== 'user';
+
+/** A system principal's name: lower-case words with dots or dashes (`billing.stripe-webhook`). */
+export const systemPrincipalName = /^[a-z][a-z0-9-]*(?:\.[a-z0-9-]+)*$/;
+/**
+ * The identity of `server.system(name, options)`: `system:<name>` with `system: true`, the given
+ * organization, and a permission check that grants exactly `permissions` – never more.
+ */
+export function systemIdentity(
+  name: string,
+  options: { organizationId?: string; permissions?: PermissionRequest } = {},
+): Identity {
+  const granted = (options.permissions ?? {}) as Readonly<Record<string, readonly string[]>>;
+  return normalizeIdentity({
+    user: { id: `system:${name}`, name, system: true },
+    organization: options.organizationId ? { id: options.organizationId } : null,
+    member: options.organizationId ? { role: 'system' } : null,
+    can: (permission: PermissionRequest) =>
+      Object.entries(permission as Readonly<Record<string, readonly string[]>>).every(
+        ([resource, operations]) =>
+          (operations ?? []).every((operation) => granted[resource]?.includes(operation) === true),
+      ),
+  });
+}

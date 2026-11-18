@@ -305,6 +305,12 @@ export default defineService(
 - A throwing `resolve` answers 500 and grants nothing. The provider runs only for non-public
   operations, once per call.
 
+## Jobs and webhooks
+
+Code that runs without a person – a scheduled job, a webhook you verified – calls operations as
+`server.system('<plugin>.<job>', { organizationId, permissions: { resource: ['operation'] } })`.
+Grant only what that job needs; never build a user or identity by hand.
+
 ## Another transport (oRPC, REST, OpenAPI)
 
 Third parties or an oRPC client call the same operations through `@bitakit/orpc`; never write a

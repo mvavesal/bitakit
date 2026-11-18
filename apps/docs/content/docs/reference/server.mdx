@@ -178,8 +178,42 @@ browser's `Sec-Fetch-Site: same-origin` settles it, otherwise the `Origin` must 
 (when set, for apps behind a proxy) or, without it, the request URL's origin or the `Host` the
 browser sent (hosts such as Next.js may hand the handler `localhost` for a page served at
 `127.0.0.1`). A cross-site request is refused with 403, and a request with neither an `Origin`
-nor a `Sec-Fetch-Site` header (a server-to-server client) is allowed. Every answer has `cache-control: no-store`. Cross-origin browser calls are not supported yet: there is no CORS
-preflight (`OPTIONS` answers 405).
+nor a `Sec-Fetch-Site` header (a server-to-server client) is allowed. Every answer has `cache-control: no-store`. A trusted origin's browser may call across origins (CORS): an `OPTIONS` preflight from it answers
+204 with exactly that origin, `POST`, the headers `content-type`, `authorization` and
+`x-bitakit-organization`, and credentials allowed; its answers carry the same headers. Any other
+origin gets no CORS headers (`*` is never sent). Route `OPTIONS` to the handler too where you use
+`trustedOrigins` (`export const OPTIONS = POST`).
+
+### Rate limits
+
+Exposed `public` operations called over HTTP – through `fetchHandler` or any adapter – are counted
+per client and operation: 120 calls a minute by default, then 429 `TOO_MANY_REQUESTS` with
+`Retry-After`. Signed-in operations, private ones and in-process calls are never counted. Set it
+with `createServer(config, { rateLimit })`. The generated `server` uses the defaults; to change
+them, create your server from the generated `createBitaKitServerConfig()` with `rateLimit`:
+
+| `rateLimit` option  | Default                                   | What it does                                                                                       |
+| ------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `limit`, `windowMs` | `120`, `60000`                            | Calls per window, per client and operation                                                         |
+| `key(request)`      | first `x-forwarded-for`, then `x-real-ip` | Who the client is; use what your host verifies                                                     |
+| `store`             | in this process                           | `{ hit(key, windowMs) }`, e.g. Redis for several instances (`memoryRateLimitStore` is the default) |
+| `false`             | –                                         | Off, when a proxy or gateway limits instead                                                        |
+
+### Jobs and webhooks: the system principal
+
+Code that acts on its own – a scheduled job, a webhook whose signature you verified – calls
+operations as `server.system(name, { organizationId?, permissions? })`, never with an identity
+built by hand. `ctx.user` is `{ id: 'system:<name>', name, system: true }`, the organization is
+the given one (member role `system`), and `ctx.can(…)` grants exactly `permissions`. The
+`requestContext` provider is not asked, and no request can become this principal.
+
+```ts title="src/server/actions/stripe-webhook.ts (excerpt)"
+const billing = server.system('billing.stripe-webhook', {
+  organizationId: event.organizationId,
+  permissions: { invoices: ['write'] },
+});
+await billing.billing.markPaid({ invoiceId: event.invoiceId });
+```
 
 ## The server kernel
 

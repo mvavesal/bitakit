@@ -20,8 +20,14 @@ export type FetchHandlerOptions = {
 const headers = { 'content-type': 'application/json', 'cache-control': 'no-store' };
 const reply = (status: number, body: unknown, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { ...headers, ...extra } });
-const failure = (error: OperationError, extra?: Record<string, string>) =>
-  reply(operationStatus(error.code), { error: operationErrorBody(error) }, extra);
+const failure = (error: OperationError, extra: Record<string, string> = {}) =>
+  reply(
+    operationStatus(error.code),
+    { error: operationErrorBody(error) },
+    typeof error.retryAfter === 'number' && Number.isFinite(error.retryAfter)
+      ? { 'retry-after': String(Math.max(0, Math.ceil(error.retryAfter))), ...extra }
+      : extra,
+  );
 const notFound = () => failure(new OperationError('NOT_FOUND', 'Operation not found.'));
 
 function exactOrigin(value: string, option: string, label: string): string {
@@ -79,23 +85,31 @@ function hostOf(origin: string): string | undefined {
  * requests must come from the app's origin or a trusted one; bodies are limited in size.
  * Invalid `trustedOrigins`, `origin` or `maxBodyBytes` throw when the handler is created.
  */
+/** The headers a browser may send to an operation across origins. */
+const allowedHeaders = 'content-type, authorization, x-bitakit-organization';
 /**
- * The Origin rule of `fetchHandler`, for other transports over the same operations (2026-11-18):
- * true when a request may call. A browser request must come from the app's origin or a trusted one;
- * its own `Sec-Fetch-Site` settles it, else the Origin must be the app's (behind a proxy the given
+ * Who may call from a browser, and the CORS answers for trusted origins (2026-11-18). `allowed` is
+ * the Origin rule: a browser request must come from the app's origin or a trusted one; its own
+ * `Sec-Fetch-Site` settles it, else the Origin must be the app's (behind a proxy the given
  * `origin`, otherwise the request URL's origin or the Host the browser sent). Requests without
- * Origin and Sec-Fetch-Site (servers, scripts) pass. Invalid options throw when it is created.
+ * Origin and Sec-Fetch-Site (servers, scripts) pass. Only `trustedOrigins` get CORS: `preflight`
+ * answers their `OPTIONS` (204, never `*`), `headers` are added to their responses; any other
+ * origin gets no CORS and stays refused. Invalid options throw when it is created.
  */
-export function originRule(
+export function crossOrigin(
   options: Pick<FetchHandlerOptions, 'trustedOrigins' | 'origin'> = {},
-  label = 'originRule',
-): (request: Request) => boolean {
+  label = 'crossOrigin',
+): {
+  allowed(request: Request): boolean;
+  headers(request: Request): Record<string, string> | undefined;
+  preflight(request: Request, methods: string): Response | undefined;
+} {
   const trusted = new Set(
     (options.trustedOrigins ?? []).map((origin) => exactOrigin(origin, 'trusted origin', label)),
   );
   const ownOrigin =
     options.origin === undefined ? undefined : exactOrigin(options.origin, 'origin', label);
-  return (request) => {
+  const allowed = (request: Request) => {
     const url = new URL(request.url);
     const origin = request.headers.get('origin');
     const site = request.headers.get('sec-fetch-site');
@@ -111,13 +125,65 @@ export function originRule(
           : origin !== url.origin && hostOf(origin) !== request.headers.get('host'))
       : site !== null && site !== 'same-origin' && site !== 'none');
   };
+  /** A trusted origin calling across origins: the one case that gets CORS headers. */
+  const trustedCaller = (request: Request) => {
+    const origin = request.headers.get('origin');
+    return origin !== null &&
+      trusted.has(origin) &&
+      request.headers.get('sec-fetch-site') !== 'same-origin'
+      ? origin
+      : undefined;
+  };
+  return {
+    allowed,
+    headers(request) {
+      const origin = trustedCaller(request);
+      return origin
+        ? {
+            'access-control-allow-origin': origin,
+            'access-control-allow-credentials': 'true',
+            vary: 'Origin',
+          }
+        : undefined;
+    },
+    preflight(request, methods) {
+      if (request.method !== 'OPTIONS') return undefined;
+      const origin = trustedCaller(request);
+      if (!origin)
+        return request.headers.get('origin') === null
+          ? undefined
+          : new Response(null, {
+              status: 403,
+              headers: { vary: 'Origin', 'cache-control': 'no-store' },
+            });
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'access-control-allow-origin': origin,
+          'access-control-allow-credentials': 'true',
+          'access-control-allow-methods': methods,
+          'access-control-allow-headers': allowedHeaders,
+          'access-control-max-age': '600',
+          vary: 'Origin',
+        },
+      });
+    },
+  };
+}
+
+/** The Origin rule of `fetchHandler` for other transports: true when a request may call. */
+export function originRule(
+  options: Pick<FetchHandlerOptions, 'trustedOrigins' | 'origin'> = {},
+  label = 'originRule',
+): (request: Request) => boolean {
+  return crossOrigin(options, label).allowed;
 }
 
 export function fetchHandler(
   server: Server,
   options: FetchHandlerOptions = {},
 ): (request: Request) => Promise<Response> {
-  const allowed = originRule(options, 'fetchHandler');
+  const policy = crossOrigin(options, 'fetchHandler');
   const limit = options.maxBodyBytes ?? 1024 * 1024;
   // NaN or Infinity would silently turn the limit off (`size > NaN` is never true).
   if (!Number.isSafeInteger(limit) || limit < 0)
@@ -125,14 +191,16 @@ export function fetchHandler(
       `fetchHandler: maxBodyBytes ${String(options.maxBodyBytes)} is not a whole number of bytes (0 or more).`,
     );
   const prefix = `${server.endpoint.replace(/\/+$/, '')}/`;
-  return async (request) => {
+  const handle = async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
     if (!url.pathname.startsWith(prefix)) return notFound();
+    const preflight = policy.preflight(request, 'POST');
+    if (preflight) return preflight;
     if (request.method !== 'POST')
       return failure(new OperationError('METHOD_NOT_SUPPORTED', 'Use POST.'), { allow: 'POST' });
     const id = url.pathname.slice(prefix.length);
     if (!actionIdPattern.test(id) || id.includes('/')) return notFound();
-    if (!allowed(request))
+    if (!policy.allowed(request))
       return failure(new OperationError('FORBIDDEN', 'Cross-origin requests are not allowed.'));
     const type = (request.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
     if (type !== 'application/json')
@@ -191,5 +259,13 @@ export function fetchHandler(
         ),
       );
     }
+  };
+  // A trusted origin's browser may read the answer (CORS); nobody else's gets these headers.
+  return async (request) => {
+    const response = await handle(request);
+    const cors = policy.headers(request);
+    if (cors && request.method !== 'OPTIONS')
+      for (const [name, value] of Object.entries(cors)) response.headers.set(name, value);
+    return response;
   };
 }

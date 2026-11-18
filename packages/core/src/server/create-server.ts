@@ -1,7 +1,15 @@
 import { OperationError } from '../operation-error.js';
 import { reservedSegments } from '../remote.js';
 import { Kernel, type CallerState } from './kernel.js';
-import type { CallOptions, Caller, Server, ServerConfig, ServerOptions } from './types.js';
+import { systemIdentity, systemPrincipalName } from './access.js';
+import type {
+  CallOptions,
+  Caller,
+  Server,
+  ServerConfig,
+  ServerOptions,
+  SystemPrincipalOptions,
+} from './types.js';
 
 type Entry = {
   readonly stamp: string | undefined;
@@ -144,6 +152,22 @@ export function createServer(config: ServerConfig, options: ServerOptions = {}):
     },
     as(request: Request | Headers): Caller {
       const caller: CallerState = { request: toRequest(request) };
+      return createCaller((id, input, callOptions) =>
+        invoke(id, input, caller, { ...callOptions, exposedOnly: false }),
+      );
+    },
+    system(name: string, systemOptions: SystemPrincipalOptions = {}): Caller {
+      if (!systemPrincipalName.test(name))
+        throw new TypeError(
+          `server.system: "${name}" is not a name such as "billing.stripe-webhook".`,
+        );
+      if (systemOptions.organizationId !== undefined && !systemOptions.organizationId)
+        throw new TypeError('server.system: organizationId must not be empty.');
+      // The identity is fixed here; the requestContext provider is never asked for it.
+      const caller: CallerState = {
+        request: new Request('http://bitakit.system/'),
+        identity: Promise.resolve(systemIdentity(name, systemOptions)),
+      };
       return createCaller((id, input, callOptions) =>
         invoke(id, input, caller, { ...callOptions, exposedOnly: false }),
       );

@@ -3,7 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import {
   OperationError,
-  originRule,
+  crossOrigin,
   type FetchHandlerOptions,
   type JsonSchema,
   type OperationInfo,
@@ -110,10 +110,12 @@ export function mcpHandler(
 ): (request: Request) => Promise<Response> {
   if (!options.tools.length)
     throw new TypeError('mcpHandler: name at least one operation in tools.');
-  const allowed = originRule(options, 'mcpHandler');
+  const policy = crossOrigin(options, 'mcpHandler');
   let tools: Promise<Map<string, Tool>> | undefined;
-  return async (request) => {
-    if (!allowed(request))
+  const handle = async (request: Request): Promise<Response> => {
+    const preflight = policy.preflight(request, 'GET, POST, DELETE');
+    if (preflight) return preflight;
+    if (!policy.allowed(request))
       return Response.json(
         {
           jsonrpc: '2.0',
@@ -178,5 +180,18 @@ export function mcpHandler(
     } finally {
       await mcp.close();
     }
+  };
+  // Trusted origins (CORS) may read the answer; nobody else's browser gets these headers.
+  return async (request) => {
+    const response = await handle(request);
+    const cors = request.method === 'OPTIONS' ? undefined : policy.headers(request);
+    if (!cors) return response;
+    const headers = new Headers(response.headers);
+    for (const [name, value] of Object.entries(cors)) headers.set(name, value);
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   };
 }
