@@ -70,6 +70,11 @@ export type ServerActionSpecInput<Input, Result, A extends Access> = {
   access: A;
   /** `true` publishes the operation over HTTP and in `remote`; otherwise it is in-process only. */
   expose?: boolean;
+  /**
+   * `query` reads only, so transports that support it may answer it with GET; `mutation` (the
+   * default) changes something. The built-in `fetchHandler` takes POST for both.
+   */
+  type?: OperationType;
   /** Validates and types the input. Without it the input must be `undefined`. */
   input?: InputSchema<Input>;
   /**
@@ -98,6 +103,7 @@ export type ServerActionSpec<Input = unknown, Result = unknown, A extends Access
   readonly description?: string;
   readonly access: A;
   readonly expose?: boolean;
+  readonly type?: OperationType;
   readonly input?: InputSchema<Input>;
   readonly output?: InputSchema<unknown>;
   readonly requires?: readonly string[];
@@ -150,12 +156,22 @@ export type CallOptions = RemoteCallOptions & {
 export type Caller = Namespace<{
   [K in keyof ServerActionMap & string]: OperationFunction<ServerActionMap[K], CallOptions>;
 }>;
-/** One compiled operation, as `server.operations()` lists it. */
+/** Whether an operation only reads (`query`) or changes something (`mutation`, the default). */
+export type OperationType = 'query' | 'mutation';
+/** A JSON Schema (draft 2020-12), as a transport adapter or an OpenAPI document uses it. */
+export type JsonSchema = Readonly<Record<string, unknown>>;
+/**
+ * One compiled operation, as `server.operations()` lists it. `input` and `output` are JSON Schemas
+ * when the schema can say so (Standard JSON Schema, e.g. zod 4); absent means "any".
+ */
 export type OperationInfo = Readonly<{
   id: string;
   plugin: string;
   access: Access;
   exposed: boolean;
+  type: OperationType;
+  input?: JsonSchema;
+  output?: JsonSchema;
   title?: string;
   description?: string;
   source?: string;

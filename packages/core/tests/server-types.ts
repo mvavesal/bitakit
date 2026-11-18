@@ -148,6 +148,14 @@ defineService(({ services, settings }) => ({
   ],
 }));
 
+// `type` says whether an operation only reads; transports may answer a query with GET.
+const listed = defineAction({ access: 'public', type: 'query', execute: () => 1 });
+// @ts-expect-error Only 'query' or 'mutation'.
+defineAction({ access: 'public', type: 'subscription', execute: () => 1 });
+declare const described: import('../src/server/index.js').OperationInfo;
+const kind: 'query' | 'mutation' = described.type;
+void [listed, kind];
+
 const problem = new OperationError('CONFLICT', 'Reload.', { reason: 'ORGANIZATION_CHANGED' });
 const status: number = problem.status;
 // @ts-expect-error Codes are a closed set.

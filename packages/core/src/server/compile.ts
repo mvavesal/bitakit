@@ -12,7 +12,7 @@ import type { NormalizedPlugin } from '../runtime.js';
 import type { ServerStartParts } from '../runtime-mode.js';
 import { BitaKitStartupError, moduleLabel } from '../startup-error.js';
 import { accessProblem, isOrganizationAccess } from './access.js';
-import type { OperationInfo, ServerInterceptorSpec } from './types.js';
+import type { JsonSchema, OperationInfo, OperationType, ServerInterceptorSpec } from './types.js';
 import { isSchema } from './validate.js';
 
 type Hook<K extends 'before' | 'after' | 'onError'> = {
@@ -170,6 +170,9 @@ export function compileOperations(
           plugin: module.id,
           access,
           exposed,
+          type: operationType(fields.type, id),
+          ...describedSchema(fields.input, 'input'),
+          ...describedSchema(fields.output, 'output'),
           ...(typeof spec.title === 'string' ? { title: spec.title } : {}),
           ...(typeof spec.description === 'string' ? { description: spec.description } : {}),
           ...(source ? { source } : {}),
@@ -296,4 +299,33 @@ function matcher(target: InterceptorTarget, ids: readonly string[], prefixes: Re
     return (id: string) => id === exact;
   });
   return (id: string) => tests.some((test) => test(id));
+}
+
+/** `type` of a server Action: `query` or `mutation` (the default). */
+function operationType(value: unknown, id: string): OperationType {
+  if (value === undefined) return 'mutation';
+  if (value === 'query' || value === 'mutation') return value;
+  throw new Error(`Server Action "${id}": type is 'query' or 'mutation'.`);
+}
+/**
+ * The JSON Schema (draft 2020-12) of an input or output schema that implements Standard JSON Schema
+ * (`~standard.jsonSchema`, e.g. zod 4); nothing for other schemas or one the library cannot express.
+ */
+function describedSchema(
+  schema: unknown,
+  side: 'input' | 'output',
+): { input?: JsonSchema; output?: JsonSchema } {
+  const standard = (
+    schema as { '~standard'?: { jsonSchema?: Record<string, unknown> } } | undefined
+  )?.['~standard'];
+  const convert = standard?.jsonSchema?.[side];
+  if (typeof convert !== 'function') return {};
+  try {
+    const value: unknown = convert.call(standard!.jsonSchema, { target: 'draft-2020-12' });
+    return value && typeof value === 'object'
+      ? { [side]: Object.freeze(value as Record<string, unknown>) }
+      : {};
+  } catch {
+    return {};
+  }
 }

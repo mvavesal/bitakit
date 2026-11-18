@@ -45,6 +45,8 @@ export type {
   Caller,
   CallOptions,
   OperationInfo,
+  OperationType,
+  JsonSchema,
   ServerActionEntry,
   ServerActionSpec,
   ServerActionSpecInput,
