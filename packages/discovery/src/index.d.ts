@@ -20,6 +20,12 @@ export type ContributionKindSpec = {
    * in the old `<directory>/` folder.
    */
   runtime?: 'client' | 'server' | 'both';
+  /**
+   * Only with `runtime: 'server'`: the kind ran in the browser before. For one minor version its
+   * old places stay client files that keep running there, each with a warning; `bitakit migrate`
+   * moves them under `server/contributions/<directory>`.
+   */
+  movedFrom?: 'client';
 };
 export type DiscoveryConfig = {
   /** Known application bundles and optional display labels; IDs compare in lowercase. */

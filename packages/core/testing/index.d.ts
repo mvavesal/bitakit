@@ -104,6 +104,8 @@ export type TestContributionKind = {
   normalize: string;
   /** Only `server` kinds load: their files in `server/contributions/<directory>`. */
   runtime?: 'client' | 'server' | 'both';
+  /** A server kind that ran in the browser before; `mountServer` reads only its server folder. */
+  movedFrom?: 'client';
   types?: { entry: string; map: string };
 };
 

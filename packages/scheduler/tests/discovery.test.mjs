@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { generateBitaKit, migrateProject } from '@bitakit/discovery';
+import { createRuntime } from '@bitakit/core';
 import { createJiti } from 'jiti';
 
 test('tasks and schedules run in the generated server; the old place warns and migrates', async () => {
@@ -45,48 +46,135 @@ test('tasks and schedules run in the generated server; the old place warns and m
       'src/plugins/Reports/server/contributions/schedules/weekly.ts',
       "import { defineSchedule } from '@bitakit/scheduler'; export default defineSchedule({ task: 'REPORTS.WEEKLY', cron: '0 9 * * MON', input: { count: 1 } });",
     );
-    // The old place still works on the server, with a warning, until the next minor version.
-    await put(
-      'src/plugins/Reports/contributions/tasks.ts',
-      `${imports} export default { monthly: ${task} };`,
-    );
     await put(
       'src/plugins/Reports/server/actions/monthly.ts',
       "import { defineAction } from '@bitakit/core/server'; import { getService } from '@bitakit/core'; import { scheduler } from '@bitakit/scheduler'; export default defineAction({ access: 'public', execute: ({ services }) => getService(services, scheduler).run('reports.monthly', { count: 3 }) });",
     );
-    let result = await generateBitaKit(root, { quiet: true });
-    assert.deepEqual(result.warnings, [
-      'src/plugins/Reports/contributions/tasks.ts: the contribution kind "scheduler.tasks" runs on the server now; move it under server/contributions/tasks/ (run "bitakit migrate"). The old location stops working in the next minor version.',
-    ]);
-    // The browser never imports a task; the server file holds them all.
-    assert.doesNotMatch(await readFile(result.generated, 'utf8'), /tasks|schedules/);
-    const serverSource = await readFile(result.server, 'utf8');
-    assert.match(serverSource, /import packageServer0 from "@bitakit\/scheduler\/server";/);
-    for (const file of ['tasks/weekly', 'tasks.daily', 'schedules/weekly'])
-      assert.ok(serverSource.includes(`/Reports/server/contributions/${file}';`), file);
-    assert.ok(serverSource.includes(`/Reports/contributions/tasks';`));
-    // `bitakit migrate` moves the old place under server/, imports adjusted.
+    // The old places keep running where they ran before (the browser composition), each with a
+    // warning, until the next minor version.
     await put('src/plugins/Reports/lib/count.ts', 'export const count = 3;');
     await put(
       'src/plugins/Reports/contributions/tasks.ts',
       `${imports} import { count } from '../lib/count'; export default { monthly: defineTask({ input: z.object({ count: z.number() }), execute: ({ input }) => input.count * count }) };`,
     );
-    const { changes } = await migrateProject(root);
+    await put('src/plugins/Reports/contributions/tasks/yearly.json', '{ "factor": 12 }');
+    await put(
+      'src/plugins/Reports/contributions/tasks/yearly.ts',
+      `${imports} import data from './yearly.json'; import { count } from '../../lib/count'; export default defineTask({ execute: () => data.factor * count });`,
+    );
+    await put(
+      'src/plugins/Reports/contributions/schedules/monthly.ts',
+      "import { defineSchedule } from '@bitakit/scheduler'; export default defineSchedule({ task: 'reports.monthly', cron: '0 9 1 * *', input: { count: 1 } });",
+    );
+    await put('src/plugins/Reports/tasks.hourly.ts', `${imports} export default ${task};`);
+    await put('src/plugins/Reports/tasks/-helper.ts', 'export const one = 1;');
+    await put(
+      'src/plugins/Reports/tasks/nightly/index.ts',
+      `${imports} import { one } from '../-helper'; export default defineTask({ execute: () => one });`,
+    );
+    await put(
+      'src/plugins/Reports/lib/uses.ts',
+      "export { default } from '../contributions/tasks/yearly';",
+    );
+    await put(
+      'tests/yearly.test.ts',
+      "import yearly from '../src/plugins/Reports/contributions/tasks/yearly';\nvoid yearly;",
+    );
+    let result = await generateBitaKit(root, { quiet: true });
+    const old = [
+      'src/plugins/Reports/contributions/schedules/monthly.ts',
+      'src/plugins/Reports/contributions/tasks.ts',
+      'src/plugins/Reports/contributions/tasks/yearly.ts',
+      'src/plugins/Reports/tasks.hourly.ts',
+      'src/plugins/Reports/tasks/nightly/index.ts',
+    ];
     assert.deepEqual(
-      changes
-        .filter((change) => change.detail?.includes('server'))
-        .map(({ from, to }) => [from, to]),
+      result.warnings.map((warning) => warning.slice(0, warning.indexOf(':'))).sort(),
+      old,
+    );
+    assert.ok(result.warnings.every((warning) => warning.includes('runs on the server now')));
+    // The browser composition keeps the old places; the server file holds only server/.
+    const clientSource = await readFile(result.generated, 'utf8');
+    const serverSource = await readFile(result.server, 'utf8');
+    assert.match(serverSource, /import packageServer0 from "@bitakit\/scheduler\/server";/);
+    for (const file of ['tasks/weekly', 'tasks.daily', 'schedules/weekly']) {
+      assert.ok(serverSource.includes(`/Reports/server/contributions/${file}';`), file);
+      assert.ok(!clientSource.includes(`/server/contributions/${file}'`), file);
+    }
+    assert.ok(clientSource.includes(`/Reports/contributions/tasks';`));
+    assert.ok(!serverSource.includes(`/Reports/contributions/`));
+    const client = createRuntime(
+      (
+        await createJiti(import.meta.url, { moduleCache: false }).import(result.generated)
+      ).createBitaKitConfig(),
+    );
+    const stopClient = client.mount();
+    try {
+      await client.ready;
+      assert.equal(await client.services.scheduler.run('reports.monthly', { count: 2 }), 6);
+      assert.equal(await client.services.scheduler.run('reports.yearly'), 36);
+    } finally {
+      await stopClient();
+    }
+    // A dry run reports the same moves and touches nothing.
+    const dry = await migrateProject(root, { dryRun: true });
+    assert.ok(dry.changes.some((change) => change.to?.endsWith('server/contributions/tasks.ts')));
+    await readFile(join(root, 'src/plugins/Reports/contributions/tasks.ts'), 'utf8');
+    // `bitakit migrate` moves both kinds at once, whole folders with their data files, dotted and
+    // record files and old root contributions; imports keep pointing at the same files.
+    const { changes } = await migrateProject(root);
+    const moves = changes
+      .filter((change) => change.detail?.includes('runs on the server'))
+      .map(({ from, to }) => [from, to])
+      .sort();
+    const reports = 'src/plugins/Reports';
+    assert.deepEqual(moves, [
       [
-        [
-          'src/plugins/Reports/contributions/tasks.ts',
-          'src/plugins/Reports/server/contributions/tasks.ts',
-        ],
+        `${reports}/contributions/schedules/monthly.ts`,
+        `${reports}/server/contributions/schedules/monthly.ts`,
       ],
+      [`${reports}/contributions/tasks.ts`, `${reports}/server/contributions/tasks.ts`],
+      [
+        `${reports}/contributions/tasks/yearly.json`,
+        `${reports}/server/contributions/tasks/yearly.json`,
+      ],
+      [
+        `${reports}/contributions/tasks/yearly.ts`,
+        `${reports}/server/contributions/tasks/yearly.ts`,
+      ],
+      [`${reports}/tasks.hourly.ts`, `${reports}/server/contributions/tasks.hourly.ts`],
+      [
+        `${reports}/tasks/nightly/index.ts`,
+        `${reports}/server/contributions/tasks/nightly/index.ts`,
+      ],
+    ]);
+    const moved = (file) => readFile(join(root, reports, 'server/contributions', file), 'utf8');
+    assert.match(await moved('tasks.ts'), /from '\.\.\/\.\.\/lib\/count'/);
+    assert.match(
+      await moved('tasks/yearly.ts'),
+      /from '\.\/yearly\.json'.*from '\.\.\/\.\.\/\.\.\/lib\/count'/,
     );
     assert.match(
-      await readFile(join(root, 'src/plugins/Reports/server/contributions/tasks.ts'), 'utf8'),
-      /from '\.\.\/\.\.\/lib\/count'/,
+      await moved('tasks/nightly/index.ts'),
+      /from '\.\.\/\.\.\/\.\.\/\.\.\/tasks\/-helper'/,
     );
+    // The helper without a default export stays; emptied folders are gone.
+    await readFile(join(root, reports, 'tasks/-helper.ts'), 'utf8');
+    for (const folder of ['contributions/tasks', 'contributions/schedules', 'tasks/nightly'])
+      await assert.rejects(stat(join(root, reports, folder)), { code: 'ENOENT' }, folder);
+    // Importers elsewhere, tests included, are reported, not rewritten.
+    assert.deepEqual(
+      changes
+        .filter((change) => change.detail?.includes('update the import'))
+        .map((change) => change.from)
+        .sort(),
+      [`${reports}/lib/uses.ts`, 'tests/yearly.test.ts'],
+    );
+    await put(
+      'src/plugins/Reports/lib/uses.ts',
+      "export { default } from '../server/contributions/tasks/yearly';",
+    );
+    await rm(join(root, 'tests'), { recursive: true });
     result = await generateBitaKit(root, { quiet: true });
     assert.deepEqual(result.warnings, []);
     await put(
@@ -116,6 +204,7 @@ test('tasks and schedules run in the generated server; the old place warns and m
         target: ts.ScriptTarget.ES2022,
         module: ts.ModuleKind.ESNext,
         moduleResolution: ts.ModuleResolutionKind.Bundler,
+        resolveJsonModule: true,
       },
     );
     const diagnostics = ts.getPreEmitDiagnostics(program);
@@ -140,6 +229,28 @@ test('tasks and schedules run in the generated server; the old place warns and m
     } finally {
       await server.stop();
     }
+    // An `entries` override still names the old, browser place: read there with the warning,
+    // and migrate reports it (it cannot edit plugin.config.ts).
+    await put(
+      'src/plugins/Jobs/plugin.config.ts',
+      "export default { id: 'jobs', entries: { 'scheduler.tasks': './jobs' } };",
+    );
+    await put('src/plugins/Jobs/jobs/nightly.ts', `${imports} export default ${task};`);
+    result = await generateBitaKit(root, { quiet: true });
+    assert.deepEqual(
+      result.warnings.map((warning) => warning.slice(0, warning.indexOf(':'))),
+      ['src/plugins/Jobs/jobs/nightly.ts'],
+    );
+    assert.ok((await readFile(result.generated, 'utf8')).includes('/Jobs/jobs/nightly'));
+    assert.ok(!(await readFile(result.server, 'utf8')).includes('/Jobs/jobs/'));
+    const override = await migrateProject(root, { dryRun: true });
+    assert.ok(
+      override.changes.some(
+        (change) =>
+          change.from === 'src/plugins/Jobs/plugin.config.ts' &&
+          change.detail.includes('"scheduler.tasks"'),
+      ),
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }

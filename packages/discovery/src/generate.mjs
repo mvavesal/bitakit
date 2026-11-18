@@ -209,22 +209,12 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       result.kinds.push(kind.runtime === 'both' ? clientKindEntries[index] : entries);
     }
     const folder = path.join(base, 'server') + path.sep;
-    result.code = [
-      ...list.filter(
-        (file) =>
-          file.startsWith(folder) &&
-          /\.(?:[cm]?[jt]sx?|json)$/.test(file) &&
-          !/\.d\.[cm]?ts$/.test(file),
-      ),
-      // A moved kind's files at their old place run on the server too.
-      ...kinds.flatMap((kind, index) =>
-        kind.movedFrom
-          ? result.kinds[index]
-              .map((entry) => entry.file)
-              .filter((file) => !file.startsWith(folder))
-          : [],
-      ),
-    ];
+    result.code = list.filter(
+      (file) =>
+        file.startsWith(folder) &&
+        /\.(?:[cm]?[jt]sx?|json)$/.test(file) &&
+        !/\.d\.[cm]?ts$/.test(file),
+    );
     return result;
   };
   const endpoint = serverEndpoint(config);
@@ -418,8 +408,10 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
     );
     const entriesFor = async (kind) => {
       const name = typeof kind === 'string' ? kind : kind.name;
-      // Entry overrides move client folders; a server-only kind is always read from server/.
-      const override = kind.runtime === 'server' ? undefined : manifest.entries?.[name];
+      // Entry overrides move client folders; a server-only kind is always read from server/ (a
+      // moved kind's override still names its old, client place).
+      const override =
+        kind.runtime === 'server' && !kind.movedFrom ? undefined : manifest.entries?.[name];
       if (override === false) return [];
       if (override) {
         const paths = await resolveEntry(name, override);

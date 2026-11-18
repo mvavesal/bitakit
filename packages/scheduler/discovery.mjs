@@ -1,7 +1,8 @@
 /**
  * Tasks and schedules run on the server: their files live in
- * `server/contributions/tasks|schedules/`. Until the next minor version the server still reads
- * the old place `contributions/tasks|schedules/` with a warning; `bitakit migrate` moves them.
+ * `server/contributions/tasks|schedules/`. Until the next minor version the old place
+ * `contributions/tasks|schedules/` keeps running where it ran before (the browser composition),
+ * with a warning; `bitakit migrate` moves those files.
  */
 export default function discovery() {
   return ['tasks', 'schedules'].map((directory) => ({

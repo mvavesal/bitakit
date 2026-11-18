@@ -91,100 +91,161 @@ async function exists(file) {
 
 const defaultExport = /\bexport\s+default\b|\bexport\s*\{[^}]*\bdefault\b/;
 
+/** Every file of the project for an import scan: no symlinks, dependencies or build output. */
+async function projectFiles(directory) {
+  const skipped = ['node_modules', '.git', '.next', '.tanstack', '.output', 'dist', 'coverage'];
+  const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
+  const result = [];
+  for (const entry of entries) {
+    if (entry.isSymbolicLink() || skipped.includes(entry.name)) continue;
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) result.push(...(await projectFiles(file)));
+    else result.push(file);
+  }
+  return result;
+}
+
 /**
- * Moves the files of contribution kinds that now run on the server (`movedFrom: 'client'`) from
- * `contributions/<dir>` – or the old root folder `<dir>/`, only files with a default export – to
- * `server/contributions/<dir>`. Relative imports in the moved files keep pointing at the same
- * files; other files that import a moved one are reported, not rewritten.
+ * Moves the files of contribution kinds that now run on the server (`movedFrom: 'client'`) under
+ * `server/contributions/<dir>`: all of `contributions/<dir>/` (data files and helpers too) and its
+ * dotted or record files, and from the old root place (`<dir>/`, `<dir>.*.ts`) only source files
+ * with a default export. Relative imports in moved files keep pointing at the same files; any
+ * other project file that imports a moved one, and an `entries` override naming the kind, are
+ * reported.
  */
-async function moveServerKinds(base, boundaries, kinds, apply, changes, relative) {
-  const sources = (await files(base, boundaries)).filter(
-    (file) => /\.tsx?$/.test(file) && !/\.d\.ts$/.test(file),
-  );
-  for (const kind of kinds) {
-    const folder = path.join(base, 'contributions', ...kind.directory.split('/'));
-    const rootFolder = path.join(base, ...kind.directory.split('/'));
-    const target = path.join(base, 'server', 'contributions', ...kind.directory.split('/'));
-    const plan = new Map();
-    for (const file of sources) {
-      if (file.startsWith(`${folder}${path.sep}`) || file.startsWith(`${folder}.`))
-        plan.set(file, target + file.slice(folder.length));
-      else if (
-        file.startsWith(`${rootFolder}${path.sep}`) &&
-        defaultExport.test(await readFile(file, 'utf8'))
-      )
-        plan.set(file, target + file.slice(rootFolder.length));
+async function moveServerKinds(root, moduleDirs, kinds, apply, changes, relative) {
+  const isSource = (file) => /\.tsx?$/.test(file) && !/\.d\.ts$/.test(file);
+  /** Old absolute path → `{ to, kind }`, over every module and kind, before anything moves. */
+  const plan = new Map();
+  const folders = new Set();
+  for (const base of moduleDirs) {
+    const boundaries = new Set(moduleDirs.filter((dir) => dir !== base && dir.startsWith(base)));
+    const list = await files(base, boundaries);
+    for (const kind of kinds) {
+      const parts = kind.directory.split('/');
+      const folder = path.join(base, 'contributions', ...parts);
+      const rootFolder = path.join(base, ...parts);
+      const target = path.join(base, 'server', 'contributions', ...parts);
+      for (const file of list) {
+        if (plan.has(file)) continue;
+        if (file.startsWith(folder + path.sep) || (file.startsWith(`${folder}.`) && isSource(file)))
+          plan.set(file, { to: target + file.slice(folder.length), kind });
+        // The old root place may hold other code: only contributions move.
+        else if (
+          (file.startsWith(rootFolder + path.sep) || file.startsWith(`${rootFolder}.`)) &&
+          isSource(file) &&
+          defaultExport.test(await readFile(file, 'utf8'))
+        )
+          plan.set(file, { to: target + file.slice(rootFolder.length), kind });
+      }
+      folders.add(folder).add(rootFolder);
     }
-    if (!plan.size) continue;
-    const moved = new Set();
-    // Where an import of the old place points now: the moved file, or the same file as before.
-    const resolveMoved = (absolute) => {
-      if (
-        absolute === folder ||
-        absolute.startsWith(`${folder}${path.sep}`) ||
-        absolute.startsWith(`${folder}.`)
-      )
-        return target + absolute.slice(folder.length);
-      const stem = absolute.replace(/\.[cm]?js$/, '');
-      for (const candidate of [absolute, `${stem}.ts`, `${stem}.tsx`])
-        if (plan.has(candidate)) return target + absolute.slice(rootFolder.length);
-      return absolute;
-    };
-    for (const [file, destination] of plan) {
-      if (await exists(destination)) {
+    const manifest = path.join(base, 'plugin.config.ts');
+    const source = await readFile(manifest, 'utf8').catch(() => '');
+    for (const kind of kinds)
+      if (source.includes(`'${kind.name}'`) || source.includes(`"${kind.name}"`))
+        changes.push({
+          kind: 'skip',
+          from: relative(manifest),
+          detail: `an entries override names "${kind.name}"; move those files under server/contributions/${kind.directory}/ and remove the override`,
+        });
+  }
+  for (const [file, { to }] of [...plan])
+    if (await exists(to)) {
+      changes.push({
+        kind: 'skip',
+        from: relative(file),
+        to: relative(to),
+        detail: 'target exists',
+      });
+      plan.delete(file);
+    }
+  if (!plan.size) return;
+  // Where an import of `absolute` points after the move: the moved file (or folder), or the same.
+  const where = (absolute) => {
+    const stem = absolute.replace(/\.[cm]?js$/, '');
+    for (const candidate of [
+      absolute,
+      `${stem}.ts`,
+      `${stem}.tsx`,
+      path.join(absolute, 'index.ts'),
+      path.join(absolute, 'index.tsx'),
+    ])
+      if (plan.has(candidate))
+        return path.join(
+          path.dirname(plan.get(candidate).to),
+          path.relative(path.dirname(candidate), absolute),
+        );
+    return absolute;
+  };
+  const imports = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])(\.\.?\/[^'"]*)\2/g;
+  for (const [file, { to, kind }] of plan)
+    await apply(
+      {
+        kind: 'rename',
+        from: relative(file),
+        to: relative(to),
+        detail: `"${kind.name}" runs on the server`,
+      },
+      async () => {
+        await mkdir(path.dirname(to), { recursive: true });
+        if (!isSource(file)) return rename(file, to);
+        const rewritten = (await readFile(file, 'utf8')).replace(
+          imports,
+          (match, lead, quote, specifier) => {
+            let next = path
+              .relative(path.dirname(to), where(path.resolve(path.dirname(file), specifier)))
+              .split(path.sep)
+              .join('/');
+            if (!next.startsWith('.')) next = `./${next}`;
+            return `${lead}${quote}${next}${quote}`;
+          },
+        );
+        await writeFile(to, rewritten);
+        await rm(file);
+      },
+    );
+  // Folders the move empties, outermost first; a folder that keeps other files stays.
+  const emptied = async (folder) => (await files(folder)).every((file) => plan.has(file));
+  const candidates = new Set();
+  for (const folder of folders)
+    for (const file of plan.keys())
+      for (
+        let dir = path.dirname(file);
+        dir === folder || dir.startsWith(folder + path.sep);
+        dir = path.dirname(dir)
+      ) {
+        candidates.add(dir);
+        if (dir === folder) break;
+      }
+  const removed = [];
+  for (const folder of [...candidates].sort((a, b) => a.length - b.length)) {
+    if (removed.some((dir) => folder.startsWith(dir + path.sep)) || !(await exists(folder)))
+      continue;
+    if (!(await emptied(folder))) continue;
+    removed.push(folder);
+    await apply({ kind: 'delete', from: relative(folder), detail: 'empty after the move' }, () =>
+      rm(folder, { recursive: true, force: true }),
+    );
+  }
+  // Other files that import a moved one need a hand: anywhere in the project, tests included.
+  for (const file of await projectFiles(root)) {
+    if (
+      plan.has(file) ||
+      !/\.[cm]?[jt]sx?$/.test(file) ||
+      /\.d\.[cm]?ts$|bitakit\.gen\./.test(file)
+    )
+      continue;
+    const text = await readFile(file, 'utf8').catch(() => '');
+    for (const [, , , specifier] of text.matchAll(imports)) {
+      const absolute = path.resolve(path.dirname(file), specifier);
+      const next = where(absolute);
+      if (next !== absolute)
         changes.push({
           kind: 'skip',
           from: relative(file),
-          to: relative(destination),
-          detail: 'target exists',
+          detail: `imports ${specifier}, which moves to ${relative(next)}; update the import`,
         });
-        continue;
-      }
-      const source = await readFile(file, 'utf8');
-      const rewritten = source.replace(
-        /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])(\.\.?\/[^'"]*)\2/g,
-        (match, lead, quote, specifier) => {
-          const next = resolveMoved(path.resolve(path.dirname(file), specifier));
-          let rel = path.relative(path.dirname(destination), next).split(path.sep).join('/');
-          if (!rel.startsWith('.')) rel = `./${rel}`;
-          return `${lead}${quote}${rel}${quote}`;
-        },
-      );
-      await apply(
-        {
-          kind: 'rename',
-          from: relative(file),
-          to: relative(destination),
-          detail: `"${kind.name}" runs on the server`,
-        },
-        async () => {
-          await mkdir(path.dirname(destination), { recursive: true });
-          await writeFile(destination, rewritten);
-          await rm(file);
-        },
-      );
-      moved.add(file);
-    }
-    for (const old of [folder, rootFolder])
-      if ((await exists(old)) && (await files(old)).every((file) => moved.has(file)))
-        await apply({ kind: 'delete', from: relative(old), detail: 'empty after the move' }, () =>
-          rm(old, { recursive: true, force: true }),
-        );
-    // Other files that import a moved one need a hand: report them.
-    for (const file of sources) {
-      if (plan.has(file)) continue;
-      const text = await readFile(file, 'utf8');
-      for (const [, specifier] of text.matchAll(
-        /(?:\bfrom\s*|\bimport\s*\(\s*)['"](\.\.?\/[^'"]*)['"]/g,
-      )) {
-        const absolute = path.resolve(path.dirname(file), specifier);
-        if (resolveMoved(absolute) !== absolute)
-          changes.push({
-            kind: 'skip',
-            from: relative(file),
-            detail: `imports ${specifier}, which moved to ${relative(resolveMoved(absolute))}; update the import`,
-          });
-      }
     }
   }
 }
@@ -369,15 +430,7 @@ export async function migrateProject(root, { dryRun = false, navigationSlot } = 
     });
   }
   if (movedKinds.length)
-    for (const base of moduleDirs)
-      await moveServerKinds(
-        base,
-        new Set(moduleDirs.filter((dir) => dir !== base && dir.startsWith(base))),
-        movedKinds,
-        apply,
-        changes,
-        relative,
-      );
+    await moveServerKinds(root, moduleDirs, movedKinds, apply, changes, relative);
 
   // 3. Source rewrites: generated-file imports and renamed helpers.
   const hasLocales = (

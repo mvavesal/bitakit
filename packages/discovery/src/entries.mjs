@@ -100,8 +100,8 @@ export function contributionKindSpecs(kinds = []) {
       throw new Error(
         `Contribution kind "${name}" has runtime ${JSON.stringify(kind.runtime)}; use "client", "server" or "both".`,
       );
-    // A kind that used to run in the browser keeps reading its old place on the server for one
-    // minor version, so moving its runtime breaks no app; `bitakit migrate` moves the files.
+    // A kind that used to run in the browser: for one minor version its old place keeps running
+    // there, with a warning, while `bitakit migrate` moves the files under server/.
     const movedFrom = kind.movedFrom;
     if (movedFrom !== undefined && (movedFrom !== 'client' || runtime !== 'server'))
       throw new Error(
@@ -156,9 +156,10 @@ function hasDefaultExport(syntax) {
  * (a file with a default export) of a server kind in the old root folder `<dir>/`, which the
  * client side still reads for the other kinds; other files there get the usual warning.
  *
- * A server kind with `movedFrom: 'client'` ran in the browser before: the client side ignores its
- * old places (`contributions/<dir>` and `<dir>/`), and the server side still reads them with a
- * warning to move each file under `server/contributions/<dir>`.
+ * A server kind with `movedFrom: 'client'` ran in the browser before. For one minor version its
+ * old places (`contributions/<dir>`, the old root folder `<dir>/` and an `entries` override) stay
+ * client files that keep running where they ran, each with a warning to move it under
+ * `server/contributions/<dir>`; the server side reads only that folder.
  */
 export async function discoverEntries(
   base,
@@ -174,19 +175,15 @@ export async function discoverEntries(
     throw new Error(`Kind "${kind}" has no server folder (${serverKindNames.join(', ')} do).`);
   const label = extension ? kind.name : kind;
   const suffixes = extension || server ? [] : spec.suffixes;
-  const runtime = extension ? (kind.runtime ?? 'client') : undefined;
-  const moved = extension && runtime === 'server' && kind.movedFrom === 'client';
-  // The old places of a moved kind are the server's now; the browser never imports them.
-  if (moved && !server) return { entries: [], warnings: [] };
+  const moved = extension && kind.runtime === 'server' && kind.movedFrom === 'client';
+  // A moved kind's old places are still the browser's until the next minor version.
+  const runtime = extension
+    ? moved && !server
+      ? 'client'
+      : (kind.runtime ?? 'client')
+    : undefined;
   // This side holds no files of the kind; any it finds belong to the other side.
   const misplaced = extension && (server ? runtime !== 'server' : runtime === 'server');
-  const movedTarget = moved ? `server/contributions/${kind.directory}/` : null;
-  const movedRoots = moved
-    ? [
-        { folder: `contributions/${kind.directory}`.split('/'), legacy: movedTarget },
-        { folder: kind.directory.split('/'), legacy: movedTarget },
-      ]
-    : [];
   const roots = extension
     ? [
         { folder: `contributions/${kind.directory}`.split('/'), legacy: false },
@@ -211,22 +208,11 @@ export async function discoverEntries(
       continue;
     let segments = contributionSegments(relative);
     if (segments.some((segment) => segment.startsWith('-'))) continue;
+    // Server files never reach the client bundle; the server side reads only them.
+    if ((segments[0] === 'server') !== server) continue;
+    if (server) segments = segments.slice(1);
     let legacyLocation = false;
-    let found = false;
-    // Server files never reach the client bundle; the server side reads only them, and the old
-    // places of a moved kind.
-    if ((segments[0] === 'server') !== server) {
-      const root =
-        server &&
-        movedRoots.find(({ folder }) => folder.every((part, index) => segments[index] === part));
-      if (!root) continue;
-      segments = segments.slice(root.folder.length);
-      legacyLocation = root.legacy;
-      found = true;
-    } else if (server) segments = segments.slice(1);
-    if (found) {
-      // An old place of a moved kind, found above.
-    } else if (explicitFile === file) segments = [path.basename(file).replace(/\.tsx?$/, '')];
+    if (explicitFile === file) segments = [path.basename(file).replace(/\.tsx?$/, '')];
     else if (directory && !server) {
       const local = path.relative(directory, file);
       if (local.startsWith('..') || path.isAbsolute(local)) continue;
@@ -277,9 +263,9 @@ export async function discoverEntries(
       );
       continue;
     }
-    if (found)
+    if (moved && !server)
       warnings.push(
-        `${shown}: the contribution kind "${label}" runs on the server now; move it under ${legacyLocation} (run "bitakit migrate"). The old location stops working in the next minor version.`,
+        `${shown}: the contribution kind "${label}" runs on the server now; move it under server/contributions/${kind.directory}/ (run "bitakit migrate"). Until the next minor version it keeps running where it ran before.`,
       );
     else if (legacyLocation)
       warnings.push(

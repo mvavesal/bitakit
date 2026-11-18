@@ -5,9 +5,12 @@ description: Tasks, in-process schedules, runtime data sources and execution obs
 
 `@bitakit/scheduler` is an optional UI-free plugin. Croner owns cron, one-shot dates, timezones
 and per-schedule overlap protection. Tasks and schedules run on the server: the package ships a
-server half, so the generated server file installs the scheduler with its tasks and schedules.
-Until the next minor version the server still reads the old place `contributions/tasks|schedules/`
-with a warning; `bitakit migrate` moves those files. The package requires Core's contribution
+server half, so the generated server file installs the scheduler with the files in
+`server/contributions/tasks|schedules/`. The kernel boots on its first call; boot it at process
+start (Next.js `instrumentation.ts`: `await (await import('./bitakit.gen.server')).server.ready`)
+so schedules fire from the start. Until the next minor version the old place
+`contributions/tasks|schedules/` keeps running where it ran before, with a warning;
+`bitakit migrate` moves those files. The package requires Core's contribution
 installer context and ships its own `AGENTS.md` consumer guide and runnable server examples.
 
 ## Declarations
@@ -71,7 +74,7 @@ calls drain normally, or are aborted when their task/scheduler is disposed.
 Adapters are normal services: register in `onStart`, own disposal with `onStop` before awaiting
 `ready`. Source errors reject explicit calls and reach the local error reporter; the service
 store retains a source failure flag. Provider loads must settle; no forceful I/O termination.
-Server discovery remains explicit manual composition. Node file code never enters client discovery.
+The generated server file installs the scheduler with discovered tasks and schedules; only a host without discovery composes `schedulerPlugin` by hand. Node file code never enters client discovery.
 
 ## Observation and limits
 

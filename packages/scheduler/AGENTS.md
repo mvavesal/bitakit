@@ -18,15 +18,28 @@ await jobs.run('reports.weekly', { audience: 'team' });
 
 Tasks and schedules run on the server. The package ships a server half (`bitakit.server`), so
 the generated server file (`src/bitakit.gen.server.ts`) installs the scheduler with every file
-in `server/contributions/tasks/` and `server/contributions/schedules/`; the browser never imports
-them. Until the next minor version the server still reads the old place
-`contributions/tasks|schedules/` with a warning; `bitakit migrate` moves those files (relative
-imports adjusted). A host without discovery composes the same declarations explicitly as in
-`examples/server/main.ts`.
-Never import `@bitakit/scheduler/server` into browser code. The browser plugin stays until the
-next minor version for code that registers tasks there by hand; discovered tasks and schedules
-never run in the browser. A runtime of its own (a worker) installs the scheduler once; each
-installation runs its own set of jobs.
+in `server/contributions/tasks/` and `server/contributions/schedules/`. A task there runs in the
+server composition: `requires`, `services` and `settings` are the plugin's server half. The
+server kernel boots on its first call; to fire schedules from the start, boot it when the process
+starts, for example in Next.js `instrumentation.ts`:
+
+```ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  const { server } = await import('./bitakit.gen.server');
+  await server.ready;
+}
+```
+
+In-process schedules run only while a server process lives; on serverless hosts let the
+platform's cron call an operation that runs the task.
+
+Until the next minor version the old place `contributions/tasks|schedules/` keeps working where
+it worked before (the browser composition, or a worker built from it), with a warning per file;
+`bitakit migrate` moves those files under `server/` (relative imports adjusted, other importers
+reported). A host without discovery composes the same declarations explicitly as in
+`examples/server/main.ts`. Never import `@bitakit/scheduler/server` into browser code. Each
+installation of the scheduler runs its own set of jobs.
 
 ## Tasks and default schedules
 
