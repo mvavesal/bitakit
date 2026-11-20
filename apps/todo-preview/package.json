@@ -17,7 +17,7 @@
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@bitakit/core": "^0.3.3",
+    "@bitakit/core": "^0.3.4",
     "@bitakit/ui": "^0.3.1",
     "@bitakit/next": "^0.3.0",
     "@bitakit/app-preferences": "^0.3.0",
