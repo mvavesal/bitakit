@@ -1,6 +1,6 @@
 {
   "name": "@bitakit/mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -20,7 +20,7 @@
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@bitakit/core": "^0.3.2",
+    "@bitakit/core": "^0.3.3",
     "@modelcontextprotocol/sdk": "1.32.2"
   },
   "devDependencies": {
