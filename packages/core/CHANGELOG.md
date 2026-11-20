@@ -1,5 +1,17 @@
 # @bitakit/core
 
+## 0.3.3
+
+### Patch Changes
+
+- e4e9440: Server Actions take `type: 'query' | 'mutation'` (default mutation), and `server.operations()` describes each operation's `type` and, where the schema implements Standard JSON Schema (zod 4), its `input` and `output` as JSON Schema (draft 2020-12) – the descriptions transport adapters and OpenAPI documents are built from.
+- a8f1ce8: New optional package `@bitakit/orpc`: an oRPC transport over the server's exposed operations – `orpcHandler(server, { prefix, protocol })` for oRPC's RPC protocol or REST, `openapiDocument(server, { prefix })` for the OpenAPI 3.1 document – calling them through `server.call(…, { exposedOnly: true })`. Core exports `originRule`, the Origin check of `fetchHandler`, for such transports.
+- 636efcb: Packages ship server halves: `bitakit build` writes `dist/server.js`, `dist/server.d.ts` and `dist/server.json` for a package's `server/` folder (and the browser entry now carries its `installers/`); a package declares it with `bitakit.server`, and an app's generated server file loads it. The app decides which package operations go over HTTP with `server.publish` in `bitakit.config.ts` (`ServerOptions.publish`); installing a package never adds endpoints by itself. The CSS audit skips the server entry.
+- d113780: A discovered plugin can install a contribution kind from a file: `installers/<kind>.ts` (browser) or `server/installers/<kind>.ts` (server), default-exporting `defineInstaller<'<kind>'>(…)`. Discovery turns them into the plugin's `installs`; `bitakit add installer <plugin>/<kind> [--server]` writes one.
+- ab106bc: The generated server takes its rate limits from `bitakit.config.ts` (`server.rateLimit: { limit?, windowMs? } | false`, checked at generation). Who the client is and a shared store are code: a server service that provides the new `rateLimit` contract (`@bitakit/core/server`) supplies `key` and `store`; options passed to `createServer` win over it. A server now drains a public call that is still waiting in an async rate-limit store before it stops. The app skill and the server docs now describe the built-in rate limit, CORS for trusted origins and the transport packages.
+- faa7969: Server guards: CORS for `trustedOrigins` (preflight and response headers, never `*`; `crossOrigin` for other transports), rate limits for exposed `public` operations over HTTP (`createServer(config, { rateLimit })`, 120 a minute per client by default, 429 with `Retry-After`, replaceable store), and `server.system(name, { organizationId, permissions })`, the principal for jobs and webhooks that grants exactly the given permissions and never comes from a request. `OperationError` carries `retryAfter`.
+- 70d0d5c: Server services may read `services` in their own factory without writing a return type. `ServerServices` is an interface over a lazily resolved namespace, and discovery writes the key of each one-service file itself (`DiscoveredServiceValue`), so the discovered map no longer waits for the file it describes.
+
 ## 0.3.2
 
 ### Patch Changes

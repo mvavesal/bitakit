@@ -1,5 +1,25 @@
 # @bitakit/cli
 
+## 0.3.3
+
+### Patch Changes
+
+- 636efcb: Packages ship server halves: `bitakit build` writes `dist/server.js`, `dist/server.d.ts` and `dist/server.json` for a package's `server/` folder (and the browser entry now carries its `installers/`); a package declares it with `bitakit.server`, and an app's generated server file loads it. The app decides which package operations go over HTTP with `server.publish` in `bitakit.config.ts` (`ServerOptions.publish`); installing a package never adds endpoints by itself. The CSS audit skips the server entry.
+- d113780: A discovered plugin can install a contribution kind from a file: `installers/<kind>.ts` (browser) or `server/installers/<kind>.ts` (server), default-exporting `defineInstaller<'<kind>'>(…)`. Discovery turns them into the plugin's `installs`; `bitakit add installer <plugin>/<kind> [--server]` writes one.
+- 2fd4654: The scheduler runs on the server: tasks and schedules are a server-only contribution kind (`server/contributions/tasks|schedules/`) and the package ships a server half, so the generated server file installs the scheduler with them. For one minor version the old place `contributions/tasks|schedules/` keeps running where it ran before (the browser composition), with a warning per file (a kind's new `movedFrom: 'client'` option). `bitakit migrate` moves those files under `server/`: whole kind folders with their data files, dotted and record files, and old root files with a default export; relative imports are adjusted, and other importers and `entries` overrides are reported. Generation refuses one task ID in both the old place and `server/` (it would run twice), and `bitakit doctor` counts an installed package's server half as server content. `@bitakit/scheduler` declares the discovery it needs (optional peer `^0.3.2`).
+- ab106bc: The generated server takes its rate limits from `bitakit.config.ts` (`server.rateLimit: { limit?, windowMs? } | false`, checked at generation). Who the client is and a shared store are code: a server service that provides the new `rateLimit` contract (`@bitakit/core/server`) supplies `key` and `store`; options passed to `createServer` win over it. A server now drains a public call that is still waiting in an async rate-limit store before it stops. The app skill and the server docs now describe the built-in rate limit, CORS for trusted origins and the transport packages.
+- Updated dependencies [e4e9440]
+- Updated dependencies [a8f1ce8]
+- Updated dependencies [636efcb]
+- Updated dependencies [d113780]
+- Updated dependencies [2fd4654]
+- Updated dependencies [ab106bc]
+- Updated dependencies [faa7969]
+- Updated dependencies [70d0d5c]
+- Updated dependencies [74a2b30]
+  - @bitakit/core@0.3.3
+  - @bitakit/discovery@0.3.2
+
 ## 0.3.2
 
 ### Patch Changes

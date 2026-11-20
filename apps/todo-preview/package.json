@@ -17,7 +17,7 @@
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@bitakit/core": "^0.3.2",
+    "@bitakit/core": "^0.3.3",
     "@bitakit/ui": "^0.3.1",
     "@bitakit/next": "^0.3.0",
     "@bitakit/app-preferences": "^0.3.0",
@@ -39,7 +39,7 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "@bitakit/cli": "^0.3.2",
-    "@bitakit/discovery": "^0.3.1"
+    "@bitakit/cli": "^0.3.3",
+    "@bitakit/discovery": "^0.3.2"
   }
 }
