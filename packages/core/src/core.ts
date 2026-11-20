@@ -101,6 +101,7 @@ export { createStore, isStore, type Store } from './store.js';
 export {
   serviceKey,
   defineContract,
+  findService,
   getService,
   type ServiceKey,
   type ContractName,

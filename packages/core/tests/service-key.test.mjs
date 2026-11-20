@@ -5,6 +5,7 @@ import {
   defineContract,
   definePlugin,
   defineService,
+  findService,
   getService,
   serviceKey,
 } from '../dist/core.js';
@@ -78,4 +79,31 @@ test('defineContract writes the name once and returns the same key from of()', (
   assert.equal(contract.of(), 'notes');
   assert.equal(contract.of(), serviceKey('notes'));
   assert.throws(() => defineContract('  '), /must not be empty/);
+});
+
+test('findService answers undefined for a contract nobody provides and the service for one that is provided', async () => {
+  const mail = defineContract('mail').of();
+  const audit = defineContract('audit.log').of();
+  const absent = defineContract('billing.gateway').of();
+  const runtime = createRuntime({
+    plugins: [
+      definePlugin({
+        id: 'mailer',
+        services: { mail: defineService(() => ({ send: () => 'sent' }), { provides: mail }) },
+      }),
+      definePlugin({
+        id: 'audit',
+        services: { log: defineService(() => ({ entries: 2 }), { provides: audit }) },
+      }),
+    ],
+  });
+  const stop = runtime.mount();
+  assert.equal(findService(runtime.services, mail)?.send(), 'sent');
+  assert.equal(findService(runtime.services, audit)?.entries, 2);
+  // No active plugin provides it: no error, nothing to catch.
+  assert.equal(findService(runtime.services, absent), undefined);
+  assert.equal(findService(runtime.services, serviceKey('missing')), undefined);
+  assert.equal(findService({ nested: {} }, serviceKey('nested.deep')), undefined);
+  assert.throws(() => getService(runtime.services, absent), /Missing service|unavailable/);
+  await stop();
 });

@@ -41,7 +41,7 @@ try {
 }
 ```
 
-`defineContract` identifies a contract; `provides` registers the implementation under it; `getService` returns that instance with its type. Share the contract rather than defining unrelated keys in each consumer. Core ships two contracts, `authService` (`auth`) and `translationService` (`i18n`).
+`defineContract` identifies a contract; `provides` registers the implementation under it; `getService` returns that instance with its type. For a contract that may have no provider – its plugin is optional or switched off – `findService(services, contract)` returns `undefined` instead of throwing. Share the contract rather than defining unrelated keys in each consumer. Core ships two contracts, `authService` (`auth`) and `translationService` (`i18n`).
 
 Prefer a single import? `import * as bitakit from '@bitakit/core'` works too, and bundlers still drop what you do not use.
 

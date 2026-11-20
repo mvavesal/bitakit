@@ -6,7 +6,7 @@ export { defineAction, defineService, defineInterceptor } from './define.js';
 export { defineInstaller, definePlugin } from '../definitions.js';
 export { defineEvents, event } from '../events/define.js';
 export { defineSettings, setting } from '../settings/define.js';
-export { defineContract, getService } from '../service-key.js';
+export { defineContract, findService, getService } from '../service-key.js';
 export { definePermissions } from '../permissions.js';
 export { settingsStorage } from '../settings/storage.js';
 export { withPluginOrigin } from '../inspection/plugin-origin.js';
