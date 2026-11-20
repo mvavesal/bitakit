@@ -109,7 +109,10 @@ async function assertServerCore(root, reason) {
  * actions, services, interceptors, kinds, code }`, where `actions`, `services` and
  * `interceptors` are the `server/` entries, `kinds[index]` the files of `kinds[index]` this file
  * imports and `code` every other source file under the module's `server/` folder.
- * `localPlugins` names every local plugin, also disabled ones.
+ * `localPlugins` names every local plugin, also disabled ones. `switchedOff` lists the disabled
+ * local plugins' server services (`{ prefix, services }`): they stay typed in the service map
+ * through type-only references (never imported), so their own files and optional references from
+ * other plugins compile; a name an enabled module holds wins.
  *
  * Package plugins have no server entries yet and stay out, so a dependency or parent naming one
  * is dropped, and so is a `configOverrides` entry for any module outside the file (the kernel
@@ -133,6 +136,7 @@ export async function serverHalf({
   appId,
   configOverrides,
   localPlugins,
+  switchedOff = [],
   endpoint,
   rateLimit,
   root,
@@ -200,7 +204,7 @@ export async function serverHalf({
   // would otherwise reference itself). Records and aliased services keep the inferred entry.
   const serviceSources = new Map(
     await Promise.all(
-      modules
+      [...modules, ...switchedOff]
         .flatMap((module) => module.services.map((entry) => entry.file))
         .map(async (file) => [file, await readFile(file, 'utf8').catch(() => '')]),
     ),
@@ -258,6 +262,19 @@ export async function serverHalf({
       dependencies: module.dependencies.filter(kept),
     };
   };
+  // Switched-off plugins' services: the same entries, through type-only references.
+  const switchedOffTypes = switchedOff.flatMap((module) =>
+    emitter.typeFileEntries(module.services).map((name, index) => {
+      const entry = module.services[index];
+      if (singleService(entry.file)) {
+        serviceValuesUsed = true;
+        const key = [module.prefix, entry.path.join('.')].filter(Boolean).join('.');
+        return `{ readonly ${quote(key)}: DiscoveredServiceValue<${name}> }`;
+      }
+      serviceEntriesUsed = true;
+      return `DiscoveredServiceEntry<${name}, ${quote(module.prefix)}>`;
+    }),
+  );
   const [app, ...plugins] = modules;
   const own = emitModule(app);
   const definitions = plugins.map((module) => {
@@ -301,6 +318,7 @@ export async function serverHalf({
     actionTypes.length && 'type ServerActionEntry',
     serviceEntriesUsed && 'type DiscoveredServiceEntry',
     serviceValuesUsed && 'type DiscoveredServiceValue',
+    switchedOffTypes.length && 'type DiscoveredFile',
   ].filter(Boolean);
   const kindDeclarations = emitter.kindDeclarations();
   const source = (stamp) => `${generatedHeader}
@@ -311,10 +329,10 @@ ${values.map((value) => `  ${value},`).join('\n')}
 ${emitter.imports.join('\n')}
 ${packageImports.join('\n')}
 
-type DiscoveredServerServices = ${serviceTypes.join(' & ') || '{}'};
+type DiscoveredServerServices = ${serviceTypes.join(' & ') || '{}'};${switchedOffTypes.length ? `\ntype SwitchedOffServerServices = ${emitter.withoutEnabled(switchedOffTypes, ['DiscoveredServerServices'])};` : ''}
 ${kindDeclarations ? `${kindDeclarations}\n` : ''}declare module '@bitakit/core' {
   interface ServerActionMap {${actionTypes.length ? `\n${actionTypes.join('\n')}\n  ` : ''}}
-  interface ServerServiceMap extends DiscoveredServerServices {}
+  interface ServerServiceMap extends DiscoveredServerServices${switchedOffTypes.length ? ', SwitchedOffServerServices' : ''} {}
 }
 
 /** The app's server half: every enabled local module's shared files and server/ folder. */

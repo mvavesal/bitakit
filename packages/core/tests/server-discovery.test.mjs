@@ -642,7 +642,12 @@ export default defineAction({ access: 'public', expose: true, execute: () => 'se
     const dependent = await generateBitaKit(root, { quiet: true });
     const source = await readFile(dependent.server, 'utf8');
     assert.match(source, /id: "invoices", dependencies: \["billing"\]/);
-    assert.doesNotMatch(source, /id: "billing"|ledger/, 'the disabled plugin stays out');
+    assert.doesNotMatch(source, /id: "billing"|^import .*ledger/m, 'the disabled plugin stays out');
+    assert.match(
+      source,
+      /^type TypeFile\d+ = DiscoveredFile<typeof import\('\.\/plugins\/billing\/server\/services\/ledger'\)\.default, "ledger">;$/m,
+      'only its type is referenced',
+    );
     await bothRefuse(
       dependent,
       (caller) => caller.invoices.total(),
@@ -665,6 +670,107 @@ export default defineAction({ access: 'public', expose: true, execute: () => 're
       (caller) => caller.admin.refund(),
       /^Plugin "admin" belongs to "billing", which is not installed or is disabled\./,
     );
+  }));
+
+test('a switched-off plugin keeps its typed names through type-only references; an enabled name wins', () =>
+  fixture(async (root, put) => {
+    await installCore(put);
+    await put(
+      'bitakit.config.ts',
+      `export default { plugins: { overrides: { billing: { enabled: false } } } };`,
+    );
+    await put(
+      'src/plugins/billing/events.ts',
+      `import { defineEvents, event } from '@bitakit/core';
+export default defineEvents({ paid: event<{ id: string }>() });
+`,
+    );
+    await put(
+      'src/plugins/billing/services/meter.ts',
+      `import { defineService } from '@bitakit/core';
+export default defineService(() => ({ count: () => 1 }));
+`,
+    );
+    await put(
+      'src/plugins/billing/services/archive.ts',
+      `import { defineService } from '@bitakit/core';
+export default defineService(() => ({ owner: 'billing' as const }), { id: 'archive' });
+`,
+    );
+    await put(
+      'src/plugins/billing/actions/pay.ts',
+      `throw new Error('never imported');
+import { defineAction } from '@bitakit/core';
+export default defineAction({ title: 'Pay', execute: () => 'paid' });
+`,
+    );
+    await put(
+      'src/plugins/billing/server/services/ledger.ts',
+      `throw new Error('never imported');
+import { defineService } from '@bitakit/core/server';
+export default defineService(() => ({ total: () => 42 }));
+`,
+    );
+    // Its own code still compiles against its names.
+    await put(
+      'src/plugins/billing/server/services/report.ts',
+      `import { defineService } from '@bitakit/core/server';
+export default defineService(({ services }) => ({ sum: () => services.billing.ledger.total() + 1 }));
+`,
+    );
+    await put(
+      'src/plugins/notes/services/archive.ts',
+      `import { defineService } from '@bitakit/core';
+export default defineService(() => ({ owner: 'notes' as const }), { id: 'archive' });
+`,
+    );
+    await put(
+      'src/plugins/notes/server/services/store.ts',
+      `import { defineService } from '@bitakit/core/server';
+export default defineService(() => ({ size: () => 0 }));
+`,
+    );
+    const result = await generateBitaKit(root, { quiet: true });
+    const client = await readFile(result.generated, 'utf8');
+    const source = await readFile(result.server, 'utf8');
+    for (const file of [client, source])
+      assert.doesNotMatch(
+        file,
+        /^import .*plugins\/billing|id: "billing"/m,
+        'nothing of it is imported',
+      );
+    assert.match(
+      client,
+      /interface ServiceMap extends DiscoveredServices, InstalledServices, SwitchedOffServices \{\}/,
+    );
+    assert.match(
+      source,
+      /interface ServerServiceMap extends DiscoveredServerServices, SwitchedOffServerServices \{\}/,
+    );
+
+    const consumer = await put(
+      'consumer.ts',
+      `import type { ActionMap, EventMap, ServiceMap, ServerServiceMap } from '@bitakit/core';
+declare const services: ServiceMap;
+declare const server: ServerServiceMap;
+export const count: number = services['billing.meter'].count();
+export const total: number = server['billing.ledger'].total();
+export const sum: number = server['billing.report'].sum();
+export const paid: EventMap['billing.paid'] = { id: 'x' };
+export const pay: keyof ActionMap = 'billing.pay';
+// The enabled module's service holds the name both claim.
+export const owner: 'notes' = services.archive.owner;
+`,
+    );
+    assert.deepEqual(typeErrors([result.server, result.generated, consumer], root), []);
+
+    const { createBitaKitConfig } = await loadGenerated(result.generated);
+    assert.deepEqual(
+      createBitaKitConfig().plugins.map((plugin) => plugin.id),
+      ['notes'],
+    );
+    const { server } = await loadGenerated(result.server);
+    await server.stop();
   }));
 
 test('the stamp follows the server code: an edited Action body or server/ helper boots the new code in development', () =>

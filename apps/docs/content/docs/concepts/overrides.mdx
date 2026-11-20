@@ -60,7 +60,7 @@ export default defineBitaKit({
 });
 ```
 
-Every folder under the plugin directory is a plugin and is enabled by default. `autoEnable: false` turns off all of them unless an override enables one; `overrides` sets single plugins by ID. A disabled plugin contributes nothing: no services, actions, pages, slots or settings. To keep a plugin but cap one of its actions, use `actions.overrides` instead.
+Every folder under the plugin directory is a plugin and is enabled by default. `autoEnable: false` turns off all of them unless an override enables one; `overrides` sets single plugins by ID. A disabled plugin contributes nothing: no services, actions, pages, slots or settings. Its names stay typed (services, server services, actions, events, settings, configs, slots and, beside enabled ones, permissions) through type-only references, so its own files and optional references from other plugins still compile while nothing of it is imported or runs; a name an enabled plugin also claims stays the enabled plugin's. A plugin that depends on a disabled one fails to start, and `bitakit doctor` reports it. To keep a plugin but cap one of its actions, use `actions.overrides` instead.
 
 ## Opt out of automatic package loading
 

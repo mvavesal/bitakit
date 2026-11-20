@@ -18,21 +18,24 @@ export function createEmitter(output, relativeTo, { typedKind = () => true } = {
   let serial = 0;
   /** The next free number for a name in this file. */
   const next = () => serial++;
-  const importFile = (file, namespace = false) => {
-    const name = `${namespace ? 'module' : 'entry'}${next()}`;
+  const moduleSpecifier = (file) => {
     let relative = path
       .relative(output, file)
       .replaceAll(path.sep, '/')
       .replace(/\.tsx?$/, '');
     if (!relative.startsWith('.')) relative = `./${relative}`;
+    return specifier(relative);
+  };
+  const importFile = (file, namespace = false) => {
+    const name = `${namespace ? 'module' : 'entry'}${next()}`;
     imports.push(
       namespace
-        ? `import * as ${name} from ${specifier(relative)};`
-        : `import ${name} from ${specifier(relative)};`,
+        ? `import * as ${name} from ${moduleSpecifier(file)};`
+        : `import ${name} from ${moduleSpecifier(file)};`,
     );
     return name;
   };
-  const types = {
+  const typeMaps = () => ({
     services: [],
     actions: [],
     events: [],
@@ -42,7 +45,14 @@ export function createEmitter(output, relativeTo, { typedKind = () => true } = {
     configs: [],
     permissions: [],
     roles: [],
-  };
+  });
+  const types = typeMaps();
+  /**
+   * The type entries of switched-off plugins: their names stay typed (their own files and optional
+   * references from other plugins still compile), but only through type-only references, so
+   * nothing of them reaches the bundle. A name an enabled module holds wins (see `withoutEnabled`).
+   */
+  const switchedOff = typeMaps();
   /** One `fileN = discoveredFile(entryN, path, source)` per entry; returns the `fileN` names. */
   const fileEntries = (entries) =>
     entries.map((entry) => {
@@ -53,30 +63,64 @@ export function createEmitter(output, relativeTo, { typedKind = () => true } = {
       );
       return name;
     });
+  /**
+   * One type-only `TypeFileN = DiscoveredFile<typeof import(…).default, path>` per entry: the same
+   * shape `fileN` has, without importing the file. Returns the `TypeFileN` names.
+   */
+  const typeFileEntries = (entries) =>
+    entries.map((entry) => {
+      const name = `TypeFile${next()}`;
+      imports.push(
+        `type ${name} = DiscoveredFile<typeof import(${moduleSpecifier(entry.file)}).default, ${quote(entry.path.join('.'))}>;`,
+      );
+      return name;
+    });
+  /** Records the type entries of a built-in kind's files (`refs`: `typeof fileN` or `TypeFileN`). */
+  const record = (into, kind, refs, moduleId) => {
+    if (kind === 'actions')
+      for (const ref of refs)
+        into.actions.push(`DiscoveredActionEntry<${ref}, ${quote(moduleId)}>`);
+    if (kind === 'services')
+      for (const ref of refs)
+        into.services.push(`DiscoveredServiceEntry<${ref}, ${quote(moduleId)}>`);
+    if (kind === 'events')
+      for (const ref of refs) {
+        into.events.push(`DiscoveredEventsEntry<${ref}, ${quote(moduleId)}>`);
+        into.cancelable.push(`DiscoveredCancelableEntry<${ref}, ${quote(moduleId)}>`);
+      }
+    if (kind === 'settings')
+      for (const ref of refs)
+        into.settings.push(`DiscoveredSettingsEntry<${ref}, ${quote(moduleId)}>`);
+    if (kind === 'slotDefinitions')
+      for (const ref of refs) into.slots.push(`DiscoveredSlotEntry<${ref}, ${quote(moduleId)}>`);
+    if (kind === 'configs')
+      into.configs.push(
+        `${quote(moduleId)}: ${refs.map((ref) => `DiscoveredConfigEntry<${ref}>`).join(' & ') || '{}'};`,
+      );
+  };
+  /** The type entries of a switched-off plugin's files of a built-in kind; nothing at runtime. */
+  const emitTypes = (kind, entries, moduleId) =>
+    record(switchedOff, kind, typeFileEntries(entries), moduleId);
+  /** The type entries of a switched-off plugin's `permissions.ts`; nothing at runtime. */
+  const permissionTypes = (file) =>
+    switchedOff.permissions.push(`PermissionsOf<typeof import(${moduleSpecifier(file)}).default>`);
+  /**
+   * A switched-off map without the names an enabled map already holds (`enabled`: type names),
+   * so an alias, explicit ID or resource both claim stays the enabled module's alone.
+   */
+  const withoutEnabled = (entries, enabled) =>
+    entries.length
+      ? `Omit<${entries.join(' & ')}, ${enabled.map((name) => `keyof ${name}`).join(' | ')}>`
+      : '{}';
   /** The `discover*` call of a built-in kind; records the file's type entries. */
   const emit = (kind, entries, moduleId) => {
     const names = fileEntries(entries);
-    if (kind === 'actions')
-      for (const name of names)
-        types.actions.push(`DiscoveredActionEntry<typeof ${name}, ${quote(moduleId)}>`);
-    if (kind === 'services')
-      for (const name of names)
-        types.services.push(`DiscoveredServiceEntry<typeof ${name}, ${quote(moduleId)}>`);
-    if (kind === 'events')
-      for (const name of names) {
-        types.events.push(`DiscoveredEventsEntry<typeof ${name}, ${quote(moduleId)}>`);
-        types.cancelable.push(`DiscoveredCancelableEntry<typeof ${name}, ${quote(moduleId)}>`);
-      }
-    if (kind === 'settings')
-      for (const name of names)
-        types.settings.push(`DiscoveredSettingsEntry<typeof ${name}, ${quote(moduleId)}>`);
-    if (kind === 'slotDefinitions')
-      for (const name of names)
-        types.slots.push(`DiscoveredSlotEntry<typeof ${name}, ${quote(moduleId)}>`);
-    if (kind === 'configs')
-      types.configs.push(
-        `${quote(moduleId)}: ${names.map((name) => `DiscoveredConfigEntry<typeof ${name}>`).join(' & ') || '{}'};`,
-      );
+    record(
+      types,
+      kind,
+      names.map((name) => `typeof ${name}`),
+      moduleId,
+    );
     const fn = {
       actions: 'discoverActions',
       services: 'discoverServices',
@@ -141,10 +185,15 @@ export function createEmitter(output, relativeTo, { typedKind = () => true } = {
   return {
     imports,
     types,
+    switchedOff,
     next,
     importFile,
     fileEntries,
+    typeFileEntries,
     emit,
+    emitTypes,
+    permissionTypes,
+    withoutEnabled,
     contributions,
     kindDeclarations,
   };
