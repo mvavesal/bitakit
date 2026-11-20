@@ -135,7 +135,7 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
   const pluginOverrides = resolveOverrides(config.plugins?.overrides, pluginNames);
 
   const client = createEmitter(output, relativeTo);
-  const { imports, types, importFile, emit } = client;
+  const { imports, types, switchedOff, importFile, emit } = client;
   /**
    * Roles and permissions: each module's `permissions.ts` and the app's `roles.ts`. Every file is
    * checked here (conflicts, unknown grants) and again by the runtime; nothing is merged by order.
@@ -231,6 +231,8 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
   const endpoint = serverEndpoint(config);
   // The app first, then every enabled local plugin: the server file's modules.
   const serverModules = [];
+  // The server services of switched-off plugins: typed in the server file, never imported.
+  const switchedOffServer = [];
 
   // The application module.
   const appManifestFile = path.join(appRoot, 'plugin.config.ts');
@@ -436,7 +438,28 @@ export async function generateBitaKit(root, { quiet = false, packageCache } = {}
       }
       return collect(base, moduleFiles, kind);
     };
-    if (!enabled) continue;
+    if (!enabled) {
+      // A switched-off plugin keeps its typed names, so its own files and optional references
+      // from other plugins still compile. Only type-only references: nothing of it is imported,
+      // checked or run, and its slot definitions declare no slot.
+      const own = (name) =>
+        moduleFiles
+          .filter((file) => file === path.join(base, name))
+          .map((file) => ({ file, path: [] }));
+      client.emitTypes('events', own('events.ts'), manifest.id);
+      client.emitTypes('settings', own('settings.ts'), manifest.id);
+      for (const { file } of own('permissions.ts')) client.permissionTypes(file);
+      client.emitTypes('actions', await entriesFor('actions'), manifest.id);
+      client.emitTypes('services', await entriesFor('services'), manifest.id);
+      client.emitTypes('slotDefinitions', await entriesFor('slotDefinitions'), manifest.id);
+      const configEntries = await entriesFor('configs');
+      if (configEntries.length) client.emitTypes('configs', configEntries, manifest.id);
+      switchedOffServer.push({
+        prefix: manifest.id,
+        services: await collect(base, moduleFiles, 'services', { side: 'server' }),
+      });
+      continue;
+    }
     enabledModuleIds.add(manifest.id);
     const eventsFile = moduleFiles.find((file) => file === path.join(base, 'events.ts'));
     const settingsFile = moduleFiles.find((file) => file === path.join(base, 'settings.ts'));
@@ -616,6 +639,7 @@ ${installed.plugins
   const serverFile = path.join(output, 'bitakit.gen.server.ts');
   const serverHalfFile = await serverHalf({
     modules: serverModules,
+    switchedOff: switchedOffServer,
     kinds,
     appId,
     configOverrides,
@@ -655,19 +679,31 @@ ${installed.plugins
     framework === 'next' ? '@bitakit/next' : framework === 'tanstack' ? '@bitakit/tanstack' : null;
   const extension = provider ? 'tsx' : 'ts';
   const intersect = (list) => list.join(' & ') || '{}';
+  // Switched-off permissions are typed only beside enabled ones: an untouched PermissionMap
+  // accepts every name, and the generation check (unknown grants) stays the enabled set's.
+  if (!types.permissions.length) switchedOff.permissions.length = 0;
+  const typed = (kind) => types[kind].length || switchedOff[kind].length;
+  const typedWith = (kind, name) =>
+    [...types[kind], ...switchedOff[kind]].some((entry) => entry.includes(name));
+  /** `type SwitchedOffX = …` of a map with switched-off entries (none: no alias). */
+  const switchedOffAlias = (kind, name, enabled) =>
+    switchedOff[kind].length
+      ? `\ntype SwitchedOff${name} = ${client.withoutEnabled(switchedOff[kind], enabled)};`
+      : '';
+  /** `, SwitchedOffX` for an interface's extends list when the map has switched-off entries. */
+  const alsoSwitchedOff = (kind, name) => (switchedOff[kind].length ? `, SwitchedOff${name}` : '');
   const typeImports = [
-    types.actions.length && 'type DiscoveredActionEntry',
-    types.services.length && 'type DiscoveredServiceEntry',
-    types.slots.some((entry) => entry.includes('DiscoveredSlotEntry')) &&
-      'type DiscoveredSlotEntry',
+    typed('actions') && 'type DiscoveredActionEntry',
+    typed('services') && 'type DiscoveredServiceEntry',
+    typedWith('slots', 'DiscoveredSlotEntry') && 'type DiscoveredSlotEntry',
     appLayoutFamilies.length && 'type LayoutSlot',
-    types.events.length && 'type DiscoveredEventsEntry',
-    types.cancelable.length && 'type DiscoveredCancelableEntry',
-    types.settings.length && 'type DiscoveredSettingsEntry',
+    typed('events') && 'type DiscoveredEventsEntry',
+    typed('cancelable') && 'type DiscoveredCancelableEntry',
+    typed('settings') && 'type DiscoveredSettingsEntry',
     types.permissions.length && 'type PermissionsOf',
     types.roles.length && 'type RoleIdsOf',
-    types.configs.some((entry) => entry.includes('DiscoveredConfigEntry')) &&
-      'type DiscoveredConfigEntry',
+    typedWith('configs', 'DiscoveredConfigEntry') && 'type DiscoveredConfigEntry',
+    imports.some((line) => line.includes(' = DiscoveredFile<')) && 'type DiscoveredFile',
     installed.plugins.length && 'type PublicServicesOf',
     installed.plugins.length && 'type PublicSettingsOf',
     installed.plugins.length && 'type PublicSlotsOf',
@@ -743,19 +779,19 @@ type DiscoveredActions = ${intersect(types.actions)};
 type DiscoveredEvents = ${intersect(types.events)};
 type DiscoveredCancelable = ${intersect(types.cancelable)};
 type DiscoveredSettings = ${intersect(types.settings)};${types.permissions.length ? `\ntype DiscoveredPermissions = ${types.permissions.join(' & ')};` : ''}${types.roles.length ? `\ntype DiscoveredRoles = ${types.roles.join(' & ')};` : ''}
-type DiscoveredSlots = ${intersect(types.slots)};
+type DiscoveredSlots = ${intersect(types.slots)};${switchedOffAlias('services', 'Services', ['DiscoveredServices', 'InstalledServices'])}${switchedOffAlias('actions', 'Actions', ['DiscoveredActions', 'InstalledActions'])}${switchedOffAlias('events', 'Events', ['DiscoveredEvents', 'InstalledEvents'])}${switchedOffAlias('cancelable', 'Cancelable', ['DiscoveredCancelable', 'InstalledCancelable'])}${switchedOffAlias('settings', 'Settings', ['DiscoveredSettings', 'InstalledSettings'])}${switchedOffAlias('permissions', 'Permissions', ['DiscoveredPermissions'])}${switchedOffAlias('slots', 'Slots', ['DiscoveredSlots', 'InstalledSlots'])}
 ${installed.plugins.length ? `type InstalledPlugins = [${installed.plugins.map((_, index) => `ReturnType<typeof packagePlugin${index}>`).join(', ')}];\ntype InstalledServices = PublicServicesOf<InstalledPlugins>;\ntype InstalledSettings = PublicSettingsOf<InstalledPlugins>;\ntype InstalledSlots = PublicSlotsOf<InstalledPlugins>;\ntype InstalledActions = PublicActionsOf<InstalledPlugins>;\ntype InstalledEvents = PublicEventsOf<InstalledPlugins>;\ntype InstalledCancelable = PublicCancelableOf<InstalledPlugins>;` : 'type InstalledServices = {};\ntype InstalledSettings = {};\ntype InstalledSlots = {};\ntype InstalledActions = {};\ntype InstalledEvents = {};\ntype InstalledCancelable = {};'}
 ${client.kindDeclarations()}
 declare module '@bitakit/core' {
-  interface ServiceMap extends DiscoveredServices, InstalledServices {}
-  interface ActionMap extends DiscoveredActions, InstalledActions {}
-  interface EventMap extends DiscoveredEvents, InstalledEvents {}
-  interface CancelableEventMap extends DiscoveredCancelable, InstalledCancelable {}
-  interface SettingsMap extends DiscoveredSettings, InstalledSettings {}${types.permissions.length ? '\n  interface PermissionMap extends DiscoveredPermissions {}' : ''}${types.roles.length ? '\n  interface RoleMap extends DiscoveredRoles {}' : ''}
+  interface ServiceMap extends DiscoveredServices, InstalledServices${alsoSwitchedOff('services', 'Services')} {}
+  interface ActionMap extends DiscoveredActions, InstalledActions${alsoSwitchedOff('actions', 'Actions')} {}
+  interface EventMap extends DiscoveredEvents, InstalledEvents${alsoSwitchedOff('events', 'Events')} {}
+  interface CancelableEventMap extends DiscoveredCancelable, InstalledCancelable${alsoSwitchedOff('cancelable', 'Cancelable')} {}
+  interface SettingsMap extends DiscoveredSettings, InstalledSettings${alsoSwitchedOff('settings', 'Settings')} {}${types.permissions.length ? `\n  interface PermissionMap extends DiscoveredPermissions${alsoSwitchedOff('permissions', 'Permissions')} {}` : ''}${types.roles.length ? '\n  interface RoleMap extends DiscoveredRoles {}' : ''}
   interface ConfigMap {
-    ${types.configs.join('\n    ')}
+    ${[...types.configs, ...switchedOff.configs].join('\n    ')}
   }
-  interface SlotMap extends DiscoveredSlots, InstalledSlots {}
+  interface SlotMap extends DiscoveredSlots, InstalledSlots${alsoSwitchedOff('slots', 'Slots')} {}
   interface LegacySlotMap { ${slotNames.map((name) => `${quote(name)}: true;`).join(' ')} }
 ${strict ? '  interface ActionMapOptions { strict: true }\n' : ''}}
 

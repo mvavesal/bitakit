@@ -127,7 +127,12 @@ test('discovers folder conventions into client config and emits a component-only
       'export default { plugins: { overrides: { users: { enabled: false } } } }',
     );
     await generate();
-    assert.doesNotMatch(await output(), /actions\/invite/);
+    // A disabled plugin is never imported; its names stay typed through type-only references.
+    assert.doesNotMatch(await output(), /^import .*actions\/invite/m);
+    assert.match(
+      await output(),
+      /= DiscoveredFile<typeof import\('\.\/plugins\/users\/actions\/invite'\)/,
+    );
     assert.equal(
       await exists('src/bitakit.gen.messages.json'),
       false,
@@ -323,7 +328,7 @@ test('the watcher regenerates on source, package metadata, and config selection 
           'bitakit.config.ts',
           'export default { plugins: { overrides: { notes: { enabled: false } } } }',
         );
-        await until(async () => !(await output()).includes('plugins/notes/actions/open'));
+        await until(async () => !/^import .*plugins\/notes\/actions\/open/m.test(await output()));
         assert.deepEqual(errors, []);
       } finally {
         stop();

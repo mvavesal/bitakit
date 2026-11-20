@@ -68,6 +68,8 @@ export default defineBitaKit({
 - Never import `src/bitakit.gen.server.ts` from browser code; only the RPC route and other server
   code do.
 - `npx bitakit info --json` and `npx bitakit slots --json` show what discovery found.
+- A disabled plugin stays typed through type-only references (never imported, never run), so its
+  own files keep compiling; check for enabled plugins that depend on it with `npx bitakit doctor`.
 
 ## Identifier spelling and extension types
 
