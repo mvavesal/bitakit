@@ -59,3 +59,22 @@ export function getService<T>(services: object, key: ServiceKey<T>): T {
 }
 
 export type ProvidedService<T> = ServiceDefinition<T> & { readonly provides: ServiceKey<T> };
+
+/**
+ * Like `getService`, for a contract that may have no provider: `undefined` when no active plugin
+ * provides it (the plugin is absent or switched off). A provider that is declared but not created
+ * yet is still an error, as with `getService`.
+ */
+export function findService<T>(services: object, key: ServiceKey<T>): T | undefined {
+  let current: unknown = services;
+  for (const requested of (key as string).split('.')) {
+    if (!current || typeof current !== 'object') return undefined;
+    const segment =
+      requested in current
+        ? requested
+        : resolveName(requested, Object.getOwnPropertyNames(current));
+    if (!(segment in (current as object))) return undefined;
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current as T | undefined;
+}
