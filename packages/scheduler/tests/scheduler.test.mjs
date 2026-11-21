@@ -437,3 +437,145 @@ test('manual task replacement restores retained schedules and removed schedules 
   await replacement.ready;
   assert.equal(engine.list()[0].paused, false);
 });
+
+test('runDue runs the latest slot of each due schedule once, with schedule and slot in the task context', async (t) => {
+  const { engine } = fixture(t);
+  const seen = [];
+  engine.registerTask(
+    'record',
+    defineTask({
+      execute: ({ schedule, slot, input }) => {
+        if (input?.fail) throw new Error('planned failure');
+        seen.push([schedule, slot?.toISOString()]);
+        return schedule ?? 'manual';
+      },
+    }),
+  );
+  const handle = engine.registerSource({
+    id: 'mixed',
+    load: async () => [
+      // 03:30 in Berlin is 02:30 UTC in winter.
+      { id: 'daily', task: 'record', cron: '30 3 * * *', timezone: 'Europe/Berlin' },
+      { id: 'hourly', task: 'record', cron: '0 * * * *' },
+      { id: 'held', task: 'record', cron: '* * * * *', paused: true },
+      { id: 'halted', task: 'record', cron: '* * * * *' },
+      { id: 'once-past', task: 'record', at: '2030-01-01T02:30:10Z' },
+      { id: 'once-ahead', task: 'record', at: '2030-01-01T03:00:00Z' },
+      {
+        id: 'broken',
+        task: 'record',
+        cron: '30 3 * * *',
+        timezone: 'Europe/Berlin',
+        input: { fail: true },
+      },
+    ],
+  });
+  await handle.ready;
+  engine.pause('halted');
+  const now = new Date('2030-01-01T02:30:20.500Z');
+  const results = await engine.runDue({ now });
+  const byId = Object.fromEntries(results.map((result) => [result.schedule, result]));
+  assert.deepEqual(Object.keys(byId).sort(), ['broken', 'daily', 'once-past']);
+  assert.equal(byId.daily.status, 'fulfilled');
+  assert.equal(byId.daily.value, 'daily');
+  assert.equal(byId.daily.slot.toISOString(), '2030-01-01T02:30:00.000Z');
+  assert.equal(byId['once-past'].slot.toISOString(), '2030-01-01T02:30:10.000Z');
+  assert.equal(byId.broken.status, 'rejected');
+  assert.match(byId.broken.reason.message, /planned failure/);
+  assert.deepEqual(seen.sort(), [
+    ['daily', '2030-01-01T02:30:00.000Z'],
+    ['once-past', '2030-01-01T02:30:10.000Z'],
+  ]);
+  // A wider window reaches the hourly slot 30 minutes back; still the latest slot only.
+  const wide = await engine.runDue({ now, within: 24 * 60 * 60 * 1000 });
+  const hourly = wide.find((result) => result.schedule === 'hourly');
+  assert.equal(hourly?.slot.toISOString(), '2030-01-01T02:00:00.000Z');
+  assert.equal(wide.filter((result) => result.schedule === 'hourly').length, 1);
+  assert.ok(!wide.some((result) => ['held', 'halted', 'once-ahead'].includes(result.schedule)));
+  // The window is (now - within, now]: a slot exactly `within` back belongs to the previous call.
+  const edge = await engine.runDue({ now: new Date('2030-01-01T02:31:00.000Z'), within: 60_000 });
+  assert.ok(!edge.some((result) => result.schedule === 'daily'));
+  // A plain run carries neither schedule nor slot; a caller may name a slot.
+  seen.length = 0;
+  assert.equal(await engine.run('record'), 'manual');
+  await engine.run('record', undefined, {
+    schedule: 'daily',
+    slot: new Date('2030-01-01T02:30:00Z'),
+  });
+  assert.deepEqual(seen, [
+    [undefined, undefined],
+    ['daily', '2030-01-01T02:30:00.000Z'],
+  ]);
+  await assert.rejects(engine.run('record', undefined, { slot: 'yesterday' }), TypeError);
+  await assert.rejects(engine.runDue({ within: 0 }), RangeError);
+  await assert.rejects(engine.runDue({ now: new Date('invalid') }), TypeError);
+});
+
+test('runDue skips a schedule whose run is still in progress and crosses the public run once per schedule', async (t) => {
+  const { defineInterceptor } = await import('@bitakit/core');
+  const calls = [];
+  const observer = definePlugin({
+    id: 'audit',
+    interceptors: [
+      defineInterceptor({
+        service: 'scheduler',
+        method: 'run',
+        before: (call) => calls.push([call.args[0], call.args[2]?.schedule, call.args[2]?.slot]),
+      }),
+    ],
+  });
+  const runtime = createRuntime({ plugins: [schedulerPlugin, observer] });
+  const stop = runtime.mount();
+  t.after(() => stop());
+  await runtime.ready;
+  const service = runtime.services.scheduler;
+  const gate = deferred();
+  let runs = 0;
+  service.registerTask(
+    'slow',
+    defineTask({
+      execute: async () => {
+        runs++;
+        await gate.promise;
+        return 'done';
+      },
+    }),
+  );
+  await service.registerSchedule({
+    id: 'nightly',
+    task: 'slow',
+    cron: '0 2 * * *',
+    timezone: 'UTC',
+  }).ready;
+  const now = new Date('2030-01-01T02:00:30Z');
+  const first = service.runDue({ now });
+  await new Promise((resolve) => setImmediate(resolve));
+  const second = await service.runDue({ now });
+  assert.deepEqual(
+    second.map(({ schedule, status }) => [schedule, status]),
+    [['nightly', 'skipped']],
+  );
+  gate.resolve();
+  const [result] = await first;
+  assert.equal(result.status, 'fulfilled');
+  assert.equal(result.value, 'done');
+  assert.equal(runs, 1);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'slow');
+  assert.equal(calls[0][1], 'nightly');
+  assert.equal(calls[0][2].toISOString(), '2030-01-01T02:00:00.000Z');
+});
+
+test('timer runs pass their planned slot to the task', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: new Date('2030-01-01T00:00:00Z') });
+  const { engine } = fixture(t);
+  const done = deferred();
+  engine.registerTask(
+    'tick',
+    defineTask({ execute: ({ schedule, slot }) => done.resolve([schedule, slot.toISOString()]) }),
+  );
+  await engine.registerSchedule({ id: 'every-ten', task: 'tick', cron: '*/10 * * * * *' }).ready;
+  await engine.start();
+  t.mock.timers.tick(10_000);
+  assert.deepEqual(await done.promise, ['every-ten', '2030-01-01T00:00:10.000Z']);
+});

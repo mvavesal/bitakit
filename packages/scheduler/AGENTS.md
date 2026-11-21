@@ -36,8 +36,8 @@ export async function register() {
 }
 ```
 
-In-process schedules run only while a server process lives; on serverless hosts let the
-platform's cron call an operation that runs the task.
+In-process timers fire only while a server process lives. On serverless hosts (Vercel,
+Cloudflare, Netlify) let the host's cron call a route that runs `runDue` (below).
 
 Until the next minor version the old place `contributions/tasks|schedules/` keeps working where
 it worked before (the browser composition, or a worker built from it), with a warning per file;
@@ -50,7 +50,8 @@ installation of the scheduler runs its own set of jobs.
 
 A feature declares executable code with `defineTask({ input?, requires?, execute })` in
 `server/contributions/tasks/weekly.ts`. The execute context contains `services`, plugin-owned `config`,
-`events`, `settings`, parsed `input` and `signal`. `input` accepts Core's Zod/Standard Schema
+`events`, `settings`, parsed `input` and `signal`, and for a scheduled run `schedule` (its ID) and
+`slot` (a `Date`: the planned time, not the moment the timer fired). `input` accepts Core's Zod/Standard Schema
 contract; `requires` checks available services at registration and each execution. Domain
 permissions belong in the task or the called business service and must be checked on every run.
 Actions are callers (browser Actions through a server Action), not task definitions. Never load executable code from a schedule source.
@@ -125,16 +126,33 @@ await registration.ready;
 control and trusted tenant selection belong to that provider. Browser clients use data/URL
 sources and must not receive server credentials.
 
+## Running due schedules from any host's cron
+
+`runDue({ now?, within? })` runs every enabled, unpaused schedule (code and source schedules
+alike) whose latest slot, at or before `now` in its timezone, lies in the window
+`(now - within, now]` (`within` in milliseconds, default 60000). Each due schedule runs once,
+in parallel, through the public `run` (interceptors see it once), with `schedule` and `slot` in
+the task context. It resolves with one settled entry per due schedule:
+`{ schedule, task, slot, status: 'fulfilled', value }`, `{ ..., status: 'rejected', reason }`, or
+`{ ..., status: 'skipped' }` while that schedule's previous run is still in progress in this
+process (timers skip the same way). It runs the latest slot only, never every missed one, and
+requires a ready runtime like `run`. Call it from a route that the host's cron calls with a
+secret: once a minute with the default window, or once a day with `within: 86_400_000`.
+
+Deduplication is the task's or the app's job: several instances, a retried cron call or a
+living process whose timer fired the same slot can all start one slot. Claim `schedule` + `slot`
+first (for example a unique database row) and skip a slot already claimed.
+
 ## Execution, observation and cleanup
 
-`run(taskId, input?, { schedule? }?)` executes and returns the task result. `schedule` is
-correlation metadata, never proof of authorization. `reload(sourceId?)`, `unregisterSource(id)`,
+`run(taskId, input?, { schedule?, slot? }?)` executes and returns the task result. `schedule` and
+`slot` are correlation metadata, never proof of authorization; the task reads them from its context. `reload(sourceId?)`, `unregisterSource(id)`,
 `registerSchedule(schedule, { priority? }?)`, `pause`, `resume` and `list` manage schedules.
 `state` is Core's observable service store: running count, schedule status/next run, and source
 failure flags. It excludes task input/results and raw errors. No history/database is maintained.
 
-Croner protects each schedule from overlapping itself. Manual runs and different schedules
-may overlap. Every automatic callback re-enters the decorated public `scheduler.run` service,
+A schedule never overlaps itself in one process: its timer and `runDue` skip it while its
+previous automatic run is in progress. Manual runs and different schedules may overlap. Every automatic callback re-enters the decorated public `scheduler.run` service,
 so existing Core service interceptors see automatic, manual and event-triggered calls once.
 Use `defineInterceptor({ service: 'scheduler', method: 'run', before, after, onError })` as in
 `examples/audit/plugin.ts`. Service interceptors are already cross-plugin; unlike Action
@@ -154,7 +172,7 @@ Task removal aborts and drains its jobs. Runtime stop stops timers, revokes/unsu
 sources, aborts jobs and awaits their settlement; it is idempotent. Tasks must cooperate with
 AbortSignal. Never await scheduler/task/runtime cleanup from one of its own running tasks:
 that would wait for itself. Source errors do not erase valid schedules; task failures reject
-manual calls and are reported for automatic runs. There is no persistence, missed-run catch-up,
+manual calls and are reported for automatic runs. There is no persistence, replay of every missed slot (`runDue` runs only the latest),
 exactly-once, distributed locking, leader election, or execution while a browser tab is closed.
 
 ## Verification
@@ -162,6 +180,6 @@ exactly-once, distributed locking, leader election, or execution while a browser
 From the repository: build Core, then `npm run test --workspace @bitakit/scheduler`;
 `tsc -p packages/scheduler/examples/tsconfig.json`; run the server example with `--once`.
 Tests cover source precedence, invalid/stale snapshots, cleanup, feature ownership, input
-validation, timer execution and one public interceptor trace per run. Test a real installed
+validation, timer execution, `runDue` windows and slots, and one public interceptor trace per run. Test a real installed
 consumer's generated type maps when changing contribution metadata. Keep this guide and the
 reference page aligned with shipped behavior; `CLAUDE.md` only imports this file.

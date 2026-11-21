@@ -3,6 +3,7 @@ import { Cron } from 'croner';
 import { getService, serviceKey, validate } from '@bitakit/core';
 import { parseSchedules } from './sources.js';
 import type {
+  DueRun,
   Schedule,
   ScheduleSource,
   SourceRegistration,
@@ -16,7 +17,7 @@ import type {
 const key = (id: string) => id.toLowerCase();
 type Task = {
   definition: TaskDefinition<any, any>;
-  context: Omit<TaskContext, 'input' | 'signal'>;
+  context: Omit<TaskContext, 'input' | 'signal' | 'schedule' | 'slot'>;
   active: boolean;
 };
 type Source = {
@@ -30,6 +31,20 @@ type Source = {
 };
 type Timer = { schedule: Schedule; source: string; cron: Cron };
 type Run = { task: Task; controller: AbortController; promise: Promise<unknown> };
+const validDate = (value: unknown): value is Date =>
+  value instanceof Date && Number.isFinite(value.getTime());
+/**
+ * The latest planned time of a schedule at or before `now`, or null while a one-shot date is
+ * still ahead. Croner resolves cron patterns in the schedule's timezone; it leaves out a run at
+ * its millisecond-stripped reference, so the reference is the second after `now`'s own second.
+ */
+const latestSlot = (schedule: Schedule, cron: Cron, now: Date): Date | null => {
+  if (schedule.at !== undefined) {
+    const at = new Date(schedule.at);
+    return at.getTime() <= now.getTime() ? at : null;
+  }
+  return cron.previousRuns(1, new Date(Math.floor(now.getTime() / 1000) * 1000 + 1000))[0] ?? null;
+};
 
 /** In-process scheduler. The host must await stop; tasks must cooperate with their AbortSignal. */
 export function createScheduler(
@@ -38,7 +53,11 @@ export function createScheduler(
     /** Manual engines are ready by default; the plugin binds this to Core lifecycle state. */
     initiallyReady?: boolean;
     /** Runtime integration re-enters the decorated public service method for automatic jobs. */
-    dispatch?: (task: string, input: unknown, options: { schedule: string }) => Promise<unknown>;
+    dispatch?: (
+      task: string,
+      input: unknown,
+      options: { schedule: string; slot: Date },
+    ) => Promise<unknown>;
     onError?: (error: unknown, origin: { source?: string; task?: string }) => void;
   } = {},
 ): Scheduler & { start(): Promise<void>; stop(): Promise<void>; setReady(ready: boolean): void } {
@@ -46,6 +65,8 @@ export function createScheduler(
   const sources = new Map<string, Source>();
   const timers = new Map<string, Timer>();
   const runs = new Set<Run>();
+  /** Schedules with a run in progress in this process: timers and runDue never overlap one. */
+  const busy = new Set<string>();
   const paused = new Map<string, boolean>();
   const state = context.store<SchedulerState>({ running: 0, schedules: [], sources: [] });
   let ready = options.initiallyReady ?? true;
@@ -89,6 +110,21 @@ export function createScheduler(
     );
     return result;
   };
+  /** One automatic run of a schedule's slot through the public service; null while it is busy. */
+  const runSlot = async (schedule: Schedule, slot: Date) => {
+    const id = key(schedule.id);
+    if (busy.has(id)) return null;
+    busy.add(id);
+    try {
+      return await (options.dispatch ?? execute)(schedule.task, schedule.input, {
+        schedule: schedule.id,
+        slot,
+      });
+    } finally {
+      busy.delete(id);
+      publish();
+    }
+  };
   const makeTimer = (schedule: Schedule, source: string) =>
     new Cron(
       schedule.cron ?? new Date(schedule.at!),
@@ -98,15 +134,12 @@ export function createScheduler(
         protect: true,
         catch: (error) => report(error, { task: schedule.task }),
       },
-      async () => {
+      async (cron: Cron) => {
+        const now = new Date();
         try {
-          await (options.dispatch ?? execute)(schedule.task, schedule.input, {
-            schedule: schedule.id,
-          });
+          await runSlot(schedule, latestSlot(schedule, cron, now) ?? now);
         } catch {
           /* execute reports the failure once and emits a sanitized event. */
-        } finally {
-          publish();
         }
       },
     );
@@ -181,10 +214,13 @@ export function createScheduler(
   async function execute(
     id: string,
     input?: unknown,
-    runOptions?: { schedule?: string },
+    runOptions?: { schedule?: string; slot?: Date },
   ): Promise<unknown> {
     assertOpen();
     if (!ready) throw new Error('Scheduler runtime is not ready.');
+    const slot = runOptions?.slot;
+    if (slot !== undefined && !validDate(slot))
+      throw new TypeError('The run option "slot" must be a valid Date.');
     const runId = ++nextRunId;
     const schedule = runOptions?.schedule;
     const task = tasks.get(key(id));
@@ -206,6 +242,8 @@ export function createScheduler(
           ...task.context,
           input: checked,
           signal: controller.signal,
+          ...(schedule !== undefined ? { schedule } : {}),
+          ...(slot ? { slot: new Date(slot) } : {}),
         });
         notify('completed', id, runId, schedule);
         return result;
@@ -351,6 +389,35 @@ export function createScheduler(
       });
     },
     run: execute as Scheduler['run'],
+    async runDue(request = {}) {
+      assertOpen();
+      const now = request.now ?? new Date();
+      const within = request.within ?? 60_000;
+      if (!validDate(now)) throw new TypeError('runDue: "now" must be a valid Date.');
+      if (!Number.isFinite(within) || within <= 0)
+        throw new RangeError('runDue: "within" must be a positive number of milliseconds.');
+      if (!ready) throw new Error('Scheduler runtime is not ready.');
+      // Loads in flight (start-up, a change notification) settle first, so their schedules count.
+      await Promise.all([...sources.values()].map((entry) => entry.queue));
+      assertOpen();
+      const due: { schedule: Schedule; slot: Date }[] = [];
+      for (const [id, { schedule, cron }] of timers) {
+        if (paused.get(id) ?? schedule.paused ?? false) continue;
+        const slot = latestSlot(schedule, cron, now);
+        if (slot && now.getTime() - slot.getTime() < within) due.push({ schedule, slot });
+      }
+      return Promise.all(
+        due.map(async ({ schedule, slot }): Promise<DueRun> => {
+          const found = { schedule: schedule.id, task: schedule.task, slot };
+          if (busy.has(key(schedule.id))) return { ...found, status: 'skipped' };
+          try {
+            return { ...found, status: 'fulfilled', value: await runSlot(schedule, slot) };
+          } catch (reason) {
+            return { ...found, status: 'rejected', reason };
+          }
+        }),
+      );
+    },
     pause(id) {
       assertOpen();
       if (!timers.has(key(id))) throw new Error(`Unknown schedule "${id}".`);
