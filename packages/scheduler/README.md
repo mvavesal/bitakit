@@ -11,5 +11,8 @@ Source responsibilities: `define.ts` declares tasks/schedules; `discovered.ts` a
 contribution expansion; `engine.ts` owns execution and reconciliation; `sources.ts` reads data
 and URLs; `server/index.ts` reads/watches Node files; `plugin.ts` binds Core lifecycle/events.
 
+On serverless hosts a cron route calls `runDue({ within })`: it runs each schedule's latest slot
+in the window and hands the task its `schedule` and `slot`, so the task can claim each slot once.
+
 This is not a durable queue: no persistence, exactly-once, leader election or closed-tab guarantee.
 Install the plugin in the runtime that owns the work; server and browser runtimes are independent.

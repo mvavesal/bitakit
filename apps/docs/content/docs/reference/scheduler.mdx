@@ -17,14 +17,14 @@ installer context and ships its own `AGENTS.md` consumer guide and runnable serv
 
 ## Declarations
 
-| API                | Fields / behavior                                                                                             |
-| ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `defineTask`       | `{ input?, requires?, execute }`; parsed input, AbortSignal and feature-owned services/config/events/settings |
-| `defineSchedule`   | `{ task, cron, input?, timezone?, paused? }` or `{ task, at, ... }`; `at` includes a UTC offset               |
-| Task files         | `server/contributions/tasks/<name>.ts`; dotted and record forms are equivalent                                |
-| Schedule files     | `server/contributions/schedules/<name>.ts`; separate namespace with the same ID convention                    |
-| Generated maps     | `TaskMap` and `ScheduleMap`; mixed-case string references retain input/result checking                        |
-| Manual composition | Named `schedulerPlugin` in `createRuntime`; `registerTask` accepts the same definition and feature context    |
+| API                | Fields / behavior                                                                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defineTask`       | `{ input?, requires?, execute }`; parsed input, AbortSignal, `schedule`/`slot` of a scheduled run and feature-owned services/config/events/settings |
+| `defineSchedule`   | `{ task, cron, input?, timezone?, paused? }` or `{ task, at, ... }`; `at` includes a UTC offset                                                     |
+| Task files         | `server/contributions/tasks/<name>.ts`; dotted and record forms are equivalent                                                                      |
+| Schedule files     | `server/contributions/schedules/<name>.ts`; separate namespace with the same ID convention                                                          |
+| Generated maps     | `TaskMap` and `ScheduleMap`; mixed-case string references retain input/result checking                                                              |
+| Manual composition | Named `schedulerPlugin` in `createRuntime`; `registerTask` accepts the same definition and feature context                                          |
 
 Tasks are executable application code. Sources contain JSON-compatible schedule data only.
 Domain authorization stays in the task or business service and applies to every invocation.
@@ -37,7 +37,8 @@ contract. Its actual service ID is `scheduler-engine`; plugin ID is `scheduler`.
 
 | Method                                       | Contract                                                                             |
 | -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `run(taskId, input?, { schedule? }?)`        | Await parsed/authorized execution and its result; schedule metadata grants no access |
+| `run(taskId, input?, { schedule?, slot? }?)` | Await parsed/authorized execution and its result; schedule metadata grants no access |
+| `runDue({ now?, within? }?)`                 | Run each schedule whose latest slot lies in `(now - within, now]`; settled results   |
 | `registerTask(id, definition, context?)`     | Register code without discovery; returned async cleanup aborts and drains this task  |
 | `registerSource(source)`                     | Register a data source; returns `ready`, `reload`, `dispose`, `Symbol.asyncDispose`  |
 | `reload(sourceId?)`                          | Reload one or all sources; rejects on failure                                        |
@@ -50,6 +51,63 @@ Automatic timers activate after Core startup is ready and pause during lifecycle
 Manual execution through the plugin also requires runtime readiness. Direct `createScheduler`
 hosts own `start()` and `stop()` themselves. Await stop; tasks must cooperate with AbortSignal.
 Never await owned cleanup from a task that cleanup must drain.
+
+## Running schedules from a cron
+
+In-process timers fire only while a server process lives. Serverless hosts (Vercel, Cloudflare,
+Netlify) keep none, so let the host's cron call a route that runs `runDue`:
+
+```ts title="src/plugins/cron/server/actions/tick.ts"
+import { getService } from '@bitakit/core';
+import { defineAction } from '@bitakit/core/server';
+import { scheduler } from '@bitakit/scheduler';
+import { z } from 'zod';
+
+export default defineAction({
+  access: 'user', // called by the route below as the system principal; not exposed
+  input: z.object({ within: z.number().int().positive().max(86_400_000) }),
+  execute: async ({ input, services }) =>
+    (await getService(services, scheduler).runDue({ within: input.within })).map(
+      ({ schedule, slot, status }) => ({ schedule, slot: slot.toISOString(), status }),
+    ),
+});
+```
+
+```ts title="src/app/api/cron/tick/route.ts"
+import { timingSafeEqual } from 'node:crypto';
+import { server } from '@/bitakit.gen.server';
+
+export async function GET(request: Request) {
+  const secret = process.env.CRON_SECRET;
+  const given = Buffer.from(request.headers.get('authorization') ?? '');
+  const expected = Buffer.from(`Bearer ${secret}`);
+  if (!secret || given.length !== expected.length || !timingSafeEqual(given, expected))
+    return new Response('Not allowed.', { status: 401 });
+  return Response.json(await server.system('cron.tick').cron.tick({ within: 60_000 }));
+}
+```
+
+`runDue({ now?, within? })` runs every enabled, unpaused schedule, code and source schedules
+alike, whose latest slot (at or before `now`, in its timezone) lies in `(now - within, now]`.
+`within` is in milliseconds (default 60000): call it every minute with the default, or once a day
+with `within: 86_400_000` where the host's cron allows only daily jobs. Each due schedule runs once,
+in parallel, through the public `run`, so interceptors see it as usual. The result has one entry
+per due schedule: `status: 'fulfilled'` with `value`, `'rejected'` with `reason`, or `'skipped'`
+while its previous run is still in progress in this process. Only the latest slot runs, never
+every missed one.
+
+The task receives `schedule` and `slot` (the planned time as a `Date`, also for timer runs).
+Deduplication across instances is the task's or the app's job: a retried cron call, a second
+instance or a living process whose timer fired the same slot can start it again, so claim
+`schedule` + `slot` first, for example with a unique database row, and skip a claimed slot.
+
+| Host                  | Cron that calls the route                                                  |
+| --------------------- | -------------------------------------------------------------------------- |
+| Vercel                | `crons` in `vercel.json`; sends `Authorization: Bearer $CRON_SECRET`       |
+| Cloudflare            | Cron Triggers: a `scheduled()` handler fetches the route with the secret   |
+| Netlify               | Scheduled Functions that fetch the route with the secret                   |
+| GitHub Actions        | `on: schedule` with `curl -H "Authorization: Bearer …"`                    |
+| A server or container | crontab: `* * * * * curl -fsS -H "Authorization: Bearer …" https://…/tick` |
 
 ## Sources and precedence
 
@@ -90,6 +148,6 @@ Events `scheduler.started`, `scheduler.completed` and `scheduler.failed` contain
 `schedule` and a runtime-local `runId`. Input validation failures emit `failed` without `started`.
 The event `runId` and interceptor `callId` are separate local correlation domains.
 
-No persistence, exactly-once, distributed queue, leader election, missed-run catch-up or
-closed-tab execution is provided. Croner prevents overlap within one schedule; manual calls
-and separate schedules may overlap. Error handling never silently retries a task.
+No persistence, exactly-once, distributed queue, leader election, replay of every missed slot
+or closed-tab execution is provided. A schedule never overlaps itself in one process (timers
+and `runDue`); manual calls and separate schedules may overlap. Error handling never silently retries a task.

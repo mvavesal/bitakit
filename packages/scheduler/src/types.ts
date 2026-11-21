@@ -20,6 +20,14 @@ export type TaskContext<Input = unknown> = Pick<
 > & {
   input: Input;
   signal: AbortSignal;
+  /** The schedule that started this run (a timer, `runDue` or a caller's `schedule` option). Correlation, never authorization. */
+  schedule?: string;
+  /**
+   * The planned time this run belongs to: set by timers and `runDue` (or a caller's `slot` option),
+   * absent for plain `run` calls. Several instances or a timer and a cron call can start the same
+   * slot; use `schedule` + `slot` as the key that lets the task run each slot once.
+   */
+  slot?: Date;
 };
 export type TaskDefinition<Input = unknown, Result = unknown> = {
   readonly kind: 'task';
@@ -70,7 +78,26 @@ export type SchedulerState = Readonly<{
   sources: readonly { id: string; failed: boolean }[];
 }>;
 export type SchedulerNotice = Readonly<{ task: string; schedule?: string; runId: number }>;
-export type RunOptions = { schedule?: string };
+export type RunOptions = {
+  /** Correlation metadata, never proof of authorization. */
+  schedule?: string;
+  /** The planned time of the run; the task reads it as `slot`. */
+  slot?: Date;
+};
+export type RunDueOptions = {
+  /** Reference time; defaults to the current time. */
+  now?: Date;
+  /** Window in milliseconds: a schedule is due when its latest slot lies in (now - within, now]. Default 60000. */
+  within?: number;
+};
+/** One schedule `runDue` found due, with the settled outcome of its run. */
+export type DueRun = Readonly<{ schedule: string; task: string; slot: Date }> &
+  (
+    | Readonly<{ status: 'fulfilled'; value: unknown }>
+    | Readonly<{ status: 'rejected'; reason: unknown }>
+    /** The schedule's previous run is still in progress in this process (no self-overlap). */
+    | Readonly<{ status: 'skipped' }>
+  );
 export interface Scheduler {
   readonly state: Store<SchedulerState>;
   registerTask<Input, Result>(
@@ -87,6 +114,13 @@ export interface Scheduler {
     input?: TaskInput<Id>,
     options?: RunOptions,
   ): Promise<TaskResult<Id>>;
+  /**
+   * Runs every enabled, unpaused schedule whose latest slot (at or before `now`, in its timezone)
+   * lies within the window, once each and in parallel, through the public `run`. Lets a host's
+   * cron drive the schedules where no process lives on (serverless). Runs the latest slot only,
+   * never every missed one; deduplication across instances belongs to the task (`schedule` + `slot`).
+   */
+  runDue(options?: RunDueOptions): Promise<readonly DueRun[]>;
   pause(id: ScheduleId): void;
   resume(id: ScheduleId): void;
   list(): readonly ScheduleStatus[];
