@@ -1,5 +1,11 @@
 # @bitakit/organizations
 
+## 0.3.1
+
+### Patch Changes
+
+- cd56b8d: Organizations: an optional `securityPolicy` capability – the organization's sign-in rule (`twoFactor: 'optional' | 'required'`), read with `securityPolicy()` and saved with `saveSecurityPolicy(policy)`; the demo backend keeps it in memory.
+
 ## 0.3.0
 
 ### Minor Changes
