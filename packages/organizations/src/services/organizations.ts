@@ -2,6 +2,7 @@ import { isOrganizationWebsite, organizationWebsiteError } from '../website.js';
 import { normalizeInvitationDomain } from '../domains.js';
 import type {
   InvitationPolicy,
+  SecurityPolicy,
   OrganizationBackend,
   OrganizationData,
   OrganizationInput,
@@ -137,6 +138,7 @@ export function createOrganizationService(backend: OrganizationBackend) {
         invitations: !!backend.acceptInvitation && !!backend.rejectInvitation,
         customRoles: !!backend.customRoles,
         invitationPolicy: !!backend.invitationPolicy,
+        securityPolicy: !!backend.securityPolicy,
       };
     },
     /** The organization's roles: the app's base roles and its custom roles. */
@@ -293,6 +295,23 @@ export function createOrganizationService(backend: OrganizationBackend) {
       let saved!: InvitationPolicy;
       await mutate(async () => {
         saved = await backend.invitationPolicy!.save({ organizationId, policy });
+      });
+      return saved;
+    },
+    /** The active organization's sign-in rule (members may read it). */
+    async securityPolicy(): Promise<SecurityPolicy> {
+      if (!backend.securityPolicy || !state.activeId) throw new Error('Not supported.');
+      return backend.securityPolicy.load(state.activeId);
+    },
+    /** Saves the sign-in rule; the provider checks the right to change it (and may refuse to require what the actor lacks). */
+    async saveSecurityPolicy(policy: SecurityPolicy): Promise<SecurityPolicy> {
+      const organizationId = active();
+      if (!backend.securityPolicy) throw new Error('Not supported.');
+      if (policy.twoFactor !== 'optional' && policy.twoFactor !== 'required')
+        throw new Error('twoFactor must be "optional" or "required".');
+      let saved!: SecurityPolicy;
+      await mutate(async () => {
+        saved = await backend.securityPolicy!.save({ organizationId, policy });
       });
       return saved;
     },

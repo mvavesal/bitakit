@@ -32,7 +32,7 @@ export default defineService(() => betterAuthOrganizations(authClient), {
   (in memory, no real authentication or email).
 - Without a backend, startup fails with a named error.
 
-## Roles, custom roles and the invitation policy
+## Roles, custom roles, the invitation policy and the security policy
 
 - The backend reports the organization's roles in `load()`: `roles` (the app's base roles from
   `defineRoles`, then the organization's custom roles: `id`, `label`, `description`, `standard`,
@@ -49,6 +49,9 @@ export default defineService(() => betterAuthOrganizations(authClient), {
   `normalizeInvitationDomain(value)` is the one domain check for these policies (browser- and server-safe,
   WHATWG URL / UTS #46: ASCII lowercase without a trailing dot, at least two labels, no wildcards, addresses,
   ports or IPs; `null` when invalid). Settings screens use it on input; providers use it on save and match.
+  `securityPolicy` (`securityPolicy()`, `saveSecurityPolicy({ twoFactor: 'optional' | 'required' })`): the
+  organization's sign-in rule. The provider stores it and checks the right to change it; the app enforces it on its server
+  (for Better Auth: `securityPolicyMet` of `@bitakit/better-auth/server`) and sends members without two-factor to set it up.
   Check `service.capabilities` before offering them. Each app builds its own screens.
 
 ## Rules

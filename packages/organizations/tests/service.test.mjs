@@ -235,7 +235,7 @@ test('roles come from the backend: assignable roles follow the viewer’s permis
   service.dispose();
 });
 
-test('custom roles and the invitation policy are optional backend capabilities', async () => {
+test('custom roles, the invitation policy and the security policy are optional backend capabilities', async () => {
   const service = createOrganizationService(createDemoOrganizationBackend());
   await service.refresh();
   assert.equal(service.capabilities.customRoles, true);
@@ -264,6 +264,16 @@ test('custom roles and the invitation policy are optional backend capabilities',
   });
   assert.equal(saved.mode, 'allowlist');
   assert.deepEqual(await service.invitationPolicy(), saved);
+  assert.equal(service.capabilities.securityPolicy, true);
+  assert.deepEqual(await service.securityPolicy(), { twoFactor: 'optional' });
+  await assert.rejects(
+    service.saveSecurityPolicy({ twoFactor: 'always' }),
+    /optional" or "required/,
+  );
+  assert.deepEqual(await service.saveSecurityPolicy({ twoFactor: 'required' }), {
+    twoFactor: 'required',
+  });
+  assert.deepEqual(await service.securityPolicy(), { twoFactor: 'required' });
   const plain = createOrganizationService({
     load: async () => ({
       organizations: [],
@@ -275,6 +285,8 @@ test('custom roles and the invitation policy are optional backend capabilities',
   });
   assert.equal(plain.capabilities.customRoles, false);
   await assert.rejects(plain.invitationPolicy(), /Not supported/);
+  assert.equal(plain.capabilities.securityPolicy, false);
+  await assert.rejects(plain.securityPolicy(), /Not supported/);
   service.dispose();
 });
 
