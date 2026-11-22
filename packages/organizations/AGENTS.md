@@ -52,6 +52,7 @@ export default defineService(() => betterAuthOrganizations(authClient), {
   `securityPolicy` (`securityPolicy()`, `saveSecurityPolicy({ twoFactor: 'optional' | 'required', signInMethods? })`): the
   organization's sign-in rule (`signInMethods`: the provider's method names it accepts; absent = every method). The provider stores it and checks the right to change it; the app enforces it on its server
   (for Better Auth: `securityPolicyMet` of `@bitakit/better-auth/server`) and sends members without two-factor to set it up.
+  `resetTwoFactor` (`resetTwoFactor(memberId)`): turns a member's two-step sign-in off; the provider decides who may.
   Check `service.capabilities` before offering them. Each app builds its own screens.
 
 ## Rules

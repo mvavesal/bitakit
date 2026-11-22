@@ -133,5 +133,10 @@ export interface OrganizationBackend {
     load(organizationId: string): Promise<SecurityPolicy>;
     save(input: { organizationId: string; policy: SecurityPolicy }): Promise<SecurityPolicy>;
   };
+  /**
+   * Turns a member's two-step sign-in off (they lost their second factor), when the provider offers it. The provider checks
+   * the right to do so and may refuse (e.g. for a person who also belongs to other organizations).
+   */
+  resetTwoFactor?(input: { organizationId: string; memberId: string }): Promise<void>;
   removeMember(input: { organizationId: string; memberId: string }): Promise<void>;
 }
