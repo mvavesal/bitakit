@@ -139,6 +139,7 @@ export function createOrganizationService(backend: OrganizationBackend) {
         customRoles: !!backend.customRoles,
         invitationPolicy: !!backend.invitationPolicy,
         securityPolicy: !!backend.securityPolicy,
+        resetTwoFactor: !!backend.resetTwoFactor,
       };
     },
     /** The organization's roles: the app's base roles and its custom roles. */
@@ -218,6 +219,12 @@ export function createOrganizationService(backend: OrganizationBackend) {
       if (!state.members.some((item) => item.id === memberId && !isCreator(item.role)))
         throw new Error('Member not available.');
       return mutate(() => backend.updateRole({ organizationId, memberId, role }));
+    },
+    /** Turns a member's two-step sign-in off; the provider decides whether the viewer may. */
+    resetTwoFactor(memberId: string) {
+      const organizationId = active();
+      if (!backend.resetTwoFactor) throw new Error('Not supported.');
+      return mutate(() => backend.resetTwoFactor!({ organizationId, memberId }));
     },
     remove(memberId: string) {
       const organizationId = active();
@@ -309,6 +316,11 @@ export function createOrganizationService(backend: OrganizationBackend) {
       if (!backend.securityPolicy) throw new Error('Not supported.');
       if (policy.twoFactor !== 'optional' && policy.twoFactor !== 'required')
         throw new Error('twoFactor must be "optional" or "required".');
+      if (
+        policy.signInMethods !== undefined &&
+        (!Array.isArray(policy.signInMethods) || !policy.signInMethods.length)
+      )
+        throw new Error('signInMethods must be a non-empty list, or absent for every method.');
       let saved!: SecurityPolicy;
       await mutate(async () => {
         saved = await backend.securityPolicy!.save({ organizationId, policy });

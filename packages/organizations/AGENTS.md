@@ -49,9 +49,10 @@ export default defineService(() => betterAuthOrganizations(authClient), {
   `normalizeInvitationDomain(value)` is the one domain check for these policies (browser- and server-safe,
   WHATWG URL / UTS #46: ASCII lowercase without a trailing dot, at least two labels, no wildcards, addresses,
   ports or IPs; `null` when invalid). Settings screens use it on input; providers use it on save and match.
-  `securityPolicy` (`securityPolicy()`, `saveSecurityPolicy({ twoFactor: 'optional' | 'required' })`): the
-  organization's sign-in rule. The provider stores it and checks the right to change it; the app enforces it on its server
+  `securityPolicy` (`securityPolicy()`, `saveSecurityPolicy({ twoFactor: 'optional' | 'required', signInMethods? })`): the
+  organization's sign-in rule (`signInMethods`: the provider's method names it accepts; absent = every method). The provider stores it and checks the right to change it; the app enforces it on its server
   (for Better Auth: `securityPolicyMet` of `@bitakit/better-auth/server`) and sends members without two-factor to set it up.
+  `resetTwoFactor` (`resetTwoFactor(memberId)`): turns a member's two-step sign-in off; the provider decides who may.
   Check `service.capabilities` before offering them. Each app builds its own screens.
 
 ## Rules

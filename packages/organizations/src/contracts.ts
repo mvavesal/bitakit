@@ -62,9 +62,11 @@ export type InvitationPolicy = {
 };
 /**
  * The organization's sign-in rule for its members. `twoFactor: 'required'`: a member without two-factor sign-in may not
- * work in the organization until they turn it on (the provider stores the rule; the app enforces it on its server).
+ * work in the organization until they turn it on. `signInMethods`: the sign-in methods the organization accepts (the
+ * provider's names, e.g. `email`, `passkey`, `google`); absent = every method. The provider stores the rule; the app
+ * enforces it on its server.
  */
-export type SecurityPolicy = { twoFactor: 'optional' | 'required' };
+export type SecurityPolicy = { twoFactor: 'optional' | 'required'; signInMethods?: string[] };
 export type OrganizationData = {
   organizations: readonly Organization[];
   activeId: string | null;
@@ -131,5 +133,10 @@ export interface OrganizationBackend {
     load(organizationId: string): Promise<SecurityPolicy>;
     save(input: { organizationId: string; policy: SecurityPolicy }): Promise<SecurityPolicy>;
   };
+  /**
+   * Turns a member's two-step sign-in off (they lost their second factor), when the provider offers it. The provider checks
+   * the right to do so and may refuse (e.g. for a person who also belongs to other organizations).
+   */
+  resetTwoFactor?(input: { organizationId: string; memberId: string }): Promise<void>;
   removeMember(input: { organizationId: string; memberId: string }): Promise<void>;
 }
