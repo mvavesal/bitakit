@@ -1,5 +1,13 @@
 # @bitakit/organizations
 
+## 0.3.2
+
+### Patch Changes
+
+- 5d75850: Security policy: `signInMethods` – the sign-in methods an organization accepts (absent = every method).
+
+  `resetTwoFactor(memberId)`: turns a member's two-step sign-in off where the provider offers it (capability `resetTwoFactor`).
+
 ## 0.3.1
 
 ### Patch Changes
