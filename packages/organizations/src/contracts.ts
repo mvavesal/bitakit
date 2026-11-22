@@ -62,9 +62,11 @@ export type InvitationPolicy = {
 };
 /**
  * The organization's sign-in rule for its members. `twoFactor: 'required'`: a member without two-factor sign-in may not
- * work in the organization until they turn it on (the provider stores the rule; the app enforces it on its server).
+ * work in the organization until they turn it on. `signInMethods`: the sign-in methods the organization accepts (the
+ * provider's names, e.g. `email`, `passkey`, `google`); absent = every method. The provider stores the rule; the app
+ * enforces it on its server.
  */
-export type SecurityPolicy = { twoFactor: 'optional' | 'required' };
+export type SecurityPolicy = { twoFactor: 'optional' | 'required'; signInMethods?: string[] };
 export type OrganizationData = {
   organizations: readonly Organization[];
   activeId: string | null;

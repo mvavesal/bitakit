@@ -309,6 +309,8 @@ export function createOrganizationService(backend: OrganizationBackend) {
       if (!backend.securityPolicy) throw new Error('Not supported.');
       if (policy.twoFactor !== 'optional' && policy.twoFactor !== 'required')
         throw new Error('twoFactor must be "optional" or "required".');
+      if (policy.signInMethods !== undefined && (!Array.isArray(policy.signInMethods) || !policy.signInMethods.length))
+        throw new Error('signInMethods must be a non-empty list, or absent for every method.');
       let saved!: SecurityPolicy;
       await mutate(async () => {
         saved = await backend.securityPolicy!.save({ organizationId, policy });
