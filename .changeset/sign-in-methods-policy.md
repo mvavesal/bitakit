@@ -1,5 +1,5 @@
 ---
-'@bitakit/organizations': minor
+'@bitakit/organizations': patch
 ---
 
 Security policy: `signInMethods` – the sign-in methods an organization accepts (absent = every method).
