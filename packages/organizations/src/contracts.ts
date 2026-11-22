@@ -60,6 +60,11 @@ export type InvitationPolicy = {
     /** Unicode form. */ display?: string;
   }[];
 };
+/**
+ * The organization's sign-in rule for its members. `twoFactor: 'required'`: a member without two-factor sign-in may not
+ * work in the organization until they turn it on (the provider stores the rule; the app enforces it on its server).
+ */
+export type SecurityPolicy = { twoFactor: 'optional' | 'required' };
 export type OrganizationData = {
   organizations: readonly Organization[];
   activeId: string | null;
@@ -120,6 +125,11 @@ export interface OrganizationBackend {
   invitationPolicy?: {
     load(organizationId: string): Promise<InvitationPolicy>;
     save(input: { organizationId: string; policy: InvitationPolicy }): Promise<InvitationPolicy>;
+  };
+  /** The organization's sign-in rule (two-factor optional or required), when the provider stores one. */
+  securityPolicy?: {
+    load(organizationId: string): Promise<SecurityPolicy>;
+    save(input: { organizationId: string; policy: SecurityPolicy }): Promise<SecurityPolicy>;
   };
   removeMember(input: { organizationId: string; memberId: string }): Promise<void>;
 }

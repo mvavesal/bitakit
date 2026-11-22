@@ -10,6 +10,7 @@ import type {
   Member,
   Invitation,
   InvitationPolicy,
+  SecurityPolicy,
   OrganizationRole,
 } from './contracts.js';
 /** In-memory test backend. No authentication, persistence or email delivery. */
@@ -69,6 +70,7 @@ export function createDemoOrganizationBackend(): OrganizationBackend {
   ];
   const customRoles = new Map<string, OrganizationRole[]>();
   const policies = new Map<string, InvitationPolicy>();
+  const securityPolicies = new Map<string, SecurityPolicy>();
   const scope = (id: string) => {
     if (!organizations.some((org) => org.id === id)) throw new Error('Unknown organization');
   };
@@ -215,6 +217,17 @@ export function createDemoOrganizationBackend(): OrganizationBackend {
       async save({ organizationId, policy }) {
         scope(organizationId);
         policies.set(organizationId, policy);
+        return policy;
+      },
+    },
+    securityPolicy: {
+      async load(organizationId) {
+        scope(organizationId);
+        return securityPolicies.get(organizationId) ?? { twoFactor: 'optional' };
+      },
+      async save({ organizationId, policy }) {
+        scope(organizationId);
+        securityPolicies.set(organizationId, policy);
         return policy;
       },
     },
